@@ -48,8 +48,6 @@ if __name__ == "__main__":
 
 
 # === References ===
-# Benson, M. (2026, March 19). *IT 140 assignment 2-3: Starter project* [Supplemental resource]. VS Code for EDU. https://vscodeedu.com/wrKpu6c0r3z6jrSsRX8g
-
 # TODO: Add reference entries for any additional sources you used in APA style, including those in your IDE (e.g., code completion, genAI).
 
 # TODO: Delete all TODO and NOTE comment lines, including this one, before submitting this file to the D2L Brightspace assignment drop box.
