@@ -25,20 +25,20 @@ from datetime import date
 
 
 # === Constants ===
-CURRENT_YEAR: int = date.today().year  # Gets current year from device
+CURRENT_YEAR: int = date.today().year  # Get current year from system
 
 
 # === Main Function ===
 def main() -> None:
     """Run the program."""
 
-    # === <Step 1 of algorithm in a complete sentence>. ===
+    # <Step 1 of algorithm in a complete sentence>.
     # TODO: Add your code to input data. Review zyBooks 1.3, Basic Input.
 
-    # === <Step 2 of algorithm in a complete sentence>. ===
+    # <Step 2 of algorithm in a complete sentence>.
     # TODO: Add your code to process data. Review <course resource>.
 
-    # === <Step 3 of algorithm in a complete sentence>. ===
+    # <Step 3 of algorithm in a complete sentence>.
     # TODO: Add your code to output results. Review zyBooks §1.3 & 2.7.
 
 
