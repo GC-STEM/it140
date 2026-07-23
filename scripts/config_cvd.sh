@@ -1,23 +1,13 @@
 #!/usr/bin/env bash
-# IT 140 Codio Virtual Desktop (CVD) Configuration Script
 #
-# This script...
+# IT 140 Codio Virtual Desktop first-use configuration
 #
-# Usage: Run this script from a terminal inside the Codio Virtual Desktop.
-#   chmod +x scripts/config_cvd.sh
-#   ./scripts/config_cvd.sh
+# Audience: IT 140 students
+# Purpose: Connect this Codio Virtual Desktop to GitHub and configure the
+#          student-specific Git and Visual Studio Code settings used in IT 140.
 #
-# The script is safe to run again if configuration is interrupted.
-#
-# Sources
-#
-#
-# AI Acknowledgment:
-#   This script was developed and refined with the assistance of AI tools
-#   to maintain parity with the setup and update scripts, including
-#   standardized terminal output, defensive checks, and student-friendly
-#   troubleshooting guidance.
-
+# Run this script from a terminal inside the graphical Codio Virtual Desktop.
+# The script is safe to run again if configuration was interrupted.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -115,7 +105,7 @@ require_command() {
     if ! command -v "$command_name" >/dev/null 2>&1; then
         printf 'ERROR: Required command "%s" is not installed.\n' \
             "$command_name" >&2
-        printf 'Report this problem to your instructor or the SNHU IT Service Desk.\n' >&2
+        printf 'Report this problem to your instructor or course support.\n' >&2
         exit 1
     fi
 }
@@ -418,7 +408,7 @@ configure_chrome_optional() {
     if ! chrome_command="$(find_chrome)"; then
         printf '%s\n' \
             "Google Chrome could not be found." \
-            "Report this problem to your instructor or the SNHU IT Service Desk."
+            "Report this problem to your instructor or course support."
         return
     fi
 
