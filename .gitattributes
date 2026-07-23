@@ -1,0 +1,2 @@
+# Force all text files to use LF line endings on checkout and commit
+* text=auto eol=lf
