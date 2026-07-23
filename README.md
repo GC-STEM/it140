@@ -12,6 +12,9 @@ Click the links below to access the repositories for each module's activity. Eac
 | Module | Activity    | Activity Repository                                                     |
 |--------|-------------|-------------------------------------------------------------------------|
 | One    | Setup Tasks | [it140-m1-setup-tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) |
+|        | - Github Account Setup  | [../github/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md) |
+|        | - Codio Virtual Desktop | [../codio/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/codio/README.md) |
+|        | - Local Computer Setup  | [../local/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/local/README.md) |
 | Two    | Assignment  | [it140-m2-assignment](https://github.com/GC-STEM/it140-m2-assignment)   |
 | Three  | Assignment  | [it140-m3-assignment](https://github.com/GC-STEM/it140-m3-assignment)   |
 | Four   | Assignment  | [it140-m4-assignment](https://github.com/GC-STEM/it140-m4-assignment)   |
