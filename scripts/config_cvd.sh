@@ -125,7 +125,10 @@ if gh auth status >/dev/null 2>&1; then
 else
     echo ""
     echo -e "${COLOR_PROMPT}>>> ACTION REQUIRED: Press ENTER to launch the GitHub authentication prompt.${COLOR_RESET}"
-    echo -e "${COLOR_PROMPT}    When prompted, select 'GitHub.com', 'HTTPS', and 'Login with a web browser'.${COLOR_RESET}"
+    echo -e "${COLOR_PROMPT}    When prompted to copy the one-time code, write it down or take a screenshot.${COLOR_RESET}"
+    echo -e "${COLOR_PROMPT}    Then, right-click on the URL and select Open Link.${COLOR_RESET}"
+    echo -e "${COLOR_PROMPT}    Be patient. It can take a few moments to open the browser.${COLOR_RESET}"
+    echo -e "${COLOR_PROMPT}    Follow the prompts in the browser.${COLOR_RESET}"
     read -r -p ">>> Press ENTER to begin authentication..."
 
     gh auth login -h github.com -p https -w
