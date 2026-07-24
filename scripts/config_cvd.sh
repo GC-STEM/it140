@@ -89,7 +89,7 @@ print_welcome_banner() {
     local divider
     divider=$(printf '%*s' "$term_width" '' | tr ' ' '=')
 
-    local title="IT 140 - STUDENT ENVIRONMENT SETUP"
+    local title="IT 140 - CODIO ENVIRONMENT CONFIGURATION"
     local padding=$(( (term_width - ${#title}) / 2 ))
 
     # Ensure non-negative padding
@@ -128,7 +128,7 @@ else
     echo -e "${COLOR_PROMPT}    When prompted, select 'GitHub.com', 'HTTPS', and 'Login with a web browser'.${COLOR_RESET}"
     read -r -p ">>> Press ENTER to begin authentication..."
 
-    gh auth login --web -h github.com -p https
+    gh auth login -h github.com -p https -w
 
     if ! gh auth status >/dev/null 2>&1; then
         echo -e "${COLOR_WARN}[ERROR] GitHub authentication failed or was cancelled. Please re-run the script.${COLOR_RESET}"
@@ -173,12 +173,14 @@ fi
 git config --global user.name "$GIT_NAME"
 print_success "Global Git user name set to: '$GIT_NAME'"
 
-print_info "Applying Git core settings..."
 git config --global init.defaultBranch main
-git config --global core.autocrlf input
+git config --global core.autocrlf false
+git config --global core.eol lf
+git config --global core.safecrlf warn
 git config --global push.autoSetupRemote true
 git config --global core.editor "code --wait"
-print_success "Git core preferences updated (Default branch: 'main', Auto-CRLF conversion: enabled)."
+
+print_success "Git core preferences updated (default branch: 'main'; text files use LF line endings)."
 
 # ------------------------------------------------------------------------------
 # 3. VS Code Preferences & Course Extension Defaults
@@ -263,12 +265,12 @@ DIVIDER=$(printf '%*s' "$TERM_WIDTH" '' | tr ' ' '=')
 
 echo ""
 print_success "=== CONFIGURATION SUMMARY ==="
-print_info "Git User Name   : $CONF_NAME"
+print_info "Git User Name    : $CONF_NAME"
 print_info "Git Privacy Email: $CONF_EMAIL"
-print_info "GitHub Login    : $GH_USER"
-print_info "Course Directory: $HOME/it140"
-print_info "Python Path     : /usr/bin/python3"
-print_info "Log Transcript  : $LOG_FILE"
+print_info "GitHub Login     : $GH_USER"
+print_info "Course Directory : $HOME/it140"
+print_info "Python Path      : /usr/bin/python3"
+print_info "Log Transcript   : $LOG_FILE"
 echo ""
 
 print_success "All course environment configurations completed successfully!"
