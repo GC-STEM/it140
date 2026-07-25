@@ -9,7 +9,7 @@
 
 Click the links below to access the repositories for each module's activity. Each repository contains the necessary files and instructions for completing the corresponding activity.
 
-| Module | Activity    | Activity Repository                                                     | Status | ETA      |
+| Module | Activity    | Activity Repository                                                     | Status | Live ETA |
 |--------|-------------|-------------------------------------------------------------------------|--------|----------|
 | One    | Setup Tasks | [it140-m1-setup-tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) |        | 8/2/2026 |
 |        | - Github    | [../github/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md) |        | 7/30/2026 |
