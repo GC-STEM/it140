@@ -2,7 +2,11 @@
 
 *Pseudoscript* is a platform-agnostic, script-like representation of an automation task. It preserves the structure, sequence, comments, variables, and decision logic of a real script while expressing commands in plain language or generic operations rather than platform-specific syntax.
 
-## Script Requirement Specification Notes
+---
+
+## Development Notes
+
+### Script Requirement Specification Notes
 
 The four scripts form the **minimum complete lifecycle** for each supported platform:
 
@@ -15,7 +19,7 @@ I do **not** recommend adding another mandatory platform script for the first up
 
 The current main repository also acts primarily as a course hub linking students to the individual activity repositories. That means the automation should manage the course environment and support files without treating students’ assignment repositories as course-managed files. fileciteturn7file0L10-L25
 
-## Essential capabilities within the four scripts
+### Essential capabilities within the four scripts
 
 | Capability                         | Owning script   | Reason                                                                                     |
 | ---------------------------------- | --------------- | ------------------------------------------------------------------------------------------ |
@@ -26,7 +30,7 @@ The current main repository also acts primarily as a course hub linking students
 | Remove obsolete managed components | `update_any`    | Cleanup is part of maintaining the supported environment.                                  |
 | Identify the correct remediation   | `verify_any`    | Each failed check should tell the user whether to rerun setup, configure, or update.       |
 
-### 1. Make setup and configure idempotent
+#### 1. Make setup and configure idempotent
 
 An idempotent script can be run repeatedly without causing damage or duplicating configuration.
 
@@ -39,7 +43,7 @@ That eliminates the immediate need for `repair_any.<ext>`. For example:
 
 This is simpler for students and support personnel than choosing among setup, configure, repair, reset, and update scripts.
 
-### 2. Make course-file synchronization part of update
+#### 2. Make course-file synchronization part of update
 
 A synchronization capability is essential because students may receive a copied, non-Git version of the main repository. Otherwise, fixes to `verify`, `configure`, or other course support files would not reach existing installations.
 
@@ -61,7 +65,7 @@ It must not overwrite:
 
 Include synchronization in `update_any`.
 
-### 3. Make verification the support-collection script
+#### 3. Make verification the support-collection script
 
 The `verify_any` script should do the following:
 
@@ -76,9 +80,9 @@ The `verify_any` script should do the following:
 
 The current repository’s `verify_cvd.sh` contains only introductory comments and does not yet implement its stated checks, so this remains a major construction task. fileciteturn10file0L3-L23
 
-## Supporting files that are required
+### Supporting files that are required
 
-### `it140/it140_manifest.json`
+#### `it140/it140_manifest.json`
 
 Setup, configure, verify, and update must obtain shared requirements from one authoritative manifest rather than independently hardcoding them.
 
@@ -97,7 +101,7 @@ The manifest could define:
 
 This is particularly important because the current update script embeds separate lists of system packages and VS Code extensions. fileciteturn11file0L108-L137 Those lists also appear in the uploaded setup design, creating a future drift risk between setup, update, and verify.
 
-### Platform bootstrap command set
+#### Platform bootstrap command set
 
 Each platform needs a small documented command set that:
 
@@ -110,7 +114,7 @@ Each platform needs a small documented command set that:
 
 This is not meaningfully an installed script because the user needs it **before the scripts are available**. The existing copy-and-paste PowerShell and shell command sets fit this role.
 
-## Scripts to defer
+### Scripts to defer
 
 These may eventually be useful, but they are not yet “for sure” requirements.
 
@@ -126,7 +130,7 @@ These may eventually be useful, but they are not yet “for sure” requirements
 | `launch_any.<ext>`    | Desktop shortcuts, PATH entries, and normal application launchers are sufficient.                                            |
 | `test_any.<ext>`      | Use verify as the installed-environment acceptance test. Development tests can reside outside the student-facing script set. |
 
-## Source and repository findings
+### Source and repository findings
 
 Several current files need to be aligned with the four-script architecture before construction proceeds:
 
@@ -139,7 +143,7 @@ Several current files need to be aligned with the four-script architecture befor
 - The repository standardizes LF endings for shell, PowerShell, batch, command, and pseudoscript files, which supports consistent cross-platform source management. fileciteturn12file0L6-L23
 - At the expected main-branch path, `scripts/cvd/setup_cvd.sh` is not currently present. The searchable CVD files are `config_cvd.sh`, `verify_cvd.sh`, and `update_cvd.sh`; the uploaded setup pseudoscript therefore represents planned work rather than a completed repository implementation.
 
-## Proposed definitive script set
+### Proposed definitive script set
 
 ```text
 setup_<platform>.<ext>
