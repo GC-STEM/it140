@@ -1,31 +1,38 @@
 #!/usr/bin/env bash
 #
-# IT 140 Codio Virtual Desktop update script
+# IT 140 Codio Virtual Desktop managed update and repair script
 #
-# Audience: IT 140 students and faculty using the Codio Virtual Desktop
-# Purpose: Update the supported Ubuntu 24.04 course environment, including
-#          system packages, the course IDE, Python command-line tools, and
-#          VS Code extensions.
-#
-# Usage:
-#   chmod +x scripts/cvd/update_cvd.sh
-#   ./scripts/cvd/update_cvd.sh
-#
-# Run this script as the standard CVD desktop user. Do not run it with sudo.
-# The script invokes passwordless sudo only for system-level package changes.
-# It does not perform an Ubuntu release upgrade or modify student coursework.
+# Traceability: UPD-FR-001 through UPD-FR-016; UPD-DES-001 through UPD-DES-016
+# Scope: Approved system maintenance, course-managed assets, required user tools,
+#        IDE extensions, and course-managed integrations within Ubuntu 24.04.
+# Excludes: OS release upgrades, coursework, repositories, Git history, optional
+#           extension removal, and undeclared files or settings.
 
 set -Eeuo pipefail
-umask 022
+umask 077
 
-SCRIPT_VERSION="2026.07.24.1"
-LOG_DIR="$HOME/it140/logs"
-LOG_FILE="$LOG_DIR/update_$(date +%Y%m%d_%H%M%S).log"
+readonly SCRIPT_VERSION="2026.07.25.2"
+readonly PLATFORM_ID="cvd"
+readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
+readonly COURSE_ROOT="${HOME}/it140"
+readonly SCRIPT_ROOT="${COURSE_ROOT}/scripts"
+readonly PLATFORM_SCRIPT_DIR="${SCRIPT_ROOT}/${PLATFORM_ID}"
+readonly MANIFEST_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.json"
+readonly SCHEMA_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.schema.json"
+readonly LOG_DIR="${COURSE_ROOT}/logs"
+readonly LOG_FILE="${LOG_DIR}/update_${PLATFORM_ID}_$(date +%Y%m%d_%H%M%S).log"
+readonly VENV_DIR="${COURSE_ROOT}/.venv"
+readonly LOCK_FILE="${HOME}/.cache/it140-${PLATFORM_ID}-mutation.lock"
+readonly COURSE_REPOSITORY="https://github.com/GC-STEM/it140.git"
 
-mkdir -p "$LOG_DIR"
-exec > >(tee -a "$LOG_FILE") 2>&1
-
-trap 'status=$?; printf "\nERROR: CVD update stopped at line %s (exit %s).\nReview: %s\n" "$LINENO" "$status" "$LOG_FILE" >&2; exit "$status"' ERR
+NONINTERACTIVE=false
+REQUESTED_PROFILE="$DEPLOYMENT_PROFILE_ID"
+CHANGED=false
+PARTIAL=false
+START_EPOCH="$(date +%s)"
+WARNINGS=0
+FAILURES=0
+STAGING_ROOT=""
 
 print_header() {
     printf '\n============================================================\n'
@@ -33,252 +40,725 @@ print_header() {
     printf '============================================================\n'
 }
 
-print_info() {
-    printf '[INFO] %s\n' "$1"
+print_info() { printf '[INFO] %s\n' "$1"; }
+print_success() { printf '[SUCCESS] %s\n' "$1"; }
+print_notice() { printf '[NOTICE] %s\n' "$1"; }
+print_warning() { printf '[WARNING] %s\n' "$1"; WARNINGS=$((WARNINGS + 1)); }
+print_error() { printf '[ERROR] %s\n' "$1" >&2; FAILURES=$((FAILURES + 1)); }
+
+usage() {
+    cat <<USAGE
+Usage: update_cvd.sh [--help] [--version] [--noninteractive]
+                     [--deployment-profile codio_cvd]
+
+Synchronizes approved course automation assets and updates the supported IT 140
+Codio Virtual Desktop within Ubuntu 24.04. Run as the standard CVD user, not
+with sudo. The script never performs an Ubuntu release upgrade.
+
+Log directory: ~/it140/logs/
+USAGE
 }
 
-print_success() {
-    printf '[SUCCESS] %s\n' "$1"
+parse_options() {
+    while (($#)); do
+        case "$1" in
+            --help|-h)
+                usage
+                exit 0
+                ;;
+            --version)
+                printf '%s\n' "$SCRIPT_VERSION"
+                exit 0
+                ;;
+            --noninteractive)
+                NONINTERACTIVE=true
+                ;;
+            --deployment-profile)
+                shift
+                [[ $# -gt 0 ]] || { print_error "Missing deployment profile."; exit 2; }
+                REQUESTED_PROFILE="$1"
+                ;;
+            *)
+                print_error "Unsupported option: $1"
+                usage >&2
+                exit 2
+                ;;
+        esac
+        shift
+    done
 }
 
-print_notice() {
-    printf '[NOTICE] %s\n' "$1"
+cleanup() {
+    if [[ -n "$STAGING_ROOT" && -d "$STAGING_ROOT" ]]; then
+        rm -rf "$STAGING_ROOT"
+    fi
 }
 
-print_error() {
-    printf '[ERROR] %s\n' "$1" >&2
+on_error() {
+    local status=$?
+    local line=${BASH_LINENO[0]:-unknown}
+    print_error "Update stopped near line ${line} with exit status ${status}."
+    print_error "Review the log: ${LOG_FILE}"
+    cleanup
+    if [[ "$CHANGED" == true ]]; then
+        exit 7
+    fi
+    exit 1
 }
 
-# Prevent user-specific updates from being installed under /root.
-if [[ "$EUID" -eq 0 ]]; then
-    print_error "Do not run this script with sudo."
-    print_error "Run it as: bash update_cvd.sh"
-    exit 1
-fi
+on_interrupt() {
+    print_error "Update was interrupted. Rerun update_cvd.sh to recover."
+    cleanup
+    if [[ "$CHANGED" == true ]]; then
+        exit 7
+    fi
+    exit 6
+}
 
-# Confirm that this is the supported CVD operating-system release.
-if [[ ! -r /etc/os-release ]]; then
-    print_error "Cannot identify the operating system."
-    exit 1
-fi
+validate_manifest_pair() {
+    local manifest="$1" schema="$2"
+    python3 - "$manifest" "$schema" "$PLATFORM_ID" \
+        "$REQUESTED_PROFILE" <<'PY'
+import json
+import pathlib
+import sys
 
-# shellcheck disable=SC1091
-source /etc/os-release
-if [[ "${ID:-}" != "ubuntu" || "${VERSION_ID:-}" != "24.04" ]]; then
-    print_error "This script supports only the IT 140 Ubuntu 24.04 CVD."
-    print_error "Detected: ${PRETTY_NAME:-unknown operating system}"
-    exit 1
-fi
+manifest_path, schema_path, platform_id, profile_id = sys.argv[1:]
 
-# The standard Codio user is expected to have passwordless sudo access.
-if ! command -v sudo >/dev/null 2>&1; then
-    print_error "The sudo command is not available."
-    exit 1
-fi
+class DuplicateKeyError(ValueError):
+    pass
 
-if ! sudo -n true >/dev/null 2>&1; then
-    print_error "The current user does not have the required passwordless sudo access."
-    print_error "Contact Codio or course support before attempting the update again."
-    exit 1
-fi
+def no_duplicates(pairs):
+    output = {}
+    for key, value in pairs:
+        if key in output:
+            raise DuplicateKeyError(f"duplicate key: {key}")
+        output[key] = value
+    return output
 
-# Prevent two copies of the updater from running at the same time.
-if command -v flock >/dev/null 2>&1; then
-    LOCK_FILE="$HOME/.cache/it140-update.lock"
+try:
+    manifest = json.loads(
+        pathlib.Path(manifest_path).read_text(encoding="utf-8"),
+        object_pairs_hook=no_duplicates,
+    )
+    schema = json.loads(
+        pathlib.Path(schema_path).read_text(encoding="utf-8"),
+        object_pairs_hook=no_duplicates,
+    )
+except (OSError, UnicodeError, json.JSONDecodeError, DuplicateKeyError) as exc:
+    raise SystemExit(f"manifest validation failed: {exc}")
+
+required = {
+    "schema_version", "automation_release", "policy", "platforms",
+    "deployment_profiles", "managed_settings", "managed_assets", "logging",
+}
+missing = sorted(required - manifest.keys())
+if missing:
+    raise SystemExit(f"manifest missing required keys: {', '.join(missing)}")
+if manifest["schema_version"] != "1.0":
+    raise SystemExit("unsupported manifest schema version")
+if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+    raise SystemExit("schema is not the approved Draft 2020-12 format")
+if manifest["policy"].get("allow_os_release_upgrade") is not False:
+    raise SystemExit("manifest attempts to allow an OS release upgrade")
+platform = manifest["platforms"].get(platform_id)
+profile = manifest["deployment_profiles"].get(profile_id)
+if not platform or not platform.get("enabled"):
+    raise SystemExit("CVD platform is not enabled")
+if not profile or not profile.get("enabled") or profile.get("platform_id") != platform_id:
+    raise SystemExit("CVD deployment profile is invalid")
+
+try:
+    import jsonschema  # type: ignore
+except ImportError:
+    pass
+else:
+    jsonschema.Draft202012Validator.check_schema(schema)
+    jsonschema.Draft202012Validator(schema).validate(manifest)
+
+print(manifest["automation_release"])
+PY
+}
+
+manifest_lines() {
+    local query="$1"
+    python3 - "$MANIFEST_PATH" "$PLATFORM_ID" "$query" <<'PY'
+import json
+import sys
+
+path, platform_id, query = sys.argv[1:]
+manifest = json.load(open(path, encoding="utf-8"))
+platform = manifest["platforms"][platform_id]
+bindings = platform["course_ide_bindings"]
+
+if query == "system_packages":
+    values = []
+    for package in platform.get("os_packages", {}).values():
+        if package.get("required"):
+            values.append(package["package_identifier"])
+    for binding in bindings.values():
+        if (binding.get("required") and
+                binding.get("installation_scope") == "system" and
+                binding.get("installer_adapter_id") == "apt_package"):
+            values.append(binding["package_identifier"])
+    for value in sorted(set(values)):
+        print(value)
+elif query == "venv_packages":
+    values = []
+    for role, binding in bindings.items():
+        if (binding.get("required") and
+                binding.get("installation_scope") == "user" and
+                binding.get("installer_adapter_id") == "python_venv_package"):
+            values.append(binding["package_identifier"])
+    if bindings.get("code_quality_tool", {}).get("required"):
+        values.append("ruff")
+    for value in sorted(set(values)):
+        print(value)
+elif query == "extensions":
+    for binding in bindings.values():
+        if (binding.get("required") and
+                binding.get("installation_scope") == "user" and
+                binding.get("installer_adapter_id") == "vscode_extension"):
+            print(binding["package_identifier"])
+elif query == "minimum_space":
+    print(manifest["policy"]["minimum_free_space_bytes"])
+elif query == "retry_attempts":
+    profile_id = manifest["policy"]["default_retry_profile_id"]
+    print(manifest["policy"]["retry_profiles"][profile_id]["maximum_attempts"])
+else:
+    raise SystemExit(f"unsupported manifest query: {query}")
+PY
+}
+
+retry_operation() {
+    local description="$1"
+    shift
+    local attempts delay attempt
+    attempts="$(manifest_lines retry_attempts 2>/dev/null || printf '5')"
+    delay=5
+    for ((attempt = 1; attempt <= attempts; attempt++)); do
+        if "$@"; then
+            return 0
+        fi
+        if ((attempt == attempts)); then
+            print_error "$description failed after $attempts attempts."
+            return 1
+        fi
+        print_warning "$description failed on attempt $attempt of $attempts. Retrying in $delay seconds."
+        sleep "$delay"
+        delay=$((delay * 2))
+        ((delay > 60)) && delay=60
+    done
+}
+
+check_platform_and_user() {
+    if [[ "$EUID" -eq 0 ]]; then
+        print_error "Do not run update_cvd.sh with sudo."
+        print_error "Run it as the standard Codio desktop user."
+        exit 2
+    fi
+
+    [[ -r /etc/os-release ]] || { print_error "Cannot identify the operating system."; exit 2; }
+    # shellcheck disable=SC1091
+    source /etc/os-release
+    if [[ "${ID:-}" != ubuntu || "${VERSION_ID:-}" != 24.04 ]]; then
+        print_error "This script supports only the IT 140 Ubuntu 24.04 CVD."
+        print_error "Detected: ${PRETTY_NAME:-unknown operating system}"
+        exit 2
+    fi
+
+    local architecture
+    architecture="$(dpkg --print-architecture 2>/dev/null || uname -m)"
+    if [[ "$architecture" != amd64 && "$architecture" != x86_64 ]]; then
+        print_error "This CVD release supports only x86_64. Detected: $architecture"
+        exit 2
+    fi
+
+    command -v sudo >/dev/null 2>&1 || { print_error "sudo is unavailable."; exit 3; }
+    sudo -n true >/dev/null 2>&1 || {
+        print_error "The current user lacks the required passwordless sudo access."
+        print_error "Contact Codio or course support."
+        exit 3
+    }
+}
+
+check_prerequisites() {
+    local minimum available
+    minimum="$(manifest_lines minimum_space)"
+    available="$(df -PB1 "$HOME" | awk 'NR==2 {print $4}')"
+    if ((available < minimum)); then
+        print_error "At least $((minimum / 1024 / 1024 / 1024)) GB of free space is required."
+        exit 1
+    fi
+
+    for command_name in git python3 code; do
+        command -v "$command_name" >/dev/null 2>&1 || {
+            print_error "Required command is unavailable: $command_name"
+            print_error "Run setup_cvd.sh before updating."
+            exit 1
+        }
+    done
+
+    if pgrep -u "$(id -un)" -x code >/dev/null 2>&1; then
+        print_notice "VS Code is open. Close and reopen it after the update."
+    fi
+}
+
+acquire_lock() {
+    command -v flock >/dev/null 2>&1 || return 0
     mkdir -p "$(dirname "$LOCK_FILE")"
     exec 9>"$LOCK_FILE"
     if ! flock --nonblock 9; then
         print_error "Another IT 140 CVD update is already running."
         exit 1
     fi
-fi
+}
 
-print_header "IT 140 CODIO VIRTUAL DESKTOP UPDATE"
-print_info "Updater version : $SCRIPT_VERSION"
-CURRENT_USER="$(id -un)"
-print_info "Current user    : $CURRENT_USER"
-print_info "Operating system: ${PRETTY_NAME}"
-print_info "Log file        : $LOG_FILE"
-print_info "Available space : $(df -h --output=avail / | tail -n 1 | xargs)"
-print_notice "Keep this terminal window open until the update finishes."
-print_notice "The script will not upgrade Ubuntu to a different release."
+version_at_least_current() {
+    local file="$1" candidate
+    candidate="$(sed -n 's/^readonly SCRIPT_VERSION="\([^"]*\)"/\1/p; s/^SCRIPT_VERSION="\([^"]*\)"/\1/p' \
+        "$file" | head -1)"
+    [[ -n "$candidate" ]] || return 1
+    python3 - "$candidate" "$SCRIPT_VERSION" <<'PY'
+import re
+import sys
 
-if pgrep -u "$CURRENT_USER" -x code >/dev/null 2>&1; then
-    print_notice "VS Code is open. Close and reopen it after the update."
-fi
+def key(value):
+    numbers = [int(item) for item in re.findall(r"\d+", value)]
+    return tuple(numbers)
 
-APT_OPTIONS=(
-    -o Acquire::Retries=3
-    -o Dpkg::Options::=--force-confdef
-    -o Dpkg::Options::=--force-confold
-)
+raise SystemExit(key(sys.argv[1]) < key(sys.argv[2]))
+PY
+}
 
-COURSE_PACKAGES=(
-    ca-certificates
-    curl
-    gpg
-    direnv
-    git
-    gh
-    numlockx
-    tree
-    xclip
-    python3
-    python3-pip
-    python3-venv
-    code
-)
-
-REQUIRED_EXTENSIONS=(
-    ms-python.python
-    charliermarsh.ruff
-    hediet.vscode-drawio
-    streetsidesoftware.code-spell-checker
-    i2p-hub.i2p-pseudo
-    cweijan.vscode-office
-)
-
-print_header "Step 1: Update Ubuntu Package Information"
-sudo apt-get -o Acquire::Retries=3 update
-print_success "Ubuntu package information updated."
-
-print_header "Step 2: Upgrade Ubuntu and Course Software"
-# List services that need restarting instead of restarting the VNC desktop
-# session while the learner is connected.
-sudo env \
-    DEBIAN_FRONTEND=noninteractive \
-    NEEDRESTART_MODE=l \
-    apt-get "${APT_OPTIONS[@]}" full-upgrade -y
-print_success "Installed Ubuntu packages upgraded."
-
-print_info "Verifying the required IT 140 system packages..."
-sudo env \
-    DEBIAN_FRONTEND=noninteractive \
-    NEEDRESTART_MODE=l \
-    apt-get "${APT_OPTIONS[@]}" install -y "${COURSE_PACKAGES[@]}"
-print_success "Required IT 140 system packages are installed and current."
-
-print_header "Step 3: Update Python Course Tools"
-USER_BIN="$(python3 -m site --user-base)/bin"
-export PATH="$USER_BIN:$PATH"
-
-# Preserve access to user-installed Python commands in future sessions.
-if ! grep -Fqs '$HOME/.local/bin' "$HOME/.profile"; then
-    printf '\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$HOME/.profile"
-fi
-
-python3 -m pip install \
-    --user \
-    --upgrade \
-    --break-system-packages \
-    pytest \
-    pytest-cov \
-    ruff
-print_success "pytest, pytest-cov, and Ruff updated."
-
-print_header "Step 4: Update VS Code Extensions"
-EXTENSION_FAILURES=0
-
-# Update all installed extensions, including any optional extensions selected
-# by the user. The required course extensions are then explicitly verified.
-if NODE_NO_WARNINGS=1 code --update-extensions; then
-    print_success "Installed VS Code extensions updated."
-else
-    print_notice "VS Code could not update one or more installed extensions."
-    EXTENSION_FAILURES=$((EXTENSION_FAILURES + 1))
-fi
-
-for extension in "${REQUIRED_EXTENSIONS[@]}"; do
-    print_info "Verifying $extension..."
-    if NODE_NO_WARNINGS=1 code --install-extension "$extension" --force; then
-        print_success "$extension is installed and current."
-    else
-        print_notice "Could not update required extension: $extension"
-        EXTENSION_FAILURES=$((EXTENSION_FAILURES + 1))
+validate_staged_file() {
+    local file="$1" mode="$2"
+    if [[ "$mode" == 0755 ]]; then
+        bash -n "$file"
+    elif [[ "$file" == *.json || "$file" == *.json.it140.new ]]; then
+        python3 -m json.tool "$file" >/dev/null
     fi
-done
+}
 
-print_header "Step 5: Refresh VS Code Desktop Launchers"
-SYSTEM_CODE_LAUNCHER="/usr/share/applications/code.desktop"
-DESKTOP_DIR="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
-DESKTOP_DIR="${DESKTOP_DIR:-$HOME/Desktop}"
-DESKTOP_CODE_LAUNCHER="$DESKTOP_DIR/visual-studio-code.desktop"
+atomic_install_file() {
+    local source="$1" destination="$2" mode="$3"
+    local directory temp backup had_previous=false
+    directory="$(dirname "$destination")"
+    mkdir -p "$directory"
+    temp="${destination}.it140.new"
+    backup="${destination}.it140.previous"
 
-if [[ -f "$SYSTEM_CODE_LAUNCHER" ]]; then
-    mkdir -p "$DESKTOP_DIR"
-    install -m 0755 "$SYSTEM_CODE_LAUNCHER" "$DESKTOP_CODE_LAUNCHER"
-
-    if command -v gio >/dev/null 2>&1; then
-        launcher_checksum="$(sha256sum "$DESKTOP_CODE_LAUNCHER" | awk '{print $1}')"
-        gio set \
-            --type=string \
-            "$DESKTOP_CODE_LAUNCHER" \
-            metadata::xfce-exe-checksum \
-            "$launcher_checksum" \
-            2>/dev/null || print_notice "Could not refresh the desktop launcher's trusted status."
+    install -m "$mode" "$source" "$temp"
+    if ! validate_staged_file "$temp" "$mode"; then
+        rm -f "$temp"
+        print_error "A staged course-managed file failed validation: $(basename "$destination")"
+        return 1
     fi
 
-    PANEL_CONFIG_DIR="$HOME/.config/xfce4/panel"
-    VSCODE_PLUGIN_MARKER="$PANEL_CONFIG_DIR/it140-vscode-plugin-id"
+    if [[ -f "$destination" ]]; then
+        cp -p "$destination" "$backup"
+        had_previous=true
+    fi
 
-    if [[ -s "$VSCODE_PLUGIN_MARKER" ]]; then
-        VSCODE_PLUGIN_ID="$(<"$VSCODE_PLUGIN_MARKER")"
+    if ! mv -f "$temp" "$destination"; then
+        rm -f "$temp"
+        print_error "Could not activate course-managed file: $(basename "$destination")"
+        return 1
+    fi
 
-        if [[ "$VSCODE_PLUGIN_ID" =~ ^[0-9]+$ ]]; then
-            PANEL_CODE_LAUNCHER_DIR="$PANEL_CONFIG_DIR/launcher-$VSCODE_PLUGIN_ID"
-            PANEL_CODE_LAUNCHER="$PANEL_CODE_LAUNCHER_DIR/it140-vscode.desktop"
-            mkdir -p "$PANEL_CODE_LAUNCHER_DIR"
-            install -m 0644 "$SYSTEM_CODE_LAUNCHER" "$PANEL_CODE_LAUNCHER"
+    if ! validate_staged_file "$destination" "$mode"; then
+        if [[ "$had_previous" == true && -f "$backup" ]]; then
+            mv -f "$backup" "$destination"
         else
-            print_notice "The saved VS Code panel-launcher ID is invalid; the panel launcher was not refreshed."
+            rm -f "$destination"
         fi
+        print_error "Activated file validation failed; the prior valid file was restored."
+        return 1
+    fi
+
+    rm -f "$backup"
+    CHANGED=true
+}
+
+clone_course_repository() {
+    local destination="$1"
+    rm -rf "$destination"
+    git clone --depth 1 --filter=blob:none "$COURSE_REPOSITORY" "$destination"
+}
+
+synchronize_course_assets() {
+    print_header "Step 1: Synchronize Course Automation Assets"
+    STAGING_ROOT="$(mktemp -d)"
+    chmod 0700 "$STAGING_ROOT"
+    local clone_dir="$STAGING_ROOT/it140"
+
+    print_info "Retrieving the approved course repository into private staging..."
+    if ! retry_operation "Course repository retrieval" \
+        clone_course_repository "$clone_dir"; then
+        exit 4
+    fi
+
+    local candidate_manifest="$clone_dir/scripts/.manifest/it140_manifest.json"
+    local candidate_schema="$clone_dir/scripts/.manifest/it140_manifest.schema.json"
+    [[ -r "$candidate_manifest" && -r "$candidate_schema" ]] || {
+        print_error "The staged repository does not contain the manifest and schema."
+        exit 5
+    }
+
+    local candidate_release
+    if ! candidate_release="$(validate_manifest_pair "$candidate_manifest" "$candidate_schema")"; then
+        print_error "The staged manifest or schema failed validation."
+        exit 5
+    fi
+    print_success "Staged manifest release $candidate_release validated."
+
+    atomic_install_file "$candidate_schema" "$SCHEMA_PATH" 0644
+    atomic_install_file "$candidate_manifest" "$MANIFEST_PATH" 0644
+
+    local source_script target_script candidate_name
+    for target_script in setup_cvd.sh configure_cvd.sh verify_cvd.sh update_cvd.sh; do
+        candidate_name="$target_script"
+        if [[ "$target_script" == configure_cvd.sh && \
+              ! -f "$clone_dir/scripts/cvd/$candidate_name" && \
+              -f "$clone_dir/scripts/cvd/config_cvd.sh" ]]; then
+            candidate_name="config_cvd.sh"
+        fi
+        source_script="$clone_dir/scripts/cvd/$candidate_name"
+        if [[ ! -r "$source_script" ]]; then
+            print_warning "The repository does not yet contain $target_script; the installed copy was preserved."
+            PARTIAL=true
+            continue
+        fi
+        if version_at_least_current "$source_script"; then
+            atomic_install_file "$source_script" \
+                "$PLATFORM_SCRIPT_DIR/$target_script" 0755
+            print_success "$target_script synchronized."
+        else
+            print_warning "The staged $candidate_name does not identify an equal or newer release; the installed copy was preserved."
+        fi
+    done
+
+    MANIFEST_RELEASE="$(validate_manifest_pair "$MANIFEST_PATH" "$SCHEMA_PATH")" \
+        || exit 5
+    readonly MANIFEST_RELEASE
+    print_success "Course-managed assets are active and valid."
+
+    rm -rf "$STAGING_ROOT"
+    STAGING_ROOT=""
+}
+
+update_system_packages() {
+    print_header "Step 2: Update Ubuntu and Required System Software"
+    local apt_options
+    apt_options=(-o Acquire::Retries=5 -o Dpkg::Options::=--force-confdef \
+        -o Dpkg::Options::=--force-confold)
+
+    if ! retry_operation "Ubuntu package-information refresh" \
+        sudo apt-get -o Acquire::Retries=5 update; then
+        exit 4
+    fi
+
+    print_info "Applying security and maintenance updates within Ubuntu 24.04..."
+    sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l \
+        apt-get "${apt_options[@]}" full-upgrade -y
+    CHANGED=true
+
+    mapfile -t system_packages < <(manifest_lines system_packages)
+    print_info "Installing or repairing manifest-declared system packages..."
+    sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l \
+        apt-get "${apt_options[@]}" install -y "${system_packages[@]}"
+    CHANGED=true
+    print_success "Required system software is current."
+}
+
+update_user_tools() {
+    print_header "Step 3: Update Required User Tools and IDE Extensions"
+
+    if [[ ! -x "$VENV_DIR/bin/python" ]]; then
+        print_warning "The course virtual environment was missing and will be repaired."
+        python3.12 -m venv "$VENV_DIR"
+        CHANGED=true
+    fi
+
+    mapfile -t venv_packages < <(manifest_lines venv_packages)
+    "$VENV_DIR/bin/python" -m pip install --upgrade pip
+    "$VENV_DIR/bin/python" -m pip install --upgrade "${venv_packages[@]}"
+    CHANGED=true
+    print_success "Required course Python tools are current."
+
+    if NODE_NO_WARNINGS=1 code --update-extensions; then
+        print_success "Installed IDE extensions were updated without removing optional extensions."
     else
-        print_notice "No managed VS Code panel launcher was found; the desktop launcher was refreshed."
+        print_warning "One or more installed extensions could not be updated."
+        PARTIAL=true
     fi
 
-    if command -v xfdesktop >/dev/null 2>&1; then
+    mapfile -t required_extensions < <(manifest_lines extensions)
+    local extension
+    for extension in "${required_extensions[@]}"; do
+        if NODE_NO_WARNINGS=1 code --install-extension "$extension" --force; then
+            print_success "Required extension is installed and current: $extension"
+        else
+            print_warning "Required extension could not be updated: $extension"
+            PARTIAL=true
+        fi
+    done
+    CHANGED=true
+}
+
+merge_vscode_settings() {
+    local settings_file="$HOME/.config/Code/User/settings.json"
+    [[ -f "$settings_file" ]] || return 0
+
+    if ! python3 - "$MANIFEST_PATH" "$PLATFORM_ID" "$settings_file" \
+        "$VENV_DIR/bin/python" "$COURSE_ROOT" <<'PY'
+import json
+import pathlib
+import sys
+
+manifest_path, platform_id, settings_path, python_path, course_root = sys.argv[1:]
+manifest = json.load(open(manifest_path, encoding="utf-8"))
+settings_file = pathlib.Path(settings_path)
+settings = json.loads(settings_file.read_text(encoding="utf-8"))
+if not isinstance(settings, dict):
+    raise SystemExit("settings root is not an object")
+bindings = manifest["platforms"][platform_id]["course_ide_bindings"]
+managed = {}
+for profile_id in bindings["source_code_ide"].get("settings_profile_ids", []):
+    managed.update(manifest["managed_settings"][profile_id]["values"])
+managed["python.defaultInterpreterPath"] = python_path
+managed["files.defaultFolder"] = course_root
+
+def deep_merge(target, source):
+    for key, value in source.items():
+        if isinstance(value, dict) and isinstance(target.get(key), dict):
+            deep_merge(target[key], value)
+        else:
+            target[key] = value
+
+deep_merge(settings, managed)
+temp = settings_file.with_name(settings_file.name + ".it140.tmp")
+try:
+    temp.write_text(
+        json.dumps(settings, indent=4, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    json.loads(temp.read_text(encoding="utf-8"))
+    temp.replace(settings_file)
+finally:
+    if temp.exists():
+        temp.unlink()
+PY
+    then
+        print_warning "Managed IDE settings could not be refreshed; existing settings were preserved."
+        PARTIAL=true
+    else
+        CHANGED=true
+        print_success "Managed IDE settings were refreshed."
+    fi
+}
+
+refresh_desktop_integrations() {
+    print_header "Step 4: Refresh Course-Managed Desktop Integrations"
+    local system_launcher="/usr/share/applications/code.desktop"
+    local desktop_dir panel_config_dir marker plugin_id panel_launcher_dir
+    desktop_dir="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
+    desktop_dir="${desktop_dir:-$HOME/Desktop}"
+    panel_config_dir="$HOME/.config/xfce4/panel"
+    marker="$panel_config_dir/it140-vscode-plugin-id"
+
+    if [[ -f "$system_launcher" ]]; then
+        mkdir -p "$desktop_dir"
+        install -m 0755 "$system_launcher" \
+            "$desktop_dir/visual-studio-code.desktop"
+        if command -v gio >/dev/null 2>&1; then
+            local checksum
+            checksum="$(sha256sum "$desktop_dir/visual-studio-code.desktop" \
+                | awk '{print $1}')"
+            gio set --type=string "$desktop_dir/visual-studio-code.desktop" \
+                metadata::xfce-exe-checksum "$checksum" 2>/dev/null \
+                || print_warning "The desktop launcher trust marker could not be refreshed."
+        fi
+
+        if [[ -s "$marker" ]]; then
+            plugin_id="$(<"$marker")"
+            if [[ "$plugin_id" =~ ^[0-9]+$ ]]; then
+                panel_launcher_dir="$panel_config_dir/launcher-$plugin_id"
+                mkdir -p "$panel_launcher_dir"
+                install -m 0644 "$system_launcher" \
+                    "$panel_launcher_dir/it140-vscode.desktop"
+            else
+                print_warning "The saved panel-launcher identifier is invalid."
+                PARTIAL=true
+            fi
+        else
+            print_warning "No managed panel-launcher record was found; run configure_cvd.sh to repair it."
+        fi
+
         xfdesktop --reload 2>/dev/null || true
+        CHANGED=true
+        print_success "VS Code desktop and panel launcher files were refreshed."
+    else
+        print_warning "The system VS Code launcher was not found."
+        PARTIAL=true
     fi
 
-    print_success "VS Code launcher files refreshed."
-else
-    print_notice "The system VS Code launcher was not found; launcher files were not refreshed."
-fi
+    merge_vscode_settings
+}
 
-print_header "Step 6: Clean and Verify the CVD"
-sudo env \
-    DEBIAN_FRONTEND=noninteractive \
-    NEEDRESTART_MODE=l \
-    apt-get "${APT_OPTIONS[@]}" autoremove -y
+remove_obsolete_and_clean() {
+    print_header "Step 5: Safe Cleanup"
+    print_info "The manifest declares no obsolete CVD components for removal."
 
-sudo apt-get autoclean -y
-sudo apt-get clean
-sudo apt-get check
-print_success "Package cleanup and dependency checks completed."
+    local apt_options
+    apt_options=(-o Acquire::Retries=5 -o Dpkg::Options::=--force-confdef \
+        -o Dpkg::Options::=--force-confold)
+    sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l \
+        apt-get "${apt_options[@]}" autoremove -y
+    sudo apt-get autoclean -y
+    sudo apt-get clean
+    sudo apt-get check
+    CHANGED=true
+    print_success "Safe package cleanup and dependency checks completed."
+}
 
-print_header "UPDATE SUMMARY"
-printf 'Ubuntu       : %s\n' "${PRETTY_NAME}"
-printf 'Python       : %s\n' "$(python3 --version 2>&1)"
-printf 'Git          : %s\n' "$(git --version)"
-printf 'GitHub CLI   : %s\n' "$(gh --version | head -n 1)"
-printf 'VS Code      : %s\n' "$(code --version | head -n 1)"
-printf 'pytest       : %s\n' "$(pytest --version | head -n 1)"
-printf 'Ruff         : %s\n' "$(ruff --version)"
-printf 'Log file     : %s\n' "$LOG_FILE"
+post_validate() {
+    print_header "Step 6: Post-Update Validation"
+    local failed=0 package extension
 
-if [[ -f /var/run/reboot-required ]]; then
-    print_notice "A VM restart is required to finish applying system updates."
-    print_notice "Save your work, close applications, and use Codio's RESTART VM control."
-else
-    print_notice "A VM restart is not currently required by Ubuntu."
-    print_notice "Close and reopen VS Code before continuing coursework."
-fi
+    validate_manifest_pair "$MANIFEST_PATH" "$SCHEMA_PATH" >/dev/null \
+        || { print_error "The installed manifest pair is invalid."; failed=1; }
 
-if (( EXTENSION_FAILURES > 0 )); then
-    print_notice "$EXTENSION_FAILURES VS Code extension update operation(s) reported a problem."
-    print_notice "Review the log and retry the script before requesting support."
-    exit 1
-fi
+    mapfile -t system_packages < <(manifest_lines system_packages)
+    for package in "${system_packages[@]}"; do
+        if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null \
+            | grep -q 'install ok installed'; then
+            print_error "Required system package is missing after update: $package"
+            failed=1
+        fi
+    done
 
-trap - ERR
-print_success "The IT 140 Codio Virtual Desktop update completed successfully."
+    mapfile -t venv_packages < <(manifest_lines venv_packages)
+    for package in "${venv_packages[@]}"; do
+        if ! "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1; then
+            print_error "Required course Python tool is missing after update: $package"
+            failed=1
+        fi
+    done
+
+    local installed_extensions
+    installed_extensions="$(NODE_NO_WARNINGS=1 code --list-extensions 2>/dev/null \
+        | tr '[:upper:]' '[:lower:]')"
+    mapfile -t required_extensions < <(manifest_lines extensions)
+    for extension in "${required_extensions[@]}"; do
+        if ! grep -Fxq "${extension,,}" <<<"$installed_extensions"; then
+            print_error "Required IDE extension is missing after update: $extension"
+            failed=1
+        fi
+    done
+
+    for command_name in git gh python3.12 code; do
+        command -v "$command_name" >/dev/null 2>&1 || {
+            print_error "Required command is unavailable after update: $command_name"
+            failed=1
+        }
+    done
+
+    if ((failed)); then
+        PARTIAL=true
+        print_error "Post-update validation found required failures."
+    else
+        print_success "Required commands, packages, tools, extensions, and assets passed validation."
+    fi
+}
+
+restart_guidance() {
+    if [[ -f /var/run/reboot-required ]]; then
+        print_notice "A CVD virtual-machine restart is required to finish system updates."
+        print_notice "Save your work, close applications, and use Codio's RESTART VM control."
+        RESTART_REQUIRED=true
+    else
+        print_notice "Ubuntu does not currently require a virtual-machine restart."
+        print_notice "Close and reopen VS Code before continuing course work."
+        RESTART_REQUIRED=false
+    fi
+}
+
+finish() {
+    local elapsed=$(( $(date +%s) - START_EPOCH ))
+    local exit_code=0 result="PASS" next_step="Verification is optional."
+
+    if [[ "$PARTIAL" == true || $FAILURES -gt 0 ]]; then
+        exit_code=7
+        result="PARTIAL"
+        next_step="Run verify_cvd.sh, review the log, and rerun update_cvd.sh."
+    elif [[ "${RESTART_REQUIRED:-false}" == true || $WARNINGS -gt 0 ]]; then
+        next_step="After the requested restart or warning review, run verify_cvd.sh."
+    fi
+
+    print_header "UPDATE SUMMARY"
+    printf 'Result          : %s\n' "$result"
+    printf 'Script version  : %s\n' "$SCRIPT_VERSION"
+    printf 'Manifest release: %s\n' "${MANIFEST_RELEASE:-unavailable}"
+    printf 'Warnings        : %s\n' "$WARNINGS"
+    printf 'Failures        : %s\n' "$FAILURES"
+    printf 'Elapsed time    : %s seconds\n' "$elapsed"
+    printf 'Next step       : %s\n' "$next_step"
+    printf 'Log file        : %s\n' "$LOG_FILE"
+    printf 'Exit code       : %s\n' "$exit_code"
+
+    if ((exit_code == 0)); then
+        print_success "The IT 140 CVD update completed successfully."
+    else
+        print_warning "The update completed only partially and requires remediation."
+    fi
+    return "$exit_code"
+}
+
+main() {
+    parse_options "$@"
+
+    mkdir -p "$LOG_DIR"
+    chmod 0700 "$LOG_DIR"
+    exec > >(tee -a "$LOG_FILE") 2>&1
+    trap on_error ERR
+    trap on_interrupt INT TERM
+    trap cleanup EXIT
+
+    print_header "IT 140 CODIO VIRTUAL DESKTOP UPDATE"
+    print_info "Script version: $SCRIPT_VERSION"
+    print_info "Current user  : $(id -un)"
+    print_info "Purpose       : Maintain approved software and course-managed assets."
+    print_info "Log file      : $LOG_FILE"
+    print_notice "The update will not upgrade Ubuntu to a different release."
+    print_notice "Keep this terminal window open until the update finishes."
+
+    check_platform_and_user
+    acquire_lock
+
+    [[ -r "$MANIFEST_PATH" && -r "$SCHEMA_PATH" ]] || {
+        print_error "The installed manifest or schema is missing."
+        exit 5
+    }
+    INSTALLED_MANIFEST_RELEASE="$(validate_manifest_pair "$MANIFEST_PATH" "$SCHEMA_PATH")" \
+        || exit 5
+    readonly INSTALLED_MANIFEST_RELEASE
+    print_success "Installed manifest release $INSTALLED_MANIFEST_RELEASE validated."
+
+    check_prerequisites
+    synchronize_course_assets
+    update_system_packages
+    update_user_tools
+    refresh_desktop_integrations
+    remove_obsolete_and_clean
+    post_validate
+    restart_guidance
+
+    trap - ERR INT TERM
+    cleanup
+    trap - EXIT
+    finish
+}
+
+main "$@"
