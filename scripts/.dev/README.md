@@ -78,7 +78,7 @@ The current repository’s `verify_cvd.sh` contains only introductory comments a
 
 ## Supporting files that are required
 
-### `course_ide_manifest.json`
+### `it140/it140_manifest.json`
 
 Setup, configure, verify, and update must obtain shared requirements from one authoritative manifest rather than independently hardcoding them.
 
