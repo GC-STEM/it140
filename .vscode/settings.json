@@ -240,6 +240,7 @@
         "releaseinfo",
         "replstate",
         "repr",
+        "rerunnable",
         "RLHF",
         "rmsprop",
         "ropeproject",
