@@ -1,6 +1,6 @@
 <!-- To see this file in a clean, formatted view, right-click on the filename and choose “Open Preview.” -->
 
-# IT 140 - Introduction to Scripting*
+# IT 140 - *Introduction to Scripting*
 
 - **Course**: IT 140 - *Introduction to Scripting*
 - **Activity Name**: Course Repository
