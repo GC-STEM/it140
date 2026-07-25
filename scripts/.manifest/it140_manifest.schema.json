@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/GC-STEM/it140/refs/heads/main/it140_manifest.schema.json",
+  "$id": "https://raw.githubusercontent.com/GC-STEM/it140/refs/heads/main/scripts/.manifest/it140_manifest.schema.json",
   "title": "IT 140 Course Automation Manifest",
   "description": "Structural contract for the controlled IT 140 automation manifest. The manifest selects concrete approved products, versions, sources, platforms, provider profiles, managed settings, and managed assets. Operating-system support packages are intentionally separated from course IDE capability bindings.",
   "$comment": "Validation is layered. This schema performs structural validation. The scripts must also perform semantic validation: reject duplicate JSON keys; confirm every referenced product, source, provider profile, settings profile, and adapter exists; confirm every required capability has one valid binding on every enabled platform; confirm adapter IDs are compiled into or distributed with the approved automation release; confirm managed and obsolete paths remain within approved boundaries; confirm the manifest contains no secrets or personal values; and confirm integrity metadata is appropriate for each source type.",

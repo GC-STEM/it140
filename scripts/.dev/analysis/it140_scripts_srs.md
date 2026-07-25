@@ -135,7 +135,7 @@ The package shall:
 
   **Why:** A script written for another operating system could fail or damage the environment.
 
-- **PKG-FR-004** Read shared environment requirements from `~/it140/it140_manifest.json` rather than maintaining independent authoritative software lists in each script.
+- **PKG-FR-004** Read shared environment requirements from `~/it140/scripts/.manifest/it140_manifest.json` rather than maintaining independent authoritative software lists in each script.
 
   **Why:** One authoritative list prevents setup, verification, and update from disagreeing.
 
@@ -415,7 +415,7 @@ The update script shall:
 
 The package shall:
 
-- **PKG-FR-011** Store the shared manifest as valid UTF-8 JSON at `~/it140/it140_manifest.json`.
+- **PKG-FR-011** Store the shared manifest as valid UTF-8 JSON at `~/it140/scripts/.manifest/it140_manifest.json`.
 
   **Why:** A standard text format can be read on all supported platforms and reviewed in source control.
 
