@@ -41,7 +41,7 @@ The manifest is not allowed to contain arbitrary executable commands. It may sel
 ### 0.3 Relationship Among the SRS, SDD, Manifest, and Code
 
 | Artifact | Primary question answered | Change authority |
-|---|---|---|
+| :------: | ------------------------- | ---------------- |
 | SRS | What behavior and quality are required? | Approved requirements change process |
 | SDD | How will the package be structured to satisfy the SRS? | Approved design change process |
 | Manifest schema | What configuration structure and value types are valid? | Design and configuration-control process |
@@ -86,7 +86,7 @@ This SDD does not define:
 ### 0.6 Terms and Abbreviations
 
 | Term | Definition and purpose in this SDD |
-|---|---|
+| --- | --- |
 | Adapter | A component that translates a stable package operation into platform-, product-, or provider-specific actions. |
 | Atomic replacement | A file update that makes the complete new file visible at once instead of exposing a partially written file. |
 | Capability role | A generic function required by the course, such as source-code editing, version control, test running, or code-quality checking. The manifest binds each role to an approved product. |
@@ -133,7 +133,7 @@ Each important design element has a stable identifier. Design identifiers suppor
 The design uses the following goals as decision rules when alternatives are available.
 
 | Design ID | Goal or constraint | Design effect | Related SRS requirements |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | ARC-DES-001 | Preserve the four-script lifecycle. | The package exposes exactly four student- or administrator-facing lifecycle entry points per supported platform. | PKG-FR-001, PKG-FR-002 |
 | ARC-DES-002 | Separate system-level, user-specific, read-only, and maintenance responsibilities. | Each operation is placed in the script that owns the required privilege and state boundary. | SET-FR-011, VER-FR-001, REF-TC-006 |
 | ARC-DES-003 | Keep the main design capability-based and product-neutral. | Product names and identifiers are resolved through manifest role bindings and approved adapters. | PKG-TC-008, PKG-NFR-018, PKG-NFR-021 |
@@ -263,7 +263,7 @@ Each entry point follows the same high-level processing pattern where applicable
 The following supporting artifacts shall describe the same design at different levels of detail:
 
 | Artifact | Purpose |
-|---|---|
+| --- | --- |
 | `it140_scripts_sdd.md` | Package architecture, interfaces, component design, and traceability |
 | `it140_scripts_architecture.drawio` | Editable component, data-flow, and trust-boundary diagram |
 | `it140_scripts_lifecycle.drawio` | Editable normal and remediation lifecycle diagram |
@@ -324,7 +324,7 @@ All source scripts and text configuration shall use UTF-8 encoding with Line Fee
 ### 3.3 Shared Components
 
 | Design ID | Component | Responsibility | Primary inputs | Primary outputs | Related SRS requirements |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | SHR-DES-001 | Run-context builder | Capture action, script version, platform, user, times, paths, and manifest release for one run. | Entry-point metadata and detected environment | `RunContext` | PKG-FR-006, PKG-QOS-017 |
 | SHR-DES-002 | Output service | Produce consistent stage headings, status labels, prompts, summaries, and plain-text fallbacks. | Message key, severity, values | Terminal and log messages | PKG-FR-008, PKG-NFR-001 through PKG-NFR-011 |
 | SHR-DES-003 | Transcript service | Create a unique timestamped UTF-8 log in the approved course log directory and write terminal output without losing the original exit result. | Run context and output stream | Log file | PKG-FR-007, PKG-TC-005, PKG-QOS-013, PKG-QOS-016 through PKG-QOS-020 |
@@ -359,7 +359,7 @@ All source scripts and text configuration shall use UTF-8 encoding with Line Fee
 The manifest is a controlled configuration item, not a program. It contains declarative data that selects reviewed behavior. The schema and code jointly prevent it from becoming an unreviewed command-execution channel.
 
 | Design ID | Manifest design rule | Purpose | Related SRS requirements |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | DAT-DES-001 | The root object contains release control, policy, capabilities, products, sources, provider profiles, platforms, optional deployment profiles, managed settings, managed assets, obsolete components, and logging data. | Provides a predictable top-level contract while separating stable platform bindings from concrete deployment environments. | PKG-FR-012 through PKG-FR-017 |
 | DAT-DES-002 | `schema_version` uses a documented compatibility policy separate from the automation release. | Allows scripts to reject a manifest structure they cannot interpret. | PKG-FR-012, PKG-FR-019 |
 | DAT-DES-003 | Capability definitions use stable role identifiers rather than product names in script logic. | Allows an approved product to change without changing lifecycle logic. | PKG-TC-008, PKG-NFR-012 |
@@ -454,7 +454,7 @@ No mutating action begins until all validation layers required by that action pa
 The names below describe logical structures. Native implementations may use records, dictionaries, associative arrays, objects, or equivalent structures.
 
 | Data structure | Required fields | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `RunContext` | action, script version, platform ID, user ID, paths, start time, manifest release, interactivity | Provides common context to every component. |
 | `PlatformFacts` | OS type and release, architecture, session type, home path, desktop path, temporary path, privilege capability | Supports platform matching and prerequisite checks. |
 | `DeploymentProfile` | Platform identifier, deployment kind, provider, desktop environment, session type, release, architecture, reset method, and reference flag | Selects environment-specific behavior and testing evidence without duplicating product bindings. |
@@ -470,7 +470,7 @@ The names below describe logical structures. Native implementations may use reco
 Shared result values are represented internally by stable identifiers and rendered as student-facing text at the interface boundary.
 
 | Internal result | Student-facing meaning |
-|---|---|
+| --- | --- |
 | `pass` | The required condition is present and usable. |
 | `success` | The requested operation completed. |
 | `warning` | The environment remains usable, but attention may be needed. |
@@ -525,7 +525,7 @@ The bundle excludes assignment repositories, source files, version-control histo
 ### 5.1 Command-Line Interface
 
 | Design ID | Interface rule | Planned behavior | Related SRS requirements |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | INT-DES-001 | Normal invocation requires no advanced arguments. | Running the platform script by name starts its normal student- or administrator-facing workflow. | PKG-NFR-002, PKG-NFR-010 |
 | INT-DES-002 | Every script supports a help operation. | Help explains purpose, intended user, prerequisites, common invocation, log location, and exit-code meanings without changing state. | PKG-FR-006, PKG-NFR-003 |
 | INT-DES-003 | Every script supports a version operation. | Version output identifies the script release and supported manifest schema range without loading external services. | PKG-NFR-015, PKG-QOS-017 |
@@ -555,7 +555,7 @@ Each normal run displays the following fields near the beginning:
 ### 5.3 External Interface Contracts
 
 | Interface | Stable package operation | Adapter responsibility | Failure behavior |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Operating system | Detect release, architecture, users, paths, permissions, session, restart needs | Translate native information into `PlatformFacts` | Unsupported or unreadable facts stop unsafe actions. |
 | System package manager | Refresh metadata, query, install, update, repair, remove approved obsolete packages, validate consistency | Use native package operations and approved sources | Return structured result; never parse only localized success text when an exit status or structured query exists. |
 | Programming runtime | Locate executable, report version, manage required user tools when designed | Apply role binding and version rule | Missing system runtime is owned by setup; missing user tool is owned by configure or update. |
@@ -584,7 +584,7 @@ The manifest selects the provider adapter and supplies validated parameters. The
 The result aggregator uses a deterministic precedence when more than one condition applies. Precedence is based on safety and remediation value, not numeric order.
 
 | Precedence | Exit code | Condition |
-|:--:|:--:|---|
+| :--: | :--: | --- |
 | 1 | `5` | Manifest or managed asset is invalid, corrupt, or fails integrity validation. |
 | 2 | `2` | Invocation, platform, or operating-system release is unsupported. |
 | 3 | `3` | Required permission or privilege is unavailable. |
@@ -614,28 +614,28 @@ BEGIN action
     IF action-platform mismatch OR unsupported platform
         record unsupported result
         summarize and exit
-    END IF
+    ENDIF
 
     load manifest and schema
     validate syntax, structure, semantics, paths, trust, and compatibility
     IF validation fails
         record manifest or asset failure
         summarize and exit
-    END IF
+    ENDIF
 
     resolve allowlisted adapters
     IF required adapter is unavailable
         record unsupported configuration
         summarize and exit
-    END IF
+    ENDIF
 
     IF action changes shared state
         acquire required lock
         IF lock is unavailable
             record concurrent-operation failure
             summarize and exit
-        END IF
-    END IF
+        ENDIF
+    ENDIF
 
     run action-specific prerequisite checks
     build action plan
@@ -684,7 +684,7 @@ A component is not reinstalled or rewritten merely because the script is rerun. 
 The setup orchestrator owns the shared system layer. It may use controlled privilege elevation for specific commands but is not run wholesale with elevated authority unless a future platform design proves that unavoidable and receives approval.
 
 | Design ID | Planned setup behavior | Main collaborators | Related SRS requirement |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | SET-DES-001 | Gather and evaluate the approved OS release, architecture, disk space, network reachability, and privilege capability before planning installation. | Platform detector, manifest validator | SET-FR-001 |
 | SET-DES-002 | Stop before system mutation when the platform or privilege model is unsupported; preserve the diagnostic log when possible. | Result aggregator, output service | SET-FR-002 |
 | SET-DES-003 | Build a system capability plan from required manifest roles and system package bindings. | Adapter registry, package adapter | SET-FR-003 |
@@ -713,9 +713,9 @@ FOR EACH plan stage in dependency order
         IF verification fails
             record required failure
             skip dependent operations
-        END IF
-    END IF
-END FOR
+        ENDIF
+    ENDIF
+ENDFOR
 run complete system-layer verification
 recommend configure when successful
 ```
@@ -737,7 +737,7 @@ Arguments are passed as separate values rather than assembled into an unvalidate
 The configure orchestrator owns the current user's course environment. It runs as the student or faculty account and does not make system-wide changes.
 
 | Design ID | Planned configure behavior | Main collaborators | Related SRS requirement |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | CFG-DES-001 | Confirm the script is running as the intended standard user and reject an unintended system-administrator context. | Platform detector | CFG-FR-001 |
 | CFG-DES-002 | Probe required system capabilities before writing user configuration; missing system prerequisites map to setup remediation. | Capability adapters, result aggregator | CFG-FR-002 |
 | CFG-DES-003 | Create missing approved course folders with safe permissions while preserving all existing contents. | Path safety and file services | CFG-FR-003 |
@@ -771,9 +771,9 @@ ELSE
         query status again
         IF status is not valid
             record required failure
-        END IF
-    END IF
-END IF
+        ENDIF
+    ENDIF
+ENDIF
 ```
 
 Authentication secrets remain in the provider's approved credential store. Configure receives only the minimum status and account fields required by the provider profile.
@@ -797,7 +797,7 @@ Authentication secrets remain in the provider's approved credential store. Confi
 Verify uses read-only adapter interfaces. A platform implementation shall make mutating methods unavailable to the verify orchestrator rather than relying only on developer discipline.
 
 | Design ID | Planned verify behavior | Main collaborators | Related SRS requirement |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | VER-DES-001 | Construct a read-only check plan and expose no install, repair, update, removal, or settings-write operations. | Read-only adapter interfaces | VER-FR-001, PKG-QOS-002 |
 | VER-DES-002 | Run entirely as the standard user and report inaccessible privileged facts as designed warnings or failures without elevating. | Platform adapter | VER-FR-002 |
 | VER-DES-003 | Validate the manifest and record the automation release used as the comparison baseline. | Manifest loader and validator | VER-FR-003 |
@@ -845,8 +845,8 @@ FOR EACH check
         compare observed state with expected rule
         record PASS, WARNING, or FAIL
         attach requirement and remediation
-    END IF
-END FOR
+    ENDIF
+ENDFOR
 aggregate totals and compliance
 optionally create approved support bundle
 return resolved exit code
@@ -859,7 +859,7 @@ return resolved exit code
 Update owns maintenance of approved system software, user-scoped course tools, and course-managed assets. It does not perform an operating-system release upgrade and does not modify student-owned work.
 
 | Design ID | Planned update behavior | Main collaborators | Related SRS requirement |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | UPD-DES-001 | Evaluate platform, user, disk space, network reachability, and privilege capability before planning changes. | Platform detector | UPD-FR-001 |
 | UPD-DES-002 | Acquire action- and resource-scoped locks before package or managed-file mutation. | Lock manager | UPD-FR-002 |
 | UPD-DES-003 | Retrieve approved release metadata, schema, manifest, and managed-asset inventory from the authorized source through the trust chain. | Retry, trust, and manifest services | UPD-FR-003 |
@@ -892,8 +892,8 @@ FOR EACH changed managed asset
     IF activation validation fails
         restore prior valid asset
         record failure
-    END IF
-END FOR
+    ENDIF
+ENDFOR
 remove only explicitly obsolete managed assets
 remove staging data
 ```
@@ -931,7 +931,7 @@ A release may require a compatibility bridge when a new manifest schema cannot b
 ### 11.2 Error and Recovery Components
 
 | Design ID | Condition | Detection | Planned response | Related SRS requirements |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | ERR-DES-001 | Unsupported invocation or platform | Option parser and platform matcher | Make no managed change, explain supported use, return code `2`. | PKG-FR-003, SET-FR-002, PKG-QOS-014 |
 | ERR-DES-002 | Missing required privilege | Native privilege probe before mutation | Stop affected action, provide approved command or support path, return code `3`. | SET-FR-001, UPD-FR-001, PKG-NFR-022 |
 | ERR-DES-003 | Missing, unreadable, or invalid manifest | File, JSON, schema, semantic, and compatibility validation | Stop before managed change, identify validation stage, return code `5`. | PKG-FR-005, PKG-FR-019 |
@@ -983,7 +983,7 @@ The package crosses the following trust boundaries:
 Every boundary has validation, least-privilege, and redaction controls.
 
 | Design ID | Security or privacy control | Design implementation | Related SRS requirements |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | SEC-DES-001 | Least privilege | Entry points run as the intended standard user; only specific approved system operations receive elevation. | PKG-NFR-022, REF-TC-003 |
 | SEC-DES-002 | No arbitrary manifest execution | Manifest selects allowlisted adapter IDs and validated parameters; it cannot provide executable command strings. | PKG-NFR-023, PKG-NFR-024 |
 | SEC-DES-003 | Argument-safe command execution | Executable and arguments remain separate; user and manifest values are never interpolated into an unvalidated shell expression. | PKG-NFR-023 |
@@ -1024,7 +1024,7 @@ The exact approved mechanism is platform- and release-specific and belongs in th
 ### 13.1 Platform-Independent and Platform-Specific Layers
 
 | Design ID | Design element | Stable interface | Platform-specific implementation | Related SRS requirements |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | PLT-DES-001 | Platform detection | Return normalized platform facts. | Native OS and session queries. | PKG-FR-003, REF-TC-001 |
 | PLT-DES-002 | Native scripting | Implement the same orchestrator stages and result contracts. | Approved platform-native scripting language and conventions. | PKG-TC-001, REF-TC-002 |
 | PLT-DES-003 | Package management | Query, refresh, install, update, repair, cleanup, and validate approved packages. | Native package-manager adapter. | SET-FR-003 through SET-FR-006, UPD-FR-006, UPD-FR-011 |
@@ -1080,7 +1080,7 @@ A proposed platform implementation is not marked supported until it provides:
 The initial release qualification uses resettable environments that match enabled deployment profiles.
 
 | Test target | Role | Required use |
-|---|---|---|
+| --- | --- | --- |
 | Codio Virtual Desktop: Ubuntu 24.04 LTS, APT, Xfce, x86_64 | Reference deployment | Run the complete lifecycle, acceptance, idempotence, interruption, support-log, and student-work-preservation suites for every release candidate. |
 | Supported Windows 11 on x86_64 bare metal | Supported local deployment | Reset to a clean supported release and run the complete platform conformance suite before approval. |
 | Supported macOS on Apple Silicon bare metal | Supported local deployment | Erase or restore to a clean supported release and run the complete platform conformance suite before approval. |
@@ -1141,7 +1141,7 @@ Exact English wording may differ slightly by platform when needed, but meaning, 
 ## 15. Design Decisions and Rationale
 
 | # | Design decision | Rationale | Alternative considered |
-|---:|---|---|---|
+| ---: | --- | --- | --- |
 | 1 | Use one combined package SDD. | The four scripts share data, services, interfaces, quality rules, and remediation paths. One SDD reduces duplication and drift. | Separate SDD per script; rejected for the initial release because shared design would be repeated. |
 | 2 | Keep stable capability roles in the design and concrete products in the controlled manifest. | Product selections change more often than course capabilities. | Hardcode products in every script and design section; rejected because it increases maintenance and inconsistency. |
 | 3 | Allow only reviewed adapter identifiers in the manifest. | A public configuration file must not become an arbitrary command-execution mechanism. | Store executable command templates in JSON; rejected for security and portability reasons. |
@@ -1162,7 +1162,7 @@ Exact English wording may differ slightly by platform when needed, but meaning, 
 A range in this table is inclusive. The design elements listed for a range apply to every requirement in that range. Script-specific requirements map one-to-one to the correspondingly numbered script design element where possible.
 
 | SRS requirement(s) | Primary SDD design elements | Supporting planned artifact(s) |
-|---|---|---|
+| --- | --- | --- |
 | PKG-FR-001 through PKG-FR-003 | ARC-DES-001, ARC-DES-003, SHR-DES-006, PLT-DES-001, PLT-DES-010 | Architecture diagram; all four pseudoscripts |
 | PKG-FR-004 through PKG-FR-005 | ARC-DES-004, SHR-DES-004, SHR-DES-005, DAT-DES-001 through DAT-DES-006 | Manifest schema; all four pseudoscripts |
 | PKG-FR-006 through PKG-FR-009 | SHR-DES-001 through SHR-DES-003, SHR-DES-012, INT-DES-001 through INT-DES-012 | Shared-output design; all four pseudoscripts |
@@ -1205,7 +1205,7 @@ Automated and manual tests shall use stable test identifiers and identify:
 Before construction begins, reviewers shall confirm the following evidence:
 
 | Review area | Acceptance evidence |
-|---|---|
+| --- | --- |
 | SRS coverage | Every SRS requirement is included in Section 16 traceability. |
 | Responsibility separation | Setup, configure, verify, and update remain within their approved state and privilege boundaries. |
 | Evergreen design | Main-body orchestration uses capability roles and adapters rather than current product names. |
@@ -1233,7 +1233,7 @@ The reference mapping should be updated when convenient for historical clarity, 
 ### A.2 Reference Platform Mapping
 
 | Generic design role | Initial reference selection |
-|---|---|
+| --- | --- |
 | Deployment profile identifier | `codio_cvd` |
 | Hosted virtual desktop provider | Codio Virtual Desktop (CVD) |
 | Operating system | Ubuntu 24.04 Long-Term Support (LTS) |
@@ -1248,7 +1248,7 @@ The reference mapping should be updated when convenient for historical clarity, 
 ### A.3 Reference Capability Bindings
 
 | Generic capability role | Initial reference product or tool | Initial design purpose |
-|---|---|---|
+| --- | --- | --- |
 | Version-control client | Git | Record file changes and interact with repositories. |
 | Source-code hosting provider | GitHub | Store course repositories and provide authentication and account APIs. |
 | Source-host command-line client | GitHub CLI (`gh`) | Authenticate and perform approved provider operations from the terminal. |
@@ -1267,7 +1267,7 @@ The reference mapping should be updated when convenient for historical clarity, 
 ### A.4 Reference IDE Extensions
 
 | Extension identifier | Course capability |
-|---|---|
+| --- | --- |
 | `ms-python.python` | Programming-language support in the IDE. |
 | `charliermarsh.ruff` | Code-quality checking and formatting integration. |
 | `hediet.vscode-drawio` | Diagram viewing and editing. |

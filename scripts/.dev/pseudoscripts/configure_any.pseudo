@@ -1,13 +1,13 @@
 # ==============================================================================
-# IT 140 VERIFY PSEUDOSCRIPT
+# IT 140 CONFIGURE PSEUDOSCRIPT
 # ==============================================================================
 #
 # Repository path:
-#     scripts/.dev/pseudoscripts/verify_any.pseudo
+#     scripts/.dev/pseudoscripts/configure_any.pseudo
 #
 #
 # Purpose:
-#     Inspect the system and user course environment without changing it.
+#     Establish or repair the current user's manifest-declared course environment.
 #
 # Artifact version:
 #     2026.07.25.1
@@ -37,33 +37,33 @@
 # ==============================================================================
 #
 # Artifact:
-#     verify_any.pseudo
+#     configure_any.pseudo
 #
 # Lifecycle action:
-#     verify
+#     configure
 #
 #
 # Purpose:
-#     Inspect the system and user course environment without changing it.
+#     Establish or repair the current user's manifest-declared course environment.
 #
 #
 # Intended user:
-#     A student, faculty member, AI support tool, or technical support user
+#     The standard student or faculty account that will complete course work
 #
 # State boundary:
-#     READ_ONLY
+#     USER_SPECIFIC
 #
 #
 # Mutation policy:
-#     Do not install, update, remove, repair, or rewrite managed software, files, settings,
-#     authentication, or integrations
+#     Change only current-user course folders, managed settings, required user tools,
+#     authentication integration, and launchers
 #
 #
 # Privilege policy:
-#     Run as a standard user and never request elevation
+#     Run as the intended standard user without system elevation
 #
 # SRS traceability:
-#     VER-FR-001 through VER-FR-014
+#     CFG-FR-001 through CFG-FR-016
 #     PKG-FR-001 through PKG-FR-020
 #     PKG-NFR-001 through PKG-NFR-027
 #     PKG-TC-001 through PKG-TC-009
@@ -71,7 +71,7 @@
 #     REF-TC-001 through REF-TC-007 where applicable
 #
 # SDD traceability:
-#     VER-DES-001 through VER-DES-014
+#     CFG-DES-001 through CFG-DES-016
 #     ARC-DES-001 through ARC-DES-010
 #     DAT-DES-001 through DAT-DES-015
 #     INT-DES-001 through INT-DES-012
@@ -82,15 +82,15 @@
 #
 #
 # Preconditions:
-#     - The platform-native verify entry point is available.
-#     - The user can create the minimum home-derived log path.
+#     - The matching setup script has established the required system layer.
+#     - The script runs as the intended standard user.
 #     - The approved manifest and schema are present and readable.
 #
 #
 # Successful postconditions:
-#     - Every applicable check has a status, requirement, and remediation owner.
-#     - The final totals and most serious standardized exit code are reported.
-#     - No managed state has changed.
+#     - Required user tools, settings, folders, and integrations are usable.
+#     - Provider identity follows the approved privacy rule when configured.
+#     - Optional extensions and unrelated valid settings are preserved.
 #
 #
 # Explicit exclusions:
@@ -98,13 +98,13 @@
 #     - Student version-control history
 #     - Secrets, authentication tokens, and browser session data
 #     - Optional software and unrelated user settings
-#     - Any repair, installation, update, removal, or settings write
-#     - Privilege elevation
-#     - Support-bundle creation without explicit request and approval
+#     - System-wide package, repository, policy, and application changes
+#     - Passwords, tokens, private keys, and provider credential-store contents
+#     - Whole-file replacement of unrelated user settings
 #
 #
 # Normal next step:
-#     Run the remediation owner for failed checks or take no action.
+#     Run the matching verify script.
 #
 # ==============================================================================
 
@@ -114,48 +114,48 @@
 # ==============================================================================
 #
 # Action:
-#     verify
+#     configure
 #
 # State scope:
-#     read_only_system_and_user_observation
+#     current_user
 #
 # May change managed state:
-#     FALSE
+#     TRUE
 #
 # Operation lock required:
-#     FALSE
+#     TRUE
 #
 # Lock scope:
-#     none
+#     current_user_managed_settings_tools_and_integrations
 #
 # Privilege model:
-#     read-only queries only
+#     standard user; reject unintended elevated context
 #
 # ==============================================================================
 
-action_id = "verify"
-state_scope = "read_only_system_and_user_observation"
-may_change_state = FALSE
-lock_required = FALSE
-normal_next_step = "remediation_owner_or_no_action"
-lock_scope = "none"
+action_id = "configure"
+state_scope = "current_user"
+may_change_state = TRUE
+lock_required = TRUE
+normal_next_step = "verify"
+lock_scope = "current_user_managed_settings_tools_and_integrations"
 
 purpose_text = join_text([
-    "Inspect the system and user course environment without changing",
-    "it."
+    "Establish or repair the current user's manifest-declared course",
+    "environment."
 ])
 intended_user_text = join_text([
-    "A student, faculty member, AI support tool, or technical support",
-    "user"
+    "The standard student or faculty account that will complete",
+    "course work"
 ])
-privilege_policy_text = "Run as a standard user and never request elevation"
+privilege_policy_text = "Run as the intended standard user without system elevation"
 help_prerequisites_text = join_text([
-    "Standard user access; network checks use bounded timeouts and do",
-    "not start authentication"
+    "Completed system setup, intended standard account, and network",
+    "access when provider authentication is required"
 ])
 expected_interaction_text = join_text([
-    "No interaction unless a requested support bundle requires final",
-    "confirmation."
+    "Provider authentication and display-name prompts may occur only",
+    "when required."
 ])
 
 
@@ -191,9 +191,7 @@ PROCEDURE main(arguments)
                 "help",
             "version",
             "noninteractive",
-            "deployment_profile",
-            "support_bundle",
-            "confirm_support_bundle"
+            "deployment_profile"
             ]
         )
         append_result(run_summary, option_result)
@@ -437,7 +435,7 @@ PROCEDURE main(arguments)
     ENDIF
 
 
-    BEGIN STAGE "verify.prerequisites"
+    BEGIN STAGE "configure.prerequisites"
 
         prerequisite_results = run_action_prerequisites(
             run_context,
@@ -456,7 +454,7 @@ PROCEDURE main(arguments)
     ENDSTAGE
 
 
-    BEGIN STAGE "verify.plan"
+    BEGIN STAGE "configure.plan"
 
         plan_result = build_action_plan(
             run_context,
@@ -480,7 +478,7 @@ PROCEDURE main(arguments)
     ENDSTAGE
 
 
-    BEGIN STAGE "verify.execute"
+    BEGIN STAGE "configure.execute"
 
         FOR EACH plan_stage IN action_plan.stages IN dependency_order
 
@@ -507,7 +505,7 @@ PROCEDURE main(arguments)
 
                 stage_results = create_canceled_result(
                     plan_stage.operation_id,
-                    remediation_owner = "verify"
+                    remediation_owner = "configure"
                 )
 
             CATCH temporary_external_failure
@@ -544,7 +542,7 @@ PROCEDURE main(arguments)
 
     IF may_change_state = TRUE AND run_summary.changed_items IS NOT EMPTY
 
-        BEGIN STAGE "verify.post_validate"
+        BEGIN STAGE "configure.post_validate"
 
             post_validation_results = post_validate_action(
                 run_context,
@@ -662,7 +660,7 @@ ENDPROCEDURE
 
 
 # ==============================================================================
-# 4. VERIFY-SPECIFIC PROCEDURES
+# 4. CONFIGURE-SPECIFIC PROCEDURES
 # ==============================================================================
 
 PROCEDURE run_action_prerequisites(
@@ -677,32 +675,54 @@ PROCEDURE run_action_prerequisites(
 
     append_result(
         results,
-        confirm_standard_user_or_support_context(platform_facts)
+        confirm_intended_standard_user_context(platform_facts)
     )
 
     append_result(
         results,
-        confirm_no_privilege_elevation_will_be_requested(adapters)
+        reject_root_or_system_administrator_execution(
+            platform_facts,
+            allowed_exception = NONE
+        )
     )
 
-    append_result(
+    append_results(
         results,
-        confirm_only_read_only_adapter_interfaces_are_available(adapters)
-    )
-
-    append_result(
-        results,
-        validate_verification_timeouts(
-            manifest.policy,
-            maximum_total_seconds = 90
+        probe_required_system_layer(
+            manifest,
+            deployment_profile.platform_id,
+            adapters.read_only_capabilities,
+            remediation_owner = "setup"
         )
     )
 
     append_result(
         results,
-        validate_support_bundle_allowlist(
-            manifest.logging.support_bundle
+        check_home_derived_course_paths(run_context)
+    )
+
+    append_result(
+        results,
+        check_user_write_access_to_managed_paths(run_context, manifest)
+    )
+
+    append_result(
+        results,
+        validate_provider_profiles_needed_for_configuration(manifest)
+    )
+
+    append_result(
+        results,
+        check_required_network_reachability(
+            manifest,
+            purpose = "provider authentication when required",
+            allow_not_needed_when_authenticated = TRUE
         )
+    )
+
+    append_result(
+        results,
+        confirm_no_system_scope_adapter_methods_are_available(adapters)
     )
 
     RETURN results
@@ -721,236 +741,166 @@ PROCEDURE build_action_plan(
 )
 
     action_plan = create_empty_dependency_aware_plan()
-    check_registry = create_empty_ordered_check_registry()
 
-    register_check(
-        check_registry,
-        check_id = "verify.platform",
-        related_srs_ids = ["VER-FR-004"],
-        required_or_optional = "required",
-        read_operation = "read_platform_facts",
-        expected_rule = deployment_profile.platform_constraints,
-        redaction_rule = "platform_facts",
-        remediation_action = "technical_support",
-        support_escalation_rule =
-            deployment_profile.support_escalation_rule
+    folder_plan = compare_course_folder_state(
+        run_context,
+        manifest.policy
+    )
+    add_plan_stage(
+        action_plan,
+        operation_id = "configure.course_folders",
+        operation_type = "create_or_repair_course_folders",
+        dependencies = [],
+        planned_items = folder_plan,
+        mutating = TRUE,
+        privilege_scope = "none",
+        managed_targets = folder_plan.targets,
+        blocks_dependents = TRUE,
+        recovery = "preserve existing folder contents",
+        traceability = ["CFG-FR-003", "CFG-FR-012",
+                        "CFG-DES-003", "CFG-DES-012"]
     )
 
-    register_check(
-        check_registry,
-        check_id = "verify.disk_space",
-        related_srs_ids = ["VER-FR-004"],
-        required_or_optional = "required",
-        read_operation = "read_available_disk_space",
-        expected_rule = manifest.policy.minimum_free_space_bytes,
-        redaction_rule = "none",
-        remediation_action = "technical_support",
-        support_escalation_rule = "platform_support_when_unreadable"
+    path_plan = compare_user_executable_path_state(
+        run_context,
+        platform_implementation_script_directory(),
+        manifest
+    )
+    add_plan_stage(
+        action_plan,
+        operation_id = "configure.user_path",
+        operation_type = "merge_user_executable_path",
+        dependencies = ["configure.course_folders"],
+        planned_items = path_plan,
+        mutating = TRUE,
+        privilege_scope = "none",
+        managed_targets = path_plan.targets,
+        blocks_dependents = FALSE,
+        recovery = "restore previous valid managed entry",
+        traceability = ["CFG-FR-004", "CFG-FR-015",
+                        "CFG-DES-004", "CFG-DES-015"]
     )
 
-    register_check(
-        check_registry,
-        check_id = "verify.network",
-        related_srs_ids = ["VER-FR-004"],
-        required_or_optional = "required_when_service_needed",
-        read_operation = "probe_approved_endpoints",
-        expected_rule = manifest.software_sources,
-        redaction_rule = "approved_endpoint_only",
-        remediation_action = "technical_support",
-        support_escalation_rule = "network_support"
+    provider_plan = build_provider_authentication_and_identity_plan(
+        manifest.provider_profiles,
+        adapters.providers
+    )
+    add_plan_stage(
+        action_plan,
+        operation_id = "configure.provider_identity",
+        operation_type = "authenticate_and_configure_identity",
+        dependencies = ["configure.course_folders"],
+        planned_items = provider_plan,
+        mutating = TRUE,
+        privilege_scope = "none",
+        managed_targets = provider_plan.identity_setting_targets,
+        blocks_dependents = TRUE,
+        recovery = "leave provider credentials in provider-owned store",
+        traceability = ["CFG-FR-005", "CFG-FR-006",
+                        "CFG-FR-007", "CFG-FR-008",
+                        "CFG-DES-005", "CFG-DES-006",
+                        "CFG-DES-007", "CFG-DES-008"]
     )
 
-    FOR EACH binding IN select_all_platform_capability_bindings(
+    version_control_plan = compare_managed_version_control_settings(
+        manifest.managed_settings,
+        adapters.version_control
+    )
+    add_plan_stage(
+        action_plan,
+        operation_id = "configure.version_control",
+        operation_type = "merge_version_control_settings",
+        dependencies = ["configure.provider_identity"],
+        planned_items = version_control_plan,
+        mutating = TRUE,
+        privilege_scope = "none",
+        managed_targets = version_control_plan.targets,
+        blocks_dependents = FALSE,
+        recovery = "restore prior managed values when available",
+        traceability = ["CFG-FR-009", "CFG-FR-015",
+                        "CFG-DES-009", "CFG-DES-015"]
+    )
+
+    user_tool_plan = compare_required_user_tool_state(
         manifest,
-        deployment_profile.platform_id
+        deployment_profile.platform_id,
+        adapters.capabilities
+    )
+    add_plan_stage(
+        action_plan,
+        operation_id = "configure.user_tools",
+        operation_type = "install_or_repair_user_tools",
+        dependencies = ["configure.course_folders"],
+        planned_items = user_tool_plan,
+        mutating = TRUE,
+        privilege_scope = "none",
+        managed_targets = user_tool_plan.targets,
+        blocks_dependents = TRUE,
+        recovery = "adapter-defined user-scope repair",
+        traceability = ["CFG-FR-010", "CFG-FR-015",
+                        "CFG-DES-010", "CFG-DES-015"]
     )
 
-        register_capability_check(
-            check_registry,
-            binding,
-            related_srs_ids = ["VER-FR-005", "VER-FR-006"],
-            remediation_action =
-                remediation_owner_for_binding_scope(binding.scope)
-        )
+    ide_settings_plan = compare_managed_ide_settings(
+        manifest.managed_settings,
+        adapters.ide
+    )
+    add_plan_stage(
+        action_plan,
+        operation_id = "configure.ide_settings",
+        operation_type = "merge_managed_ide_settings",
+        dependencies = ["configure.user_tools"],
+        planned_items = ide_settings_plan,
+        mutating = TRUE,
+        privilege_scope = "none",
+        managed_targets = ide_settings_plan.targets,
+        blocks_dependents = FALSE,
+        recovery = "preserve original file and restore staged backup",
+        traceability = ["CFG-FR-011", "CFG-FR-015",
+                        "CFG-DES-011", "CFG-DES-015",
+                        "ERR-DES-009"]
+    )
 
-    ENDFOR
-
-    FOR EACH package IN select_required_os_support_packages(
+    integration_plan = compare_user_integration_state(
         manifest,
-        deployment_profile.platform_id
+        deployment_profile,
+        adapters.platform
     )
-
-        register_os_package_check(
-            check_registry,
-            package,
-            related_srs_ids = ["VER-FR-005"],
-            remediation_action = "setup"
-        )
-
-    ENDFOR
-
-    FOR EACH provider_profile IN manifest.provider_profiles
-
-        register_provider_authentication_check(
-            check_registry,
-            provider_profile,
-            related_srs_ids = ["VER-FR-006", "VER-FR-007"],
-            remediation_action = "configure",
-            redaction_rule = "provider_identity_minimum"
-        )
-
-    ENDFOR
-
-    FOR EACH managed_setting IN manifest.managed_settings
-
-        register_managed_setting_check(
-            check_registry,
-            managed_setting,
-            related_srs_ids = ["VER-FR-006", "VER-FR-007"],
-            remediation_action =
-                remediation_owner_for_setting(managed_setting)
-        )
-
-    ENDFOR
-
-    register_check(
-        check_registry,
-        check_id = "verify.script_permissions",
-        related_srs_ids = ["VER-FR-006"],
-        required_or_optional = "required",
-        read_operation = "read_script_permissions",
-        expected_rule = platform_script_permission_rule(),
-        redaction_rule = "normalize_home_path",
-        remediation_action = "configure",
-        support_escalation_rule = "technical_support_when_unreadable"
-    )
-
-    register_check(
-        check_registry,
-        check_id = "verify.course_folders",
-        related_srs_ids = ["VER-FR-006"],
-        required_or_optional = "required",
-        read_operation = "read_course_folder_state",
-        expected_rule = manifest.policy.course_folder_rules,
-        redaction_rule = "normalize_home_path",
-        remediation_action = "configure",
-        support_escalation_rule = "technical_support_when_unsafe"
-    )
-
-    FOR EACH integration IN select_all_managed_integrations(
-        manifest,
-        deployment_profile
-    )
-
-        register_integration_check(
-            check_registry,
-            integration,
-            related_srs_ids = ["VER-FR-006"],
-            remediation_action =
-                remediation_owner_for_integration(integration)
-        )
-
-    ENDFOR
-
-    FOR EACH managed_asset IN manifest.managed_assets
-
-        register_managed_asset_check(
-            check_registry,
-            managed_asset,
-            related_srs_ids = ["VER-FR-007"],
-            remediation_action = "update",
-            redaction_rule = "normalize_home_path"
-        )
-
-    ENDFOR
-
     add_plan_stage(
         action_plan,
-        operation_id = "verify.environment",
-        operation_type = "run_check_group",
-        dependencies = [],
-        planned_items = select_environment_checks(check_registry),
-        mutating = FALSE,
+        operation_id = "configure.user_integrations",
+        operation_type = "create_or_repair_user_integrations",
+        dependencies = ["configure.course_folders",
+                        "configure.user_tools"],
+        planned_items = integration_plan,
+        mutating = TRUE,
         privilege_scope = "none",
-        managed_targets = [],
+        managed_targets = integration_plan.targets,
         blocks_dependents = FALSE,
-        recovery = "not_applicable",
-        traceability = ["VER-FR-001", "VER-FR-002",
-                        "VER-FR-003", "VER-FR-004",
-                        "VER-DES-001", "VER-DES-002",
-                        "VER-DES-003", "VER-DES-004"]
+        recovery = "restore previous declared integration",
+        traceability = ["CFG-FR-013", "CFG-FR-015",
+                        "CFG-DES-013", "CFG-DES-015"]
     )
 
+    permission_plan = compare_script_permission_state(
+        platform_implementation_script_directory(),
+        manifest
+    )
     add_plan_stage(
         action_plan,
-        operation_id = "verify.system_layer",
-        operation_type = "run_check_group",
-        dependencies = [],
-        planned_items = select_system_checks(check_registry),
-        mutating = FALSE,
+        operation_id = "configure.script_permissions",
+        operation_type = "repair_user_executable_permissions",
+        dependencies = ["configure.course_folders"],
+        planned_items = permission_plan,
+        mutating = TRUE,
         privilege_scope = "none",
-        managed_targets = [],
+        managed_targets = permission_plan.targets,
         blocks_dependents = FALSE,
-        recovery = "not_applicable",
-        traceability = ["VER-FR-005", "VER-DES-005"]
+        recovery = "restore prior permissions when available",
+        traceability = ["CFG-FR-014", "CFG-DES-014"]
     )
 
-    add_plan_stage(
-        action_plan,
-        operation_id = "verify.user_layer",
-        operation_type = "run_check_group",
-        dependencies = [],
-        planned_items = select_user_checks(check_registry),
-        mutating = FALSE,
-        privilege_scope = "none",
-        managed_targets = [],
-        blocks_dependents = FALSE,
-        recovery = "not_applicable",
-        traceability = ["VER-FR-006", "VER-FR-007",
-                        "VER-DES-006", "VER-DES-007"]
-    )
-
-    add_plan_stage(
-        action_plan,
-        operation_id = "verify.managed_assets",
-        operation_type = "run_check_group",
-        dependencies = [],
-        planned_items = select_asset_checks(check_registry),
-        mutating = FALSE,
-        privilege_scope = "none",
-        managed_targets = [],
-        blocks_dependents = FALSE,
-        recovery = "not_applicable",
-        traceability = ["VER-FR-006", "VER-FR-007",
-                        "VER-DES-006", "VER-DES-007"]
-    )
-
-    IF options.support_bundle_requested = TRUE
-
-        add_plan_stage(
-            action_plan,
-            operation_id = "verify.support_bundle",
-            operation_type = "prepare_support_bundle",
-            dependencies = ["verify.environment",
-                            "verify.system_layer",
-                            "verify.user_layer",
-                            "verify.managed_assets"],
-            planned_items =
-                manifest.logging.support_bundle.approved_inventory,
-            mutating = FALSE,
-            privilege_scope = "none",
-            managed_targets = [],
-            blocks_dependents = FALSE,
-            recovery = "remove temporary bundle staging",
-            traceability = ["VER-FR-013", "VER-DES-013",
-                            "PKG-QOS-021", "PKG-QOS-022"]
-        )
-
-    ENDIF
-
-    assert_every_check_has_requirement_and_remediation(check_registry)
-    assert_optional_checks_cannot_create_required_failure(check_registry)
-    assert_plan_contains_no_mutating_operations(action_plan)
+    assert_plan_contains_only_current_user_scope_operations(action_plan)
     validate_plan_against_action_boundaries(action_plan, state_scope)
 
     RETURN successful_plan_result(action_plan)
@@ -966,9 +916,10 @@ PROCEDURE execute_action_stage(
     options
 )
 
-    IF plan_stage.operation_type = "prepare_support_bundle"
+    IF plan_stage.operation_type =
+        "authenticate_and_configure_identity"
 
-        RETURN prepare_sanitized_support_bundle(
+        RETURN execute_provider_identity_stage(
             plan_stage,
             run_context,
             manifest,
@@ -978,123 +929,62 @@ PROCEDURE execute_action_stage(
 
     ENDIF
 
+    IF plan_stage.operation_type = "merge_managed_ide_settings"
+
+        RETURN execute_validated_settings_merge(
+            plan_stage,
+            manifest,
+            adapters.ide
+        )
+
+    ENDIF
+
     results = new_result_collection()
 
-    FOR EACH check_definition IN plan_stage.planned_items
+    FOR EACH plan_item IN plan_stage.planned_items
 
-        IF check_does_not_apply(
-            check_definition,
-            run_context,
-            manifest
-        )
+        current_state = query_plan_item_state(plan_item, adapters)
+
+        IF state_satisfies_rule(current_state, plan_item.expected_rule)
 
             append_result(
                 results,
-                create_check_result(
-                    check_definition,
-                    status = "not_applicable",
-                    observed_value = NONE,
-                    sanitized_detail =
-                        "The approved configuration does not use this item."
+                create_unchanged_result(
+                    plan_item.operation_id,
+                    sanitized_detail = current_state.summary
                 )
             )
             CONTINUE
 
         ENDIF
 
-        TRY
+        validate_user_input_fields(plan_item)
+        validate_managed_targets(plan_item.managed_targets, manifest)
 
-            observed_value = execute_read_only_probe(
-                check_definition.read_operation,
-                adapters
-            )
+        operation_result = apply_smallest_approved_user_change(
+            plan_item,
+            adapters
+        )
+        append_result(results, operation_result)
 
-            sanitized_value = apply_redaction_rule(
-                observed_value,
-                check_definition.redaction_rule
-            )
+        IF operation_result.status = fail
+            CONTINUE
+        ENDIF
 
-            comparison = compare_observed_with_expected(
-                sanitized_value,
-                check_definition.expected_rule
-            )
-
-            result_status = map_comparison_to_check_status(
-                comparison,
-                check_definition.required_or_optional
-            )
-
-            append_result(
-                results,
-                create_check_result(
-                    check_definition,
-                    status = result_status,
-                    observed_value = sanitized_value,
-                    sanitized_detail = comparison.detail,
-                    remediation_owner =
-                        check_definition.remediation_action,
-                    support_escalation_rule =
-                        check_definition.support_escalation_rule
-                )
-            )
-
-        CATCH read_permission_denied
-
-            append_result(
-                results,
-                create_check_result(
-                    check_definition,
-                    status =
-                        status_for_unreadable_check(check_definition),
-                    observed_value = NONE,
-                    sanitized_detail =
-                        "The current user could not read this condition.",
-                    remediation_owner =
-                        check_definition.remediation_action
-                )
-            )
-
-        CATCH temporary_external_failure
-
-            append_result(
-                results,
-                create_check_result(
-                    check_definition,
-                    status =
-                        status_for_external_check_failure(check_definition),
-                    observed_value = NONE,
-                    sanitized_detail =
-                        "The approved service did not respond in time.",
-                    remediation_owner =
-                        check_definition.remediation_action
-                )
-            )
-
-        CATCH unexpected_failure
-
-            append_result(
-                results,
-                create_check_result(
-                    check_definition,
-                    status = "fail",
-                    observed_value = NONE,
-                    sanitized_detail = sanitized_error(),
-                    remediation_owner =
-                        check_definition.remediation_action
-                )
-            )
-
-        END TRY
+        final_state = query_plan_item_state(plan_item, adapters)
+        append_result(
+            results,
+            compare_final_state(plan_item, final_state)
+        )
 
     ENDFOR
 
-    display_check_group_results(results)
     RETURN results
 
 ENDPROCEDURE
 
 
-PROCEDURE prepare_sanitized_support_bundle(
+PROCEDURE execute_provider_identity_stage(
     plan_stage,
     run_context,
     manifest,
@@ -1103,59 +993,61 @@ PROCEDURE prepare_sanitized_support_bundle(
 )
 
     results = new_result_collection()
+    provider_profile = plan_stage.planned_items.provider_profile
+    provider_adapter = adapters.providers[provider_profile.adapter_id]
 
-    inventory = build_support_bundle_inventory(
-        approved_items = plan_stage.planned_items,
-        exclusions = [
-            "student source files",
-            "assignment repositories",
-            "version-control history",
-            "authentication stores",
-            "browser profiles",
-            "unrelated settings"
-        ]
-    )
+    auth_status = provider_adapter.get_authentication_status()
+    append_result(results, sanitize_provider_status(auth_status))
 
-    inventory_validation = validate_support_bundle_inventory(inventory)
-    append_result(results, inventory_validation)
+    IF auth_status.is_valid = FALSE
 
-    IF inventory_validation.status = fail
-        RETURN results
-    ENDIF
-
-    display_support_bundle_inventory(inventory)
-
-    IF options.noninteractive = TRUE
-
-        IF options.confirm_support_bundle = FALSE
+        IF options.noninteractive = TRUE
 
             append_result(
                 results,
-                create_canceled_result(
-                    "verify.support_bundle",
-                    sanitized_detail =
-                        "Noninteractive creation requires explicit confirmation."
+                create_required_interaction_failure(
+                    "configure.provider_authentication",
+                    remediation_owner = "configure"
                 )
             )
             RETURN results
 
         ENDIF
 
-    ELSE
+        explain_authentication_action(
+            provider_profile.authentication_method,
+            expected_browser_or_device_interaction =
+                provider_profile.user_instructions,
+            cancellation_method = "choose cancel before authentication"
+        )
 
         confirmation = request_bounded_confirmation(
-            prompt_id = "support_bundle.confirm",
+            prompt_id = "provider.auth.action_required",
             default = "cancel"
         )
 
         IF confirmation = "cancel"
+            RAISE user_cancellation
+        ENDIF
+
+        auth_result =
+            provider_adapter.start_approved_authentication_flow()
+        append_result(results, sanitize_provider_result(auth_result))
+
+        IF auth_result.status = fail
+            RETURN results
+        ENDIF
+
+        auth_status = provider_adapter.get_authentication_status()
+        append_result(results, sanitize_provider_status(auth_status))
+
+        IF auth_status.is_valid = FALSE
 
             append_result(
                 results,
-                create_canceled_result(
-                    "verify.support_bundle",
-                    sanitized_detail =
-                        "The verification report remains available in the log."
+                create_required_failure(
+                    "configure.provider_authentication",
+                    remediation_owner = "configure"
                 )
             )
             RETURN results
@@ -1164,58 +1056,137 @@ PROCEDURE prepare_sanitized_support_bundle(
 
     ENDIF
 
-    staging_result = create_private_bundle_staging_directory(
-        run_context.temporary_root
+    account_identity = provider_adapter.get_account_identity(
+        provider_profile.account_fields
     )
-    append_result(results, staging_result)
 
-    IF staging_result.status = fail
+    identity_validation = validate_minimum_account_identity(
+        account_identity,
+        provider_profile
+    )
+    append_result(results, identity_validation)
+
+    IF identity_validation.status = fail
         RETURN results
     ENDIF
 
-    FOR EACH inventory_item IN inventory
-
-        candidate = collect_approved_diagnostic(
-            inventory_item,
-            run_context,
-            adapters
+    private_commit_identity =
+        provider_adapter.derive_private_commit_identity(
+            provider_profile.private_commit_identity_rule,
+            account_identity
         )
 
-        sanitized_candidate = apply_field_and_pattern_redaction(
-            candidate
+    IF options.noninteractive = TRUE
+
+        display_name = account_identity.user_name
+
+    ELSE
+
+        explain_display_name_choice(
+            default_value = account_identity.user_name,
+            privacy_note =
+                "The display name is public in version-control history."
         )
 
-        scan_result = scan_for_prohibited_bundle_content(
-            sanitized_candidate
+        display_name = request_validated_display_name(
+            default = account_identity.user_name,
+            bounded_attempts = manifest.policy.input_attempt_limit
         )
-        append_result(results, scan_result)
 
-        IF scan_result.status = fail
-            RETURN results
-        ENDIF
+    ENDIF
+
+    append_result(
+        results,
+        apply_managed_version_control_identity(
+            display_name,
+            private_commit_identity,
+            adapters.version_control,
+            redact_complete_identity = TRUE
+        )
+    )
+
+    RETURN results
+
+ENDPROCEDURE
+
+
+PROCEDURE execute_validated_settings_merge(
+    plan_stage,
+    manifest,
+    ide_adapter
+)
+
+    results = new_result_collection()
+    target = plan_stage.planned_items.target
+
+    existing_result = ide_adapter.read_settings(target)
+    append_result(results, existing_result)
+
+    IF existing_result.status = fail
+        RETURN results
+    ENDIF
+
+    IF existing_result.value.is_invalid = TRUE
+
+        diagnostic_result = preserve_sanitized_diagnostic_copy(
+            existing_result.value,
+            target
+        )
+        append_result(results, diagnostic_result)
 
         append_result(
             results,
-            add_diagnostic_to_bundle_staging(
-                sanitized_candidate,
-                inventory_item
+            create_required_failure(
+                "configure.ide_settings.invalid_existing",
+                remediation_owner = "technical_support"
             )
         )
+        RETURN results
 
-    ENDFOR
+    ENDIF
 
-    final_scan = scan_staged_bundle_and_inventory()
-    append_result(results, final_scan)
+    merged_settings = merge_only_manifest_declared_keys(
+        existing_result.value,
+        plan_stage.planned_items.managed_keys
+    )
 
-    IF final_scan.status = fail
+    staged_result = stage_deterministic_settings(
+        target,
+        merged_settings
+    )
+    append_result(results, staged_result)
+
+    IF staged_result.status = fail
+        RETURN results
+    ENDIF
+
+    validation_result = validate_staged_settings(
+        staged_result.value,
+        plan_stage.planned_items.validation_rules
+    )
+    append_result(results, validation_result)
+
+    IF validation_result.status = fail
+        RETURN results
+    ENDIF
+
+    replacement_result = atomically_replace_user_settings(
+        target,
+        staged_result.value,
+        preserve_previous = TRUE
+    )
+    append_result(results, replacement_result)
+
+    IF replacement_result.status = fail
         RETURN results
     ENDIF
 
     append_result(
         results,
-        create_bundle_in_log_directory(
-            run_context.log_directory,
-            restrictive_user_permissions = TRUE
+        verify_managed_setting_keys(
+            target,
+            plan_stage.planned_items.managed_keys,
+            ide_adapter
         )
     )
 
@@ -1235,14 +1206,84 @@ PROCEDURE post_validate_action(
 
     results = new_result_collection()
 
-    append_result(
+    append_results(
         results,
-        create_not_applicable_result(
-            "verify.post_validate",
-            sanitized_detail =
-                "Verify does not change managed state."
+        verify_required_system_layer_read_only(
+            manifest,
+            deployment_profile.platform_id,
+            adapters.read_only_capabilities
         )
     )
+
+    append_result(
+        results,
+        verify_course_folders_preserve_existing_contents(
+            run_context,
+            manifest
+        )
+    )
+
+    append_result(
+        results,
+        verify_user_executable_path_has_one_managed_entry(
+            platform_implementation_script_directory()
+        )
+    )
+
+    append_results(
+        results,
+        verify_provider_identity_and_authentication(
+            manifest.provider_profiles,
+            adapters.providers,
+            redact_complete_identity = TRUE
+        )
+    )
+
+    append_results(
+        results,
+        verify_managed_version_control_settings(
+            manifest.managed_settings,
+            adapters.version_control
+        )
+    )
+
+    append_results(
+        results,
+        verify_required_user_tools_and_extensions(
+            manifest,
+            deployment_profile.platform_id,
+            adapters
+        )
+    )
+
+    append_results(
+        results,
+        verify_managed_ide_settings_preserve_unrelated_keys(
+            manifest.managed_settings,
+            adapters.ide
+        )
+    )
+
+    append_results(
+        results,
+        verify_user_integrations(
+            manifest,
+            deployment_profile,
+            adapters.platform
+        )
+    )
+
+    append_result(
+        results,
+        confirm_no_system_scope_state_changed(changed_items)
+    )
+
+    IF has_no_required_failure(results)
+        set_next_step(
+            run_context,
+            render_matching_lifecycle_command("verify")
+        )
+    ENDIF
 
     RETURN results
 

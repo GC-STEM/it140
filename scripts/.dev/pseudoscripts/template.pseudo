@@ -115,9 +115,9 @@
 #     IF
 #     ELSE IF
 #     ELSE
-#     END IF
+#     ENDIF
 #     FOR EACH
-#     END FOR
+#     ENDFOR
 #     TRY
 #     CATCH
 #     FINALLY
@@ -294,7 +294,7 @@ PROCEDURE main(arguments)
         operation_lock = NONE
         transcript_started = FALSE
 
-    END STAGE
+    ENDSTAGE
 
 
     BEGIN STAGE "run.options"
@@ -305,9 +305,9 @@ PROCEDURE main(arguments)
         IF option_result.status = fail
             record_invalid_invocation(run_summary)
             GOTO FINALIZE_RUN
-        END IF
+        ENDIF
 
-    END STAGE
+    ENDSTAGE
 
 
     BEGIN STAGE "log.start"
@@ -317,18 +317,18 @@ PROCEDURE main(arguments)
 
         IF path_result.status = fail
             GOTO FINALIZE_WITHOUT_TRANSCRIPT
-        END IF
+        ENDIF
 
         log_result = create_log_directory_and_start_transcript(run_context)
         append_result(run_summary, log_result)
 
         IF log_result.status = fail
             GOTO FINALIZE_WITHOUT_TRANSCRIPT
-        END IF
+        ENDIF
 
         transcript_started = TRUE
 
-    END STAGE
+    ENDSTAGE
 
 
     IF options.help_requested = TRUE
@@ -344,7 +344,7 @@ PROCEDURE main(arguments)
         append_success_result(run_summary, "run.help")
         GOTO FINALIZE_RUN
 
-    END IF
+    ENDIF
 
 
     IF options.version_requested = TRUE
@@ -357,7 +357,7 @@ PROCEDURE main(arguments)
         append_success_result(run_summary, "run.version")
         GOTO FINALIZE_RUN
 
-    END IF
+    ENDIF
 
 
     BEGIN STAGE "run.opening"
@@ -376,7 +376,7 @@ PROCEDURE main(arguments)
 
         append_success_result(run_summary, "run.opening")
 
-    END STAGE
+    ENDSTAGE
 
 
     BEGIN STAGE "platform.detect"
@@ -388,9 +388,9 @@ PROCEDURE main(arguments)
         IF platform_result.status = fail
             record_unsupported_or_unreadable_platform(run_summary)
             GOTO FINALIZE_RUN
-        END IF
+        ENDIF
 
-    END STAGE
+    ENDSTAGE
 
 
     BEGIN STAGE "deployment.resolve"
@@ -404,12 +404,12 @@ PROCEDURE main(arguments)
         IF deployment_result.status = fail
             record_unsupported_deployment(run_summary)
             GOTO FINALIZE_RUN
-        END IF
+        ENDIF
 
         deployment_profile = deployment_result.value
         run_context.deployment_profile_id = deployment_profile.profile_id
 
-    END STAGE
+    ENDSTAGE
 
 
     BEGIN STAGE "platform.match"
@@ -425,9 +425,9 @@ PROCEDURE main(arguments)
         IF match_result.status = fail
             record_unsupported_invocation(run_summary)
             GOTO FINALIZE_RUN
-        END IF
+        ENDIF
 
-    END STAGE
+    ENDSTAGE
 
 
     BEGIN STAGE "manifest.validate"
@@ -453,7 +453,7 @@ PROCEDURE main(arguments)
         IF manifest_result.status = fail
             record_manifest_failure(run_summary)
             GOTO FINALIZE_RUN
-        END IF
+        ENDIF
 
         manifest = manifest_result.value
         run_context.manifest_release = manifest.automation_release
@@ -461,7 +461,7 @@ PROCEDURE main(arguments)
 
         display_manifest_release(run_context.manifest_release)
 
-    END STAGE
+    ENDSTAGE
 
 
     BEGIN STAGE "adapter.resolve"
@@ -477,11 +477,11 @@ PROCEDURE main(arguments)
         IF adapter_result.status = fail
             record_unsupported_configuration(run_summary)
             GOTO FINALIZE_RUN
-        END IF
+        ENDIF
 
         adapters = adapter_result.value
 
-    END STAGE
+    ENDSTAGE
 
 
     BEGIN STAGE "boundary.validate"
@@ -498,9 +498,9 @@ PROCEDURE main(arguments)
         IF boundary_result.status = fail
             record_unsafe_design_or_configuration(run_summary)
             GOTO FINALIZE_RUN
-        END IF
+        ENDIF
 
-    END STAGE
+    ENDSTAGE
 
 
     IF lock_required = TRUE
@@ -517,13 +517,13 @@ PROCEDURE main(arguments)
             IF lock_result.status = fail
                 record_concurrent_operation_failure(run_summary)
                 GOTO FINALIZE_RUN
-            END IF
+            ENDIF
 
             operation_lock = lock_result.value
 
-        END STAGE
+        ENDSTAGE
 
-    END IF
+    ENDIF
 
 
     BEGIN STAGE "{{ACTION}}.prerequisites"
@@ -540,9 +540,9 @@ PROCEDURE main(arguments)
         IF has_blocking_required_failure(prerequisite_results)
             mark_dependent_operations_skipped(run_summary)
             GOTO FINALIZE_RUN
-        END IF
+        ENDIF
 
-    END STAGE
+    ENDSTAGE
 
 
     BEGIN STAGE "{{ACTION}}.plan"
@@ -560,12 +560,12 @@ PROCEDURE main(arguments)
         IF plan_result.status = fail
             record_planning_failure(run_summary)
             GOTO FINALIZE_RUN
-        END IF
+        ENDIF
 
         action_plan = plan_result.value
         display_sanitized_plan_summary(action_plan)
 
-    END STAGE
+    ENDSTAGE
 
 
     BEGIN STAGE "{{ACTION}}.execute"
@@ -579,7 +579,7 @@ PROCEDURE main(arguments)
                 display_stage_result(stage_result)
                 CONTINUE
 
-            END IF
+            ENDIF
 
             TRY
 
@@ -624,9 +624,9 @@ PROCEDURE main(arguments)
             append_results(run_summary, stage_results)
             display_stage_results(stage_results)
 
-        END FOR
+        ENDFOR
 
-    END STAGE
+    ENDSTAGE
 
 
     IF may_change_state = TRUE AND run_summary.changed_items IS NOT EMPTY
@@ -645,11 +645,11 @@ PROCEDURE main(arguments)
 
             IF has_required_failure(post_validation_results)
                 record_partial_or_failed_final_state(run_summary)
-            END IF
+            ENDIF
 
-        END STAGE
+        ENDSTAGE
 
-    END IF
+    ENDIF
 
 
     IF action_id = "verify"
@@ -661,11 +661,11 @@ PROCEDURE main(arguments)
 
             IF read_only_result.status = fail
                 record_critical_design_failure(run_summary)
-            END IF
+            ENDIF
 
-        END STAGE
+        ENDSTAGE
 
-    END IF
+    ENDIF
 
 
 FINALIZE_RUN:
@@ -687,7 +687,7 @@ FINALIZE_RUN:
             run_summary
         )
 
-    END STAGE
+    ENDSTAGE
 
 
     BEGIN STAGE "run.cleanup"
@@ -706,9 +706,9 @@ FINALIZE_RUN:
                 release_result
             )
 
-        END IF
+        ENDIF
 
-    END STAGE
+    ENDSTAGE
 
 
     run_summary.final_exit_code = resolve_standard_exit_code(run_summary)
@@ -729,12 +729,12 @@ FINALIZE_RUN:
             exit_code = run_summary.final_exit_code
         )
 
-    END STAGE
+    ENDSTAGE
 
 
     IF transcript_started = TRUE
         close_transcript()
-    END IF
+    ENDIF
 
     RETURN run_summary.final_exit_code
 
@@ -745,7 +745,7 @@ FINALIZE_WITHOUT_TRANSCRIPT:
     display_minimum_safe_summary(run_summary, minimal_exit_code)
     RETURN minimal_exit_code
 
-END PROCEDURE
+ENDPROCEDURE
 
 
 # ==============================================================================
@@ -770,7 +770,7 @@ PROCEDURE run_action_prerequisites(
 
     RETURN prerequisite_results
 
-END PROCEDURE
+ENDPROCEDURE
 
 
 PROCEDURE build_action_plan(
@@ -799,7 +799,7 @@ PROCEDURE build_action_plan(
     validate_plan_against_action_boundaries(action_plan, state_scope)
     RETURN successful_plan_result(action_plan)
 
-END PROCEDURE
+ENDPROCEDURE
 
 
 PROCEDURE execute_action_stage(
@@ -818,7 +818,7 @@ PROCEDURE execute_action_stage(
 
     RETURN stage_results
 
-END PROCEDURE
+ENDPROCEDURE
 
 
 PROCEDURE post_validate_action(
@@ -836,7 +836,7 @@ PROCEDURE post_validate_action(
 
     RETURN post_validation_results
 
-END PROCEDURE
+ENDPROCEDURE
 
 
 # ==============================================================================
@@ -873,9 +873,9 @@ PROCEDURE resolve_standard_exit_code(run_summary)
         RETURN 6
     ELSE
         RETURN 0
-    END IF
+    ENDIF
 
-END PROCEDURE
+ENDPROCEDURE
 
 
 # ==============================================================================
