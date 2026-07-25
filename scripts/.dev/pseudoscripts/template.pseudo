@@ -1,0 +1,909 @@
+# ==============================================================================
+# IT 140 COURSE AUTOMATION PSEUDOSCRIPT TEMPLATE
+# ==============================================================================
+#
+# Repository path:
+#     scripts/.dev/pseudoscript/pseudoscript_template.pseudo
+#
+# Purpose:
+#     Define the common structure and writing style for:
+#
+#         setup_any.pseudo
+#         configure_any.pseudo
+#         verify_any.pseudo
+#         update_any.pseudo
+#
+# Authority:
+#     The current SRS, SDD, manifest schema, and controlled manifest remain
+#     authoritative. This template is a detailed-design aid.
+#
+# Repository baseline:
+#     GC-STEM/it140 commit 00bdc22de9610b3f9d7cfb87269cac59aee31778
+#
+# Template version:
+#     2026.07.25.1
+#
+# ==============================================================================
+
+
+# ==============================================================================
+# 0. HOW TO USE THIS TEMPLATE
+# ==============================================================================
+#
+# 1. Copy this file to {{ACTION}}_any.pseudo.
+# 2. Replace every {{PLACEHOLDER}}.
+# 3. Keep the common stages in the same order unless the SDD is revised.
+# 4. Replace action-specific procedure bodies with approved logic.
+# 5. Remove template-only instructions from the completed pseudoscript.
+# 6. Do not insert platform commands or product-specific data.
+#
+# Approved action values:
+#
+#     setup
+#     configure
+#     verify
+#     update
+#
+# ==============================================================================
+
+
+# ==============================================================================
+# 1. DOCUMENT CONTROL
+# ==============================================================================
+#
+# Artifact:
+#     {{ACTION}}_any.pseudo
+#
+# Lifecycle action:
+#     {{ACTION}}
+#
+# Purpose:
+#     {{ONE_SENTENCE_PURPOSE}}
+#
+# Intended user:
+#     {{INTENDED_USER}}
+#
+# State boundary:
+#     {{SYSTEM_LEVEL | USER_SPECIFIC | READ_ONLY | MANAGED_MAINTENANCE}}
+#
+# Mutation policy:
+#     {{MUTATION_POLICY}}
+#
+# Privilege policy:
+#     {{PRIVILEGE_POLICY}}
+#
+# SRS traceability:
+#     {{SRS_REQUIREMENT_IDS_OR_RANGE}}
+#
+# SDD traceability:
+#     {{SDD_DESIGN_IDS_OR_SECTIONS}}
+#
+# Preconditions:
+#     - {{PRECONDITION_1}}
+#     - {{PRECONDITION_2}}
+#
+# Successful postcondition:
+#     - {{POSTCONDITION_1}}
+#     - {{POSTCONDITION_2}}
+#
+# Explicit exclusions:
+#     - Student source files and assignment repositories
+#     - Student version-control history
+#     - Secrets, authentication tokens, and browser session data
+#     - Optional software and unrelated user settings
+#     - {{ACTION_SPECIFIC_EXCLUSION}}
+#
+# Normal next step:
+#     {{NORMAL_NEXT_STEP}}
+#
+# ==============================================================================
+
+
+# ==============================================================================
+# 2. STYLE STANDARD
+# ==============================================================================
+#
+# Control words
+# -------------
+#
+# Use uppercase control words:
+#
+#     BEGIN
+#     END
+#     PROCEDURE
+#     RETURN
+#     IF
+#     ELSE IF
+#     ELSE
+#     END IF
+#     FOR EACH
+#     END FOR
+#     TRY
+#     CATCH
+#     FINALLY
+#     END TRY
+#
+# Identifiers
+# -----------
+#
+# Use descriptive lower_snake_case identifiers:
+#
+#     run_context
+#     platform_facts
+#     deployment_profile
+#     action_plan
+#     operation_result
+#
+# Use stable dotted identifiers for stages, operations, checks, and messages:
+#
+#     run.initialize
+#     platform.detect
+#     deployment.resolve
+#     manifest.validate
+#     {{ACTION}}.prerequisites
+#     {{ACTION}}.plan
+#     {{ACTION}}.execute
+#     run.summary
+#
+# Layout
+# ------
+#
+# - Indent nested blocks by four spaces.
+# - Put one logical operation or decision on each line.
+# - Keep the main procedure readable from top to bottom.
+# - Move repeated or complex logic into a named procedure.
+# - Use LF line endings and no tabs.
+# - Keep lines at 100 characters or fewer when practical.
+#
+# Comments
+# --------
+#
+# - Explain intent, safety boundaries, assumptions, and non-obvious decisions.
+# - Do not restate an obvious operation.
+# - Use this marker for an unresolved design decision:
+#
+#       # DESIGN QUESTION: {{QUESTION}}
+#
+# - Use this marker for approved future work:
+#
+#       # DEFERRED: {{ITEM_AND_REASON}}
+#
+# Platform independence
+# ---------------------
+#
+# Use logical operations:
+#
+#     detect_platform_facts()
+#     query_capability_state()
+#     apply_managed_setting()
+#     verify_capability()
+#
+# Do not include concrete commands:
+#
+#     apt ...
+#     winget ...
+#     brew ...
+#     git config ...
+#     code --install-extension ...
+#
+# Products, versions, package identifiers, extensions, sources, releases, and
+# provider rules come from the validated manifest.
+#
+# Communication
+# -------------
+#
+# - Use INFO, SUCCESS, NOTICE, WARNING, and ERROR as visible text labels.
+# - Do not rely on color.
+# - Explain the current stage and the next required user action.
+# - Do not use timed animation as evidence of progress.
+# - Use a truthful heartbeat only during a genuinely long silent operation.
+# - Redact secrets and unnecessary personal information.
+#
+# Results
+# -------
+#
+# Every meaningful operation returns a structured result with:
+#
+#     operation_id
+#     status
+#     changed
+#     message_key
+#     sanitized_detail
+#     remediation_owner
+#     restart_requirement
+#     blocks_dependents
+#
+# Approved status identifiers:
+#
+#     pass
+#     success
+#     warning
+#     fail
+#     not_applicable
+#     skipped_dependency
+#     canceled
+#     changed
+#     unchanged
+#
+# ==============================================================================
+
+
+# ==============================================================================
+# 3. ACTION PROFILE
+# ==============================================================================
+#
+# Keep only the profile matching {{ACTION}}.
+#
+# setup
+#     state_scope       = system
+#     may_change_state  = TRUE
+#     lock_required     = TRUE
+#     privilege_model   = elevate approved individual operations only
+#     normal_next_step  = configure
+#
+# configure
+#     state_scope       = current_user
+#     may_change_state  = TRUE
+#     lock_required     = TRUE for conflicting user-managed resources
+#     privilege_model   = standard user; reject unintended elevated context
+#     normal_next_step  = verify
+#
+# verify
+#     state_scope       = read_only_system_and_user_observation
+#     may_change_state  = FALSE
+#     lock_required     = FALSE
+#     privilege_model   = read-only queries only
+#     normal_next_step  = remediation owner or no action
+#
+# update
+#     state_scope       = approved_system_and_course_managed_user_state
+#     may_change_state  = TRUE
+#     lock_required     = TRUE
+#     privilege_model   = elevate approved individual operations only
+#     normal_next_step  = verify when results require confirmation
+#
+# Final constants:
+#
+#     action_id          = "{{ACTION}}"
+#     state_scope        = "{{STATE_SCOPE}}"
+#     may_change_state   = {{TRUE_OR_FALSE}}
+#     lock_required      = {{TRUE_OR_FALSE}}
+#     normal_next_step   = "{{NORMAL_NEXT_STEP}}"
+#
+# ==============================================================================
+
+
+# ==============================================================================
+# 4. COMMON MAIN PROCEDURE
+# ==============================================================================
+
+PROCEDURE main(arguments)
+
+    BEGIN STAGE "run.initialize"
+
+        enable_strict_error_handling()
+        install_interruption_handlers()
+
+        run_context = create_minimal_run_context(
+            action_id,
+            script_version = "{{SCRIPT_VERSION}}",
+            supported_schema_range = "{{SUPPORTED_SCHEMA_RANGE}}"
+        )
+
+        run_summary = create_empty_run_summary()
+        operation_lock = NONE
+        transcript_started = FALSE
+
+    END STAGE
+
+
+    BEGIN STAGE "run.options"
+
+        option_result = parse_supported_options(arguments)
+        append_result(run_summary, option_result)
+
+        IF option_result.status = fail
+            record_invalid_invocation(run_summary)
+            GOTO FINALIZE_RUN
+        END IF
+
+    END STAGE
+
+
+    BEGIN STAGE "log.start"
+
+        path_result = resolve_bootstrap_paths(run_context)
+        append_result(run_summary, path_result)
+
+        IF path_result.status = fail
+            GOTO FINALIZE_WITHOUT_TRANSCRIPT
+        END IF
+
+        log_result = create_log_directory_and_start_transcript(run_context)
+        append_result(run_summary, log_result)
+
+        IF log_result.status = fail
+            GOTO FINALIZE_WITHOUT_TRANSCRIPT
+        END IF
+
+        transcript_started = TRUE
+
+    END STAGE
+
+
+    IF options.help_requested = TRUE
+
+        display_help(
+            purpose = "{{ONE_SENTENCE_PURPOSE}}",
+            intended_user = "{{INTENDED_USER}}",
+            prerequisites = "{{HELP_PREREQUISITES}}",
+            log_location = run_context.log_directory,
+            exit_code_meanings = standard_exit_code_catalog
+        )
+
+        append_success_result(run_summary, "run.help")
+        GOTO FINALIZE_RUN
+
+    END IF
+
+
+    IF options.version_requested = TRUE
+
+        display_version(
+            script_version = run_context.script_version,
+            supported_schema_range = run_context.supported_schema_range
+        )
+
+        append_success_result(run_summary, "run.version")
+        GOTO FINALIZE_RUN
+
+    END IF
+
+
+    BEGIN STAGE "run.opening"
+
+        display_opening_information(
+            package_name = "IT 140 Course Automation Scripts",
+            action_id = action_id,
+            script_version = run_context.script_version,
+            current_user_id = sanitized_current_user_id(),
+            purpose = "{{ONE_SENTENCE_PURPOSE}}",
+            state_scope = state_scope,
+            expected_privilege = "{{PRIVILEGE_POLICY}}",
+            expected_interaction = "{{EXPECTED_INTERACTION}}",
+            log_path = run_context.log_path
+        )
+
+        append_success_result(run_summary, "run.opening")
+
+    END STAGE
+
+
+    BEGIN STAGE "platform.detect"
+
+        platform_facts = detect_platform_facts()
+        platform_result = validate_minimum_platform_facts(platform_facts)
+        append_result(run_summary, platform_result)
+
+        IF platform_result.status = fail
+            record_unsupported_or_unreadable_platform(run_summary)
+            GOTO FINALIZE_RUN
+        END IF
+
+    END STAGE
+
+
+    BEGIN STAGE "deployment.resolve"
+
+        deployment_result = resolve_deployment_profile(
+            platform_facts,
+            explicit_approved_context = options.deployment_profile
+        )
+        append_result(run_summary, deployment_result)
+
+        IF deployment_result.status = fail
+            record_unsupported_deployment(run_summary)
+            GOTO FINALIZE_RUN
+        END IF
+
+        deployment_profile = deployment_result.value
+        run_context.deployment_profile_id = deployment_profile.profile_id
+
+    END STAGE
+
+
+    BEGIN STAGE "platform.match"
+
+        match_result = confirm_action_platform_match(
+            action_id,
+            expected_platform_id = "{{IMPLEMENTATION_PLATFORM_ID}}",
+            platform_facts,
+            deployment_profile
+        )
+        append_result(run_summary, match_result)
+
+        IF match_result.status = fail
+            record_unsupported_invocation(run_summary)
+            GOTO FINALIZE_RUN
+        END IF
+
+    END STAGE
+
+
+    BEGIN STAGE "manifest.validate"
+
+        manifest_result = load_and_validate_manifest(
+            manifest_path = run_context.manifest_path,
+            schema_path = run_context.schema_path,
+            validation_layers = [
+                duplicate_key_validation,
+                json_syntax_validation,
+                schema_validation,
+                cross_reference_validation,
+                deployment_profile_validation,
+                adapter_allowlist_validation,
+                path_boundary_validation,
+                trust_and_integrity_validation,
+                script_manifest_compatibility_validation,
+                secret_and_personal_value_validation
+            ]
+        )
+        append_result(run_summary, manifest_result)
+
+        IF manifest_result.status = fail
+            record_manifest_failure(run_summary)
+            GOTO FINALIZE_RUN
+        END IF
+
+        manifest = manifest_result.value
+        run_context.manifest_release = manifest.automation_release
+        run_context.platform_id = deployment_profile.platform_id
+
+        display_manifest_release(run_context.manifest_release)
+
+    END STAGE
+
+
+    BEGIN STAGE "adapter.resolve"
+
+        adapter_result = resolve_allowlisted_adapters(
+            action_id,
+            run_context.platform_id,
+            run_context.deployment_profile_id,
+            manifest
+        )
+        append_result(run_summary, adapter_result)
+
+        IF adapter_result.status = fail
+            record_unsupported_configuration(run_summary)
+            GOTO FINALIZE_RUN
+        END IF
+
+        adapters = adapter_result.value
+
+    END STAGE
+
+
+    BEGIN STAGE "boundary.validate"
+
+        boundary_result = validate_action_boundaries(
+            action_id,
+            state_scope,
+            may_change_state,
+            adapters,
+            manifest
+        )
+        append_result(run_summary, boundary_result)
+
+        IF boundary_result.status = fail
+            record_unsafe_design_or_configuration(run_summary)
+            GOTO FINALIZE_RUN
+        END IF
+
+    END STAGE
+
+
+    IF lock_required = TRUE
+
+        BEGIN STAGE "lock.acquire"
+
+            lock_result = acquire_operation_lock(
+                action_id,
+                run_context.platform_id,
+                managed_resource_scope = "{{LOCK_SCOPE}}"
+            )
+            append_result(run_summary, lock_result)
+
+            IF lock_result.status = fail
+                record_concurrent_operation_failure(run_summary)
+                GOTO FINALIZE_RUN
+            END IF
+
+            operation_lock = lock_result.value
+
+        END STAGE
+
+    END IF
+
+
+    BEGIN STAGE "{{ACTION}}.prerequisites"
+
+        prerequisite_results = run_action_prerequisites(
+            run_context,
+            platform_facts,
+            deployment_profile,
+            manifest,
+            adapters
+        )
+        append_results(run_summary, prerequisite_results)
+
+        IF has_blocking_required_failure(prerequisite_results)
+            mark_dependent_operations_skipped(run_summary)
+            GOTO FINALIZE_RUN
+        END IF
+
+    END STAGE
+
+
+    BEGIN STAGE "{{ACTION}}.plan"
+
+        plan_result = build_action_plan(
+            run_context,
+            platform_facts,
+            deployment_profile,
+            manifest,
+            adapters,
+            prerequisite_results
+        )
+        append_result(run_summary, plan_result)
+
+        IF plan_result.status = fail
+            record_planning_failure(run_summary)
+            GOTO FINALIZE_RUN
+        END IF
+
+        action_plan = plan_result.value
+        display_sanitized_plan_summary(action_plan)
+
+    END STAGE
+
+
+    BEGIN STAGE "{{ACTION}}.execute"
+
+        FOR EACH plan_stage IN action_plan.stages IN dependency_order
+
+            IF required_dependency_failed(plan_stage, run_summary)
+
+                stage_result = create_skipped_dependency_result(plan_stage)
+                append_result(run_summary, stage_result)
+                display_stage_result(stage_result)
+                CONTINUE
+
+            END IF
+
+            TRY
+
+                stage_results = execute_action_stage(
+                    plan_stage,
+                    run_context,
+                    manifest,
+                    adapters
+                )
+
+            CATCH user_cancellation
+
+                stage_results = create_canceled_result(
+                    plan_stage.operation_id,
+                    remediation_owner = "{{CANCELLATION_REMEDIATION_OWNER}}"
+                )
+
+            CATCH temporary_external_failure
+
+                stage_results = retry_with_manifest_policy(
+                    plan_stage,
+                    manifest.policy.retry_profiles,
+                    adapters
+                )
+
+            CATCH handled_operation_failure
+
+                stage_results = create_handled_failure_result(
+                    plan_stage.operation_id,
+                    sanitized_error()
+                )
+
+            CATCH unexpected_failure
+
+                stage_results = create_unexpected_failure_result(
+                    plan_stage.operation_id,
+                    sanitized_error()
+                )
+
+            END TRY
+
+            append_results(run_summary, stage_results)
+            display_stage_results(stage_results)
+
+        END FOR
+
+    END STAGE
+
+
+    IF may_change_state = TRUE AND run_summary.changed_items IS NOT EMPTY
+
+        BEGIN STAGE "{{ACTION}}.post_validate"
+
+            post_validation_results = post_validate_action(
+                run_context,
+                platform_facts,
+                deployment_profile,
+                manifest,
+                adapters,
+                run_summary.changed_items
+            )
+            append_results(run_summary, post_validation_results)
+
+            IF has_required_failure(post_validation_results)
+                record_partial_or_failed_final_state(run_summary)
+            END IF
+
+        END STAGE
+
+    END IF
+
+
+    IF action_id = "verify"
+
+        BEGIN STAGE "verify.read_only_assertion"
+
+            read_only_result = confirm_no_managed_state_changed(run_summary)
+            append_result(run_summary, read_only_result)
+
+            IF read_only_result.status = fail
+                record_critical_design_failure(run_summary)
+            END IF
+
+        END STAGE
+
+    END IF
+
+
+FINALIZE_RUN:
+
+    BEGIN STAGE "run.finalize"
+
+        restart_result = determine_restart_guidance(
+            run_context,
+            platform_facts,
+            deployment_profile,
+            run_summary
+        )
+        append_result(run_summary, restart_result)
+
+        run_summary.remediation = determine_remediation(run_summary)
+        run_summary.next_step = determine_next_step(
+            action_id,
+            normal_next_step,
+            run_summary
+        )
+
+    END STAGE
+
+
+    BEGIN STAGE "run.cleanup"
+
+        cleanup_results = remove_private_temporary_data()
+        append_results_without_overriding_primary_failure(
+            run_summary,
+            cleanup_results
+        )
+
+        IF operation_lock IS NOT NONE
+
+            release_result = release_operation_lock(operation_lock)
+            append_result_without_overriding_primary_failure(
+                run_summary,
+                release_result
+            )
+
+        END IF
+
+    END STAGE
+
+
+    run_summary.final_exit_code = resolve_standard_exit_code(run_summary)
+    run_summary.elapsed_time = calculate_elapsed_time(run_context.start_time)
+
+
+    BEGIN STAGE "run.summary"
+
+        display_final_summary(
+            overall_result = determine_overall_result(run_summary),
+            changed_items = run_summary.changed_items,
+            warnings = run_summary.warnings,
+            failures = run_summary.failures,
+            restart_guidance = run_summary.restart_guidance,
+            remediation = run_summary.remediation,
+            next_step = run_summary.next_step,
+            log_path = run_context.log_path,
+            exit_code = run_summary.final_exit_code
+        )
+
+    END STAGE
+
+
+    IF transcript_started = TRUE
+        close_transcript()
+    END IF
+
+    RETURN run_summary.final_exit_code
+
+
+FINALIZE_WITHOUT_TRANSCRIPT:
+
+    minimal_exit_code = resolve_standard_exit_code(run_summary)
+    display_minimum_safe_summary(run_summary, minimal_exit_code)
+    RETURN minimal_exit_code
+
+END PROCEDURE
+
+
+# ==============================================================================
+# 5. ACTION-SPECIFIC PROCEDURE CONTRACTS
+# ==============================================================================
+
+PROCEDURE run_action_prerequisites(
+    run_context,
+    platform_facts,
+    deployment_profile,
+    manifest,
+    adapters
+)
+
+    prerequisite_results = new_result_collection()
+
+    # Include only checks required before the action plan can be trusted.
+    # Examples: release, architecture, disk, network, privilege, user context,
+    # system-layer readiness, source availability, and managed-path safety.
+
+    {{ACTION_SPECIFIC_PREREQUISITE_LOGIC}}
+
+    RETURN prerequisite_results
+
+END PROCEDURE
+
+
+PROCEDURE build_action_plan(
+    run_context,
+    platform_facts,
+    deployment_profile,
+    manifest,
+    adapters,
+    prerequisite_results
+)
+
+    action_plan = create_empty_dependency_aware_plan()
+
+    # Every plan item declares:
+    # - stable operation_id
+    # - dependencies
+    # - read-only or mutating behavior
+    # - privilege scope
+    # - managed targets
+    # - whether failure blocks dependents
+    # - rollback or recovery behavior
+    # - SRS and SDD traceability
+
+    {{ACTION_SPECIFIC_QUERY_AND_PLAN_LOGIC}}
+
+    validate_plan_against_action_boundaries(action_plan, state_scope)
+    RETURN successful_plan_result(action_plan)
+
+END PROCEDURE
+
+
+PROCEDURE execute_action_stage(
+    plan_stage,
+    run_context,
+    manifest,
+    adapters
+)
+
+    stage_results = new_result_collection()
+
+    # setup, configure, and update use query-plan-apply-verify.
+    # verify uses query-and-report with read-only adapter interfaces.
+
+    {{ACTION_SPECIFIC_STAGE_EXECUTION_LOGIC}}
+
+    RETURN stage_results
+
+END PROCEDURE
+
+
+PROCEDURE post_validate_action(
+    run_context,
+    platform_facts,
+    deployment_profile,
+    manifest,
+    adapters,
+    changed_items
+)
+
+    post_validation_results = new_result_collection()
+
+    {{ACTION_SPECIFIC_POST_VALIDATION_LOGIC}}
+
+    RETURN post_validation_results
+
+END PROCEDURE
+
+
+# ==============================================================================
+# 6. STANDARD EXIT-CODE RESOLUTION
+# ==============================================================================
+#
+# Precedence is based on safety and remediation value, not numeric order:
+#
+#     5  invalid, corrupt, incompatible, or integrity-failed manifest or asset
+#     2  unsupported invocation, platform, deployment, or OS release
+#     3  required permission or privilege unavailable
+#     4  approved external source or service unavailable after retries
+#     7  partial completion or changed state requiring remediation
+#     1  other required operation or check failure
+#     6  required interactive operation canceled
+#     0  all required work completed successfully
+#
+
+PROCEDURE resolve_standard_exit_code(run_summary)
+
+    IF has_manifest_or_integrity_failure(run_summary)
+        RETURN 5
+    ELSE IF has_unsupported_condition(run_summary)
+        RETURN 2
+    ELSE IF has_required_privilege_failure(run_summary)
+        RETURN 3
+    ELSE IF has_exhausted_external_failure(run_summary)
+        RETURN 4
+    ELSE IF has_partial_completion(run_summary)
+        RETURN 7
+    ELSE IF has_other_required_failure(run_summary)
+        RETURN 1
+    ELSE IF has_required_cancellation(run_summary)
+        RETURN 6
+    ELSE
+        RETURN 0
+    END IF
+
+END PROCEDURE
+
+
+# ==============================================================================
+# 7. REVIEW CRITERIA
+# ==============================================================================
+#
+# Before approving an individual pseudoscript, confirm:
+#
+# - Every placeholder has been replaced.
+# - The action, intended user, state scope, privilege, and exclusions are correct.
+# - The common stages remain in the approved order.
+# - Product and platform details come from the manifest.
+# - No concrete platform commands or arbitrary executable strings appear.
+# - Setup, configure, and update use query-plan-apply-verify.
+# - Verify has only read access and records no managed change.
+# - Dependencies use skipped_dependency instead of misleading secondary failures.
+# - Mutating operations declare required locks, staging, and recovery behavior.
+# - Paths are derived from approved context variables and canonicalized.
+# - Logs use the home-derived ~/it140/logs/ location.
+# - Output uses text labels and does not rely on color.
+# - Long operations report truthful progress.
+# - Secrets, full personal email addresses, and student files are excluded.
+# - Cleanup and the final summary are attempted after handled failures.
+# - Exit-code precedence matches the SDD.
+# - Next-step and remediation guidance are explicit.
+# - Major procedures and plan items include SRS and SDD traceability.
+# - The design can be implemented equivalently on every enabled platform.
+#
+# ==============================================================================
+# END OF TEMPLATE
+# ==============================================================================
