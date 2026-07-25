@@ -5,8 +5,8 @@
 - **Program Name**: IT 140 Course Automation Scripts
 - **Document ID**: IT140-SRS-SCRIPTS
 - **Status**: Draft for faculty review
-- **Version**: 2026.07.25.1
-- **Repository Baseline**: `GC-STEM/it140` commit `9cd02da434bb1786a027732edcccadb8c6f25ae9`
+- **Version**: 2026.07.25.2
+- **Repository Baseline**: `GC-STEM/it140` commit `77c826b4e5dfab03666a974b3adf63a752fefa36`
 
 ---
 
@@ -27,22 +27,24 @@ The four scripts form one software package because they share requirements, file
 
 ### 0.2 Product Scope
 
-The package shall provide a consistent, supportable course IDE across supported platforms. It shall reduce the number of manual setup steps, identify configuration problems, and provide useful diagnostic information to students, faculty, artificial intelligence (AI) support tools, and university technical support.
+The package shall provide a consistent, supportable course integrated development environment (IDE) across supported platforms. It shall reduce manual setup steps, identify configuration problems, and provide useful diagnostic information to students, faculty, artificial intelligence (AI) support tools, and university technical support.
 
-The package shall use a shared **JavaScript Object Notation (JSON)** manifest. JSON is a plain-text data format that software can read and validate. The manifest shall be the authoritative source for shared requirements such as supported platforms, required software, required extensions, managed paths, and the current automation release.
+The main body of this SRS defines stable capabilities, responsibility boundaries, and quality expectations without selecting a particular commercial or open-source product. The package shall use a shared **JavaScript Object Notation (JSON)** manifest. JSON is a plain-text data format that software can read and validate. The controlled manifest shall be the authoritative source for concrete approved products and services, vendor or project names, package and extension identifiers, versions or version ranges, approved distribution sources, supported platform releases, provider-specific integration rules, managed paths, and the current automation release.
 
-The initial reference platform is the **Codio Virtual Desktop (CVD)**, which is an [Ubuntu 24.04 Long-Term Support](https://ubuntu.com/blog/ubuntu-desktop-24-04-noble-numbat-deep-dive) (LTS) virtual machine with the [Xfce](https://www.xfce.org/) graphical desktop. LTS means the operating-system release receives security and maintenance updates for an extended period.
+The manifest is a **controlled configuration item**, meaning that proposed changes require review, testing, approval, and release tracking. A product or version may normally change through the manifest without changing this SRS when the required capability and constraints remain the same. A change that alters a required capability, user workflow, security boundary, or acceptance criterion also requires an SRS change.
+
+The concrete reference environment used to review this SRS and design the initial acceptance tests is recorded in nonnormative Appendix A. Appendix A is informational and may become outdated; the current approved manifest controls implementation and deployment.
 
 ### 0.3 Intended Users and Stakeholders
 
-| User or stakeholder  | Primary use cases                                                       |
-| -------------------- | ----------------------------------------------------------------------- |
-| IT 140 students      | Configure, verify, and update their course environment.                 |
-| IT 140 faculty       | Use the same supported environment, review logs, and guide students.    |
-| Codio administrators | Provision and maintain the system-level CVD image.                      |
-| SNHU IT Service Desk | Use verification results and logs to diagnose problems.                 |
-| AI support tools     | Explain verification results and recommend approved remediation.        |
-| CS Deans & SMEs      | Design, implement, test, and maintain the scripts and supporting files. |
+| User or stakeholder | Primary use cases |
+|---|---|
+| IT 140 students | Configure, verify, and update their course environment. |
+| IT 140 faculty | Use the same supported environment, review logs, and guide students. |
+| Reference-platform administrators | Provision and maintain the shared reference environment. |
+| University IT Service Desk | Use verification results and logs to diagnose problems. |
+| AI support tools | Explain verification results and recommend approved remediation. |
+| Computer science deans and subject matter experts (SMEs) | Approve, design, implement, test, and maintain the package and supporting files. |
 
 ### 0.4 Package Components and Responsibility Boundaries
 
@@ -60,7 +62,7 @@ The initial reference platform is the **Codio Virtual Desktop (CVD)**, which is 
 The package shall not:
 
 - Create, solve, grade, or modify student programming assignments.
-- Overwrite student Python files, assignment repositories, Git history, or Learning Management System (LMS) submissions.
+- Overwrite student programming-language source files, assignment repositories, version-control history, or Learning Management System (LMS) submissions.
 - Store passwords, authentication tokens, browser session data, or other secrets.
 - Perform an operating-system release upgrade unless a future approved requirement explicitly adds that capability.
 - Provide general-purpose backup, reset, uninstall, or account-recovery functions.
@@ -74,23 +76,26 @@ The **bootstrap command set** is the short, documented sequence that obtains the
 | Term | Definition and purpose in this SRS |
 |---|---|
 | AI | Artificial intelligence. AI support may interpret approved diagnostics but shall not receive secrets or unnecessary personal information. |
-| API | Application Programming Interface. An API allows one program to request information or actions from another program, such as obtaining the current GitHub username. |
-| CLI | Command-Line Interface. A CLI is a text-based way to run software, such as GitHub CLI (`gh`). |
-| CVD | Codio Virtual Desktop. It is the initial reference platform for the course IDE. |
+| API | Application Programming Interface. An API allows one program to request information or actions from another program or service. |
+| CLI | Command-Line Interface. A CLI is a text-based way to run and control software. |
+| Controlled configuration item | A file or data set whose changes require review, testing, approval, and release tracking. The manifest is controlled because it selects the products and versions used by the package. |
 | Exit code | A small integer returned when a script ends. Other programs and support tools use it to determine whether the run succeeded or why it failed. |
 | GUI | Graphical User Interface. A GUI uses windows, icons, buttons, and menus rather than only typed commands. |
-| IDE | Integrated Development Environment. It combines tools used to develop and test programs. |
+| IDE | Integrated Development Environment. It combines tools used to write, run, test, debug, and manage programs. |
 | Idempotent | Safe to run repeatedly. An idempotent script reaches the required state without duplicating entries or damaging a correct configuration. |
 | Least privilege | Giving a script only the permissions required for the current task. This limits the damage caused by mistakes or misuse. |
 | Log or transcript | A timestamped text record of script actions and results. Logs support troubleshooting and auditing. |
-| Managed asset | A file, setting, package, launcher, extension, or other item that the course automation is authorized to create, replace, update, or remove. |
-| Manifest | The shared JSON file that defines the supported course environment. It prevents different scripts from using inconsistent lists or versions. |
-| OS | Operating system, such as Ubuntu, Windows, or macOS. |
+| Managed asset | A file, setting, package, launcher, extension, plug-in, or other item that the course automation is authorized to create, replace, update, or remove. |
+| Manifest | The shared JSON file that defines the concrete approved environment, including products, versions, sources, settings, provider profiles, and managed paths. It prevents different scripts from using inconsistent requirements. |
+| OS | Operating system. The OS manages computer hardware, files, applications, users, and permissions. |
 | PATH | An operating-system setting that lists folders searched for executable commands. |
 | PII | Personally Identifiable Information. PII is information that can identify a person, such as an email address. |
+| Provider profile | Manifest data that defines how the package interacts with an external service, including its CLI or API, authentication flow, account fields, and privacy-preserving identity rules. |
 | QoS | Quality of Service. QoS requirements define measurable expectations for reliability, performance, error handling, and diagnostics. |
+| Reference platform | The approved environment used for primary development, documentation, and acceptance testing. Its current products and versions are selected by the manifest. |
+| Source-code hosting service | An external service that stores version-controlled repositories and may provide authentication, collaboration, and account APIs. |
 | SRS | Software Requirements Specification. It defines required software behavior and constraints. |
-| VS Code | Visual Studio Code, the code editor used in the course IDE. |
+| Version-control system | Software that records file changes and preserves change history so earlier versions can be reviewed or restored. |
 
 ### 0.7 Requirement Conventions
 
@@ -103,7 +108,7 @@ Each mandatory requirement uses **shall** and has a unique identifier.
 - `UPD-FR-###`: update-script functional requirement
 - `PKG-NFR-###`: package-level nonfunctional requirement
 - `PKG-TC-###`: shared technology constraint
-- `CVD-TC-###`: CVD-specific technology constraint
+- `REF-TC-###`: reference-platform-specific technology constraint
 - `PKG-QOS-###`: package-level quality-of-service constraint
 
 A **functional requirement** states what the software shall do. A **nonfunctional requirement** states how well or under what general qualities it shall operate. A **technology constraint** limits the technologies or environment that may be used. A **Quality of Service (QoS) constraint** gives a measurable expectation for reliability, performance, security, or supportability.
@@ -154,7 +159,7 @@ The package shall:
 
   **Why:** Standard codes allow scripts, tests, AI support, and technical support tools to interpret results consistently.
 
-- **PKG-FR-010** Preserve student work, assignment repositories, Git history, optional extensions, and unrelated settings during every package operation.
+- **PKG-FR-010** Preserve student work, assignment repositories, version-control history, optional extensions or plug-ins, and unrelated settings during every package operation.
 
   **Why:** Course automation must not put coursework or personal configuration at risk.
 
@@ -202,7 +207,7 @@ The setup script shall:
 
   **Why:** Users need a safe repair path that does not require a separate repair script.
 
-- **SET-FR-011** Avoid GitHub authentication, Git identity configuration, user-specific VS Code settings, user-scoped extensions, and other personal configuration.
+- **SET-FR-011** Avoid source-code-hosting authentication, version-control identity configuration, user-specific IDE settings, user-scoped extensions or plug-ins, and other personal configuration.
 
   **Why:** These items belong to the individual account and are the responsibility of `configure`.
 
@@ -222,41 +227,41 @@ The configure script shall:
 
   **Why:** User configuration cannot succeed reliably when setup is incomplete.
 
-- **CFG-FR-003** Create the required course folders under the current user's home folder, including `~/it140/`, `~/it140/logs/`, and `~/it140/scripts/`,without deleting existing contents.
+- **CFG-FR-003** Create the required course folders under the current user's home folder, including `~/it140/` and `~/it140/logs/`, without deleting existing contents.
 
   **Why:** A consistent folder structure simplifies instructions while preserving prior work.
 
 - **CFG-FR-004** Add the correct platform script folder to the user's `PATH` without adding duplicate entries.
 
-  **Why:** Users should be able to run the course scripts by name from a terminal, regardless of their current working directory.
+  **Why:** Users should be able to run the course scripts by name from a terminal.
 
-- **CFG-FR-005** Check the current GitHub CLI authentication status and start the approved interactive authentication flow only when authentication is missing or invalid.
+- **CFG-FR-005** Check the current source-code-hosting CLI authentication status using the provider profile declared by the manifest and start the approved interactive authentication flow only when authentication is missing or invalid.
 
   **Why:** Requiring a new login on every run wastes time and may confuse users.
 
-- **CFG-FR-006** Explain each required GitHub authentication action in plain language and handle cancellation without treating it as successful configuration.
+- **CFG-FR-006** Explain each required external-service authentication action in plain language and handle cancellation without treating it as successful configuration.
 
   **Why:** First-term students may be unfamiliar with device codes, browser authentication, and terminal prompts.
 
-- **CFG-FR-007** Obtain the authenticated GitHub username and numeric account identifier through the GitHub API and derive the GitHub-provided private `noreply` email address without asking the user to type it.
+- **CFG-FR-007** Obtain the authenticated account data required by the provider profile through the approved API and apply the provider-specific privacy-preserving commit identity rule declared by the manifest, without asking the user to type values that can be obtained reliably.
 
-  **Why:** Automated retrieval reduces typing errors and helps protect the student's personal email address.
+  **Why:** Automated retrieval reduces typing errors and applies the approved privacy rule without exposing the student's personal contact information.
 
-- **CFG-FR-008** Allow the user to accept the GitHub username as the Git display name or enter a different professional display name.
+- **CFG-FR-008** Allow the user to accept the authenticated account username as the version-control display name or enter a different professional display name.
 
-  **Why:** A Git display name identifies the author of commits and may differ from the GitHub username.
+  **Why:** A version-control display name identifies the author of changes and may differ from the hosted account username.
 
-- **CFG-FR-009** Apply the course-required Git settings declared by the manifest, including the default branch, text line endings, automatic upstream configuration, and VS Code as the Git editor.
+- **CFG-FR-009** Apply the course-required version-control settings declared by the manifest, including the default branch, text line endings, automatic upstream configuration, and the approved IDE or editor for version-control messages.
 
-  **Why:** Shared Git settings make submissions and collaboration more consistent across platforms.
+  **Why:** Shared version-control settings make submissions and collaboration more consistent across platforms.
 
-- **CFG-FR-010** Install or repair the required user-scoped Python tools and VS Code extensions declared by the manifest.
+- **CFG-FR-010** Install or repair the required user-scoped programming-language tools and IDE extensions or plug-ins declared by the manifest.
 
   **Why:** These tools are associated with the current account and may not be installed system-wide.
 
-- **CFG-FR-011** Merge course-required VS Code settings into the user's existing settings without discarding unrelated valid settings.
+- **CFG-FR-011** Merge course-required IDE settings into the user's existing settings without discarding unrelated valid settings.
 
-  **Why:** Students may already use VS Code for other courses or personal work.
+  **Why:** Students may already use the approved IDE or editor for other courses or personal work.
 
 - **CFG-FR-012** Derive user paths from the current home folder and shall not hardcode a username or home-directory path.
 
@@ -266,7 +271,7 @@ The configure script shall:
 
   **Why:** Consistent shortcuts reduce navigation problems for beginning users.
 
-- **CFG-FR-014** Validate the resulting Git, GitHub CLI, Python, VS Code, extension, and course-folder configuration before reporting success.
+- **CFG-FR-014** Validate the resulting version-control client, source-code-hosting CLI, programming-language runtime and tools, IDE, extensions or plug-ins, and course-folder configuration before reporting success.
 
   **Why:** Configuration is complete only when the resulting settings can be read and used.
 
@@ -302,7 +307,7 @@ The verify script shall:
 
   **Why:** Missing or incompatible versions can prevent course activities from working.
 
-- **VER-FR-006** Check required Python packages, VS Code extensions, Git settings, GitHub CLI authentication status, VS Code settings, script permissions, course folders, and managed user integrations.
+- **VER-FR-006** Check required programming-language packages, IDE extensions or plug-ins, version-control settings, source-code-hosting authentication status, IDE settings, script permissions, course folders, and managed user integrations.
 
   **Why:** Verification must cover both the system-level and user-specific layers.
 
@@ -370,7 +375,7 @@ The update script shall:
 
   **Why:** A new release may not have been tested with the course IDE.
 
-- **UPD-FR-008** Update or repair required Python tools and VS Code extensions declared by the manifest.
+- **UPD-FR-008** Update or repair required programming-language tools and IDE extensions or plug-ins declared by the manifest.
 
   **Why:** Required tools must remain compatible with course activities.
 
@@ -422,11 +427,11 @@ The package shall:
 
   **Why:** Platform support must be explicit and testable.
 
-- **PKG-FR-014** Define required system applications, operating-system packages, language runtimes, Python tools, VS Code extensions, and minimum acceptable versions in the manifest.
+- **PKG-FR-014** Define each required software or service capability and, for every concrete approved product, its product identifier, version rule, installation scope, verification method, and approved source in the manifest.
 
   **Why:** The same requirements must drive installation, verification, and update.
 
-- **PKG-FR-015** Define required Git settings, VS Code settings, file associations, managed integrations, and managed paths in the manifest.
+- **PKG-FR-015** Define provider profiles, required version-control and IDE settings, file associations, managed integrations, and managed paths in the manifest. A provider profile shall identify the approved CLI or API, authentication flow, required account fields, and privacy-preserving commit identity rule.
 
   **Why:** User configuration and verification need one shared target state.
 
@@ -510,7 +515,7 @@ The package shall:
 
 The package shall:
 
-- **PKG-NFR-012** Keep authoritative requirement data in the manifest and avoid duplicated hardcoded lists that can drift apart.
+- **PKG-NFR-012** Keep authoritative product names, versions, package and extension identifiers, platform-release data, provider-specific rules, source locations, and managed paths in the manifest and avoid duplicated hardcoded lists that can drift apart.
 
   **Why:** A change should be made once and used by all four scripts.
 
@@ -522,7 +527,7 @@ The package shall:
 
   **Why:** Maintainers need to understand why a design choice exists.
 
-- **PKG-NFR-015** Include a script version and maintain a change history through Git commits and releases.
+- **PKG-NFR-015** Include a script version and maintain a change history through version-control commits and package releases.
 
   **Why:** Support personnel must be able to identify the code that produced a result.
 
@@ -548,7 +553,7 @@ The package shall:
 
 - **PKG-NFR-020** Quote or otherwise safely handle paths that contain spaces or special characters.
 
-  **Why:** Common Windows and macOS paths include spaces.
+  **Why:** Paths on supported operating systems may include spaces or special characters.
 
 - **PKG-NFR-021** Produce equivalent required outcomes on all supported platforms even when the implementation commands differ.
 
@@ -598,7 +603,7 @@ The package shall:
 
   **Why:** Every enrolled student must be able to complete course work without purchasing development software.
 
-- **PKG-TC-003** Store source scripts and text configuration in UTF-8 with Line Feed (LF) line endings as defined by the repository `.gitattributes` file.
+- **PKG-TC-003** Store source scripts and text configuration in UTF-8 with Line Feed (LF) line endings as defined by the repository's approved text-file policy.
 
   **Why:** Consistent line endings reduce cross-platform script and submission problems.
 
@@ -614,35 +619,35 @@ The package shall:
 
   **Why:** Unsupported systems may contain known security problems or incompatible tools.
 
-- **PKG-TC-007** Use the course-required Python major and minor version declared by the manifest and aligned with the version used by required course activities.
+- **PKG-TC-007** Use the course-required programming-language implementation and major and minor version declared by the manifest and aligned with the version used by required course activities.
 
-  **Why:** Matching Python versions reduces differences between demonstrations, tests, and student results.
+  **Why:** Matching programming-language versions reduces differences between demonstrations, tests, and student results.
 
-- **PKG-TC-008** Use Git, GitHub CLI, Python, pytest, pytest-cov, Ruff, VS Code, and approved VS Code extensions when those items are declared as required in the manifest.
+- **PKG-TC-008** Use the concrete products declared by the manifest for required capabilities such as version control, source-code hosting, programming-language execution, test running, coverage reporting, code-quality checking and formatting, source-code editing or IDE functions, diagram editing, spelling support, and document viewing.
 
-  **Why:** These tools support version control, programming, provided tests, code quality, and course file formats.
+  **Why:** The capabilities support version control, programming, provided tests, code quality, and course file formats while allowing approved products to change without rewriting the SRS.
 
 - **PKG-TC-009** Use the current user's home folder as the base for user-owned course files and shall not require a fixed account name.
 
   **Why:** The package must work for different students and faculty accounts.
 
-### 3.2 Codio Virtual Desktop Constraints
+### 3.2 Reference Platform Constraints
 
-The CVD implementation shall:
+The reference-platform implementation shall:
 
-- **CVD-TC-001** Target the approved Ubuntu 24.04 LTS CVD with the Xfce desktop until the manifest approves a different CVD release.
+- **REF-TC-001** Target the approved reference-platform type, operating-system release, processor architecture, and graphical or remote-session environment declared by the manifest.
 
-- **CVD-TC-002** Use Bash for CVD shell scripts and the Advanced Package Tool (APT) for Ubuntu system packages.
+- **REF-TC-002** Use the platform-native scripting language and system package manager declared by the manifest.
 
-- **CVD-TC-003** Run student-facing scripts as the standard CVD user and use passwordless `sudo` only for approved system-level commands.
+- **REF-TC-003** Run student-facing scripts as the standard user and use only the manifest-approved controlled privilege-elevation mechanism for specific system-level commands.
 
-- **CVD-TC-004** Avoid restarting the active virtual desktop or its remote-display service during an update. When a restart is required, the script shall instruct the user to save work and use the approved CVD restart control.
+- **REF-TC-004** Avoid restarting an active graphical desktop, virtual machine, or remote-display service during an update. When a restart is required, the script shall instruct the user to save work and use the approved platform restart control.
 
-- **CVD-TC-005** Derive user paths from `$HOME` and shall not hardcode `/home/codio` or another account path.
+- **REF-TC-005** Derive user paths from the running environment and shall not hardcode a user name or home-directory path.
 
-- **CVD-TC-006** Place system-wide browser policies and package repositories in `setup`, while placing Xfce user preferences, user launchers, VS Code user settings, and user-scoped extensions in `configure`.
+- **REF-TC-006** Place system-wide policies, package sources, and application registrations in `setup`, while placing user preferences, user launchers, IDE settings, and user-scoped extensions or plug-ins in `configure`.
 
-- **CVD-TC-007** Use official Ubuntu, GitHub, Microsoft, Python, and VS Code distribution channels approved by the manifest.
+- **REF-TC-007** Obtain products only through the vendor, project, operating-system, or institutional distribution channels approved by the manifest.
 
 ### 3.3 Additional Platform Variants
 
@@ -683,7 +688,7 @@ The package shall:
 
 - **PKG-QOS-008** Avoid more than 60 seconds of silent operation during a long-running setup or update. The script shall display a truthful status message when the underlying tool does not provide visible progress.
 
-- **PKG-QOS-009** Complete verification within 90 seconds on the approved reference CVD when required services are responsive and no support bundle is requested.
+- **PKG-QOS-009** Complete verification within 90 seconds on the approved reference environment when required services are responsive and no support bundle is requested.
 
 - **PKG-QOS-010** Avoid repeated downloads or installations when a compliant component can be verified locally.
 
@@ -700,15 +705,15 @@ The package shall:
 - **PKG-QOS-014** Use the following exit codes consistently:
 
 | Exit code | Meaning |
-| :--:      | ---     |
-| `0`       | All required operations or checks completed successfully. Informational restart guidance may still be present. |
-| `1`       | One or more required operations or checks failed. |
-| `2`       | Invalid use, unsupported platform, or unsupported operating-system release. |
-| `3`       | Required permission or privilege was unavailable. |
-| `4`       | An approved external source, network service, or package service was unavailable after retries. |
-| `5`       | The manifest or a course-managed asset was missing, invalid, corrupt, or failed integrity validation. |
-| `6`       | The user canceled a required interactive operation. |
-| `7`       | The run completed only partially and must be rerun or remediated before the environment is considered compliant. |
+|---:|---|
+| `0` | All required operations or checks completed successfully. Informational restart guidance may still be present. |
+| `1` | One or more required operations or checks failed. |
+| `2` | Invalid use, unsupported platform, or unsupported operating-system release. |
+| `3` | Required permission or privilege was unavailable. |
+| `4` | An approved external source, network service, or package service was unavailable after retries. |
+| `5` | The manifest or a course-managed asset was missing, invalid, corrupt, or failed integrity validation. |
+| `6` | The user canceled a required interactive operation. |
+| `7` | The run completed only partially and must be rerun or remediated before the environment is considered compliant. |
 
 - **PKG-QOS-015** Use the most serious applicable exit code when more than one problem is detected.
 
@@ -728,13 +733,13 @@ The package shall:
 
 - **PKG-QOS-021** Create a support bundle only after an explicit command option or user confirmation and list the files included before final creation.
 
-- **PKG-QOS-022** Exclude student source files, repository contents, Git commit history, authentication data, and browser data from support bundles.
+- **PKG-QOS-022** Exclude student source files, repository contents, version-control history, authentication data, and browser data from support bundles.
 
 ---
 
 ## 5. Sample Input and Output
 
-The exact wording may vary by platform, but every implementation shall communicate the same required information. In these examples, lines beginning with `>` represent user input.
+The exact wording may vary by platform, but every implementation shall communicate the same required information. The sample platform abbreviation `ref` represents the current reference platform declared by the manifest. Product names are intentionally omitted from these normative examples and are recorded in the manifest and nonnormative Appendix A. Lines beginning with `>` represent user input.
 
 ### 5.1 Setup: Successful System Installation
 
@@ -742,16 +747,16 @@ The exact wording may vary by platform, but every implementation shall communica
 ============================================================
 IT 140 COURSE IDE SETUP
 ============================================================
-Script version  : 2026.07.25.1
-Platform        : CVD
-Operating system: Ubuntu 24.04 LTS
-Current user    : codio
-Log file        : /home/codio/it140/logs/setup_cvd_20260725_113000.log
+Script version  : 2026.07.25.2
+Platform        : ref
+Operating system: Approved reference release
+Current user    : student
+Log file        : ~/it140/logs/setup_ref_20260725_113000.log
 
-[INFO] Checking operating system, architecture, disk space, network access, and sudo access...
+[INFO] Checking operating system, architecture, disk space, network access, and privilege-elevation capability...
 [SUCCESS] Setup prerequisites passed.
 
-[INFO] Installing required system packages and applications...
+[INFO] Installing required system packages and applications declared by the manifest...
 [SUCCESS] Required system components are installed.
 
 [INFO] Verifying required commands and versions...
@@ -762,8 +767,8 @@ SETUP SUMMARY
 ============================================================
 Required operations: PASS
 Warnings           : 0
-Next step          : Run configure_cvd.sh
-Log file           : /home/codio/it140/logs/setup_cvd_20260725_113000.log
+Next step          : Run configure_ref.sh
+Log file           : ~/it140/logs/setup_ref_20260725_113000.log
 ```
 
 ### 5.2 Configure: First User Configuration
@@ -772,26 +777,26 @@ Log file           : /home/codio/it140/logs/setup_cvd_20260725_113000.log
 ============================================================
 IT 140 USER CONFIGURATION
 ============================================================
-Script version: 2026.07.25.1
-Platform      : CVD
-Current user  : codio
-Log file      : /home/codio/it140/logs/configure_cvd_20260725_114500.log
+Script version: 2026.07.25.2
+Platform      : ref
+Current user  : student
+Log file      : ~/it140/logs/configure_ref_20260725_114500.log
 
 [INFO] Required system components are present.
-[INFO] GitHub CLI is not currently authenticated.
+[INFO] The approved source-code-hosting CLI is not currently authenticated.
 
-[ACTION REQUIRED] The GitHub CLI will display a one-time code and open a browser.
+[ACTION REQUIRED] The approved CLI will display a one-time code and open a browser.
 Press Enter to begin, or type C to cancel.
 >
 
-[SUCCESS] GitHub authentication completed.
-Git display name [PeteyPenmen]:
+[SUCCESS] Source-code-hosting authentication completed.
+Version-control display name [PeteyPenmen]:
 > Petey Penmen
 
-[SUCCESS] Git identity configured with a GitHub noreply address.
-[SUCCESS] Required Git, Python, VS Code, extension, folder, and launcher settings are configured.
+[SUCCESS] Version-control identity configured with the provider-approved private commit identity.
+[SUCCESS] Required version-control, programming-language, IDE, extension, folder, and launcher settings are configured.
 
-Next step: Run verify_cvd.sh
+Next step: Run verify_ref.sh
 ```
 
 ### 5.3 Verify: One Required Failure
@@ -800,17 +805,17 @@ Next step: Run verify_cvd.sh
 ============================================================
 IT 140 ENVIRONMENT VERIFICATION
 ============================================================
-Manifest release: 2026.07.25.1
+Manifest release: 2026.07.25.2
 
-PASS    Operating system: Ubuntu 24.04 LTS
-PASS    Python: required version available
-PASS    GitHub CLI: authenticated
-FAIL    VS Code extension: charliermarsh.ruff is missing
-PASS    Course folder: /home/codio/it140
+PASS    Operating system: approved reference release
+PASS    Programming-language runtime: required version available
+PASS    Source-code-hosting CLI: authenticated
+FAIL    IDE extension: required formatter extension is missing
+PASS    Course folder: ~/it140
 PASS    Log directory: writable
 
 Remediation for failed check:
-Run configure_cvd.sh to install or repair user-scoped course extensions.
+Run configure_ref.sh to install or repair user-scoped course extensions.
 
 ============================================================
 VERIFICATION SUMMARY
@@ -821,7 +826,7 @@ Failed        : 1
 Not applicable: 0
 Result        : NOT COMPLIANT
 Exit code     : 1
-Log file      : /home/codio/it140/logs/verify_cvd_20260725_120000.log
+Log file      : ~/it140/logs/verify_ref_20260725_120000.log
 ```
 
 ### 5.4 Update: Successful Maintenance with Restart Guidance
@@ -836,7 +841,7 @@ IT 140 COURSE IDE UPDATE
 [INFO] Updating supported operating-system and course software...
 [SUCCESS] Required packages and applications are current.
 
-[INFO] Updating required Python tools and VS Code extensions...
+[INFO] Updating required programming-language tools and IDE extensions...
 [SUCCESS] Required user tools are current.
 
 [INFO] Running post-update checks...
@@ -848,8 +853,8 @@ UPDATE SUMMARY
 Required operations: PASS
 Warnings           : 0
 Restart required   : Yes
-Next step          : Save your work, restart the virtual machine, and run verify_cvd.sh.
-Log file           : /home/codio/it140/logs/update_cvd_20260725_121500.log
+Next step          : Save your work, restart the reference environment, and run verify_ref.sh.
+Log file           : ~/it140/logs/update_ref_20260725_121500.log
 Exit code           : 0
 ```
 
@@ -867,7 +872,7 @@ An **acceptance test** checks whether the completed software meets an agreed req
 | AT-PKG-002 | PKG-FR-003, PKG-QOS-014 | Run a platform script on a different or unsupported OS. | The script makes no managed change, explains the mismatch, writes a log when possible, and exits with code `2`. |
 | AT-PKG-003 | PKG-FR-004, PKG-FR-005, PKG-FR-019 | Replace the manifest with invalid JSON. | The script stops before managed changes, identifies the invalid manifest, and exits with code `5`. |
 | AT-PKG-004 | PKG-FR-006 through PKG-FR-009 | Run each script under a normal supported condition. | Each run shows required opening information, creates a timestamped log, ends with a summary, and returns the documented exit code. |
-| AT-PKG-005 | PKG-FR-010, PKG-FR-020 | Place student files and an unrelated repository beside managed assets, then run all applicable scripts. | File contents, timestamps, Git history, and repository state remain unchanged. |
+| AT-PKG-005 | PKG-FR-010, PKG-FR-020 | Place student files and an unrelated repository beside managed assets, then run all applicable scripts. | File contents, timestamps, version-control history, and repository state remain unchanged. |
 | AT-PKG-006 | PKG-NFR-025, PKG-QOS-018 | Use a test account with known username, email, and token-like values, then inspect output, logs, and bundle. | No password, token, private key, complete personal email address, or unapproved PII appears. |
 | AT-PKG-007 | PKG-NFR-001, PKG-NFR-008, PKG-QOS-014 | Compare results from two supported platform variants. | Status terms, summary fields, remediation meanings, and exit-code meanings are equivalent. |
 
@@ -881,18 +886,18 @@ An **acceptance test** checks whether the completed software meets an agreed req
 | AT-SET-004 | SET-FR-004, PKG-NFR-024 | Substitute an unapproved or integrity-failing download source in a controlled test. | The asset is rejected, the previous valid state is preserved, and exit code is `4` or `5` as applicable. |
 | AT-SET-005 | SET-FR-006 | Run setup when maintenance updates are available but a newer OS release also exists. | Approved updates install; the OS release does not change. |
 | AT-SET-006 | SET-FR-010 | Remove one course-managed system component and rerun setup. | The missing component is repaired without resetting unrelated system settings. |
-| AT-SET-007 | SET-FR-011 | Use a test account with no GitHub authentication or VS Code user settings, then run setup. | Setup does not authenticate GitHub, create Git identity, or write user VS Code settings. |
+| AT-SET-007 | SET-FR-011 | Use a test account with no source-code-hosting authentication or IDE user settings, then run setup. | Setup does not authenticate an external source-code-hosting service, create version-control identity, or write user IDE settings. |
 
 ### 6.3 Configure Acceptance Tests
 
 | Test ID | Requirements | Test input or condition | Expected result and pass criteria |
 |---|---|---|---|
-| AT-CFG-001 | CFG-FR-002 through CFG-FR-014 | Run configure for a new standard user after successful setup. | Required folders, PATH entry, GitHub authentication, Git identity, tools, extensions, settings, and integrations are correctly established. |
-| AT-CFG-002 | CFG-FR-005 | Run configure while GitHub CLI is already authenticated. | The existing valid authentication is used; no unnecessary login flow starts. |
-| AT-CFG-003 | CFG-FR-006, PKG-QOS-014 | Cancel the required GitHub authentication flow. | Configure reports cancellation, does not claim success, preserves prior settings, and exits with code `6`. |
-| AT-CFG-004 | CFG-FR-007, PKG-NFR-025 | Complete authentication with a known test account. | The correct GitHub noreply address is configured, but the complete address is redacted in logs and support output. |
-| AT-CFG-005 | CFG-FR-011, CFG-FR-015 | Add unrelated valid VS Code settings and optional extensions, then run configure twice. | Required settings are merged; unrelated settings and optional extensions remain; no duplicate entries are created. |
-| AT-CFG-006 | CFG-FR-012, PKG-NFR-019 | Run configure under two different home-directory paths, including one with spaces where supported. | All managed paths are derived correctly; no hardcoded username or `/home/codio` dependency is present. |
+| AT-CFG-001 | CFG-FR-002 through CFG-FR-014 | Run configure for a new standard user after successful setup. | Required folders, PATH entry, source-code-hosting authentication, version-control identity, tools, extensions or plug-ins, settings, and integrations are correctly established. |
+| AT-CFG-002 | CFG-FR-005 | Run configure while the manifest-approved source-code-hosting CLI is already authenticated. | The existing valid authentication is used; no unnecessary login flow starts. |
+| AT-CFG-003 | CFG-FR-006, PKG-QOS-014 | Cancel the required external-service authentication flow. | Configure reports cancellation, does not claim success, preserves prior settings, and exits with code `6`. |
+| AT-CFG-004 | CFG-FR-007, PKG-NFR-025 | Complete authentication with a known test account. | The provider-profile privacy rule produces the correct commit identity, but complete private identity data is redacted in logs and support output. |
+| AT-CFG-005 | CFG-FR-011, CFG-FR-015 | Add unrelated valid IDE settings and optional extensions or plug-ins, then run configure twice. | Required settings are merged; unrelated settings and optional extensions remain; no duplicate entries are created. |
+| AT-CFG-006 | CFG-FR-012, PKG-NFR-019 | Run configure under two different home-directory paths, including one with spaces where supported. | All managed paths are derived correctly; no hardcoded user name or home-directory dependency is present. |
 | AT-CFG-007 | CFG-FR-013 | Remove one managed user launcher or file association, then rerun configure. | The missing managed integration is repaired without resetting unrelated desktop preferences. |
 | AT-CFG-008 | CFG-FR-001 | Attempt to run configure directly as root or the system administrator account when not required by the platform design. | Configure stops before personal settings are written and provides the correct standard-user command. |
 
@@ -905,7 +910,7 @@ An **acceptance test** checks whether the completed software meets an agreed req
 | AT-VER-003 | VER-FR-006, VER-FR-009 | Remove one required user setting or extension. | Verify reports `FAIL`, recommends configure, and does not recommend setup. |
 | AT-VER-004 | VER-FR-001, VER-FR-002, PKG-QOS-002 | Record checksums and modification times of managed files before and after verify. | No managed file or setting changes, and verify does not request administrative privilege. |
 | AT-VER-005 | VER-FR-008, VER-FR-010 | Omit an optional component. | Verify reports `WARNING` or `NOT APPLICABLE`, does not classify the environment as failed solely for that item, and uses the correct exit code. |
-| AT-VER-006 | VER-FR-013, PKG-QOS-021, PKG-QOS-022 | Request a support bundle from a test environment containing student source files. | The bundle is created only after explicit request and contains approved diagnostics but no student source, repository content, Git history, or authentication data. |
+| AT-VER-006 | VER-FR-013, PKG-QOS-021, PKG-QOS-022 | Request a support bundle from a test environment containing student source files. | The bundle is created only after explicit request and contains approved diagnostics but no student source, repository content, version-control history, or authentication data. |
 | AT-VER-007 | VER-FR-014 | Simulate an unsupported administrative condition that no lifecycle script can repair. | Verify explains the limitation and directs the user to the approved support channel. |
 
 ### 6.5 Update Acceptance Tests
@@ -935,55 +940,66 @@ An **acceptance test** checks whether the completed software meets an agreed req
 
 ---
 
-## Appendix A: Initial Reference Environment
+## Appendix A (Nonnormative): Reference Environment at the SRS Baseline
 
-This appendix records the initial CVD baseline found in the repository at the document baseline commit. The manifest shall become the authoritative source. Items may change through approved requirements and release management.
+### A.1 Purpose and Authority
 
-### A.1 Reference Platform
+This appendix records the concrete environment used to review this SRS and design the initial acceptance tests at repository baseline commit `77c826b4e5dfab03666a974b3adf63a752fefa36`. **Nonnormative** means that this appendix provides context but does not create binding requirements.
 
-- Ubuntu 24.04 LTS
-- Xfce desktop
-- Bash shell
-- APT package manager
-- Standard CVD user with controlled passwordless `sudo` for approved system operations
+The controlled `it140_manifest.json` file is the sole authoritative source for products, services, identifiers, versions, approved sources, provider profiles, and supported platform releases. When this appendix and the manifest differ, the manifest controls. Deployment approval requires a complete, valid, and approved manifest.
 
-### A.2 Initial System Applications and Packages
+Where the repository baseline did not pin an exact product version, this appendix records the approved version policy instead of inventing a version number.
 
-| Component | Course purpose |
+### A.2 Reference Platform
+
+| Category | Reference selection at the baseline |
 |---|---|
-| `ca-certificates`, `curl`, `gpg` | Securely retrieve and validate approved software sources. |
-| `direnv` | Apply approved project-specific environment settings when present. |
-| Git | Track file changes and interact with repositories. |
-| GitHub CLI (`gh`) | Authenticate with GitHub and perform approved repository actions from the terminal. |
-| Python 3 | Write, run, and test IT 140 programs. |
-| `python3-pip`, `python3-venv` | Install Python tools and create isolated Python environments when required by the design. |
-| VS Code (`code`) | Edit, run, test, debug, and manage course files. |
-| `tree` | Display folder structures in a readable form. |
-| `xclip` | Support clipboard operations in the Xfce desktop environment. |
-| `numlockx` | Apply the approved Num Lock desktop behavior. |
+| Virtual desktop provider | Codio Virtual Desktop |
+| Operating system | Ubuntu 24.04 Long-Term Support (LTS) |
+| Graphical desktop | Xfce |
+| Shell scripting language | Bash |
+| System package manager | Advanced Package Tool (APT) |
+| Standard user model | Standard Codio user with controlled passwordless `sudo` for approved system operations |
 
-### A.3 Initial Python Tools
+### A.3 Reference Applications, Services, and Command-Line Tools
 
-| Tool | Course purpose |
-|---|---|
-| pytest | Run tests supplied with course activities. |
-| pytest-cov | Report test coverage when included with supplied tests. |
-| Ruff | Identify Python code-quality issues and format Python code consistently. |
+| Capability | Reference product or component | Version or policy at the baseline | Course purpose |
+|---|---|---|---|
+| Secure source retrieval | `ca-certificates`, `curl`, and `gpg` | Ubuntu 24.04 approved package versions | Retrieve and validate approved software sources. |
+| Project environment loading | `direnv` | Ubuntu 24.04 approved package version | Apply approved project-specific environment settings when present. |
+| Version control | Git | Ubuntu 24.04 approved package version | Track file changes and interact with repositories. |
+| Source-code hosting | GitHub | Hosted service release | Store course and student repositories and support collaboration. |
+| Source-code-hosting CLI | GitHub CLI (`gh`) | Current approved release from the official GitHub package source | Authenticate and perform approved repository actions from the terminal. |
+| Programming-language runtime | Python 3.12 | Python 3.12 major and minor version | Write, run, and test IT 140 programs. |
+| Language package and environment tools | `pip` and `venv` | Versions compatible with the approved Python runtime | Install course tools and create isolated environments when required. |
+| Integrated development environment | Visual Studio Code (`code`) | Current approved stable release from the official product source | Edit, run, test, debug, and manage course files. |
+| Web browser | Google Chrome | Version included in the approved reference image | Access course resources and approved authentication flows. |
+| Folder display utility | `tree` | Ubuntu 24.04 approved package version | Display folder structures in a readable form. |
+| Clipboard utility | `xclip` | Ubuntu 24.04 approved package version | Support clipboard operations in the graphical desktop. |
+| Keyboard-state utility | `numlockx` | Ubuntu 24.04 approved package version | Apply the approved Num Lock desktop behavior. |
+
+### A.4 Reference Programming-Language Tools
+
+| Tool | Version or policy at the baseline | Course purpose |
+|---|---|---|
+| pytest | Current manifest-approved version compatible with Python 3.12 | Run tests supplied with course activities. |
+| pytest-cov | Current manifest-approved version compatible with Python 3.12 | Report test coverage when included with supplied tests. |
+| Ruff | Current manifest-approved version compatible with Python 3.12 | Identify code-quality issues and format code consistently. |
 
 Students are expected to run provided tests; this package does not require students to create their own tests.
 
-### A.4 Initial Required VS Code Extensions
+### A.5 Reference IDE Extensions
 
-| Extension identifier | Course purpose |
-|---|---|
-| `ms-python.python` | Provide Python language support in VS Code. |
-| `charliermarsh.ruff` | Integrate Ruff code checking and formatting. |
-| `hediet.vscode-drawio` | View and edit approved diagrams. |
-| `streetsidesoftware.code-spell-checker` | Identify likely spelling errors in code comments and documentation. |
-| `i2p-hub.i2p-pseudo` | Support course pseudoscript files. |
-| `cweijan.vscode-office` | View supported office-document formats in VS Code. |
+| Extension identifier | Reference product or capability | Course purpose |
+|---|---|---|
+| `ms-python.python` | Python language support | Provide programming-language support in the IDE. |
+| `charliermarsh.ruff` | Ruff integration | Integrate code checking and formatting. |
+| `hediet.vscode-drawio` | Draw.io diagram support | View and edit approved diagrams. |
+| `streetsidesoftware.code-spell-checker` | Code Spell Checker | Identify likely spelling errors in comments and documentation. |
+| `i2p-hub.i2p-pseudo` | I2P Pseudo | Support course pseudoscript files. |
+| `cweijan.vscode-office` | Office Viewer | View supported office-document formats in the IDE. |
 
-### A.5 Initial Managed-Asset Categories
+### A.6 Initial Managed-Asset Categories
 
 - Automation scripts
 - `it140_manifest.json`
@@ -994,6 +1010,7 @@ Students are expected to run provided tests; this package does not require stude
 - Approved browser policies and bookmarks
 - Obsolete components explicitly listed by the manifest
 
+
 ---
 
 ## Appendix B: Requirements Traceability and Change Control
@@ -1003,7 +1020,7 @@ Students are expected to run provided tests; this package does not require stude
 1. A design element in the Software Design Description (SDD).
 2. One or more implementation files or functions.
 3. One or more acceptance or automated tests.
-4. A Git issue, pull request, or commit when the requirement changes.
+4. A repository issue, approved change request, or version-control commit when the requirement changes.
 
 A proposed requirement change shall identify:
 
