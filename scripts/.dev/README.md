@@ -155,3 +155,7 @@ update_<platform>.<ext>
 Standardizing on **`configure`**, rather than mixing `config` and `configure`, because all four filenames then begin with unambiguous action verbs.
 
 The fifth operational capability—keeping course-managed automation assets current—should be an explicit requirement of `update_<platform>.<ext>`, not another script.
+
+### Develop a Custom GPT for student facing tech support
+
+After completing automation script development, we will develop a Custom GPT to provide student-facing tech support for the course. The Custom GPT will be trained on the course's automation scripts, documentation, and common troubleshooting scenarios. It will be able to answer student questions, provide step-by-step guidance, and suggest solutions based on the current state of their environment. It will NOT help students with assignment solutions or academic content. The Custom GPT will be accessible through a web interface and will provide a consistent and reliable support experience for all students.
