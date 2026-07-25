@@ -9,15 +9,15 @@
 
 Click the links below to access the repositories for each module's activity. Each repository contains the necessary files and instructions for completing the corresponding activity.
 
-| Module | Activity    | Activity Repository                                                     | Status | ETA |
-|--------|-------------|-------------------------------------------------------------------------|--------|-----|
-| One    | Setup Tasks | [it140-m1-setup-tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) |
-|        | - Github    | [../github/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md) |
-|        | - Codio     | [../codio/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/codio/README.md)   |
-|        | - Local     | [../local/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/local/README.md)   |
-| Two    | Assignment  | [it140-m2-assignment](https://github.com/GC-STEM/it140-m2-assignment)   |
-| Three  | Assignment  | [it140-m3-assignment](https://github.com/GC-STEM/it140-m3-assignment)   |
-| Four   | Assignment  | [it140-m4-assignment](https://github.com/GC-STEM/it140-m4-assignment)   |
-| Five   | Project One | [it140-projects](https://github.com/GC-STEM/it140-projects)             |
-| Six    | Milestone   | [it140-projects](https://github.com/GC-STEM/it140-projects)             |
-| Seven  | Project Two | [it140-projects](https://github.com/GC-STEM/it140-projects)             |
+| Module | Activity    | Activity Repository                                                     | Status | ETA      |
+|--------|-------------|-------------------------------------------------------------------------|--------|----------|
+| One    | Setup Tasks | [it140-m1-setup-tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) |        | 8/2/2026 |
+|        | - Github    | [../github/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md) |        | 7/30/2026 |
+|        | - Codio     | [../codio/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/codio/README.md)   |        | 7/31/2026 |
+|        | - Local     | [../local/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/local/README.md)   |        | 8/1/2026  |
+| Two    | Assignment  | [it140-m2-assignment](https://github.com/GC-STEM/it140-m2-assignment)   |        | 8/3/2026 |
+| Three  | Assignment  | [it140-m3-assignment](https://github.com/GC-STEM/it140-m3-assignment)   |        | 8/4/2026 |
+| Four   | Assignment  | [it140-m4-assignment](https://github.com/GC-STEM/it140-m4-assignment)   |        | 8/5/2026 |
+| Five   | Project One | [it140-projects](https://github.com/GC-STEM/it140-projects)             |        | 8/6/2026 |
+| Six    | Milestone   | [it140-projects](https://github.com/GC-STEM/it140-projects)             |        | 8/7/2026 |
+| Seven  | Project Two | [it140-projects](https://github.com/GC-STEM/it140-projects)             |        | 8/8/2026 |
