@@ -5,6 +5,9 @@
 **Course**: IT 140 - *Introduction to Scripting*
 **Activity Name**: Course Repository
 
+> [!WARNING]
+> This repository is a work in progress. Some modules and activities may not be fully implemented yet. Please check the status of each activity in the table below for the latest updates.
+
 ## Activity Repositories
 
 Click the links below to access the repositories for each module's activity. Each repository contains the necessary files and instructions for completing the corresponding activity.
