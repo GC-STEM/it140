@@ -5,9 +5,9 @@
 - **Program Name**: IT 140 Course Automation Scripts
 - **Document ID**: IT140-SDD-SCRIPTS
 - **Status**: Draft for faculty review
-- **Version**: 2026.07.25.1
+- **Version**: 2026.07.25.2
 - **SRS Baseline**: `IT140-SRS-SCRIPTS`, version `2026.07.25.2`
-- **Repository Baseline**: `GC-STEM/it140` commit `e81512a7aaad2943c47c04383078d0c98cfeb5b2`
+- **Repository Baseline**: `GC-STEM/it140` commit `dfcfe0bc1c0e8d0dc9ad47faf2b855a18bdf227e`
 
 ---
 
@@ -93,6 +93,7 @@ This SDD does not define:
 | Check registry | The ordered collection of verification checks, including each check's requirement mapping, severity, and remediation owner. |
 | Component | A cohesive part of the design with one primary responsibility and a defined interface. |
 | Controlled configuration item | A file or data set whose changes require review, testing, approval, and release tracking. |
+| Deployment profile | A concrete local, virtual, or hosted environment that uses one platform implementation and records provider, desktop, session, release, architecture, and reset characteristics. |
 | Dependency | A component, tool, file, service, or condition required before another operation can succeed. |
 | Idempotent | Safe to run repeatedly. Repeated execution reaches the required state without harmful duplication or damage. |
 | Managed asset | A file, setting, package, launcher, extension, plug-in, or other item the package is authorized to manage. |
@@ -270,8 +271,8 @@ The following supporting artifacts shall describe the same design at different l
 | `configure_any.pseudo` | Platform-agnostic user-configuration control flow |
 | `verify_any.pseudo` | Platform-agnostic verification control flow |
 | `update_any.pseudo` | Platform-agnostic update control flow |
-| `it140_manifest.schema.json` | Machine-readable manifest structural contract |
-| `it140_manifest.json` | Controlled concrete product, version, source, and platform selections |
+| `scripts/.manifest/it140_manifest.schema.json` | Machine-readable manifest structural contract |
+| `scripts/.manifest/it140_manifest.json` | Controlled concrete product, version, source, platform, and deployment-profile selections |
 | Automated test files | Unit, integration, safety, idempotence, and acceptance-test support |
 
 The diagrams and pseudoscripts are detailed design artifacts. This SDD remains authoritative when a supporting artifact is incomplete or inconsistent.
@@ -286,9 +287,11 @@ The repository layout separates development artifacts from released platform scr
 
 ```text
 it140/
-├── it140_manifest.json
 ├── logs/
 ├── scripts/
+│   ├── .manifest/
+│   │   ├── it140_manifest.json
+│   │   └── it140_manifest.schema.json
 │   ├── <platform>/
 │   │   ├── setup_<platform>.<ext>
 │   │   ├── configure_<platform>.<ext>
@@ -357,7 +360,7 @@ The manifest is a controlled configuration item, not a program. It contains decl
 
 | Design ID | Manifest design rule | Purpose | Related SRS requirements |
 |---|---|---|---|
-| DAT-DES-001 | The root object contains `schema_version`, `automation_release`, `policy`, `capabilities`, `provider_profiles`, `platforms`, `managed_assets`, and `logging`. | Provides a predictable top-level contract. | PKG-FR-012 through PKG-FR-017 |
+| DAT-DES-001 | The root object contains release control, policy, capabilities, products, sources, provider profiles, platforms, optional deployment profiles, managed settings, managed assets, obsolete components, and logging data. | Provides a predictable top-level contract while separating stable platform bindings from concrete deployment environments. | PKG-FR-012 through PKG-FR-017 |
 | DAT-DES-002 | `schema_version` uses a documented compatibility policy separate from the automation release. | Allows scripts to reject a manifest structure they cannot interpret. | PKG-FR-012, PKG-FR-019 |
 | DAT-DES-003 | Capability definitions use stable role identifiers rather than product names in script logic. | Allows an approved product to change without changing lifecycle logic. | PKG-TC-008, PKG-NFR-012 |
 | DAT-DES-004 | Platform entries bind capability roles to concrete package identifiers, commands, version probes, sources, settings, and adapter IDs. | Keeps product-specific data in one controlled location and enforces the no-additional-fee selection constraint. | PKG-FR-013, PKG-FR-014, PKG-FR-015, PKG-FR-016, PKG-TC-002 |
@@ -371,6 +374,7 @@ The manifest is a controlled configuration item, not a program. It contains decl
 | DAT-DES-012 | Retry limits, timeouts, and performance settings are bounded by schema validation and safe code-defined maximums. | Allows controlled tuning without indefinite waits or excessive load. | UPD-FR-012, PKG-QOS-007 through PKG-QOS-010 |
 | DAT-DES-013 | Secrets, personal values, and runtime authentication data are prohibited in the manifest schema and semantic validator. | Keeps the public controlled file safe to distribute. | PKG-FR-018, PKG-NFR-025 |
 | DAT-DES-014 | A manifest release is approved only with its schema validation, platform conformance tests, integrity metadata, and release record. | Treats product selection as controlled engineering data. | PKG-FR-019, PKG-NFR-015, Appendix B of the SRS |
+| DAT-DES-015 | Optional deployment profiles reference a platform implementation and record deployment kind, provider, desktop, session, release, architecture, reset method, and reference status. | Distinguishes the Codio CVD from local Ubuntu GNOME without duplicating course IDE product bindings or treating a desktop profile as an operating-system package list. | REF-TC-001 through REF-TC-006, Section 3.3 of the SRS |
 
 ### 4.2 Illustrative Logical Manifest Structure
 
@@ -414,6 +418,14 @@ The following example is informative. Field names may be refined when the JSON s
       }
     }
   },
+  "deployment_profiles": {
+    "reference_deployment": {
+      "platform_id": "reference-platform",
+      "deployment_kind": "hosted_virtual_desktop",
+      "desktop_environment": "manifest-selected-desktop",
+      "reference_profile": true
+    }
+  },
   "managed_assets": [],
   "logging": {
     "format_version": "1",
@@ -445,6 +457,7 @@ The names below describe logical structures. Native implementations may use reco
 |---|---|---|
 | `RunContext` | action, script version, platform ID, user ID, paths, start time, manifest release, interactivity | Provides common context to every component. |
 | `PlatformFacts` | OS type and release, architecture, session type, home path, desktop path, temporary path, privilege capability | Supports platform matching and prerequisite checks. |
+| `DeploymentProfile` | Platform identifier, deployment kind, provider, desktop environment, session type, release, architecture, reset method, and reference flag | Selects environment-specific behavior and testing evidence without duplicating product bindings. |
 | `CapabilityBinding` | role ID, product ID, adapter ID, required status, package identifiers, version rule, probes | Connects a generic capability to the current approved implementation. |
 | `ProviderProfile` | adapter ID, authentication method, account fields, identity rule, validation rules | Controls approved external-service integration. |
 | `ManagedAsset` | asset ID, source, destination, scope, integrity, replacement policy, obsolete policy | Authorizes managed-file synchronization. |
@@ -1022,6 +1035,7 @@ The exact approved mechanism is platform- and release-specific and belongs in th
 | PLT-DES-008 | Provider integration | Expose stable authentication and account operations. | Allowlisted provider adapter selected by the profile. | CFG-FR-005 through CFG-FR-008 |
 | PLT-DES-009 | Equivalent outcomes | Use the same status, log, remediation, and acceptance semantics. | Different native commands may produce the required final state. | PKG-NFR-001, PKG-NFR-021 |
 | PLT-DES-010 | Platform qualification | Require manifest entry, adapter implementation, bootstrap instructions, platform constraints, and full conformance testing. | Platform-specific evidence package. | Section 3.3 of the SRS |
+| PLT-DES-011 | Deployment-profile resolution | Select one enabled profile by detected environment or explicit approved context, then confirm its platform, release, architecture, desktop, and session constraints. | Provider, desktop-session, and reset detection appropriate to the profile. | REF-TC-001 through REF-TC-006, PKG-FR-003 |
 
 ### 13.2 Adapter Contract Rules
 
@@ -1052,7 +1066,7 @@ A provider adapter is added only when:
 A proposed platform implementation is not marked supported until it provides:
 
 - Four correctly named lifecycle entry points.
-- A manifest platform entry and schema-valid role bindings.
+- A manifest platform entry, any applicable deployment-profile entry, and schema-valid role bindings.
 - Platform, package-manager, privilege, path, settings, restart, and user-integration adapters.
 - Bootstrap instructions that work before the managed environment exists.
 - Unit and integration tests for adapters.
@@ -1060,6 +1074,21 @@ A proposed platform implementation is not marked supported until it provides:
 - Idempotence evidence from repeated setup, configure, and update runs.
 - Read-only evidence for verify.
 - Student-work preservation and redaction evidence.
+
+### 13.5 Initial Platform Conformance Test Matrix
+
+The initial release qualification uses resettable environments that match enabled deployment profiles.
+
+| Test target | Role | Required use |
+|---|---|---|
+| Codio Virtual Desktop: Ubuntu 24.04 LTS, APT, Xfce, x86_64 | Reference deployment | Run the complete lifecycle, acceptance, idempotence, interruption, support-log, and student-work-preservation suites for every release candidate. |
+| Supported Windows 11 on x86_64 bare metal | Supported local deployment | Reset to a clean supported release and run the complete platform conformance suite before approval. |
+| Supported macOS on Apple Silicon bare metal | Supported local deployment | Erase or restore to a clean supported release and run the complete platform conformance suite before approval. |
+| Ubuntu 24.04 LTS with APT and GNOME on x86_64 bare metal | Supported local deployment | Reinstall or restore a clean image and run the complete platform conformance suite before approval. |
+| Raspberry Pi 4B and 5 | Exploratory ARM64 targets | Evaluate portability, package availability, desktop behavior, and performance. Do not mark ARM64 supported until the full suite passes for an enabled deployment profile. |
+| Windows XP, 7, and 8 systems | Negative unsupported-platform targets | Confirm that platform detection reports an unsupported environment, creates only the minimum safe diagnostic log when possible, and performs no managed system or user changes. |
+
+A clean test begins from a fresh operating-system installation, provider reset, or approved image restoration. Test evidence records the exact release, build, architecture, deployment profile, manifest release, script release, and final results.
 
 ---
 
@@ -1205,9 +1234,11 @@ The reference mapping should be updated when convenient for historical clarity, 
 
 | Generic design role | Initial reference selection |
 |---|---|
+| Deployment profile identifier | `codio_cvd` |
 | Hosted virtual desktop provider | Codio Virtual Desktop (CVD) |
 | Operating system | Ubuntu 24.04 Long-Term Support (LTS) |
 | Graphical desktop | Xfce |
+| Session type | Hosted remote graphical desktop |
 | Native script language | Bash |
 | System package manager | Advanced Package Tool (APT) |
 | Controlled privilege elevation | Passwordless `sudo` for approved system commands |
@@ -1278,6 +1309,6 @@ A supplement shall not redefine shared exit codes, log fields, status meanings, 
 
 - `scripts/.dev/analysis/it140_scripts_srs.md`, *IT 140 Course Automation Scripts Software Requirements Specification*, version 2026.07.25.2.
 - `scripts/.dev/README.md`, development notes and four-script lifecycle decisions.
-- `it140_manifest.json`, controlled product, platform, provider, version, source, and managed-asset selections when populated and approved.
+- `scripts/.manifest/it140_manifest.json`, controlled product, platform, deployment-profile, provider, version, source, and managed-asset selections when populated and approved.
 - `scripts/.dev/design/it140_scripts_sdd.md`, prior generic SDD template used as the structural starting point for this document.
 - Repository acceptance-test and platform-script files at the baseline commit identified in the document metadata.

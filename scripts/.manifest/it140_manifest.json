@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "automation_release": "2026.07.25.1",
+  "automation_release": "2026.07.25.2",
   "course": {
     "course_id": "IT 140",
     "course_title": "Introduction to Scripting",
@@ -9,8 +9,8 @@
   "control": {
     "status": "draft",
     "source_repository": "https://github.com/GC-STEM/it140",
-    "source_revision": "c888fb9f0d6b5bfdda0fc804c547f27e1aac954c",
-    "change_summary": "Initial controlled manifest for supported Windows 11, macOS, and Ubuntu 24.04 LTS with GNOME platforms. The reference-platform designation remains pending."
+    "source_revision": "dfcfe0bc1c0e8d0dc9ad47faf2b855a18bdf227e",
+    "change_summary": "Designate the Codio Virtual Desktop on Ubuntu 24.04 LTS with APT and Xfce as the reference deployment; add deployment profiles for supported hosted and bare-metal environments; and limit initially enabled architectures to available conformance-test hardware."
   },
   "policy": {
     "course_root": "${HOME}/it140",
@@ -547,8 +547,7 @@
           }
         ],
         "architectures": [
-          "x86_64",
-          "arm64"
+          "x86_64"
         ]
       },
       "script": {
@@ -801,7 +800,7 @@
           ]
         }
       },
-      "notes": "Supported releases are limited to Windows 11 Home or Pro servicing releases that currently receive Microsoft security updates."
+      "notes": "Initial qualification target is Windows 11 on x86_64 bare metal. Windows on ARM64 may be enabled after the full platform conformance suite passes on representative hardware."
     },
     "macos": {
       "display_name": "Apple macOS",
@@ -830,8 +829,7 @@
           }
         ],
         "architectures": [
-          "arm64",
-          "x86_64"
+          "arm64"
         ]
       },
       "script": {
@@ -1084,18 +1082,18 @@
           ]
         }
       },
-      "notes": "Supported major releases are those represented here and still receiving Apple security updates."
+      "notes": "Initial qualification target is a currently supported macOS release on Apple Silicon. Intel macOS may be enabled after the full platform conformance suite passes on a supported Intel Mac."
     },
-    "ubuntu_gnome": {
-      "display_name": "Ubuntu Desktop with GNOME",
-      "abbreviation": "ubg",
+    "cvd": {
+      "display_name": "Codio Virtual Desktop",
+      "abbreviation": "cvd",
       "enabled": true,
-      "reference_platform": false,
-      "platform_adapter_id": "ubuntu_apt_gnome",
+      "reference_platform": true,
+      "platform_adapter_id": "codio_ubuntu_apt_xfce",
       "os": {
         "family": "linux",
-        "name": "Ubuntu Desktop",
-        "desktop_environment": "GNOME",
+        "name": "Ubuntu",
+        "desktop_environment": "Xfce",
         "releases": [
           {
             "release_id": "24.04",
@@ -1104,8 +1102,7 @@
           }
         ],
         "architectures": [
-          "x86_64",
-          "arm64"
+          "x86_64"
         ]
       },
       "script": {
@@ -1136,8 +1133,7 @@
             "comparison": "managed_latest"
           },
           "architectures": [
-            "x86_64",
-            "arm64"
+            "x86_64"
           ],
           "verification": {
             "adapter_id": "apt_package",
@@ -1157,8 +1153,7 @@
             "comparison": "managed_latest"
           },
           "architectures": [
-            "x86_64",
-            "arm64"
+            "x86_64"
           ],
           "verification": {
             "adapter_id": "apt_package",
@@ -1178,8 +1173,7 @@
             "comparison": "managed_latest"
           },
           "architectures": [
-            "x86_64",
-            "arm64"
+            "x86_64"
           ],
           "verification": {
             "adapter_id": "apt_package",
@@ -1199,8 +1193,7 @@
             "comparison": "managed_latest"
           },
           "architectures": [
-            "x86_64",
-            "arm64"
+            "x86_64"
           ],
           "verification": {
             "adapter_id": "apt_package",
@@ -1220,8 +1213,7 @@
             "comparison": "managed_latest"
           },
           "architectures": [
-            "x86_64",
-            "arm64"
+            "x86_64"
           ],
           "verification": {
             "adapter_id": "apt_package",
@@ -1232,7 +1224,7 @@
         },
         "desktop_file_utils": {
           "display_name": "Desktop File Utilities",
-          "purpose": "Validate and refresh GNOME desktop launcher definitions.",
+          "purpose": "Validate and refresh course-managed Xfce desktop launcher definitions.",
           "category": "desktop_integration",
           "package_identifier": "desktop-file-utils",
           "required": true,
@@ -1241,8 +1233,7 @@
             "comparison": "managed_latest"
           },
           "architectures": [
-            "x86_64",
-            "arm64"
+            "x86_64"
           ],
           "verification": {
             "adapter_id": "apt_package",
@@ -1262,8 +1253,480 @@
             "comparison": "managed_latest"
           },
           "architectures": [
-            "x86_64",
-            "arm64"
+            "x86_64"
+          ],
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "libsecret-1-0"
+            ]
+          }
+        },
+        "direnv": {
+          "display_name": "direnv",
+          "purpose": "Apply approved project-specific environment settings when a course project declares them.",
+          "category": "runtime_support",
+          "package_identifier": "direnv",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "direnv"
+            ]
+          }
+        },
+        "tree": {
+          "display_name": "tree",
+          "purpose": "Display folder structures in a readable form for course instructions and support diagnostics.",
+          "category": "diagnostic_utility",
+          "package_identifier": "tree",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "tree"
+            ]
+          }
+        },
+        "xclip": {
+          "display_name": "xclip",
+          "purpose": "Support approved clipboard operations in the Xfce graphical desktop.",
+          "category": "desktop_integration",
+          "package_identifier": "xclip",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "xclip"
+            ]
+          }
+        },
+        "numlockx": {
+          "display_name": "numlockx",
+          "purpose": "Apply the approved Num Lock behavior when the Xfce desktop session starts.",
+          "category": "desktop_integration",
+          "package_identifier": "numlockx",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "numlockx"
+            ]
+          }
+        }
+      },
+      "course_ide_bindings": {
+        "version_control_system": {
+          "product_id": "git",
+          "required": true,
+          "installation_scope": "system",
+          "installer_adapter_id": "apt_package",
+          "source_id": "ubuntu_archive",
+          "package_identifier": "git",
+          "verification": {
+            "adapter_id": "executable_version",
+            "executable_names": [
+              "git"
+            ]
+          },
+          "settings_profile_ids": [
+            "git_course_defaults"
+          ]
+        },
+        "source_hosting_client": {
+          "product_id": "github_cli",
+          "required": true,
+          "installation_scope": "system",
+          "installer_adapter_id": "apt_package",
+          "source_id": "github_cli_packages",
+          "package_identifier": "gh",
+          "verification": {
+            "adapter_id": "executable_version",
+            "executable_names": [
+              "gh"
+            ]
+          },
+          "provider_profile_id": "github_com",
+          "dependencies": [
+            "version_control_system"
+          ]
+        },
+        "programming_language_runtime": {
+          "product_id": "python_3_12",
+          "required": true,
+          "installation_scope": "system",
+          "installer_adapter_id": "apt_package",
+          "source_id": "ubuntu_archive",
+          "package_identifier": "python3.12",
+          "verification": {
+            "adapter_id": "executable_version",
+            "executable_names": [
+              "python3.12"
+            ],
+            "version_rule": {
+              "comparison": "compatible_range",
+              "value": ">=3.12,<3.13",
+              "comparison_adapter_id": "pep440_version"
+            }
+          }
+        },
+        "test_runner": {
+          "product_id": "pytest",
+          "required": true,
+          "installation_scope": "user",
+          "installer_adapter_id": "python_venv_package",
+          "source_id": "pypi",
+          "package_identifier": "pytest",
+          "verification": {
+            "adapter_id": "python_venv_package",
+            "package_identifiers": [
+              "pytest"
+            ]
+          },
+          "dependencies": [
+            "programming_language_runtime"
+          ]
+        },
+        "coverage_reporter": {
+          "product_id": "pytest_cov",
+          "required": true,
+          "installation_scope": "user",
+          "installer_adapter_id": "python_venv_package",
+          "source_id": "pypi",
+          "package_identifier": "pytest-cov",
+          "verification": {
+            "adapter_id": "python_venv_package",
+            "package_identifiers": [
+              "pytest-cov"
+            ]
+          },
+          "dependencies": [
+            "programming_language_runtime",
+            "test_runner"
+          ]
+        },
+        "source_code_ide": {
+          "product_id": "visual_studio_code",
+          "required": true,
+          "installation_scope": "system",
+          "installer_adapter_id": "apt_package",
+          "source_id": "microsoft_vscode_packages",
+          "package_identifier": "code",
+          "verification": {
+            "adapter_id": "executable_version",
+            "executable_names": [
+              "code"
+            ]
+          },
+          "settings_profile_ids": [
+            "vscode_course_defaults"
+          ]
+        },
+        "language_support": {
+          "product_id": "vscode_python",
+          "required": true,
+          "installation_scope": "user",
+          "installer_adapter_id": "vscode_extension",
+          "source_id": "vscode_marketplace",
+          "package_identifier": "ms-python.python",
+          "verification": {
+            "adapter_id": "vscode_extension",
+            "extension_identifiers": [
+              "ms-python.python"
+            ]
+          },
+          "dependencies": [
+            "source_code_ide",
+            "programming_language_runtime"
+          ]
+        },
+        "code_quality_tool": {
+          "product_id": "vscode_ruff",
+          "required": true,
+          "installation_scope": "user",
+          "installer_adapter_id": "vscode_extension",
+          "source_id": "vscode_marketplace",
+          "package_identifier": "charliermarsh.ruff",
+          "verification": {
+            "adapter_id": "vscode_extension",
+            "extension_identifiers": [
+              "charliermarsh.ruff"
+            ]
+          },
+          "dependencies": [
+            "source_code_ide",
+            "programming_language_runtime"
+          ]
+        },
+        "diagram_support": {
+          "product_id": "vscode_drawio",
+          "required": true,
+          "installation_scope": "user",
+          "installer_adapter_id": "vscode_extension",
+          "source_id": "vscode_marketplace",
+          "package_identifier": "hediet.vscode-drawio",
+          "verification": {
+            "adapter_id": "vscode_extension",
+            "extension_identifiers": [
+              "hediet.vscode-drawio"
+            ]
+          },
+          "dependencies": [
+            "source_code_ide"
+          ]
+        },
+        "pseudocode_support": {
+          "product_id": "vscode_pseudo",
+          "required": true,
+          "installation_scope": "user",
+          "installer_adapter_id": "vscode_extension",
+          "source_id": "vscode_marketplace",
+          "package_identifier": "i2p-hub.i2p-pseudo",
+          "verification": {
+            "adapter_id": "vscode_extension",
+            "extension_identifiers": [
+              "i2p-hub.i2p-pseudo"
+            ]
+          },
+          "dependencies": [
+            "source_code_ide"
+          ]
+        },
+        "spell_checker": {
+          "product_id": "vscode_spell_checker",
+          "required": true,
+          "installation_scope": "user",
+          "installer_adapter_id": "vscode_extension",
+          "source_id": "vscode_marketplace",
+          "package_identifier": "streetsidesoftware.code-spell-checker",
+          "verification": {
+            "adapter_id": "vscode_extension",
+            "extension_identifiers": [
+              "streetsidesoftware.code-spell-checker"
+            ]
+          },
+          "dependencies": [
+            "source_code_ide"
+          ]
+        },
+        "file_viewer": {
+          "product_id": "vscode_office",
+          "required": true,
+          "installation_scope": "user",
+          "installer_adapter_id": "vscode_extension",
+          "source_id": "vscode_marketplace",
+          "package_identifier": "cweijan.vscode-office",
+          "verification": {
+            "adapter_id": "vscode_extension",
+            "extension_identifiers": [
+              "cweijan.vscode-office"
+            ]
+          },
+          "dependencies": [
+            "source_code_ide"
+          ]
+        }
+      },
+      "notes": "Reference platform implementation for the Codio Virtual Desktop using Ubuntu 24.04 LTS, APT, Xfce, a remote graphical session, and the Codio-controlled privilege and restart model."
+    },
+    "ubuntu_gnome": {
+      "display_name": "Ubuntu Desktop with GNOME",
+      "abbreviation": "ubg",
+      "enabled": true,
+      "reference_platform": false,
+      "platform_adapter_id": "ubuntu_apt_gnome",
+      "os": {
+        "family": "linux",
+        "name": "Ubuntu Desktop",
+        "desktop_environment": "GNOME",
+        "releases": [
+          {
+            "release_id": "24.04",
+            "display_name": "Ubuntu 24.04 LTS (Noble Numbat)",
+            "security_updates_required": true
+          }
+        ],
+        "architectures": [
+          "x86_64"
+        ]
+      },
+      "script": {
+        "extension": ".sh",
+        "interpreter_adapter_id": "ubuntu_bash",
+        "line_ending": "lf",
+        "filename_template": "{action}_{platform}{extension}"
+      },
+      "package_manager": {
+        "display_name": "Advanced Package Tool",
+        "adapter_id": "apt",
+        "source_ids": [
+          "ubuntu_archive",
+          "github_cli_packages",
+          "microsoft_vscode_packages"
+        ],
+        "lock_scope": "system_package_manager"
+      },
+      "os_packages": {
+        "ca_certificates": {
+          "display_name": "CA Certificates",
+          "purpose": "Provide trusted certificate authorities for encrypted package and file downloads.",
+          "category": "security_support",
+          "package_identifier": "ca-certificates",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "ca-certificates"
+            ]
+          }
+        },
+        "curl": {
+          "display_name": "curl",
+          "purpose": "Provide reliable encrypted downloads and network diagnostics for setup and update operations.",
+          "category": "diagnostic_utility",
+          "package_identifier": "curl",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "curl"
+            ]
+          }
+        },
+        "gpg": {
+          "display_name": "GNU Privacy Guard",
+          "purpose": "Verify signed package repositories and imported signing keys.",
+          "category": "security_support",
+          "package_identifier": "gpg",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "gpg"
+            ]
+          }
+        },
+        "python_venv_support": {
+          "display_name": "Python 3.12 Virtual Environment Support",
+          "purpose": "Provide the operating-system module required to create the course Python virtual environment.",
+          "category": "runtime_support",
+          "package_identifier": "python3.12-venv",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "python3.12-venv"
+            ]
+          }
+        },
+        "xdg_utils": {
+          "display_name": "XDG Utilities",
+          "purpose": "Provide standards-based desktop integration helpers for launchers and default applications.",
+          "category": "desktop_integration",
+          "package_identifier": "xdg-utils",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "xdg-utils"
+            ]
+          }
+        },
+        "desktop_file_utils": {
+          "display_name": "Desktop File Utilities",
+          "purpose": "Validate and refresh GNOME desktop launcher definitions.",
+          "category": "desktop_integration",
+          "package_identifier": "desktop-file-utils",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "desktop-file-utils"
+            ]
+          }
+        },
+        "libsecret": {
+          "display_name": "Secret Service Library",
+          "purpose": "Allow approved clients to use the desktop credential store without placing secrets in the manifest or logs.",
+          "category": "runtime_support",
+          "package_identifier": "libsecret-1-0",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "architectures": [
+            "x86_64"
           ],
           "verification": {
             "adapter_id": "apt_package",
@@ -1485,7 +1948,59 @@
           ]
         }
       },
-      "notes": "Ubuntu 24.04 LTS is selected because its supported repositories provide Python 3.12 directly. Ubuntu 26.04 LTS requires a separate tested Python 3.12 installation design before it can be enabled."
+      "notes": "Ubuntu 24.04 LTS with APT and GNOME is the supported local Linux desktop profile. Initial qualification targets x86_64 bare metal. Raspberry Pi 4B and 5 may be used for exploratory ARM64 testing, but ARM64 is not enabled until the complete conformance suite passes for the declared desktop environment."
+    }
+  },
+  "deployment_profiles": {
+    "codio_cvd": {
+      "display_name": "Codio Virtual Desktop",
+      "enabled": true,
+      "reference_profile": true,
+      "platform_id": "cvd",
+      "deployment_kind": "hosted_virtual_desktop",
+      "provider_name": "Codio",
+      "desktop_environment": "Xfce",
+      "session_type": "remote_desktop",
+      "os_release_id": "24.04",
+      "architecture": "x86_64",
+      "profile_adapter_id": "codio_virtual_desktop",
+      "reset_method": "provider_reset",
+      "notes": "Primary environment for course documentation, screenshots, support reproduction, development, and release acceptance testing."
+    },
+    "windows_bare_metal": {
+      "display_name": "Windows Bare-Metal Computer",
+      "enabled": true,
+      "reference_profile": false,
+      "platform_id": "windows",
+      "deployment_kind": "bare_metal",
+      "session_type": "local_desktop",
+      "architecture": "x86_64",
+      "reset_method": "fresh_os_install",
+      "notes": "Clean supported Windows 11 installation used for platform conformance testing."
+    },
+    "macos_bare_metal": {
+      "display_name": "macOS Bare-Metal Computer",
+      "enabled": true,
+      "reference_profile": false,
+      "platform_id": "macos",
+      "deployment_kind": "bare_metal",
+      "session_type": "local_desktop",
+      "architecture": "arm64",
+      "reset_method": "fresh_os_install",
+      "notes": "Clean supported macOS installation on Apple Silicon used for platform conformance testing."
+    },
+    "ubuntu_gnome_bare_metal": {
+      "display_name": "Ubuntu GNOME Bare-Metal Computer",
+      "enabled": true,
+      "reference_profile": false,
+      "platform_id": "ubuntu_gnome",
+      "deployment_kind": "bare_metal",
+      "desktop_environment": "GNOME",
+      "session_type": "local_desktop",
+      "os_release_id": "24.04",
+      "architecture": "x86_64",
+      "reset_method": "fresh_os_install",
+      "notes": "Clean Ubuntu 24.04 LTS installation with APT and GNOME used for platform conformance testing."
     }
   },
   "managed_settings": {
