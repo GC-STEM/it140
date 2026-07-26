@@ -11,7 +11,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.26.2"
+readonly SCRIPT_VERSION="2026.07.26.3"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -360,6 +360,54 @@ has_managed_panel_launcher() {
     [[ -r "$panel_config_dir/launcher-$plugin_id/it140-vscode.desktop" ]]
 }
 
+has_enabled_numlock_autostart_file() {
+    local file="$1"
+    [[ -r "$file" ]] || return 1
+    grep -Fqx 'Exec=/usr/bin/numlockx on' "$file" \
+        && ! grep -Eiq \
+            '^Hidden[[:space:]]*=[[:space:]]*true[[:space:]]*$' "$file"
+}
+
+has_effective_numlock_autostart() {
+    local user_file="${XDG_CONFIG_HOME:-$HOME/.config}/autostart/numlockx.desktop"
+    local system_file="/etc/xdg/autostart/numlockx.desktop"
+
+    if [[ -e "$user_file" ]]; then
+        has_enabled_numlock_autostart_file "$user_file"
+    else
+        has_enabled_numlock_autostart_file "$system_file"
+    fi
+}
+
+check_optional_numlock() {
+    local status_text=""
+
+    if ! command -v numlockx >/dev/null 2>&1; then
+        print_notice "[verify.optional.numlock] The optional Num Lock tool is unavailable; this does not affect course work."
+        return 0
+    fi
+
+    if has_effective_numlock_autostart; then
+        record_result pass "verify.optional.numlock_persistence" \
+            "Num Lock is configured to turn on when the Xfce desktop starts."
+    else
+        print_notice "[verify.optional.numlock_persistence] Num Lock is not configured to turn on automatically; this does not affect course work."
+    fi
+
+    if [[ -z "${DISPLAY:-}" ]]; then
+        print_notice "[verify.optional.numlock_session] Num Lock status cannot be checked outside a graphical session."
+        return 0
+    fi
+
+    status_text="$(numlockx status 2>/dev/null || true)"
+    if grep -Eqi 'numlock[[:space:]]+is[[:space:]]+on' <<<"$status_text"; then
+        record_result pass "verify.optional.numlock_session" \
+            "Num Lock is enabled for the current desktop session."
+    else
+        print_notice "[verify.optional.numlock_session] Num Lock is currently off or its state could not be confirmed; this does not affect course work."
+    fi
+}
+
 check_platform() {
     if [[ "$EUID" -eq 0 ]]; then
         record_result fail "verify.user_context" \
@@ -521,13 +569,7 @@ check_system_layer() {
             "Run update_cvd.sh. If the same check still fails, contact course support."
     fi
 
-    if [[ -r /etc/xdg/autostart/numlockx.desktop ]]; then
-        record_result pass "verify.system.numlock" \
-            "The optional CVD Num Lock startup preference is present."
-    else
-        record_result warning "verify.system.numlock" \
-            "The optional Num Lock startup preference is not installed; this does not affect course work."
-    fi
+    check_optional_numlock
 }
 
 check_user_layer() {

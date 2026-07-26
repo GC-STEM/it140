@@ -11,7 +11,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.26.4"
+readonly SCRIPT_VERSION="2026.07.26.5"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -216,6 +216,10 @@ if query == "system_packages":
             values.append(binding["package_identifier"])
     for value in sorted(set(values)):
         print(value)
+elif query == "optional_numlock_package":
+    package = platform.get("os_packages", {}).get("numlockx")
+    if package and not package.get("required"):
+        print(package["package_identifier"])
 elif query == "venv_packages":
     values = []
     for binding in bindings.values():
@@ -575,7 +579,7 @@ synchronize_course_assets() {
 
 update_system_packages() {
     print_header "Step 2: Update Ubuntu and Required System Software"
-    local apt_options
+    local apt_options optional_numlock_package
     apt_options=(-o Acquire::Retries=5 -o Dpkg::Options::=--force-confdef \
         -o Dpkg::Options::=--force-confold)
 
@@ -595,6 +599,21 @@ update_system_packages() {
         apt-get "${apt_options[@]}" install -y "${system_packages[@]}"
     CHANGED=true
     print_success "Required system software is current."
+
+    optional_numlock_package="$(
+        manifest_lines optional_numlock_package 2>/dev/null || true
+    )"
+    if [[ -n "$optional_numlock_package" ]]; then
+        print_info "Installing or repairing the optional Num Lock tool..."
+        if sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l \
+            apt-get "${apt_options[@]}" install -y "$optional_numlock_package"; then
+            CHANGED=true
+            print_success "The optional Num Lock tool is installed."
+        else
+            print_notice "The optional Num Lock tool could not be installed."
+            print_notice "This does not affect course work."
+        fi
+    fi
 }
 
 update_user_tools() {
@@ -636,42 +655,102 @@ update_user_tools() {
     CHANGED=true
 }
 
-
-refresh_numlock_session_policy() {
+configure_optional_numlock() {
     local policy_path="/etc/xdg/autostart/numlockx.desktop"
-    local temp_policy
+    local user_dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+    local user_path="$user_dir/numlockx.desktop"
+    local temp_policy=""
+    local persistence_ready=false
 
-    if ! temp_policy="$(mktemp)"; then
+    if ! command -v numlockx >/dev/null 2>&1; then
+        print_notice "The optional Num Lock tool is unavailable."
+        print_notice "This does not affect course work."
+        return 0
+    fi
+
+    if ! temp_policy="$(mktemp --suffix=.desktop)"; then
         print_notice "The optional Num Lock startup preference could not be prepared."
         print_notice "This does not affect course work."
         return 0
     fi
 
-    cat > "$temp_policy" <<'EOF_NUMLOCK'
+    if ! cat > "$temp_policy" <<'EOF_NUMLOCK'
 [Desktop Entry]
+Version=1.0
 Type=Application
 Name=Enable Num Lock
 Comment=Enable Num Lock when the desktop session starts
+TryExec=/usr/bin/numlockx
 Exec=/usr/bin/numlockx on
 OnlyShowIn=XFCE;
 NoDisplay=true
+Terminal=false
+Hidden=false
+StartupNotify=false
 X-GNOME-Autostart-enabled=true
 EOF_NUMLOCK
+    then
+        rm -f "$temp_policy"
+        print_notice "The optional Num Lock startup preference could not be prepared."
+        print_notice "This does not affect course work."
+        return 0
+    fi
+
+    if command -v desktop-file-validate >/dev/null 2>&1 \
+        && ! desktop-file-validate "$temp_policy" >/dev/null 2>&1; then
+        rm -f "$temp_policy"
+        print_notice "The optional Num Lock startup preference did not pass validation."
+        print_notice "This does not affect course work."
+        return 0
+    fi
 
     if [[ -r "$policy_path" ]] && cmp -s "$temp_policy" "$policy_path"; then
-        print_success "The optional Num Lock startup preference is already installed."
+        persistence_ready=true
+        print_success "The optional Num Lock system startup preference is already configured."
     elif sudo -n install -D -o root -g root -m 0644 \
         "$temp_policy" "$policy_path" \
         && [[ -r "$policy_path" ]] \
         && cmp -s "$temp_policy" "$policy_path"; then
         CHANGED=true
-        print_success "The optional Num Lock startup preference is installed."
+        persistence_ready=true
+        print_success "The optional Num Lock system startup preference is configured."
     else
-        print_notice "The optional Num Lock startup preference could not be installed."
-        print_notice "This does not affect course work."
+        print_notice "The optional Num Lock system startup preference could not be installed."
+        print_notice "A user startup preference will be attempted instead."
+    fi
+
+    # A user entry with the same filename overrides the system entry. Repair an
+    # existing override, or create a fallback when the system entry was unavailable.
+    if [[ -e "$user_path" ]] || [[ "$persistence_ready" != true ]]; then
+        if ! mkdir -p "$user_dir"; then
+            print_notice "The optional Num Lock user startup preference could not be prepared."
+            print_notice "This does not affect course work."
+        elif [[ -r "$user_path" ]] && cmp -s "$temp_policy" "$user_path"; then
+            persistence_ready=true
+            print_success "The optional Num Lock user startup preference is already configured."
+        elif install -m 0644 "$temp_policy" "$user_path"; then
+            CHANGED=true
+            persistence_ready=true
+            print_success "The optional Num Lock user startup preference is configured."
+        else
+            print_notice "The optional Num Lock user startup preference could not be saved."
+            print_notice "This does not affect course work."
+        fi
     fi
 
     rm -f "$temp_policy"
+
+    if [[ -z "${DISPLAY:-}" ]]; then
+        print_notice "Num Lock could not be enabled because no graphical session is active."
+        if [[ "$persistence_ready" == true ]]; then
+            print_notice "The startup preference will be attempted when Xfce starts."
+        fi
+    elif numlockx on >/dev/null 2>&1; then
+        print_success "Num Lock is enabled for the current desktop session."
+    else
+        print_notice "Num Lock could not be enabled for the current desktop session."
+        print_notice "This does not affect course work."
+    fi
 }
 
 merge_vscode_settings() {
@@ -731,7 +810,7 @@ PY
 
 refresh_desktop_integrations() {
     print_header "Step 4: Refresh Course-Managed Desktop Integrations"
-    refresh_numlock_session_policy
+    configure_optional_numlock
     local system_launcher="/usr/share/applications/code.desktop"
     local desktop_dir panel_config_dir marker plugin_id panel_launcher_dir
     desktop_dir="$(xdg-user-dir DESKTOP 2>/dev/null || true)"

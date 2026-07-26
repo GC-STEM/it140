@@ -11,7 +11,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.26.2"
+readonly SCRIPT_VERSION="2026.07.26.3"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -620,6 +620,97 @@ set_xfconf_string() {
     fi
 }
 
+has_enabled_numlock_autostart_file() {
+    local file="$1"
+    [[ -r "$file" ]] || return 1
+    grep -Fqx 'Exec=/usr/bin/numlockx on' "$file" \
+        && ! grep -Eiq \
+            '^Hidden[[:space:]]*=[[:space:]]*true[[:space:]]*$' "$file"
+}
+
+configure_optional_numlock() {
+    local system_file="/etc/xdg/autostart/numlockx.desktop"
+    local user_dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+    local user_file="$user_dir/numlockx.desktop"
+    local temp_file=""
+    local persistence_ready=false
+
+    if ! command -v numlockx >/dev/null 2>&1; then
+        print_notice "The optional Num Lock tool is unavailable."
+        print_notice "Run update_cvd.sh to attempt installation; this does not affect course work."
+        return 0
+    fi
+
+    if [[ -e "$user_file" ]]; then
+        if has_enabled_numlock_autostart_file "$user_file"; then
+            persistence_ready=true
+            print_success "The optional Num Lock user startup preference is already configured."
+        fi
+    elif has_enabled_numlock_autostart_file "$system_file"; then
+        persistence_ready=true
+        print_success "The optional Num Lock system startup preference is already configured."
+    fi
+
+    if [[ "$persistence_ready" != true ]]; then
+        if ! mkdir -p "$user_dir"; then
+            print_notice "The optional Num Lock startup preference could not be prepared."
+            print_notice "This does not affect course work."
+        elif ! temp_file="$(mktemp --suffix=.desktop)"; then
+            print_notice "The optional Num Lock startup preference could not be prepared."
+            print_notice "This does not affect course work."
+        else
+            if cat > "$temp_file" <<'EOF_NUMLOCK'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Enable Num Lock
+Comment=Enable Num Lock when the desktop session starts
+TryExec=/usr/bin/numlockx
+Exec=/usr/bin/numlockx on
+OnlyShowIn=XFCE;
+NoDisplay=true
+Terminal=false
+Hidden=false
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+EOF_NUMLOCK
+            then
+                if command -v desktop-file-validate >/dev/null 2>&1 \
+                    && ! desktop-file-validate "$temp_file" >/dev/null 2>&1; then
+                    print_notice "The optional Num Lock startup preference did not pass validation."
+                    print_notice "This does not affect course work."
+                elif [[ -r "$user_file" ]] && cmp -s "$temp_file" "$user_file"; then
+                    persistence_ready=true
+                    print_success "The optional Num Lock user startup preference is already configured."
+                elif install -m 0644 "$temp_file" "$user_file"; then
+                    CHANGED=true
+                    persistence_ready=true
+                    print_success "Num Lock is configured to turn on when the desktop starts."
+                else
+                    print_notice "The optional Num Lock startup preference could not be saved."
+                    print_notice "This does not affect course work."
+                fi
+            else
+                print_notice "The optional Num Lock startup preference could not be prepared."
+                print_notice "This does not affect course work."
+            fi
+            rm -f "$temp_file"
+        fi
+    fi
+
+    if [[ -z "${DISPLAY:-}" ]]; then
+        print_notice "Num Lock could not be enabled because no graphical session is active."
+        if [[ "$persistence_ready" == true ]]; then
+            print_notice "The startup preference will be attempted when Xfce starts."
+        fi
+    elif numlockx on >/dev/null 2>&1; then
+        print_success "Num Lock is enabled for the current desktop session."
+    else
+        print_notice "Num Lock could not be enabled for the current desktop session."
+        print_notice "This does not affect course work."
+    fi
+}
+
 configure_desktop_integrations() {
     print_header "Step 4: CVD Desktop Integration"
 
@@ -628,6 +719,8 @@ configure_desktop_integrations() {
     desktop_dir="${desktop_dir:-$HOME/Desktop}"
     panel_config_dir="$HOME/.config/xfce4/panel"
     mkdir -p "$desktop_dir" "$panel_config_dir"
+
+    configure_optional_numlock
 
     set_xfconf_bool /desktop-icons/file-icons/show-filesystem false
     set_xfconf_bool /desktop-icons/file-icons/show-home false
