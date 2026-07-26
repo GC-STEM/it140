@@ -1327,7 +1327,7 @@
           "purpose": "Apply the approved Num Lock behavior when the Xfce desktop session starts.",
           "category": "desktop_integration",
           "package_identifier": "numlockx",
-          "required": true,
+          "required": false,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
