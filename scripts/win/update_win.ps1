@@ -76,7 +76,7 @@ function Test-IsAdministrator {
     )
 }
 
-function Refresh-ProcessEnvironment {
+function Update-ProcessEnvironment {
     $MachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
     $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
     $env:Path = @($MachinePath, $UserPath) -join ";"
@@ -123,23 +123,23 @@ function Read-ManifestAtPath {
     }
 
     $Platform = Get-PropertyValue -Object $Manifest.platforms -Name $PlatformId
-    $Profile = Get-PropertyValue `
+    $DeploymentProfileRecord = Get-PropertyValue `
         -Object $Manifest.deployment_profiles `
         -Name $DeploymentProfile
     if ($null -eq $Platform -or -not [bool]$Platform.enabled) {
         throw "The Windows platform is not enabled."
     }
-    if ($null -eq $Profile -or -not [bool]$Profile.enabled) {
+    if ($null -eq $DeploymentProfileRecord -or -not [bool]$DeploymentProfileRecord.enabled) {
         throw "The deployment profile is not enabled."
     }
-    if ([string]$Profile.platform_id -ne $PlatformId) {
+    if ([string]$DeploymentProfileRecord.platform_id -ne $PlatformId) {
         throw "The deployment profile does not select Windows."
     }
 
     return [pscustomobject]@{
         Manifest = $Manifest
         Platform = $Platform
-        Profile = $Profile
+        Profile = $DeploymentProfileRecord
     }
 }
 
@@ -574,7 +574,7 @@ function Get-RequiredExtensions {
 }
 
 function Update-UserTools {
-    Refresh-ProcessEnvironment
+    Update-ProcessEnvironment
 
     if (-not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) {
         Write-Notice "The course virtual environment is missing; repairing it."
@@ -665,7 +665,7 @@ function ConvertTo-Hashtable {
     return $InputObject
 }
 
-function Refresh-ManagedSettings {
+function Update-ManagedSettings {
     $Controlled = Read-ControlledManifest
     $GitSettings = Get-PropertyValue `
         -Object $Controlled.Manifest.managed_settings `
@@ -794,7 +794,7 @@ try {
     }
 
     $MutationMutex = Enter-MutationLock
-    Refresh-ProcessEnvironment
+    Update-ProcessEnvironment
 
     $Controlled = Read-ControlledManifest
     $WindowsFacts = Get-WindowsFacts
@@ -842,7 +842,7 @@ try {
     try {
         Write-Info "Updating current-user course tools and extensions."
         Update-UserTools
-        Refresh-ManagedSettings
+        Update-ManagedSettings
         Write-Success "Current-user course components are current."
     }
     catch {
