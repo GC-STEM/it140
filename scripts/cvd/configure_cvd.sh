@@ -11,7 +11,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.26.1"
+readonly SCRIPT_VERSION="2026.07.26.2"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -400,15 +400,17 @@ configure_provider_identity() {
             exit 6
         fi
 
-        print_notice "GitHub CLI will display a one-time code and open a browser."
-        print_notice "Write down or copy the code, complete the browser steps, and return here."
+        print_notice "GitHub CLI will copy a one-time code to the clipboard and display a web address."
+        print_notice " - Right-click the web address and select Open Link."
+        print_notice " - Paste the one-time code when prompted into the browser."
+        print_notice " - Complete the browser steps, and then return to this terminal."
         printf '[ACTION REQUIRED] Press Enter to begin, or type C to cancel: '
         read -r response
         if [[ "${response,,}" == c ]]; then
             exit 6
         fi
 
-        gh auth login --hostname github.com --git-protocol https --web
+        gh auth login --hostname github.com --git-protocol https --web --clipboard
         CHANGED=true
     fi
 

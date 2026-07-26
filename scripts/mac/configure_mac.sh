@@ -567,7 +567,7 @@ configure_provider_identity() {
             exit_canceled
         fi
 
-        if ! gh auth login --hostname github.com --git-protocol https --web; then
+        if ! gh auth login --hostname github.com --git-protocol https --web --clipboard; then
             print_error "GitHub authentication was canceled or did not complete."
             exit_canceled
         fi
