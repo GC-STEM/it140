@@ -11,7 +11,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.26.3"
+readonly SCRIPT_VERSION="2026.07.26.4"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -403,7 +403,9 @@ configure_provider_identity() {
         print_notice "GitHub CLI will copy a one-time code to the clipboard and display a web address."
         print_notice " - Right-click the web address and select Open Link."
         print_notice " - Paste the one-time code when prompted into the browser."
-        print_notice " - Complete the browser steps, and then return to this terminal."
+        print_notice " - Follow the instructions in the browser from GitHub Login."
+        print_notice " - When you see \"Congratulations, you're all set!\","
+        print_notice "   close the browser windows and return to this terminal."
         printf '[ACTION REQUIRED] Press Enter to begin, or type C to cancel: '
         read -r response
         if [[ "${response,,}" == c ]]; then
@@ -439,6 +441,8 @@ configure_provider_identity() {
         display_name="$default_display_name"
     else
         print_notice "Your Git display name is public in version-control history."
+        print_notice "Press Enter to use your GitHub username as your Git author name."
+        print_notice "Or enter a different name to use for your Git commits."
         printf '[ACTION REQUIRED] Git display name [%s]: ' "$default_display_name"
         read -r display_name
         display_name="${display_name:-$default_display_name}"

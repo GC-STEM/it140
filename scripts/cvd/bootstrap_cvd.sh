@@ -17,7 +17,3 @@ case ":$PATH:" in
     *) export PATH="$scripts_dir:$PATH" ;;
 esac
 hash -r
-echo "Following commands are for testing only when known no restart is required. Delete after testing."
-configure_cvd.sh
-update_cvd.sh
-verify_cvd.sh
