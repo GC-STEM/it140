@@ -116,17 +116,17 @@ function Read-ControlledManifest {
     }
 
     $Platform = Get-PropertyValue -Object $Manifest.platforms -Name $PlatformId
-    $Profile = Get-PropertyValue `
+    $DeploymentProfileRecord = Get-PropertyValue `
         -Object $Manifest.deployment_profiles `
         -Name $DeploymentProfile
-    if ($null -eq $Platform -or $null -eq $Profile) {
+    if ($null -eq $Platform -or $null -eq $DeploymentProfileRecord) {
         throw "The Windows platform or deployment profile is missing."
     }
 
     return [pscustomobject]@{
         Manifest = $Manifest
         Platform = $Platform
-        Profile = $Profile
+        Profile = $DeploymentProfileRecord
     }
 }
 
