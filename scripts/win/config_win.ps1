@@ -34,7 +34,7 @@ $ManifestPath = Join-Path $ScriptRoot ".manifest\it140_manifest.json"
 $SchemaPath = Join-Path $ScriptRoot ".manifest\it140_manifest.schema.json"
 $LogDirectory = Join-Path $CourseRoot "logs"
 $LogPath = Join-Path $LogDirectory (
-    "configure_win_{0}.log" -f (Get-Date -Format "yyyyMMdd_HHmmss")
+    "config_win_{0}.log" -f (Get-Date -Format "yyyyMMdd_HHmmss")
 )
 $VenvDirectory = Join-Path $CourseRoot ".venv"
 $VenvPython = Join-Path $VenvDirectory "Scripts\python.exe"
@@ -608,9 +608,9 @@ function Show-Usage {
 IT 140 Windows configure script
 
 Usage:
-  powershell.exe -ExecutionPolicy Bypass -File .\configure_win.ps1
-  powershell.exe -ExecutionPolicy Bypass -File .\configure_win.ps1 -NonInteractive
-  powershell.exe -ExecutionPolicy Bypass -File .\configure_win.ps1 -Help
+  powershell.exe -ExecutionPolicy Bypass -File .\config_win.ps1
+  powershell.exe -ExecutionPolicy Bypass -File .\config_win.ps1 -NonInteractive
+  powershell.exe -ExecutionPolicy Bypass -File .\config_win.ps1 -Help
 
 Run this script from a normal, non-elevated PowerShell terminal.
 Deployment profile: windows_bare_metal
@@ -647,7 +647,7 @@ try {
 
     if (Test-IsAdministrator) {
         Write-ErrorMessage (
-            "Do not run configure_win.ps1 from an elevated terminal."
+            "Do not run config_win.ps1 from an elevated terminal."
         )
         $ExitCode = 3
         return

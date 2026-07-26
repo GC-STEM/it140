@@ -668,7 +668,7 @@ finish() {
     else
         printf 'Restart guidance: No Apple update was installed by this run.\n'
     fi
-    printf 'Next step       : Run configure_mac.sh\n'
+    printf 'Next step       : Run config_mac.sh\n'
     printf 'Log file        : %s\n' "$LOG_FILE"
     print_success "The IT 140 macOS system setup completed successfully."
 }

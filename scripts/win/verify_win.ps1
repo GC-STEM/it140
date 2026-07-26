@@ -723,7 +723,7 @@ try {
 
     foreach ($ScriptName in @(
         "setup_win.ps1",
-        "configure_win.ps1",
+        "config_win.ps1",
         "verify_win.ps1",
         "update_win.ps1"
     )) {

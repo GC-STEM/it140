@@ -589,7 +589,7 @@ check_user_layer() {
     else
         record_result fail "verify.course_folders" \
             "The required course folders are incomplete." \
-            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
     if has_managed_path_block "$HOME/.profile" \
@@ -599,7 +599,7 @@ check_user_layer() {
     else
         record_result fail "verify.user_path_files" \
             "The exact managed course PATH block is missing from ~/.profile or ~/.bashrc." \
-            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
     if [[ ":$PATH:" == *":$VENV_DIR/bin:"* \
@@ -618,7 +618,7 @@ check_user_layer() {
     else
         record_result fail "verify.virtual_environment" \
             "The course Python virtual environment is missing." \
-            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
     while IFS= read -r package; do
@@ -630,7 +630,7 @@ check_user_layer() {
         else
             record_result fail "verify.user_tool.${package}" \
                 "Required course Python tool is missing: $package" \
-                "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+                "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
         fi
     done < <(manifest_lines venv_packages)
 
@@ -650,7 +650,7 @@ check_user_layer() {
         else
             record_result fail "verify.extension.${role}" \
                 "Required IDE extension is missing: $extension" \
-                "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+                "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
         fi
     done < <(manifest_lines extensions)
 
@@ -660,7 +660,7 @@ check_user_layer() {
     else
         record_result fail "verify.provider_authentication" \
             "Source-code hosting authentication is missing or invalid." \
-            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
     if [[ -n "$(git config --global user.name 2>/dev/null || true)" ]]; then
@@ -669,7 +669,7 @@ check_user_layer() {
     else
         record_result fail "verify.git_display_name" \
             "The Git display name is missing." \
-            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
     git_email="$(git config --global user.email 2>/dev/null || true)"
@@ -679,7 +679,7 @@ check_user_layer() {
     else
         record_result fail "verify.git_private_identity" \
             "Git does not use the approved private commit identity." \
-            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
     while IFS=$'\t' read -r key expected_value; do
@@ -691,7 +691,7 @@ check_user_layer() {
         else
             record_result fail "verify.git_setting.${key}" \
                 "Managed Git setting is incorrect: $key" \
-                "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+                "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
         fi
     done < <(manifest_lines git_settings)
 
@@ -702,7 +702,7 @@ check_user_layer() {
     else
         record_result fail "verify.ide_settings" \
             "Required IDE settings are missing, invalid, or not compliant." \
-            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
     desktop_dir="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
@@ -714,7 +714,7 @@ check_user_layer() {
     else
         record_result fail "verify.desktop_launchers" \
             "One or more course desktop launchers are missing." \
-            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
     if has_managed_panel_launcher; then
@@ -723,10 +723,10 @@ check_user_layer() {
     else
         record_result fail "verify.panel_launcher" \
             "The managed VS Code panel-launcher record or launcher file is missing." \
-            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
-    for script in configure_cvd.sh verify_cvd.sh update_cvd.sh; do
+    for script in config_cvd.sh verify_cvd.sh update_cvd.sh; do
         if [[ -x "$PLATFORM_SCRIPT_DIR/$script" ]]; then
             record_result pass "verify.script_permissions.${script}" \
                 "$script is present and executable."

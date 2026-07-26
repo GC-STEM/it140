@@ -5,7 +5,7 @@ IT 140 CODIO VIRTUAL DESKTOP CONFIGURATION
 [INFO] Script version  : 2026.07.26.1
 [INFO] Current user    : ubuntu
 [INFO] Purpose         : Configure the current user's course environment.
-[INFO] Log file        : /home/ubuntu/it140/logs/configure_cvd_20260726_134708.log
+[INFO] Log file        : /home/ubuntu/it140/logs/config_cvd_20260726_134708.log
 [NOTICE] This script does not install or change system-wide software.
 [SUCCESS] Manifest release 2026.07.25.2 validated.
 
@@ -73,6 +73,6 @@ Warnings        : 0
 Failures        : 0
 Elapsed time    : 279 seconds
 Next step       : Close this terminal, open a new Terminal, and run verify_cvd.sh.
-Log file        : /home/ubuntu/it140/logs/configure_cvd_20260726_134708.log
+Log file        : /home/ubuntu/it140/logs/config_cvd_20260726_134708.log
 Exit code       : 0
 [SUCCESS] The IT 140 CVD user configuration completed successfully.

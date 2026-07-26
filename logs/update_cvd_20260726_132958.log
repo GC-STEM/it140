@@ -10,7 +10,7 @@ IT 140 CODIO VIRTUAL DESKTOP UPDATE
 [NOTICE] Keep this terminal window open until the update finishes.
 [SUCCESS] Installed manifest release 2026.07.25.2 validated.
 [NOTICE] IT 140 user configuration is not complete.
-[NOTICE] The Update Summary will direct you to configure_cvd.sh.
+[NOTICE] The Update Summary will direct you to config_cvd.sh.
 
 ============================================================
 Step 1: Synchronize Course Automation Assets
@@ -18,7 +18,7 @@ Step 1: Synchronize Course Automation Assets
 [INFO] Retrieving the approved course repository into private staging...
 Cloning into '/tmp/tmp.ylqvKIkpHQ/it140'...
 [SUCCESS] Staged manifest release 2026.07.25.2 validated.
-[SUCCESS] configure_cvd.sh 2026.07.25.2 synchronized.
+[SUCCESS] config_cvd.sh 2026.07.25.2 synchronized.
 [SUCCESS] verify_cvd.sh 2026.07.25.2 synchronized.
 [SUCCESS] update_cvd.sh 2026.07.26.2 synchronized.
 [SUCCESS] Course-managed assets are active and valid.
@@ -621,7 +621,7 @@ Extension 'cweijan.vscode-office' is already installed.
 ============================================================
 Step 4: Refresh Course-Managed Desktop Integrations
 ============================================================
-[NOTICE] The panel launcher will be added by configure_cvd.sh.
+[NOTICE] The panel launcher will be added by config_cvd.sh.
 [SUCCESS] VS Code desktop and panel launcher files were refreshed.
 
 ============================================================
@@ -658,7 +658,7 @@ Warnings        : 0
 Failures        : 0
 Restart VM      : No
 Elapsed time    : 181 seconds
-Next step       : Close this terminal, open a new Terminal, and run configure_cvd.sh.
+Next step       : Close this terminal, open a new Terminal, and run config_cvd.sh.
 Log file        : /home/ubuntu/it140/logs/update_cvd_20260726_132958.log
 Exit code       : 0
 [SUCCESS] The IT 140 CVD update completed successfully.

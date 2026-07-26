@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # Repository path:
-#     scripts/.dev/pseudoscripts/configure_any.pseudo
+#     scripts/.dev/pseudoscripts/config_any.pseudo
 #
 #
 # Purpose:
@@ -37,7 +37,7 @@
 # ==============================================================================
 #
 # Artifact:
-#     configure_any.pseudo
+#     config_any.pseudo
 #
 # Lifecycle action:
 #     configure
@@ -788,7 +788,7 @@ PROCEDURE build_action_plan(
     add_plan_stage(
         action_plan,
         operation_id = "configure.provider_identity",
-        operation_type = "authenticate_and_configure_identity",
+        operation_type = "authenticate_and_config_identity",
         dependencies = ["configure.course_folders"],
         planned_items = provider_plan,
         mutating = TRUE,
@@ -917,7 +917,7 @@ PROCEDURE execute_action_stage(
 )
 
     IF plan_stage.operation_type =
-        "authenticate_and_configure_identity"
+        "authenticate_and_config_identity"
 
         RETURN execute_provider_identity_stage(
             plan_stage,

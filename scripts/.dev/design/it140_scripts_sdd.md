@@ -20,7 +20,7 @@ This Software Design Description (SDD) explains how the **IT 140 Course Automati
 The package contains four coordinated lifecycle scripts for each supported platform:
 
 1. `setup_<platform>.<ext>` establishes or repairs system-level software and settings.
-2. `configure_<platform>.<ext>` establishes or repairs the current user's environment.
+2. `config_<platform>.<ext>` establishes or repairs the current user's environment.
 3. `verify_<platform>.<ext>` inspects the system and user layers without changing them.
 4. `update_<platform>.<ext>` maintains approved software and course-managed assets over time.
 
@@ -268,7 +268,7 @@ The following supporting artifacts shall describe the same design at different l
 | `it140_scripts_architecture.drawio` | Editable component, data-flow, and trust-boundary diagram |
 | `it140_scripts_lifecycle.drawio` | Editable normal and remediation lifecycle diagram |
 | `setup_any.pseudo` | Platform-agnostic setup control flow |
-| `configure_any.pseudo` | Platform-agnostic user-configuration control flow |
+| `config_any.pseudo` | Platform-agnostic user-configuration control flow |
 | `verify_any.pseudo` | Platform-agnostic verification control flow |
 | `update_any.pseudo` | Platform-agnostic update control flow |
 | `scripts/.manifest/it140_manifest.schema.json` | Machine-readable manifest structural contract |
@@ -294,7 +294,7 @@ it140/
 │   │   └── it140_manifest.schema.json
 │   ├── <platform>/
 │   │   ├── setup_<platform>.<ext>
-│   │   ├── configure_<platform>.<ext>
+│   │   ├── config_<platform>.<ext>
 │   │   ├── verify_<platform>.<ext>
 │   │   └── update_<platform>.<ext>
 │   └── .dev/
@@ -1168,7 +1168,7 @@ A range in this table is inclusive. The design elements listed for a range apply
 | PKG-FR-006 through PKG-FR-009 | SHR-DES-001 through SHR-DES-003, SHR-DES-012, INT-DES-001 through INT-DES-012 | Shared-output design; all four pseudoscripts |
 | PKG-FR-010 | ARC-DES-005, SHR-DES-009, SEC-DES-004, SEC-DES-010 | Safety tests; managed-path tests |
 | SET-FR-001 through SET-FR-012 | SET-DES-001 through SET-DES-012 | `setup_any.pseudo`; setup flowchart; setup tests |
-| CFG-FR-001 through CFG-FR-016 | CFG-DES-001 through CFG-DES-016 | `configure_any.pseudo`; configure flowchart; configure tests |
+| CFG-FR-001 through CFG-FR-016 | CFG-DES-001 through CFG-DES-016 | `config_any.pseudo`; configure flowchart; configure tests |
 | VER-FR-001 through VER-FR-014 | VER-DES-001 through VER-DES-014 | `verify_any.pseudo`; check registry; verify tests |
 | UPD-FR-001 through UPD-FR-016 | UPD-DES-001 through UPD-DES-016 | `update_any.pseudo`; update transaction diagram; update tests |
 | PKG-FR-011 through PKG-FR-020 | DAT-DES-001 through DAT-DES-014, SHR-DES-009, SEC-DES-004 | Manifest schema; configuration-control procedure |

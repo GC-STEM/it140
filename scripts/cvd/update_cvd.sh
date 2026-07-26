@@ -395,7 +395,7 @@ detect_user_configuration() {
         USER_CONFIGURATION_COMPLETE=false
         WORKFLOW_NAME="First use or RESET VM"
         print_notice "IT 140 user configuration is not complete."
-        print_notice "The Update Summary will direct you to configure_cvd.sh."
+        print_notice "The Update Summary will direct you to config_cvd.sh."
     fi
 }
 
@@ -525,9 +525,9 @@ synchronize_course_assets() {
 
     local source_script target_script candidate_name installed_script
     local candidate_version installed_version
-    for target_script in configure_cvd.sh verify_cvd.sh update_cvd.sh; do
+    for target_script in config_cvd.sh verify_cvd.sh update_cvd.sh; do
         candidate_name="$target_script"
-        if [[ "$target_script" == configure_cvd.sh \
+        if [[ "$target_script" == config_cvd.sh \
               && ! -f "$clone_dir/scripts/cvd/$candidate_name" \
               && -f "$clone_dir/scripts/cvd/config_cvd.sh" ]]; then
             candidate_name="config_cvd.sh"
@@ -662,7 +662,7 @@ update_user_tools() {
     CHANGED=true
 }
 
-configure_optional_numlock() {
+config_optional_numlock() {
     local policy_path="/etc/xdg/autostart/numlockx.desktop"
     local user_dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
     local user_path="$user_dir/numlockx.desktop"
@@ -817,7 +817,7 @@ PY
 
 refresh_desktop_integrations() {
     print_header "Step 4: Refresh Course-Managed Desktop Integrations"
-    configure_optional_numlock
+    config_optional_numlock
     local system_launcher="/usr/share/applications/code.desktop"
     local desktop_dir panel_config_dir marker plugin_id panel_launcher_dir
     desktop_dir="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
@@ -852,7 +852,7 @@ refresh_desktop_integrations() {
         elif [[ "$USER_CONFIGURATION_COMPLETE" == true ]]; then
             print_warning "The managed panel-launcher record is missing."
         else
-            print_notice "The panel launcher will be added by configure_cvd.sh."
+            print_notice "The panel launcher will be added by config_cvd.sh."
         fi
 
         xfdesktop --reload 2>/dev/null || true
@@ -956,7 +956,7 @@ set_summary_guidance() {
         restart_vm="Yes"
     fi
     if [[ "$USER_CONFIGURATION_COMPLETE" != true ]]; then
-        next_script="configure_cvd.sh"
+        next_script="config_cvd.sh"
     fi
 
     if [[ "$PARTIAL" == true || $FAILURES -gt 0 ]]; then

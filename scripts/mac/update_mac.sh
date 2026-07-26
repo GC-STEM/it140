@@ -650,7 +650,7 @@ synchronize_course_assets() {
     print_success "The course manifest and schema were activated transactionally."
 
     local script_name source_script
-    for script_name in setup_mac.sh configure_mac.sh verify_mac.sh update_mac.sh; do
+    for script_name in setup_mac.sh config_mac.sh verify_mac.sh update_mac.sh; do
         source_script="${clone_dir}/scripts/mac/${script_name}"
         if [[ ! -r "$source_script" ]]; then
             print_warning \
@@ -807,7 +807,7 @@ refresh_managed_settings() {
     done < <(manifest_lines git_settings)
 
     if [[ ! -r "$VSCODE_SETTINGS_FILE" ]]; then
-        print_warning "VS Code settings are not present; run configure_mac.sh."
+        print_warning "VS Code settings are not present; run config_mac.sh."
         PARTIAL=true
         return
     fi
@@ -1074,7 +1074,7 @@ PY
     validate_manifest_pair "$MANIFEST_PATH" "$SCHEMA_PATH" >/dev/null || failed=1
 
     local script_name
-    for script_name in setup_mac.sh configure_mac.sh verify_mac.sh update_mac.sh; do
+    for script_name in setup_mac.sh config_mac.sh verify_mac.sh update_mac.sh; do
         /bin/zsh -n "$PLATFORM_SCRIPT_DIR/$script_name" || {
             print_error "Managed script failed syntax validation: ${script_name}"
             failed=1

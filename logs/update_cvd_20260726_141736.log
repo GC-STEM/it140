@@ -17,7 +17,7 @@ Step 1: Synchronize Course Automation Assets
 [INFO] Retrieving the approved course repository into private staging...
 Cloning into '/tmp/tmp.e0EXAr8BtT/it140'...
 [SUCCESS] Staged manifest release 2026.07.25.2 validated.
-[SUCCESS] configure_cvd.sh 2026.07.26.1 synchronized.
+[SUCCESS] config_cvd.sh 2026.07.26.1 synchronized.
 [SUCCESS] verify_cvd.sh 2026.07.26.1 synchronized.
 [SUCCESS] update_cvd.sh 2026.07.26.2 synchronized.
 [SUCCESS] Course-managed assets are active and valid.

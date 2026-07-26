@@ -20,7 +20,7 @@ readonly PLATFORM_SCRIPT_DIR="${SCRIPT_ROOT}/${PLATFORM_ID}"
 readonly MANIFEST_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.json"
 readonly SCHEMA_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.schema.json"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
-readonly LOG_FILE="${LOG_DIR}/configure_${PLATFORM_ID}_$(date +%Y%m%d_%H%M%S).log"
+readonly LOG_FILE="${LOG_DIR}/config_${PLATFORM_ID}_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="${COURSE_ROOT}/.venv"
 readonly LOCK_FILE="${HOME}/.cache/it140-${PLATFORM_ID}-mutation.lock"
 readonly MANAGED_PATH_START="# >>> IT 140 managed PATH >>>"
@@ -54,7 +54,7 @@ print_closing_notices() {
 
 usage() {
     cat <<USAGE
-Usage: configure_cvd.sh [--help] [--version] [--noninteractive]
+Usage: config_cvd.sh [--help] [--version] [--noninteractive]
                         [--deployment-profile codio_cvd]
 
 Configures or repairs the current user's IT 140 environment. Run as the
@@ -111,7 +111,7 @@ on_error() {
 }
 
 on_interrupt() {
-    print_error "Configuration was canceled. Rerun configure_cvd.sh to continue."
+    print_error "Configuration was canceled. Rerun config_cvd.sh to continue."
     if [[ "$CHANGED" == true ]]; then
         exit 7
     fi
@@ -234,7 +234,7 @@ PY
 
 check_platform_and_user() {
     if [[ "$EUID" -eq 0 ]]; then
-        print_error "Do not run configure_cvd.sh with sudo."
+        print_error "Do not run config_cvd.sh with sudo."
         print_error "Personal settings must be saved under the standard Codio account."
         exit 2
     fi
@@ -374,7 +374,7 @@ has_managed_panel_launcher() {
     [[ -r "$panel_config_dir/launcher-$plugin_id/it140-vscode.desktop" ]]
 }
 
-configure_course_folders_and_path() {
+config_course_folders_and_path() {
     print_info "Creating or repairing course folders without deleting existing content..."
     mkdir -p "$COURSE_ROOT" "$LOG_DIR" "$PLATFORM_SCRIPT_DIR"
     chmod 0700 "$LOG_DIR"
@@ -397,7 +397,7 @@ configure_course_folders_and_path() {
     print_success "Course folders, script permissions, and PATH entries are configured."
 }
 
-configure_provider_identity() {
+config_provider_identity() {
     print_header "Step 2: Source-Code Hosting Authentication and Identity"
     print_info "Checking GitHub authentication status..."
 
@@ -476,7 +476,7 @@ configure_provider_identity() {
     print_info "GitHub account   : $gh_user"
 }
 
-configure_user_tools() {
+config_user_tools() {
     print_header "Step 3: Course Python Tools and IDE Extensions"
 
     if [[ ! -x "$VENV_DIR/bin/python" ]]; then
@@ -639,7 +639,7 @@ has_enabled_numlock_autostart_file() {
             '^Hidden[[:space:]]*=[[:space:]]*true[[:space:]]*$' "$file"
 }
 
-configure_optional_numlock() {
+config_optional_numlock() {
     local system_file="/etc/xdg/autostart/numlockx.desktop"
     local user_dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
     local user_file="$user_dir/numlockx.desktop"
@@ -722,7 +722,7 @@ EOF_NUMLOCK
     fi
 }
 
-configure_desktop_integrations() {
+config_desktop_integrations() {
     print_header "Step 4: CVD Desktop Integration"
 
     local desktop_dir panel_config_dir directory_plugin_id course_panel_id
@@ -731,7 +731,7 @@ configure_desktop_integrations() {
     panel_config_dir="$HOME/.config/xfce4/panel"
     mkdir -p "$desktop_dir" "$panel_config_dir"
 
-    configure_optional_numlock
+    config_optional_numlock
 
     set_xfconf_bool /desktop-icons/file-icons/show-filesystem false
     set_xfconf_bool /desktop-icons/file-icons/show-home false
@@ -933,7 +933,7 @@ post_validate() {
     }
 
     if ((failed)); then
-        print_error "User-layer validation failed. Rerun configure_cvd.sh."
+        print_error "User-layer validation failed. Rerun config_cvd.sh."
         exit 7
     fi
     print_success "User-layer validation passed."
@@ -988,13 +988,13 @@ main() {
 
     print_header "Step 1: Course Folders and System Prerequisites"
     check_system_layer
-    configure_course_folders_and_path
-    configure_provider_identity
-    configure_user_tools
+    config_course_folders_and_path
+    config_provider_identity
+    config_user_tools
 
     print_header "Step 4: Course IDE Settings"
     merge_vscode_settings
-    configure_desktop_integrations
+    config_desktop_integrations
 
     print_header "Step 5: Configuration Validation"
     post_validate

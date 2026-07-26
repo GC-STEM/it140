@@ -498,7 +498,7 @@ check_user_layer() {
     else
         record_result FAIL "verify.course_folders" \
             "One or more required course folders are missing." \
-            "Run configure_mac.sh."
+            "Run config_mac.sh."
     fi
 
     if [[ -r "$HOME/.zprofile" ]] \
@@ -510,7 +510,7 @@ check_user_layer() {
     else
         record_result FAIL "verify.user_path" \
             "The managed shell environment is missing or incomplete." \
-            "Run configure_mac.sh."
+            "Run config_mac.sh."
     fi
 
     local python_path
@@ -527,13 +527,13 @@ check_user_layer() {
             else
                 record_result FAIL "verify.python_package.${package}" \
                     "Required Python package is missing: ${package}." \
-                    "Run configure_mac.sh."
+                    "Run config_mac.sh."
             fi
         done
     else
         record_result FAIL "verify.virtual_environment" \
             "The course Python virtual environment is unavailable." \
-            "Run configure_mac.sh."
+            "Run config_mac.sh."
     fi
 
     local code_cli installed_extensions extension
@@ -556,7 +556,7 @@ check_user_layer() {
             else
                 record_result FAIL "verify.extension.${extension}" \
                     "Required VS Code extension is missing: ${extension}." \
-                    "Run configure_mac.sh."
+                    "Run config_mac.sh."
             fi
         done
     else
@@ -572,7 +572,7 @@ check_user_layer() {
     else
         record_result FAIL "verify.provider_authentication" \
             "GitHub CLI authentication is not valid." \
-            "Run configure_mac.sh."
+            "Run config_mac.sh."
     fi
 
     local git_name git_email
@@ -585,7 +585,7 @@ check_user_layer() {
     else
         record_result FAIL "verify.git_display_name" \
             "A Git display name is not configured." \
-            "Run configure_mac.sh."
+            "Run config_mac.sh."
     fi
 
     if printf '%s\n' "$git_email" \
@@ -595,7 +595,7 @@ check_user_layer() {
     else
         record_result FAIL "verify.git_private_identity" \
             "Git does not use the approved private commit identity." \
-            "Run configure_mac.sh."
+            "Run config_mac.sh."
     fi
 
     if [[ -x "$python_path" ]]; then
@@ -631,7 +631,7 @@ PY
         else
             record_result FAIL "verify.git_settings" \
                 "One or more manifest-declared Git settings are incorrect." \
-                "Run configure_mac.sh."
+                "Run config_mac.sh."
         fi
     else
         record_result FAIL "verify.git_settings" \
@@ -675,23 +675,23 @@ PY
         else
             record_result FAIL "verify.vscode_settings" \
                 "Managed VS Code settings are invalid or incomplete." \
-                "Run configure_mac.sh."
+                "Run config_mac.sh."
         fi
     else
         record_result FAIL "verify.vscode_settings" \
             "VS Code settings could not be read or validated." \
-            "Run configure_mac.sh."
+            "Run config_mac.sh."
     fi
 
     local script_name
-    for script_name in setup_mac.sh configure_mac.sh verify_mac.sh update_mac.sh; do
+    for script_name in setup_mac.sh config_mac.sh verify_mac.sh update_mac.sh; do
         if [[ -x "$PLATFORM_SCRIPT_DIR/$script_name" ]]; then
             record_result PASS "verify.script.${script_name}" \
                 "${script_name} is present and executable."
         else
             record_result FAIL "verify.script.${script_name}" \
                 "${script_name} is missing or is not executable." \
-                "Run configure_mac.sh or update_mac.sh."
+                "Run config_mac.sh or update_mac.sh."
         fi
     done
 

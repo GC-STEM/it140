@@ -7,7 +7,7 @@ This directory contains development-only analysis, design, pseudoscript, and tes
 Each supported platform implementation provides four lifecycle scripts:
 
 1. `setup_<platform>.<ext>` installs or repairs system-level course software.
-2. `configure_<platform>.<ext>` applies user-specific course settings and integrations.
+2. `config_<platform>.<ext>` applies user-specific course settings and integrations.
 3. `verify_<platform>.<ext>` performs read-only checks and produces support diagnostics.
 4. `update_<platform>.<ext>` updates approved software and course-managed assets.
 
@@ -68,4 +68,4 @@ Raspberry Pi ARM64 is not a supported deployment until the complete conformance 
 
 ## Construction Status
 
-The package is under active development. Existing scripts may still use the shorter `config_<platform>` filename while the approved architecture standardizes new lifecycle entry points on `configure_<platform>`. Construction work should trace each implementation unit and test to the current SRS, SDD, schema, and manifest.
+The package is under active development. Existing scripts may still use the shorter `config_<platform>` filename while the approved architecture standardizes new lifecycle entry points on `config_<platform>`. Construction work should trace each implementation unit and test to the current SRS, SDD, schema, and manifest.

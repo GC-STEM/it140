@@ -9,7 +9,7 @@
 #     Define the common structure and writing style for:
 #
 #         setup_any.pseudo
-#         configure_any.pseudo
+#         config_any.pseudo
 #         verify_any.pseudo
 #         update_any.pseudo
 #

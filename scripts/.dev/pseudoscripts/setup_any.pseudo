@@ -776,7 +776,7 @@ PROCEDURE build_action_plan(
     add_plan_stage(
         action_plan,
         operation_id = "setup.trust_sources",
-        operation_type = "configure_trusted_sources",
+        operation_type = "config_trusted_sources",
         dependencies = [],
         planned_items = trusted_source_plan,
         mutating = TRUE,

@@ -265,7 +265,7 @@ acquire_lock() {
     fi
 }
 
-configure_vendor_repositories() {
+config_vendor_repositories() {
     print_info "Configuring approved software repositories..."
     sudo install -d -m 0755 /etc/apt/keyrings /etc/apt/sources.list.d
 
@@ -320,7 +320,7 @@ install_system_layer() {
     sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l \
         apt-get "${apt_options[@]}" install -y ca-certificates curl gpg
 
-    configure_vendor_repositories
+    config_vendor_repositories
 
     print_info "Applying security and maintenance updates within Ubuntu 24.04..."
     sudo apt-get -o Acquire::Retries=5 update
@@ -341,7 +341,7 @@ install_system_layer() {
     print_success "Required system components are installed."
 }
 
-configure_system_integrations() {
+config_system_integrations() {
     print_info "Configuring system-level CVD integrations..."
 
     sudo install -d -m 0755 /etc/xdg/autostart
@@ -464,7 +464,7 @@ finish() {
     printf 'Manifest release: %s\n' "$MANIFEST_RELEASE"
     printf 'Platform        : %s\n' "$PLATFORM_ID"
     printf 'Elapsed time    : %s seconds\n' "$elapsed"
-    printf 'Next step       : Run configure_cvd.sh\n'
+    printf 'Next step       : Run config_cvd.sh\n'
     printf 'Log file        : %s\n' "$LOG_FILE"
     print_success "The IT 140 CVD system setup completed successfully."
 }
@@ -500,7 +500,7 @@ main() {
 
     check_disk_space
     install_system_layer
-    configure_system_integrations
+    config_system_integrations
     post_validate
 
     trap - ERR INT TERM

@@ -535,7 +535,7 @@ try {
     Write-Info "Current user     : $([Environment]::UserName)"
     Write-Info "Log file         : $LogPath"
     Write-Notice (
-        "This script installs system software only. Run configure_win.ps1 " +
+        "This script installs system software only. Run config_win.ps1 " +
         "after setup completes."
     )
 
@@ -583,7 +583,7 @@ try {
     Write-Info "Python         : $(& python.exe --version)"
     Write-Info "VS Code        : $((& code.cmd --version)[0])"
     Write-Info "Log file       : $LogPath"
-    Write-Notice "Next step: run configure_win.ps1 as the normal user."
+    Write-Notice "Next step: run config_win.ps1 as the normal user."
     $ExitCode = 0
 }
 catch {

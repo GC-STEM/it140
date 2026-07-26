@@ -66,7 +66,7 @@ User-Layer Checks
 [PASS] [verify.ide_settings] Required IDE settings are present and valid.
 [PASS] [verify.desktop_launchers] The course folder and IDE desktop launchers are present.
 [PASS] [verify.panel_launcher] The managed VS Code panel-launcher record and launcher file are present.
-[PASS] [verify.script_permissions.configure_cvd.sh] configure_cvd.sh is present and executable.
+[PASS] [verify.script_permissions.config_cvd.sh] config_cvd.sh is present and executable.
 [PASS] [verify.script_permissions.verify_cvd.sh] verify_cvd.sh is present and executable.
 [PASS] [verify.script_permissions.update_cvd.sh] update_cvd.sh is present and executable.
 

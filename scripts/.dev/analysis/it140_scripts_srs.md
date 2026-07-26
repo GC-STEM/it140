@@ -19,7 +19,7 @@ This Software Requirements Specification (SRS) defines what the **IT 140 Course 
 The package supports the IT 140 course integrated development environment (IDE). An IDE is a collection of tools used to write, run, test, debug, and manage programs. The package consists of four coordinated scripts for each supported operating system (OS) platform:
 
 1. `setup_<platform>.<ext>` establishes system-level software and settings.
-2. `configure_<platform>.<ext>` establishes settings for the current user.
+2. `config_<platform>.<ext>` establishes settings for the current user.
 3. `verify_<platform>.<ext>` checks the system and user configuration without changing them.
 4. `update_<platform>.<ext>` maintains the supported environment over time.
 
@@ -53,7 +53,7 @@ The concrete reference environment used to review this SRS and design the initia
 | Component | Primary responsibility | Expected user | May change system-level state? | May change user-specific state? |
 |---|---|---|---:|---:|
 | `setup_<platform>.<ext>` | Install or repair the supported system-level course IDE. | Administrator or approved standard user with controlled privilege elevation | Yes | No, except for the minimum files required to create its own log |
-| `configure_<platform>.<ext>` | Configure the current user's course environment and accounts. | Student or faculty user | No | Yes |
+| `config_<platform>.<ext>` | Configure the current user's course environment and accounts. | Student or faculty user | No | Yes |
 | `verify_<platform>.<ext>` | Inspect both layers and report results. | Student, faculty, AI support, or technical support | No | No |
 | `update_<platform>.<ext>` | Update the supported environment and course-managed assets. | Student or faculty user with controlled privilege elevation when required | Yes | Yes, only for course-managed settings and tools |
 
@@ -767,7 +767,7 @@ SETUP SUMMARY
 ============================================================
 Required operations: PASS
 Warnings           : 0
-Next step          : Run configure_ref.sh
+Next step          : Run config_ref.sh
 Log file           : ~/it140/logs/setup_ref_20260725_113000.log
 ```
 
@@ -780,7 +780,7 @@ IT 140 USER CONFIGURATION
 Script version: 2026.07.25.2
 Platform      : ref
 Current user  : student
-Log file      : ~/it140/logs/configure_ref_20260725_114500.log
+Log file      : ~/it140/logs/config_ref_20260725_114500.log
 
 [INFO] Required system components are present.
 [INFO] The approved source-code-hosting CLI is not currently authenticated.
@@ -815,7 +815,7 @@ PASS    Course folder: ~/it140
 PASS    Log directory: writable
 
 Remediation for failed check:
-Run configure_ref.sh to install or repair user-scoped course extensions.
+Run config_ref.sh to install or repair user-scoped course extensions.
 
 ============================================================
 VERIFICATION SUMMARY

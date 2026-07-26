@@ -21,7 +21,7 @@ readonly PLATFORM_SCRIPT_DIR="${SCRIPT_ROOT}/mac"
 readonly MANIFEST_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.json"
 readonly SCHEMA_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.schema.json"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
-readonly LOG_FILE="${LOG_DIR}/configure_${PLATFORM_ABBREVIATION}_$(date +%Y%m%d_%H%M%S).log"
+readonly LOG_FILE="${LOG_DIR}/config_${PLATFORM_ABBREVIATION}_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="${COURSE_ROOT}/.venv"
 readonly VSCODE_SETTINGS_FILE="${HOME}/Library/Application Support/Code/User/settings.json"
 readonly LOCK_PARENT="${HOME}/Library/Caches"
@@ -60,7 +60,7 @@ exit_canceled() {
 
 usage() {
     cat <<'USAGE'
-Usage: configure_mac.sh [--help] [--version] [--noninteractive]
+Usage: config_mac.sh [--help] [--version] [--noninteractive]
                         [--deployment-profile macos_bare_metal]
 
 Configures or repairs the current user's IT 140 macOS environment. Run from the
@@ -101,7 +101,7 @@ on_interrupt() {
     trap - INT TERM
     set +e
     print_error "Configuration was canceled."
-    print_error "Rerun configure_mac.sh to continue."
+    print_error "Rerun config_mac.sh to continue."
     cleanup
     if [[ "$CHANGED" == true ]]; then
         exit 7
@@ -331,7 +331,7 @@ check_platform_and_user() {
         exit 2
     fi
     if (( EUID == 0 )); then
-        print_error "Do not run configure_mac.sh with sudo."
+        print_error "Do not run config_mac.sh with sudo."
         print_error "Personal settings must be saved under the intended macOS account."
         exit 2
     fi
@@ -517,7 +517,7 @@ print("changed")
 PY
 }
 
-configure_course_folders_and_path() {
+config_course_folders_and_path() {
     print_header "Step 1: Course Folders and Terminal Environment"
 
     local folders_changed=false path_result
@@ -547,7 +547,7 @@ configure_course_folders_and_path() {
     print_success "Course script permissions were verified."
 }
 
-configure_provider_identity() {
+config_provider_identity() {
     print_header "Step 2: GitHub Authentication and Git Identity"
     print_info "Checking GitHub CLI authentication status..."
 
@@ -655,7 +655,7 @@ configure_provider_identity() {
     print_info "GitHub account   : $gh_user"
 }
 
-configure_user_tools() {
+config_user_tools() {
     print_header "Step 3: Course Python Tools and VS Code Extensions"
 
     local python_path code_cli
@@ -899,7 +899,7 @@ PY
     fi
 
     local script_name
-    for script_name in setup_mac.sh configure_mac.sh verify_mac.sh update_mac.sh; do
+    for script_name in setup_mac.sh config_mac.sh verify_mac.sh update_mac.sh; do
         if [[ ! -x "$PLATFORM_SCRIPT_DIR/$script_name" ]]; then
             print_error "${script_name} is missing or is not executable."
             failed=1
@@ -907,7 +907,7 @@ PY
     done
 
     if (( failed )); then
-        print_error "User-layer verification failed. Rerun configure_mac.sh."
+        print_error "User-layer verification failed. Rerun config_mac.sh."
         exit 7
     fi
 
@@ -966,9 +966,9 @@ main() {
     acquire_lock
     check_system_layer
 
-    configure_course_folders_and_path
-    configure_provider_identity
-    configure_user_tools
+    config_course_folders_and_path
+    config_provider_identity
+    config_user_tools
     merge_vscode_settings
     post_validate
     finish
