@@ -11,7 +11,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.25.2"
+readonly SCRIPT_VERSION="2026.07.26.1"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -24,6 +24,9 @@ readonly LOG_FILE="${LOG_DIR}/update_${PLATFORM_ID}_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="${COURSE_ROOT}/.venv"
 readonly LOCK_FILE="${HOME}/.cache/it140-${PLATFORM_ID}-mutation.lock"
 readonly COURSE_REPOSITORY="https://github.com/GC-STEM/it140.git"
+readonly MANAGED_PATH_START="# >>> IT 140 managed PATH >>>"
+readonly MANAGED_PATH_END="# <<< IT 140 managed PATH <<<"
+readonly MANAGED_PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/cvd:$PATH"'
 
 NONINTERACTIVE=false
 REQUESTED_PROFILE="$DEPLOYMENT_PROFILE_ID"
@@ -33,6 +36,9 @@ START_EPOCH="$(date +%s)"
 WARNINGS=0
 FAILURES=0
 STAGING_ROOT=""
+USER_CONFIGURATION_COMPLETE=false
+WORKFLOW_NAME="First use or RESET VM"
+RESTART_REQUIRED=false
 
 print_header() {
     printf '\n============================================================\n'
@@ -75,7 +81,10 @@ parse_options() {
                 ;;
             --deployment-profile)
                 shift
-                [[ $# -gt 0 ]] || { print_error "Missing deployment profile."; exit 2; }
+                [[ $# -gt 0 ]] || {
+                    print_error "Missing deployment profile."
+                    exit 2
+                }
                 REQUESTED_PROFILE="$1"
                 ;;
             *)
@@ -116,7 +125,8 @@ on_interrupt() {
 }
 
 validate_manifest_pair() {
-    local manifest="$1" schema="$2"
+    local manifest="$1"
+    local schema="$2"
     python3 - "$manifest" "$schema" "$PLATFORM_ID" \
         "$REQUESTED_PROFILE" <<'PY'
 import json
@@ -125,8 +135,10 @@ import sys
 
 manifest_path, schema_path, platform_id, profile_id = sys.argv[1:]
 
+
 class DuplicateKeyError(ValueError):
     pass
+
 
 def no_duplicates(pairs):
     output = {}
@@ -135,6 +147,7 @@ def no_duplicates(pairs):
             raise DuplicateKeyError(f"duplicate key: {key}")
         output[key] = value
     return output
+
 
 try:
     manifest = json.loads(
@@ -205,7 +218,7 @@ if query == "system_packages":
         print(value)
 elif query == "venv_packages":
     values = []
-    for role, binding in bindings.items():
+    for binding in bindings.values():
         if (binding.get("required") and
                 binding.get("installation_scope") == "user" and
                 binding.get("installer_adapter_id") == "python_venv_package"):
@@ -258,7 +271,10 @@ check_platform_and_user() {
         exit 2
     fi
 
-    [[ -r /etc/os-release ]] || { print_error "Cannot identify the operating system."; exit 2; }
+    [[ -r /etc/os-release ]] || {
+        print_error "Cannot identify the operating system."
+        exit 2
+    }
     # shellcheck disable=SC1091
     source /etc/os-release
     if [[ "${ID:-}" != ubuntu || "${VERSION_ID:-}" != 24.04 ]]; then
@@ -274,7 +290,10 @@ check_platform_and_user() {
         exit 2
     fi
 
-    command -v sudo >/dev/null 2>&1 || { print_error "sudo is unavailable."; exit 3; }
+    command -v sudo >/dev/null 2>&1 || {
+        print_error "sudo is unavailable."
+        exit 3
+    }
     sudo -n true >/dev/null 2>&1 || {
         print_error "The current user lacks the required passwordless sudo access."
         print_error "Contact Codio or course support."
@@ -283,7 +302,7 @@ check_platform_and_user() {
 }
 
 check_prerequisites() {
-    local minimum available
+    local minimum available command_name
     minimum="$(manifest_lines minimum_space)"
     available="$(df -PB1 "$HOME" | awk 'NR==2 {print $4}')"
     if ((available < minimum)); then
@@ -294,13 +313,78 @@ check_prerequisites() {
     for command_name in git python3 code; do
         command -v "$command_name" >/dev/null 2>&1 || {
             print_error "Required command is unavailable: $command_name"
-            print_error "Run setup_cvd.sh before updating."
+            print_error "The CVD system layer is incomplete. Contact course support."
             exit 1
         }
     done
 
     if pgrep -u "$(id -un)" -x code >/dev/null 2>&1; then
         print_notice "VS Code is open. Close and reopen it after the update."
+    fi
+}
+
+has_managed_path_block() {
+    local file="$1"
+    [[ -r "$file" ]] || return 1
+    grep -Fqx "$MANAGED_PATH_START" "$file" \
+        && grep -Fqx "$MANAGED_PATH_EXPORT" "$file" \
+        && grep -Fqx "$MANAGED_PATH_END" "$file"
+}
+
+has_valid_vscode_settings() {
+    local settings_file="$HOME/.config/Code/User/settings.json"
+    [[ -r "$settings_file" ]] || return 1
+    python3 - "$settings_file" "$VENV_DIR/bin/python" "$COURSE_ROOT" <<'PY'
+import json
+import pathlib
+import sys
+
+settings_path, expected_python, expected_root = sys.argv[1:]
+try:
+    settings = json.loads(pathlib.Path(settings_path).read_text(encoding="utf-8"))
+except (OSError, UnicodeError, json.JSONDecodeError):
+    raise SystemExit(1)
+
+if not isinstance(settings, dict):
+    raise SystemExit(1)
+if settings.get("python.defaultInterpreterPath") != expected_python:
+    raise SystemExit(1)
+if settings.get("files.defaultFolder") != expected_root:
+    raise SystemExit(1)
+PY
+}
+
+has_managed_panel_launcher() {
+    local panel_config_dir="$HOME/.config/xfce4/panel"
+    local marker="$panel_config_dir/it140-vscode-plugin-id"
+    local plugin_id
+    [[ -s "$marker" ]] || return 1
+    plugin_id="$(<"$marker")"
+    [[ "$plugin_id" =~ ^[0-9]+$ ]] || return 1
+    [[ -r "$panel_config_dir/launcher-$plugin_id/it140-vscode.desktop" ]]
+}
+
+detect_user_configuration() {
+    local git_name git_email
+    git_name="$(git config --global user.name 2>/dev/null || true)"
+    git_email="$(git config --global user.email 2>/dev/null || true)"
+
+    if command -v gh >/dev/null 2>&1 \
+        && gh auth status --hostname github.com >/dev/null 2>&1 \
+        && [[ -n "$git_name" ]] \
+        && [[ "$git_email" =~ ^[0-9]+\+[A-Za-z0-9-]+@users\.noreply\.github\.com$ ]] \
+        && has_managed_path_block "$HOME/.profile" \
+        && has_managed_path_block "$HOME/.bashrc" \
+        && has_valid_vscode_settings \
+        && has_managed_panel_launcher; then
+        USER_CONFIGURATION_COMPLETE=true
+        WORKFLOW_NAME="Periodic maintenance"
+        print_success "Existing IT 140 user configuration was detected."
+    else
+        USER_CONFIGURATION_COMPLETE=false
+        WORKFLOW_NAME="First use or RESET VM"
+        print_notice "IT 140 user configuration is not complete."
+        print_notice "The Update Summary will direct you to configure_cvd.sh."
     fi
 }
 
@@ -315,7 +399,8 @@ acquire_lock() {
 }
 
 version_at_least_current() {
-    local file="$1" candidate
+    local file="$1"
+    local candidate
     candidate="$(sed -n 's/^readonly SCRIPT_VERSION="\([^"]*\)"/\1/p; s/^SCRIPT_VERSION="\([^"]*\)"/\1/p' \
         "$file" | head -1)"
     [[ -n "$candidate" ]] || return 1
@@ -323,16 +408,18 @@ version_at_least_current() {
 import re
 import sys
 
+
 def key(value):
-    numbers = [int(item) for item in re.findall(r"\d+", value)]
-    return tuple(numbers)
+    return tuple(int(item) for item in re.findall(r"\d+", value))
+
 
 raise SystemExit(key(sys.argv[1]) < key(sys.argv[2]))
 PY
 }
 
 validate_staged_file() {
-    local file="$1" mode="$2"
+    local file="$1"
+    local mode="$2"
     if [[ "$mode" == 0755 ]]; then
         bash -n "$file"
     elif [[ "$file" == *.json || "$file" == *.json.it140.new ]]; then
@@ -341,8 +428,11 @@ validate_staged_file() {
 }
 
 atomic_install_file() {
-    local source="$1" destination="$2" mode="$3"
-    local directory temp backup had_previous=false
+    local source="$1"
+    local destination="$2"
+    local mode="$3"
+    local directory temp backup
+    local had_previous=false
     directory="$(dirname "$destination")"
     mkdir -p "$directory"
     temp="${destination}.it140.new"
@@ -418,9 +508,9 @@ synchronize_course_assets() {
     local source_script target_script candidate_name
     for target_script in setup_cvd.sh configure_cvd.sh verify_cvd.sh update_cvd.sh; do
         candidate_name="$target_script"
-        if [[ "$target_script" == configure_cvd.sh && \
-              ! -f "$clone_dir/scripts/cvd/$candidate_name" && \
-              -f "$clone_dir/scripts/cvd/config_cvd.sh" ]]; then
+        if [[ "$target_script" == configure_cvd.sh \
+              && ! -f "$clone_dir/scripts/cvd/$candidate_name" \
+              && -f "$clone_dir/scripts/cvd/config_cvd.sh" ]]; then
             candidate_name="config_cvd.sh"
         fi
         source_script="$clone_dir/scripts/cvd/$candidate_name"
@@ -475,7 +565,11 @@ update_user_tools() {
     print_header "Step 3: Update Required User Tools and IDE Extensions"
 
     if [[ ! -x "$VENV_DIR/bin/python" ]]; then
-        print_warning "The course virtual environment was missing and will be repaired."
+        if [[ "$USER_CONFIGURATION_COMPLETE" == true ]]; then
+            print_warning "The course virtual environment was missing and will be repaired."
+        else
+            print_notice "Creating the course virtual environment before configuration."
+        fi
         python3.12 -m venv "$VENV_DIR"
         CHANGED=true
     fi
@@ -529,12 +623,14 @@ for profile_id in bindings["source_code_ide"].get("settings_profile_ids", []):
 managed["python.defaultInterpreterPath"] = python_path
 managed["files.defaultFolder"] = course_root
 
+
 def deep_merge(target, source):
     for key, value in source.items():
         if isinstance(value, dict) and isinstance(target.get(key), dict):
             deep_merge(target[key], value)
         else:
             target[key] = value
+
 
 deep_merge(settings, managed)
 temp = settings_file.with_name(settings_file.name + ".it140.tmp")
@@ -592,8 +688,10 @@ refresh_desktop_integrations() {
                 print_warning "The saved panel-launcher identifier is invalid."
                 PARTIAL=true
             fi
+        elif [[ "$USER_CONFIGURATION_COMPLETE" == true ]]; then
+            print_warning "The managed panel-launcher record is missing."
         else
-            print_warning "No managed panel-launcher record was found; run configure_cvd.sh to repair it."
+            print_notice "The panel launcher will be added by configure_cvd.sh."
         fi
 
         xfdesktop --reload 2>/dev/null || true
@@ -625,10 +723,13 @@ remove_obsolete_and_clean() {
 
 post_validate() {
     print_header "Step 6: Post-Update Validation"
-    local failed=0 package extension
+    local failed=0 package extension command_name
 
     validate_manifest_pair "$MANIFEST_PATH" "$SCHEMA_PATH" >/dev/null \
-        || { print_error "The installed manifest pair is invalid."; failed=1; }
+        || {
+            print_error "The installed manifest pair is invalid."
+            failed=1
+        }
 
     mapfile -t system_packages < <(manifest_lines system_packages)
     for package in "${system_packages[@]}"; do
@@ -680,29 +781,61 @@ restart_guidance() {
         RESTART_REQUIRED=true
     else
         print_notice "Ubuntu does not currently require a virtual-machine restart."
-        print_notice "Close and reopen VS Code before continuing course work."
+        print_notice "Close this terminal and open a new Terminal before continuing."
         RESTART_REQUIRED=false
     fi
 }
 
+set_summary_guidance() {
+    local restart_vm="No"
+    local next_script="verify_cvd.sh"
+    local next_step
+
+    if [[ "$RESTART_REQUIRED" == true ]]; then
+        restart_vm="Yes"
+    fi
+    if [[ "$USER_CONFIGURATION_COMPLETE" != true ]]; then
+        next_script="configure_cvd.sh"
+    fi
+
+    if [[ "$PARTIAL" == true || $FAILURES -gt 0 ]]; then
+        if [[ "$RESTART_REQUIRED" == true ]]; then
+            next_step="Close this terminal, use RESTART VM, reconnect, open Terminal, and rerun update_cvd.sh."
+        else
+            next_step="Close this terminal, open a new Terminal, and rerun update_cvd.sh."
+        fi
+    elif [[ "$RESTART_REQUIRED" == true ]]; then
+        next_step="Close this terminal, use RESTART VM, reconnect, open Terminal, and run $next_script."
+    else
+        next_step="Close this terminal, open a new Terminal, and run $next_script."
+    fi
+
+    printf '%s\t%s\n' "$restart_vm" "$next_step"
+}
+
 finish() {
     local elapsed=$(( $(date +%s) - START_EPOCH ))
-    local exit_code=0 result="PASS" next_step="Verification is optional."
+    local exit_code=0
+    local result="PASS"
+    local guidance restart_vm next_step
 
     if [[ "$PARTIAL" == true || $FAILURES -gt 0 ]]; then
         exit_code=7
         result="PARTIAL"
-        next_step="Run verify_cvd.sh, review the log, and rerun update_cvd.sh."
-    elif [[ "${RESTART_REQUIRED:-false}" == true || $WARNINGS -gt 0 ]]; then
-        next_step="After the requested restart or warning review, run verify_cvd.sh."
     fi
+
+    guidance="$(set_summary_guidance)"
+    restart_vm="${guidance%%$'\t'*}"
+    next_step="${guidance#*$'\t'}"
 
     print_header "UPDATE SUMMARY"
     printf 'Result          : %s\n' "$result"
+    printf 'Workflow        : %s\n' "$WORKFLOW_NAME"
     printf 'Script version  : %s\n' "$SCRIPT_VERSION"
     printf 'Manifest release: %s\n' "${MANIFEST_RELEASE:-unavailable}"
     printf 'Warnings        : %s\n' "$WARNINGS"
     printf 'Failures        : %s\n' "$FAILURES"
+    printf 'Restart VM      : %s\n' "$restart_vm"
     printf 'Elapsed time    : %s seconds\n' "$elapsed"
     printf 'Next step       : %s\n' "$next_step"
     printf 'Log file        : %s\n' "$LOG_FILE"
@@ -747,6 +880,7 @@ main() {
     print_success "Installed manifest release $INSTALLED_MANIFEST_RELEASE validated."
 
     check_prerequisites
+    detect_user_configuration
     synchronize_course_assets
     update_system_packages
     update_user_tools
