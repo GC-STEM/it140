@@ -11,7 +11,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.25.2"
+readonly SCRIPT_VERSION="2026.07.26.1"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -23,6 +23,9 @@ readonly LOG_DIR="${COURSE_ROOT}/logs"
 readonly LOG_FILE="${LOG_DIR}/configure_${PLATFORM_ID}_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="${COURSE_ROOT}/.venv"
 readonly LOCK_FILE="${HOME}/.cache/it140-${PLATFORM_ID}-mutation.lock"
+readonly MANAGED_PATH_START="# >>> IT 140 managed PATH >>>"
+readonly MANAGED_PATH_END="# <<< IT 140 managed PATH <<<"
+readonly MANAGED_PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/cvd:$PATH"'
 
 NONINTERACTIVE=false
 REQUESTED_PROFILE="$DEPLOYMENT_PROFILE_ID"
@@ -73,7 +76,10 @@ parse_options() {
                 ;;
             --deployment-profile)
                 shift
-                [[ $# -gt 0 ]] || { print_error "Missing deployment profile."; exit 2; }
+                [[ $# -gt 0 ]] || {
+                    print_error "Missing deployment profile."
+                    exit 2
+                }
                 REQUESTED_PROFILE="$1"
                 ;;
             *)
@@ -114,8 +120,10 @@ import sys
 
 manifest_path, schema_path, platform_id, profile_id = sys.argv[1:]
 
+
 class DuplicateKeyError(ValueError):
     pass
+
 
 def no_duplicates(pairs):
     output = {}
@@ -124,6 +132,7 @@ def no_duplicates(pairs):
             raise DuplicateKeyError(f"duplicate key: {key}")
         output[key] = value
     return output
+
 
 try:
     manifest = json.loads(
@@ -137,12 +146,13 @@ try:
 except (OSError, UnicodeError, json.JSONDecodeError, DuplicateKeyError) as exc:
     raise SystemExit(f"manifest validation failed: {exc}")
 
-for key in (
+required = {
     "schema_version", "automation_release", "policy", "platforms",
     "deployment_profiles", "provider_profiles", "managed_settings",
-):
-    if key not in manifest:
-        raise SystemExit(f"manifest missing required key: {key}")
+}
+missing = sorted(required - manifest.keys())
+if missing:
+    raise SystemExit(f"manifest missing required keys: {', '.join(missing)}")
 if manifest["schema_version"] != "1.0":
     raise SystemExit("unsupported manifest schema version")
 if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
@@ -180,19 +190,18 @@ platform = manifest["platforms"][platform_id]
 bindings = platform["course_ide_bindings"]
 
 if query == "system_commands":
-    for role, binding in bindings.items():
+    for binding in bindings.values():
         if binding.get("required") and binding.get("installation_scope") == "system":
             for executable in binding.get("verification", {}).get("executable_names", []):
                 print(executable)
 elif query == "venv_packages":
     packages = []
-    for role, binding in bindings.items():
+    for binding in bindings.values():
         if (binding.get("required") and
                 binding.get("installation_scope") == "user" and
                 binding.get("installer_adapter_id") == "python_venv_package"):
             packages.append(binding["package_identifier"])
-    # The CVD implementation exposes the Ruff CLI alongside the required Ruff
-    # IDE extension so faculty and students can use the same formatter in a terminal.
+    # Expose Ruff in the course virtual environment as well as through VS Code.
     if bindings.get("code_quality_tool", {}).get("required"):
         packages.append("ruff")
     for package in sorted(set(packages)):
@@ -223,17 +232,21 @@ check_platform_and_user() {
         exit 2
     fi
 
-    [[ -r /etc/os-release ]] || { print_error "Cannot identify the operating system."; exit 2; }
+    [[ -r /etc/os-release ]] || {
+        print_error "Cannot identify the operating system."
+        exit 2
+    }
     # shellcheck disable=SC1091
     source /etc/os-release
-    if [[ "${ID:-}" != "ubuntu" || "${VERSION_ID:-}" != "24.04" ]]; then
+    if [[ "${ID:-}" != ubuntu || "${VERSION_ID:-}" != 24.04 ]]; then
         print_error "This script supports only the IT 140 Ubuntu 24.04 CVD."
+        print_error "Detected: ${PRETTY_NAME:-unknown operating system}"
         exit 2
     fi
 
     local architecture
     architecture="$(dpkg --print-architecture 2>/dev/null || uname -m)"
-    if [[ "$architecture" != "amd64" && "$architecture" != "x86_64" ]]; then
+    if [[ "$architecture" != amd64 && "$architecture" != x86_64 ]]; then
         print_error "This CVD release supports only x86_64. Detected: $architecture"
         exit 2
     fi
@@ -253,9 +266,13 @@ check_system_layer() {
             failed=1
         fi
     done
-    command -v python3.12 >/dev/null 2>&1 || failed=1
+    if ! command -v python3.12 >/dev/null 2>&1; then
+        print_error "Required system command is missing: python3.12"
+        failed=1
+    fi
     if ((failed)); then
-        print_error "The system layer is incomplete. Run setup_cvd.sh first."
+        print_error "The CVD system layer is incomplete. Run update_cvd.sh."
+        print_error "If update_cvd.sh already passed, contact course support."
         exit 1
     fi
     print_success "Required system components are present."
@@ -309,6 +326,47 @@ finally:
 PY
 }
 
+has_managed_path_block() {
+    local file="$1"
+    [[ -r "$file" ]] || return 1
+    grep -Fqx "$MANAGED_PATH_START" "$file" \
+        && grep -Fqx "$MANAGED_PATH_EXPORT" "$file" \
+        && grep -Fqx "$MANAGED_PATH_END" "$file"
+}
+
+has_valid_vscode_settings() {
+    local settings_file="$HOME/.config/Code/User/settings.json"
+    [[ -r "$settings_file" ]] || return 1
+    python3 - "$settings_file" "$VENV_DIR/bin/python" "$COURSE_ROOT" <<'PY'
+import json
+import pathlib
+import sys
+
+settings_path, expected_python, expected_root = sys.argv[1:]
+try:
+    settings = json.loads(pathlib.Path(settings_path).read_text(encoding="utf-8"))
+except (OSError, UnicodeError, json.JSONDecodeError):
+    raise SystemExit(1)
+
+if not isinstance(settings, dict):
+    raise SystemExit(1)
+if settings.get("python.defaultInterpreterPath") != expected_python:
+    raise SystemExit(1)
+if settings.get("files.defaultFolder") != expected_root:
+    raise SystemExit(1)
+PY
+}
+
+has_managed_panel_launcher() {
+    local panel_config_dir="$HOME/.config/xfce4/panel"
+    local marker="$panel_config_dir/it140-vscode-plugin-id"
+    local plugin_id
+    [[ -s "$marker" ]] || return 1
+    plugin_id="$(<"$marker")"
+    [[ "$plugin_id" =~ ^[0-9]+$ ]] || return 1
+    [[ -r "$panel_config_dir/launcher-$plugin_id/it140-vscode.desktop" ]]
+}
+
 configure_course_folders_and_path() {
     print_info "Creating or repairing course folders without deleting existing content..."
     mkdir -p "$COURSE_ROOT" "$LOG_DIR" "$PLATFORM_SCRIPT_DIR"
@@ -316,7 +374,15 @@ configure_course_folders_and_path() {
 
     upsert_managed_path_block "$HOME/.profile"
     upsert_managed_path_block "$HOME/.bashrc"
-    export PATH="$VENV_DIR/bin:$PLATFORM_SCRIPT_DIR:$PATH"
+    case ":$PATH:" in
+        *":$VENV_DIR/bin:"*) ;;
+        *) export PATH="$VENV_DIR/bin:$PATH" ;;
+    esac
+    case ":$PATH:" in
+        *":$PLATFORM_SCRIPT_DIR:"*) ;;
+        *) export PATH="$PLATFORM_SCRIPT_DIR:$PATH" ;;
+    esac
+    hash -r
 
     find "$PLATFORM_SCRIPT_DIR" -maxdepth 1 -type f -name '*_cvd.sh' \
         -exec chmod 0755 {} + 2>/dev/null || true
@@ -326,11 +392,11 @@ configure_course_folders_and_path() {
 
 configure_provider_identity() {
     print_header "Step 2: Source-Code Hosting Authentication and Identity"
-    print_info "Checking the approved provider authentication status..."
+    print_info "Checking GitHub authentication status..."
 
     if ! gh auth status --hostname github.com >/dev/null 2>&1; then
         if [[ "$NONINTERACTIVE" == true ]]; then
-            print_error "Provider authentication is required but interaction is disabled."
+            print_error "GitHub authentication is required but interaction is disabled."
             exit 6
         fi
 
@@ -338,7 +404,7 @@ configure_provider_identity() {
         print_notice "Write down or copy the code, complete the browser steps, and return here."
         printf '[ACTION REQUIRED] Press Enter to begin, or type C to cancel: '
         read -r response
-        if [[ "${response,,}" == "c" ]]; then
+        if [[ "${response,,}" == c ]]; then
             exit 6
         fi
 
@@ -350,22 +416,30 @@ configure_provider_identity() {
         print_error "GitHub authentication did not complete successfully."
         exit 1
     }
-    print_success "Source-code hosting authentication is valid."
+    print_success "GitHub authentication is valid."
 
-    local gh_id gh_user display_name private_email
+    local gh_id gh_user display_name default_display_name private_email
     gh_id="$(gh api user --jq '.id')"
     gh_user="$(gh api user --jq '.login')"
-    [[ "$gh_id" =~ ^[0-9]+$ ]] || { print_error "Provider account ID is invalid."; exit 1; }
-    [[ "$gh_user" =~ ^[A-Za-z0-9-]+$ ]] || { print_error "Provider username is invalid."; exit 1; }
+    [[ "$gh_id" =~ ^[0-9]+$ ]] || {
+        print_error "GitHub account ID is invalid."
+        exit 1
+    }
+    [[ "$gh_user" =~ ^[A-Za-z0-9-]+$ ]] || {
+        print_error "GitHub username is invalid."
+        exit 1
+    }
     private_email="${gh_id}+${gh_user}@users.noreply.github.com"
+    default_display_name="$(git config --global user.name 2>/dev/null || true)"
+    default_display_name="${default_display_name:-$gh_user}"
 
     if [[ "$NONINTERACTIVE" == true ]]; then
-        display_name="$gh_user"
+        display_name="$default_display_name"
     else
         print_notice "Your Git display name is public in version-control history."
-        printf '[ACTION REQUIRED] Git display name [%s]: ' "$gh_user"
+        printf '[ACTION REQUIRED] Git display name [%s]: ' "$default_display_name"
         read -r display_name
-        display_name="${display_name:-$gh_user}"
+        display_name="${display_name:-$default_display_name}"
     fi
 
     if [[ -z "$display_name" || ${#display_name} -gt 100 \
@@ -385,8 +459,8 @@ configure_provider_identity() {
     CHANGED=true
     print_success "Git identity and course defaults are configured."
     print_info "Git display name : $display_name"
-    print_info "Commit identity  : Provider-approved private noreply identity"
-    print_info "Provider account : $gh_user"
+    print_info "Commit identity  : GitHub private noreply identity"
+    print_info "GitHub account   : $gh_user"
 }
 
 configure_user_tools() {
@@ -396,20 +470,44 @@ configure_user_tools() {
         print_info "Creating the IT 140 course virtual environment..."
         python3.12 -m venv "$VENV_DIR"
         CHANGED=true
+    else
+        print_success "The IT 140 course virtual environment is available."
     fi
 
-    mapfile -t venv_packages < <(manifest_lines venv_packages)
-    print_info "Installing or repairing required course Python tools..."
-    "$VENV_DIR/bin/python" -m pip install --upgrade pip
-    "$VENV_DIR/bin/python" -m pip install --upgrade "${venv_packages[@]}"
-    CHANGED=true
+    local package extension installed_extensions
+    local -a missing_packages=() required_extensions=() missing_extensions=()
 
-    mapfile -t required_extensions < <(manifest_lines extensions)
-    print_info "Installing or repairing required IDE extensions..."
-    for extension in "${required_extensions[@]}"; do
-        NODE_NO_WARNINGS=1 code --install-extension "$extension" --force
+    mapfile -t venv_packages < <(manifest_lines venv_packages)
+    for package in "${venv_packages[@]}"; do
+        if ! "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1; then
+            missing_packages+=("$package")
+        fi
     done
-    CHANGED=true
+    if ((${#missing_packages[@]})); then
+        print_info "Installing missing course Python tools..."
+        "$VENV_DIR/bin/python" -m pip install "${missing_packages[@]}"
+        CHANGED=true
+    else
+        print_success "Required course Python tools are already installed."
+    fi
+
+    installed_extensions="$(NODE_NO_WARNINGS=1 code --list-extensions 2>/dev/null \
+        | tr '[:upper:]' '[:lower:]')"
+    mapfile -t required_extensions < <(manifest_lines extensions)
+    for extension in "${required_extensions[@]}"; do
+        if ! grep -Fxq "${extension,,}" <<<"$installed_extensions"; then
+            missing_extensions+=("$extension")
+        fi
+    done
+    if ((${#missing_extensions[@]})); then
+        print_info "Installing missing required IDE extensions..."
+        for extension in "${missing_extensions[@]}"; do
+            NODE_NO_WARNINGS=1 code --install-extension "$extension"
+        done
+        CHANGED=true
+    else
+        print_success "Required IDE extensions are already installed."
+    fi
 
     print_success "Required user-scoped tools and IDE extensions are configured."
 }
@@ -436,7 +534,6 @@ managed = {}
 for profile_id in profile_ids:
     managed.update(manifest["managed_settings"][profile_id]["values"])
 
-# CVD adapter-owned values preserve the behavior already proven in the course image.
 managed.update({
     "files.autoSave": "afterDelay",
     "files.autoSaveDelay": 1000,
@@ -478,12 +575,14 @@ if settings_file.exists() and settings_file.stat().st_size:
 if not isinstance(existing, dict):
     raise SystemExit("Existing VS Code settings must be a JSON object")
 
+
 def deep_merge(target, source):
     for key, value in source.items():
         if isinstance(value, dict) and isinstance(target.get(key), dict):
             deep_merge(target[key], value)
         else:
             target[key] = value
+
 
 deep_merge(existing, managed)
 serialized = json.dumps(existing, indent=4, ensure_ascii=False) + "\n"
@@ -551,6 +650,7 @@ EOF_FOLDER
     fi
     chmod 0755 "$desktop_dir/it140.desktop"
 
+    local launcher checksum
     for launcher in "$desktop_dir/it140.desktop" \
         "$desktop_dir/visual-studio-code.desktop"; do
         [[ -f "$launcher" ]] || continue
@@ -558,7 +658,6 @@ EOF_FOLDER
             desktop-file-validate "$launcher"
         fi
         if command -v gio >/dev/null 2>&1; then
-            local checksum
             checksum="$(sha256sum "$launcher" | awk '{print $1}')"
             gio set --type=string "$launcher" \
                 metadata::xfce-exe-checksum "$checksum" 2>/dev/null \
@@ -579,6 +678,8 @@ EOF_FOLDER
 
     course_panel_id=""
     if [[ -n "$directory_plugin_id" ]]; then
+        local panel_id existing_id candidate last_plugin_id
+        local -a panel_ids=() plugin_ids=() updated_plugin_ids=() panel_args=()
         mapfile -t panel_ids < <(
             xfconf-query -c xfce4-panel -p /panels 2>/dev/null \
             | awk '$1 ~ /^[0-9]+$/ {print $1}'
@@ -602,16 +703,14 @@ EOF_FOLDER
         marker="$panel_config_dir/it140-vscode-plugin-id"
         plugin_id=""
         if [[ -s "$marker" ]]; then
-            local candidate
             candidate="$(<"$marker")"
             if [[ "$candidate" =~ ^[0-9]+$ ]] && \
                 [[ "$(xfconf-query -c xfce4-panel \
-                    -p "/plugins/plugin-$candidate" 2>/dev/null || true)" == "launcher" ]]; then
+                    -p "/plugins/plugin-$candidate" 2>/dev/null || true)" == launcher ]]; then
                 plugin_id="$candidate"
             fi
         fi
         if [[ -z "$plugin_id" ]]; then
-            local last_plugin_id
             last_plugin_id="$(
                 xfconf-query -c xfce4-panel -p /plugins -l 2>/dev/null \
                 | sed -n 's#^/plugins/plugin-\([0-9][0-9]*\).*#\1#p' \
@@ -653,6 +752,7 @@ EOF_FOLDER
         print_warning "The VS Code panel launcher could not be configured."
     fi
 
+    local mime_type
     for mime_type in text/plain text/markdown text/x-python text/x-shellscript; do
         xdg-mime default code.desktop "$mime_type"
     done
@@ -664,10 +764,21 @@ EOF_FOLDER
 }
 
 post_validate() {
-    local failed=0 package extension
+    local failed=0 package extension configured_email
 
-    [[ -d "$COURSE_ROOT" && -d "$LOG_DIR" && -x "$VENV_DIR/bin/python" ]] \
-        || { print_error "Required course folders or virtual environment are missing."; failed=1; }
+    [[ -d "$COURSE_ROOT" && -d "$LOG_DIR" && -x "$VENV_DIR/bin/python" ]] || {
+        print_error "Required course folders or virtual environment are missing."
+        failed=1
+    }
+
+    has_managed_path_block "$HOME/.profile" || {
+        print_error "The managed PATH block is missing from ~/.profile."
+        failed=1
+    }
+    has_managed_path_block "$HOME/.bashrc" || {
+        print_error "The managed PATH block is missing from ~/.bashrc."
+        failed=1
+    }
 
     mapfile -t venv_packages < <(manifest_lines venv_packages)
     for package in "${venv_packages[@]}"; do
@@ -688,20 +799,33 @@ post_validate() {
         fi
     done
 
-    gh auth status --hostname github.com >/dev/null 2>&1 \
-        || { print_error "Source-code hosting authentication is not valid."; failed=1; }
-    git config --global user.name >/dev/null \
-        || { print_error "Git display name is not configured."; failed=1; }
-    local configured_email
-    configured_email="$(git config --global user.email || true)"
-    [[ "$configured_email" =~ ^[0-9]+\+[A-Za-z0-9-]+@users\.noreply\.github\.com$ ]] \
-        || { print_error "Git does not use the approved private commit identity."; failed=1; }
+    gh auth status --hostname github.com >/dev/null 2>&1 || {
+        print_error "GitHub authentication is not valid."
+        failed=1
+    }
+    [[ -n "$(git config --global user.name 2>/dev/null || true)" ]] || {
+        print_error "Git display name is not configured."
+        failed=1
+    }
+    configured_email="$(git config --global user.email 2>/dev/null || true)"
+    [[ "$configured_email" =~ ^[0-9]+\+[A-Za-z0-9-]+@users\.noreply\.github\.com$ ]] || {
+        print_error "Git does not use the approved private commit identity."
+        failed=1
+    }
 
-    python3 -m json.tool "$HOME/.config/Code/User/settings.json" >/dev/null \
-        || { print_error "VS Code settings are not valid JSON."; failed=1; }
+    has_valid_vscode_settings || {
+        print_error "VS Code does not contain the required IT 140 settings."
+        failed=1
+    }
+    has_managed_panel_launcher || {
+        print_error "The managed VS Code panel launcher is missing or invalid."
+        failed=1
+    }
 
-    [[ -x "$PLATFORM_SCRIPT_DIR/verify_cvd.sh" ]] \
-        || { print_error "verify_cvd.sh is not executable."; failed=1; }
+    [[ -x "$PLATFORM_SCRIPT_DIR/verify_cvd.sh" ]] || {
+        print_error "verify_cvd.sh is not executable."
+        failed=1
+    }
 
     if ((failed)); then
         print_error "User-layer validation failed. Rerun configure_cvd.sh."
@@ -716,13 +840,15 @@ finish() {
     printf 'Result          : PASS\n'
     printf 'Script version  : %s\n' "$SCRIPT_VERSION"
     printf 'Manifest release: %s\n' "$MANIFEST_RELEASE"
-    printf 'Provider login  : Valid\n'
+    printf 'GitHub login    : Valid\n'
     printf 'Course folder   : %s\n' "$COURSE_ROOT"
     printf 'Python          : %s\n' "$VENV_DIR/bin/python"
     printf 'Warnings        : %s\n' "$WARNINGS"
+    printf 'Failures        : 0\n'
     printf 'Elapsed time    : %s seconds\n' "$elapsed"
-    printf 'Next step       : Run verify_cvd.sh\n'
+    printf 'Next step       : Close this terminal, open a new Terminal, and run verify_cvd.sh.\n'
     printf 'Log file        : %s\n' "$LOG_FILE"
+    printf 'Exit code       : 0\n'
     print_success "The IT 140 CVD user configuration completed successfully."
 }
 
@@ -746,7 +872,8 @@ main() {
     acquire_lock
 
     [[ -r "$MANIFEST_PATH" && -r "$SCHEMA_PATH" ]] || {
-        print_error "The manifest or schema is missing. Run setup_cvd.sh or update_cvd.sh."
+        print_error "The manifest or schema is missing. Run update_cvd.sh."
+        print_error "If the problem continues, contact course support."
         exit 5
     }
     MANIFEST_RELEASE="$(validate_manifest)" || exit 5
