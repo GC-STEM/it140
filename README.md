@@ -34,4 +34,4 @@ Click the links below to access the automation scripts for Windows, Mac, and CVD
 | Codio | [scripts/cvd](scripts/cvd) |
 | Windows | [scripts/win](scripts/win) |
 | MacOS | [scripts/mac](scripts/mac) |
-| Linux | [scripts/linux](scripts/linux) |
+| Linux | [scripts/nixux](scripts/nixux) |
