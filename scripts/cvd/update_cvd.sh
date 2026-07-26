@@ -56,7 +56,7 @@ print_closing_notices() {
     print_notice "A log containing all output displayed while this script ran is available here:"
     print_notice "$LOG_FILE"
     print_notice "After reviewing the summary, type 'exit' and press Enter to close this Terminal."
-    print_notice "Open a new Terminal before running another IT 140 script or command so it loads the latest PATH and environment settings."
+    print_notice "Open a new Terminal before running another script or command so it loads the latest PATH and environment settings."
 }
 
 usage() {
