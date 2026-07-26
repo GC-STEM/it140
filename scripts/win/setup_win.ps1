@@ -67,7 +67,7 @@ function Test-IsAdministrator {
     )
 }
 
-function Refresh-ProcessEnvironment {
+function Update-ProcessEnvironment {
     $MachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
     $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
     $env:Path = @($MachinePath, $UserPath) -join ";"
@@ -123,20 +123,23 @@ function Read-ControlledManifest {
         throw "The Windows platform is not enabled in the controlled manifest."
     }
 
-    $Profile = Get-PropertyValue `
+    $DeploymentProfileRecord = Get-PropertyValue `
         -Object $Manifest.deployment_profiles `
         -Name $DeploymentProfile
-    if ($null -eq $Profile -or -not [bool]$Profile.enabled) {
+    if (
+        $null -eq $DeploymentProfileRecord -or
+        -not [bool]$DeploymentProfileRecord.enabled
+    ) {
         throw "The deployment profile is not enabled: $DeploymentProfile"
     }
-    if ([string]$Profile.platform_id -ne $PlatformId) {
+    if ([string]$DeploymentProfileRecord.platform_id -ne $PlatformId) {
         throw "The deployment profile does not select the Windows platform."
     }
 
     return [pscustomobject]@{
         Manifest = $Manifest
         Platform = $Platform
-        Profile = $Profile
+        Profile = $DeploymentProfileRecord
     }
 }
 
@@ -319,8 +322,8 @@ function Install-WinGetFallback {
     }
 }
 
-function Ensure-WinGet {
-    Refresh-ProcessEnvironment
+function Initialize-WinGet {
+    Update-ProcessEnvironment
     if ($null -ne (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
         Write-Success "Windows Package Manager is available."
         return
@@ -339,7 +342,7 @@ function Ensure-WinGet {
         )
     }
 
-    Refresh-ProcessEnvironment
+    Update-ProcessEnvironment
     if ($null -ne (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
         Write-Success "Windows Package Manager was registered successfully."
         return
@@ -366,7 +369,7 @@ function Ensure-WinGet {
         )
     }
 
-    Refresh-ProcessEnvironment
+    Update-ProcessEnvironment
     if ($null -ne (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
         Write-Success "Windows Package Manager was repaired successfully."
         return
@@ -374,7 +377,7 @@ function Ensure-WinGet {
 
     Write-Notice "Using the direct Microsoft App Installer fallback."
     Install-WinGetFallback
-    Refresh-ProcessEnvironment
+    Update-ProcessEnvironment
 
     if ($null -eq (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
         throw "Windows Package Manager is still unavailable after repair."
@@ -446,7 +449,7 @@ function Install-SystemPackages {
             )
     }
 
-    Refresh-ProcessEnvironment
+    Update-ProcessEnvironment
 }
 
 function Test-SystemCommands {
@@ -564,7 +567,7 @@ try {
     }
 
     $MutationMutex = Enter-MutationLock
-    Ensure-WinGet
+    Initialize-WinGet
 
     $Bindings = Get-SystemPackageBindings -Platform $Controlled.Platform
     Install-SystemPackages -Bindings $Bindings
