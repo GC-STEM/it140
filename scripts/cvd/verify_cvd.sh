@@ -6,11 +6,12 @@
 # Scope: Read-only inspection of the CVD system and current-user course layers.
 # The only files created are the required transcript and an explicitly approved,
 # sanitized support bundle.
+#
 
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.25.2"
+readonly SCRIPT_VERSION="2026.07.26.1"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -21,6 +22,9 @@ readonly SCHEMA_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.schema.json"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
 readonly LOG_FILE="${LOG_DIR}/verify_${PLATFORM_ID}_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="${COURSE_ROOT}/.venv"
+readonly MANAGED_PATH_START="# >>> IT 140 managed PATH >>>"
+readonly MANAGED_PATH_END="# <<< IT 140 managed PATH <<<"
+readonly MANAGED_PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/cvd:$PATH"'
 
 NONINTERACTIVE=false
 SUPPORT_BUNDLE=false
@@ -35,7 +39,6 @@ FAIL_COUNT=0
 NA_COUNT=0
 MANIFEST_FAILURE=false
 UNSUPPORTED_FAILURE=false
-EXTERNAL_FAILURE=false
 SUPPORT_STAGING=""
 
 RESULT_LINES=()
@@ -100,7 +103,10 @@ parse_options() {
                 ;;
             --deployment-profile)
                 shift
-                [[ $# -gt 0 ]] || { print_error "Missing deployment profile."; exit 2; }
+                [[ $# -gt 0 ]] || {
+                    print_error "Missing deployment profile."
+                    exit 2
+                }
                 REQUESTED_PROFILE="$1"
                 ;;
             *)
@@ -113,9 +119,23 @@ parse_options() {
     done
 }
 
+add_remediation() {
+    local remediation="$1"
+    local existing
+    [[ -n "$remediation" ]] || return 0
+    for existing in "${REMEDIATION_LINES[@]}"; do
+        [[ "$existing" == "$remediation" ]] && return 0
+    done
+    REMEDIATION_LINES+=("$remediation")
+}
+
 record_result() {
-    local status="$1" check_id="$2" message="$3" remediation="${4:-}"
+    local status="$1"
+    local check_id="$2"
+    local message="$3"
+    local remediation="${4:-}"
     local label
+
     case "$status" in
         pass)
             label="PASS"
@@ -128,6 +148,7 @@ record_result() {
         fail)
             label="FAIL"
             FAIL_COUNT=$((FAIL_COUNT + 1))
+            add_remediation "$remediation"
             ;;
         not_applicable)
             label="NOT APPLICABLE"
@@ -138,11 +159,9 @@ record_result() {
             exit 1
             ;;
     esac
+
     printf '[%s] [%s] %s\n' "$label" "$check_id" "$message"
     RESULT_LINES+=("${label}|${check_id}|${message}")
-    if [[ "$status" == fail && -n "$remediation" ]]; then
-        REMEDIATION_LINES+=("${check_id}|${remediation}")
-    fi
 }
 
 validate_manifest() {
@@ -154,8 +173,10 @@ import sys
 
 manifest_path, schema_path, platform_id, profile_id = sys.argv[1:]
 
+
 class DuplicateKeyError(ValueError):
     pass
+
 
 def no_duplicates(pairs):
     output = {}
@@ -164,6 +185,7 @@ def no_duplicates(pairs):
             raise DuplicateKeyError(f"duplicate key: {key}")
         output[key] = value
     return output
+
 
 try:
     manifest = json.loads(
@@ -191,6 +213,7 @@ if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
     raise SystemExit("schema is not the approved Draft 2020-12 format")
 if manifest["policy"].get("allow_os_release_upgrade") is not False:
     raise SystemExit("manifest attempts to allow an OS release upgrade")
+
 platform = manifest["platforms"].get(platform_id)
 profile = manifest["deployment_profiles"].get(profile_id)
 if not platform or not platform.get("enabled"):
@@ -214,6 +237,7 @@ manifest_lines() {
     local query="$1"
     python3 - "$MANIFEST_PATH" "$PLATFORM_ID" "$query" <<'PY'
 import json
+import pathlib
 import sys
 
 path, platform_id, query = sys.argv[1:]
@@ -232,7 +256,7 @@ elif query == "system_bindings":
             print("\t".join([role, binding["package_identifier"], ",".join(names)]))
 elif query == "venv_packages":
     values = []
-    for role, binding in bindings.items():
+    for binding in bindings.values():
         if (binding.get("required") and
                 binding.get("installation_scope") == "user" and
                 binding.get("installer_adapter_id") == "python_venv_package"):
@@ -248,18 +272,21 @@ elif query == "extensions":
                 binding.get("installer_adapter_id") == "vscode_extension"):
             print("\t".join([role, binding["package_identifier"]]))
 elif query == "git_settings":
-    for profile_id in bindings["version_control_system"].get("settings_profile_ids", []):
+    profile_ids = bindings["version_control_system"].get("settings_profile_ids", [])
+    for profile_id in profile_ids:
         for key, value in manifest["managed_settings"][profile_id]["values"].items():
             if isinstance(value, bool):
                 value = "true" if value else "false"
             print(f"{key}\t{value}")
 elif query == "minimum_space":
     print(manifest["policy"]["minimum_free_space_bytes"])
+elif query == "network_timeout":
+    print(manifest["policy"].get("network_timeout_seconds", 60))
 elif query == "asset_destinations":
     values = {
-        "HOME": str(__import__('pathlib').Path.home()),
-        "COURSE_ROOT": str(__import__('pathlib').Path.home() / "it140"),
-        "SCRIPT_ROOT": str(__import__('pathlib').Path.home() / "it140" / "scripts"),
+        "HOME": str(pathlib.Path.home()),
+        "COURSE_ROOT": str(pathlib.Path.home() / "it140"),
+        "SCRIPT_ROOT": str(pathlib.Path.home() / "it140" / "scripts"),
     }
     for asset_id, asset in manifest.get("managed_assets", {}).items():
         destination = asset["destination"]
@@ -269,6 +296,68 @@ elif query == "asset_destinations":
 else:
     raise SystemExit(f"unsupported manifest query: {query}")
 PY
+}
+
+has_managed_path_block() {
+    local file="$1"
+    [[ -r "$file" ]] || return 1
+    grep -Fqx "$MANAGED_PATH_START" "$file" \
+        && grep -Fqx "$MANAGED_PATH_EXPORT" "$file" \
+        && grep -Fqx "$MANAGED_PATH_END" "$file"
+}
+
+has_valid_vscode_settings() {
+    local settings_file="$HOME/.config/Code/User/settings.json"
+    [[ -r "$settings_file" ]] || return 1
+
+    python3 - "$MANIFEST_PATH" "$PLATFORM_ID" "$settings_file" \
+        "$VENV_DIR/bin/python" "$COURSE_ROOT" <<'PY'
+import json
+import pathlib
+import sys
+
+manifest_path, platform_id, settings_path, python_path, course_root = sys.argv[1:]
+
+try:
+    manifest = json.loads(pathlib.Path(manifest_path).read_text(encoding="utf-8"))
+    settings = json.loads(pathlib.Path(settings_path).read_text(encoding="utf-8"))
+except (OSError, UnicodeError, json.JSONDecodeError):
+    raise SystemExit(1)
+
+if not isinstance(settings, dict):
+    raise SystemExit(1)
+
+bindings = manifest["platforms"][platform_id]["course_ide_bindings"]
+expected = {}
+for profile_id in bindings["source_code_ide"].get("settings_profile_ids", []):
+    expected.update(manifest["managed_settings"][profile_id]["values"])
+expected["python.defaultInterpreterPath"] = python_path
+expected["files.defaultFolder"] = course_root
+
+
+def contains(actual, desired):
+    if isinstance(desired, dict):
+        return isinstance(actual, dict) and all(
+            key in actual and contains(actual[key], value)
+            for key, value in desired.items()
+        )
+    return actual == desired
+
+
+if not contains(settings, expected):
+    raise SystemExit(1)
+PY
+}
+
+has_managed_panel_launcher() {
+    local panel_config_dir="$HOME/.config/xfce4/panel"
+    local marker="$panel_config_dir/it140-vscode-plugin-id"
+    local plugin_id
+
+    [[ -s "$marker" ]] || return 1
+    plugin_id="$(<"$marker")"
+    [[ "$plugin_id" =~ ^[0-9]+$ ]] || return 1
+    [[ -r "$panel_config_dir/launcher-$plugin_id/it140-vscode.desktop" ]]
 }
 
 check_platform() {
@@ -284,7 +373,7 @@ check_platform() {
     if [[ ! -r /etc/os-release ]]; then
         record_result fail "verify.platform" \
             "The operating system could not be identified." \
-            "Contact Codio or course support."
+            "Contact course support."
         UNSUPPORTED_FAILURE=true
         return
     fi
@@ -297,61 +386,69 @@ check_platform() {
     else
         record_result fail "verify.os_release" \
             "This is not the supported Ubuntu 24.04 CVD." \
-            "Contact Codio or course support."
+            "Contact course support."
         UNSUPPORTED_FAILURE=true
     fi
 
     local architecture
     architecture="$(dpkg --print-architecture 2>/dev/null || uname -m)"
     if [[ "$architecture" == amd64 || "$architecture" == x86_64 ]]; then
-        record_result pass "verify.architecture" "The x86_64 architecture is detected."
+        record_result pass "verify.architecture" \
+            "The x86_64 architecture is detected."
     else
         record_result fail "verify.architecture" \
             "Unsupported architecture detected: $architecture" \
-            "Contact Codio or course support."
+            "Contact course support."
         UNSUPPORTED_FAILURE=true
     fi
 
     if command -v xfconf-query >/dev/null 2>&1; then
-        record_result pass "verify.desktop" "The Xfce desktop interface is available."
+        record_result pass "verify.desktop" \
+            "The Xfce desktop interface is available."
     else
         record_result fail "verify.desktop" \
             "The required Xfce desktop interface is unavailable." \
-            "Contact Codio or course support."
+            "Contact course support."
         UNSUPPORTED_FAILURE=true
     fi
 }
 
 check_disk_and_network() {
-    local minimum available
+    local minimum available timeout
     minimum="$(manifest_lines minimum_space)"
     available="$(df -PB1 "$HOME" | awk 'NR==2 {print $4}')"
+
     if ((available >= minimum)); then
         record_result pass "verify.disk_space" \
             "$((available / 1024 / 1024 / 1024)) GB is available."
     else
         record_result fail "verify.disk_space" \
             "Less than the required $((minimum / 1024 / 1024 / 1024)) GB is available." \
-            "Remove unneeded personal files or contact Codio support."
+            "Remove unneeded personal files, then rerun verify_cvd.sh."
     fi
 
     if [[ "$SKIP_NETWORK" == true ]]; then
         record_result not_applicable "verify.network" \
             "Network reachability was skipped by request."
-    elif command -v curl >/dev/null 2>&1 && \
-        curl --head --silent --fail --max-time 10 https://github.com/ >/dev/null; then
+        return
+    fi
+
+    timeout="$(manifest_lines network_timeout 2>/dev/null || printf '60')"
+    if command -v curl >/dev/null 2>&1 \
+        && curl --head --silent --fail --max-time "$timeout" \
+            https://github.com/ >/dev/null; then
         record_result pass "verify.network" \
             "The approved source-code hosting service is reachable."
     else
         record_result warning "verify.network" \
-            "The approved source-code hosting service did not respond within 10 seconds." \
-            "Check the network connection before setup, configuration, or update."
-        EXTERNAL_FAILURE=true
+            "The approved source-code hosting service did not respond within ${timeout} seconds."
     fi
 }
 
 check_system_layer() {
-    local package role package_id executables executable
+    local package role package_id executables
+    local binding_ok version_text executable
+    local -a executable_names
 
     while IFS= read -r package; do
         [[ -n "$package" ]] || continue
@@ -362,14 +459,15 @@ check_system_layer() {
         else
             record_result fail "verify.package.${package}" \
                 "Required operating-system package is missing: $package" \
-                "Run setup_cvd.sh from a terminal."
+                "Run update_cvd.sh. If the same check still fails, contact course support."
         fi
     done < <(manifest_lines os_packages)
 
     while IFS=$'\t' read -r role package_id executables; do
         [[ -n "$role" ]] || continue
-        local binding_ok=true
+        binding_ok=true
         IFS=',' read -r -a executable_names <<<"$executables"
+
         if ((${#executable_names[@]} == 0)); then
             binding_ok=false
         else
@@ -379,12 +477,14 @@ check_system_layer() {
                 fi
             done
         fi
+
+        version_text="available"
         if [[ "$binding_ok" == true ]]; then
-            local version_text="available"
             case "$role" in
                 programming_language_runtime)
                     version_text="$(python3.12 --version 2>&1 || true)"
-                    if ! python3.12 -c 'import sys; raise SystemExit(sys.version_info[:2] != (3, 12))'; then
+                    if ! python3.12 -c \
+                        'import sys; raise SystemExit(sys.version_info[:2] != (3, 12))'; then
                         binding_ok=false
                     fi
                     ;;
@@ -398,30 +498,27 @@ check_system_layer() {
                     version_text="$(code --version 2>&1 | head -1 || true)"
                     ;;
             esac
-            if [[ "$binding_ok" == true ]]; then
-                record_result pass "verify.capability.${role}" \
-                    "Required system capability is available: $version_text"
-            else
-                record_result fail "verify.capability.${role}" \
-                    "The required runtime version is not compliant." \
-                    "Run setup_cvd.sh from a terminal."
-            fi
+        fi
+
+        if [[ "$binding_ok" == true ]]; then
+            record_result pass "verify.capability.${role}" \
+                "Required system capability is available: $version_text"
         else
             record_result fail "verify.capability.${role}" \
-                "Required system capability is missing: $package_id" \
-                "Run setup_cvd.sh from a terminal."
+                "Required system capability is missing or not compliant: $package_id" \
+                "Run update_cvd.sh. If the same check still fails, contact course support."
         fi
     done < <(manifest_lines system_bindings)
 
-    if [[ -r /etc/opt/chrome/policies/managed/it140_bookmarks.json ]] && \
-        python3 -m json.tool \
+    if [[ -r /etc/opt/chrome/policies/managed/it140_bookmarks.json ]] \
+        && python3 -m json.tool \
             /etc/opt/chrome/policies/managed/it140_bookmarks.json >/dev/null 2>&1; then
         record_result pass "verify.system.chrome_policy" \
             "The course browser bookmark policy is valid."
     else
         record_result fail "verify.system.chrome_policy" \
             "The course browser bookmark policy is missing or invalid." \
-            "Run setup_cvd.sh from a terminal."
+            "Run update_cvd.sh. If the same check still fails, contact course support."
     fi
 
     if [[ -r /etc/xdg/autostart/numlockx.desktop ]]; then
@@ -430,12 +527,14 @@ check_system_layer() {
     else
         record_result fail "verify.system.numlock" \
             "The CVD Num Lock session policy is missing." \
-            "Run setup_cvd.sh from a terminal."
+            "Run update_cvd.sh. If the same check still fails, contact course support."
     fi
 }
 
 check_user_layer() {
-    local package role extension expected actual
+    local package role extension key expected_value configured_value
+    local git_email installed_extensions settings_file desktop_dir
+    local script
 
     if [[ -d "$COURSE_ROOT" && -d "$LOG_DIR" ]]; then
         record_result pass "verify.course_folders" \
@@ -443,17 +542,27 @@ check_user_layer() {
     else
         record_result fail "verify.course_folders" \
             "The required course folders are incomplete." \
-            "Run configure_cvd.sh from a terminal."
+            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
-    if grep -Fq '# >>> IT 140 managed PATH >>>' "$HOME/.profile" 2>/dev/null && \
-        grep -Fq "$HOME/it140/scripts/cvd" <(sed "s#\$HOME#$HOME#g" "$HOME/.profile") 2>/dev/null; then
-        record_result pass "verify.user_path" \
-            "The managed course PATH entry is present in the user profile."
+    if has_managed_path_block "$HOME/.profile" \
+        && has_managed_path_block "$HOME/.bashrc"; then
+        record_result pass "verify.user_path_files" \
+            "The exact managed course PATH block is present in ~/.profile and ~/.bashrc."
     else
-        record_result fail "verify.user_path" \
-            "The managed course PATH entry is missing." \
-            "Run configure_cvd.sh from a terminal."
+        record_result fail "verify.user_path_files" \
+            "The exact managed course PATH block is missing from ~/.profile or ~/.bashrc." \
+            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+    fi
+
+    if [[ ":$PATH:" == *":$VENV_DIR/bin:"* \
+        && ":$PATH:" == *":$PLATFORM_SCRIPT_DIR:"* ]]; then
+        record_result pass "verify.current_path" \
+            "The current Terminal session includes the course Python and script folders."
+    else
+        record_result fail "verify.current_path" \
+            "The current Terminal session does not include all managed course PATH entries." \
+            "Close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
     if [[ -x "$VENV_DIR/bin/python" ]]; then
@@ -462,27 +571,30 @@ check_user_layer() {
     else
         record_result fail "verify.virtual_environment" \
             "The course Python virtual environment is missing." \
-            "Run configure_cvd.sh from a terminal."
+            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
     while IFS= read -r package; do
         [[ -n "$package" ]] || continue
-        if [[ -x "$VENV_DIR/bin/python" ]] && \
-            "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1; then
+        if [[ -x "$VENV_DIR/bin/python" ]] \
+            && "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1; then
             record_result pass "verify.user_tool.${package}" \
                 "Required course Python tool is installed: $package"
         else
             record_result fail "verify.user_tool.${package}" \
                 "Required course Python tool is missing: $package" \
-                "Run configure_cvd.sh from a terminal."
+                "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
         fi
     done < <(manifest_lines venv_packages)
 
-    local installed_extensions=""
+    installed_extensions=""
     if command -v code >/dev/null 2>&1; then
-        installed_extensions="$(NODE_NO_WARNINGS=1 code --list-extensions 2>/dev/null \
-            | tr '[:upper:]' '[:lower:]')"
+        installed_extensions="$(
+            NODE_NO_WARNINGS=1 code --list-extensions 2>/dev/null \
+                | tr '[:upper:]' '[:lower:]'
+        )"
     fi
+
     while IFS=$'\t' read -r role extension; do
         [[ -n "$role" ]] || continue
         if grep -Fxq "${extension,,}" <<<"$installed_extensions"; then
@@ -491,7 +603,7 @@ check_user_layer() {
         else
             record_result fail "verify.extension.${role}" \
                 "Required IDE extension is missing: $extension" \
-                "Run configure_cvd.sh from a terminal."
+                "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
         fi
     done < <(manifest_lines extensions)
 
@@ -501,118 +613,87 @@ check_user_layer() {
     else
         record_result fail "verify.provider_authentication" \
             "Source-code hosting authentication is missing or invalid." \
-            "Run configure_cvd.sh from a terminal."
+            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
-    if [[ -n "$(git config --global user.name || true)" ]]; then
+    if [[ -n "$(git config --global user.name 2>/dev/null || true)" ]]; then
         record_result pass "verify.git_display_name" \
             "A Git display name is configured."
     else
         record_result fail "verify.git_display_name" \
             "The Git display name is missing." \
-            "Run configure_cvd.sh from a terminal."
+            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
-    local git_email
-    git_email="$(git config --global user.email || true)"
+    git_email="$(git config --global user.email 2>/dev/null || true)"
     if [[ "$git_email" =~ ^[0-9]+\+[A-Za-z0-9-]+@users\.noreply\.github\.com$ ]]; then
         record_result pass "verify.git_private_identity" \
             "Git uses the provider-approved private noreply identity."
     else
         record_result fail "verify.git_private_identity" \
             "Git does not use the approved private commit identity." \
-            "Run configure_cvd.sh from a terminal."
+            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
-    while IFS=$'\t' read -r expected actual; do
-        [[ -n "$expected" ]] || continue
-        local configured
-        configured="$(git config --global --get "$expected" || true)"
-        if [[ "$configured" == "$actual" ]]; then
-            record_result pass "verify.git_setting.${expected}" \
-                "Managed Git setting is correct: $expected"
+    while IFS=$'\t' read -r key expected_value; do
+        [[ -n "$key" ]] || continue
+        configured_value="$(git config --global --get "$key" 2>/dev/null || true)"
+        if [[ "$configured_value" == "$expected_value" ]]; then
+            record_result pass "verify.git_setting.${key}" \
+                "Managed Git setting is correct: $key"
         else
-            record_result fail "verify.git_setting.${expected}" \
-                "Managed Git setting is incorrect: $expected" \
-                "Run configure_cvd.sh from a terminal."
+            record_result fail "verify.git_setting.${key}" \
+                "Managed Git setting is incorrect: $key" \
+                "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
         fi
     done < <(manifest_lines git_settings)
 
-    local settings_file="$HOME/.config/Code/User/settings.json"
-    if python3 - "$MANIFEST_PATH" "$PLATFORM_ID" "$settings_file" \
-        "$VENV_DIR/bin/python" "$COURSE_ROOT" <<'PY'
-import json
-import pathlib
-import sys
-
-manifest_path, platform_id, settings_path, python_path, course_root = sys.argv[1:]
-manifest = json.load(open(manifest_path, encoding="utf-8"))
-settings = json.load(open(settings_path, encoding="utf-8"))
-bindings = manifest["platforms"][platform_id]["course_ide_bindings"]
-expected = {}
-for profile_id in bindings["source_code_ide"].get("settings_profile_ids", []):
-    expected.update(manifest["managed_settings"][profile_id]["values"])
-expected["python.defaultInterpreterPath"] = python_path
-expected["files.defaultFolder"] = course_root
-
-def contains(actual, desired):
-    if isinstance(desired, dict):
-        return isinstance(actual, dict) and all(
-            key in actual and contains(actual[key], value)
-            for key, value in desired.items()
-        )
-    return actual == desired
-
-if not contains(settings, expected):
-    raise SystemExit(1)
-PY
-    then
+    settings_file="$HOME/.config/Code/User/settings.json"
+    if has_valid_vscode_settings; then
         record_result pass "verify.ide_settings" \
             "Required IDE settings are present and valid."
     else
         record_result fail "verify.ide_settings" \
             "Required IDE settings are missing, invalid, or not compliant." \
-            "Run configure_cvd.sh from a terminal."
+            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
-    local desktop_dir
     desktop_dir="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
     desktop_dir="${desktop_dir:-$HOME/Desktop}"
-    if [[ -x "$desktop_dir/it140.desktop" && \
-          -x "$desktop_dir/visual-studio-code.desktop" ]]; then
+    if [[ -x "$desktop_dir/it140.desktop" \
+        && -x "$desktop_dir/visual-studio-code.desktop" ]]; then
         record_result pass "verify.desktop_launchers" \
             "The course folder and IDE desktop launchers are present."
     else
         record_result fail "verify.desktop_launchers" \
             "One or more course desktop launchers are missing." \
-            "Run configure_cvd.sh from a terminal."
+            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
-    local marker="$HOME/.config/xfce4/panel/it140-vscode-plugin-id"
-    if [[ -s "$marker" && "$(<"$marker")" =~ ^[0-9]+$ ]]; then
+    if has_managed_panel_launcher; then
         record_result pass "verify.panel_launcher" \
-            "The managed VS Code panel-launcher record is present."
+            "The managed VS Code panel-launcher record and launcher file are present."
     else
-        record_result warning "verify.panel_launcher" \
-            "The managed VS Code panel-launcher record was not found." \
-            "Run configure_cvd.sh to repair the panel launcher."
+        record_result fail "verify.panel_launcher" \
+            "The managed VS Code panel-launcher record or launcher file is missing." \
+            "Run configure_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
     fi
 
-    local script
-    for script in setup_cvd.sh configure_cvd.sh verify_cvd.sh update_cvd.sh; do
+    for script in configure_cvd.sh verify_cvd.sh update_cvd.sh; do
         if [[ -x "$PLATFORM_SCRIPT_DIR/$script" ]]; then
             record_result pass "verify.script_permissions.${script}" \
-                "$script is executable."
+                "$script is present and executable."
         else
             record_result fail "verify.script_permissions.${script}" \
                 "$script is missing or not executable." \
-                "Run configure_cvd.sh or update_cvd.sh from a terminal."
+                "Run update_cvd.sh. If the same check still fails, contact course support."
         fi
     done
 }
 
 check_managed_assets() {
     local asset_id destination
+
     while IFS=$'\t' read -r asset_id destination; do
         [[ -n "$asset_id" ]] || continue
         if [[ -r "$destination" ]]; then
@@ -621,7 +702,7 @@ check_managed_assets() {
         else
             record_result fail "verify.asset.${asset_id}" \
                 "Managed asset is missing: ${destination/#$HOME/~}" \
-                "Run update_cvd.sh from a terminal."
+                "Run update_cvd.sh. If the same check still fails, contact course support."
         fi
     done < <(manifest_lines asset_destinations)
 }
@@ -639,16 +720,17 @@ create_support_bundle() {
 
     if [[ "$NONINTERACTIVE" == true ]]; then
         if [[ "$CONFIRM_SUPPORT_BUNDLE" != true ]]; then
-            record_result warning "verify.support_bundle" \
-                "Bundle creation was not confirmed in noninteractive mode."
+            record_result not_applicable "verify.support_bundle" \
+                "Support-bundle creation was not confirmed in noninteractive mode."
             return 0
         fi
     elif [[ "$CONFIRM_SUPPORT_BUNDLE" != true ]]; then
+        local response
         printf '[ACTION REQUIRED] Create the sanitized bundle? [y/N]: '
         read -r response
         if [[ "${response,,}" != y && "${response,,}" != yes ]]; then
-            record_result warning "verify.support_bundle" \
-                "Bundle creation was canceled; the verification log remains available."
+            record_result not_applicable "verify.support_bundle" \
+                "Support-bundle creation was declined."
             return 0
         fi
     fi
@@ -691,7 +773,8 @@ SUMMARY
         command -v git >/dev/null 2>&1 && git --version
         command -v gh >/dev/null 2>&1 && gh --version | head -1
         command -v code >/dev/null 2>&1 && code --version | head -1
-        [[ -x "$VENV_DIR/bin/python" ]] && "$VENV_DIR/bin/python" -m pip --version
+        [[ -x "$VENV_DIR/bin/python" ]] \
+            && "$VENV_DIR/bin/python" -m pip --version
     } > "$staging/version_summary.txt"
 
     printf '%s\n' \
@@ -701,11 +784,16 @@ SUMMARY
         version_summary.txt \
         > "$staging/inventory.txt"
 
-    if grep -RIEq '(token|password|private[_ -]?key|BEGIN [A-Z ]*PRIVATE KEY)' "$staging"; then
+    if grep -RIEq \
+        '(password|access[_ -]?token|refresh[_ -]?token|private[_ -]?key|BEGIN [A-Z ]*PRIVATE KEY)' \
+        "$staging"; then
         print_error "The bundle safety scan found prohibited diagnostic content."
         rm -rf "$staging"
         SUPPORT_STAGING=""
-        return 1
+        record_result fail "verify.support_bundle_safety" \
+            "The support bundle was not created because the safety scan failed." \
+            "Contact course support and provide only the verification log path."
+        return 0
     fi
 
     tar -C "$staging" -czf "$bundle" .
@@ -729,30 +817,49 @@ resolve_exit_code() {
 }
 
 print_summary() {
-    local exit_code="$1" elapsed
+    local exit_code="$1"
+    local elapsed result readiness next_step remediation
+
     elapsed=$(( $(date +%s) - START_EPOCH ))
+    if ((exit_code == 0)); then
+        result="PASS"
+        readiness="READY"
+        if ((WARNING_COUNT > 0)); then
+            next_step="Review the warning above; no required failure was detected."
+        else
+            next_step="The IT 140 CVD is ready for course work."
+        fi
+    else
+        result="FAIL"
+        readiness="ACTION REQUIRED"
+        next_step="Complete the recommended action below, then rerun verify_cvd.sh."
+    fi
+
     print_header "VERIFICATION SUMMARY"
-    printf 'PASS          : %s\n' "$PASS_COUNT"
-    printf 'WARNING       : %s\n' "$WARNING_COUNT"
-    printf 'FAIL          : %s\n' "$FAIL_COUNT"
-    printf 'NOT APPLICABLE: %s\n' "$NA_COUNT"
-    printf 'Script version: %s\n' "$SCRIPT_VERSION"
-    printf 'Manifest      : %s\n' "${MANIFEST_RELEASE:-unavailable}"
-    printf 'Elapsed time  : %s seconds\n' "$elapsed"
-    printf 'Exit code     : %s\n' "$exit_code"
-    printf 'Log file      : %s\n' "$LOG_FILE"
+    printf 'Result          : %s\n' "$result"
+    printf 'Course readiness: %s\n' "$readiness"
+    printf 'Passes          : %s\n' "$PASS_COUNT"
+    printf 'Warnings        : %s\n' "$WARNING_COUNT"
+    printf 'Failures        : %s\n' "$FAIL_COUNT"
+    printf 'Not applicable  : %s\n' "$NA_COUNT"
+    printf 'Script version  : %s\n' "$SCRIPT_VERSION"
+    printf 'Manifest release: %s\n' "${MANIFEST_RELEASE:-unavailable}"
+    printf 'Elapsed time    : %s seconds\n' "$elapsed"
+    printf 'Next step       : %s\n' "$next_step"
+    printf 'Log file        : %s\n' "$LOG_FILE"
+    printf 'Exit code       : %s\n' "$exit_code"
 
     if ((${#REMEDIATION_LINES[@]})); then
-        printf '\nRecommended remediation:\n'
-        local line check remediation
-        for line in "${REMEDIATION_LINES[@]}"; do
-            IFS='|' read -r check remediation <<<"$line"
-            printf '  - %s: %s\n' "$check" "$remediation"
+        printf '\nRecommended action:\n'
+        for remediation in "${REMEDIATION_LINES[@]}"; do
+            printf '  - %s\n' "$remediation"
         done
-    elif ((WARNING_COUNT > 0)); then
-        printf 'Next step     : Review warnings; no required failure was detected.\n'
+    fi
+
+    if ((exit_code == 0)); then
+        printf '[SUCCESS] The IT 140 CVD verification completed successfully.\n'
     else
-        printf 'Next step     : No action is required.\n'
+        printf '[ERROR] The IT 140 CVD is not ready for course work.\n' >&2
     fi
 }
 
@@ -776,7 +883,18 @@ main() {
     if [[ ! -r "$MANIFEST_PATH" || ! -r "$SCHEMA_PATH" ]]; then
         record_result fail "verify.manifest" \
             "The controlled manifest or schema is missing." \
-            "Run update_cvd.sh or contact course support."
+            "Run update_cvd.sh. If the same check still fails, contact course support."
+        MANIFEST_FAILURE=true
+        local exit_code
+        exit_code="$(resolve_exit_code)"
+        print_summary "$exit_code"
+        exit "$exit_code"
+    fi
+
+    if ! command -v python3 >/dev/null 2>&1; then
+        record_result fail "verify.manifest_runtime" \
+            "Python 3 is unavailable, so the controlled manifest cannot be validated." \
+            "Run update_cvd.sh. If the same check still fails, contact course support."
         MANIFEST_FAILURE=true
         local exit_code
         exit_code="$(resolve_exit_code)"
@@ -793,7 +911,7 @@ main() {
         MANIFEST_RELEASE="unavailable"
         record_result fail "verify.manifest" \
             "Manifest validation failed: $validation_error" \
-            "Run update_cvd.sh or contact course support."
+            "Run update_cvd.sh. If the same check still fails, contact course support."
         MANIFEST_FAILURE=true
         local exit_code
         exit_code="$(resolve_exit_code)"
