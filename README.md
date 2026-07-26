@@ -36,3 +36,22 @@ Click the links below to access the repositories for each module's activity. Eac
 | Six | Milestone | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/7/2026 |
 | Seven | Project Two | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/8/2026 |
 
+## Emoji Legend
+
+### Development Status
+
+🗓️ Requirements
+📝 Design
+🚧 Construction
+👥 Internal Validation (Staff & Faculty)
+🔍 Release Review
+🎓 Pilot Release (Pilot term)
+✅ Ready for Production
+🔧 Maintenance
+📦 Archived
+
+### Operational Status
+
+🟢 Live
+⚠️ Known Issue
+🔴 Unavailable
