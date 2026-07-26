@@ -11,7 +11,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.26.5"
+readonly SCRIPT_VERSION="2026.07.26.6"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -51,6 +51,13 @@ print_success() { printf '[SUCCESS] %s\n' "$1"; }
 print_notice() { printf '[NOTICE] %s\n' "$1"; }
 print_warning() { printf '[WARNING] %s\n' "$1"; WARNINGS=$((WARNINGS + 1)); }
 print_error() { printf '[ERROR] %s\n' "$1" >&2; FAILURES=$((FAILURES + 1)); }
+
+print_closing_notices() {
+    print_notice "A log containing all output displayed while this script ran is available here:"
+    print_notice "$LOG_FILE"
+    print_notice "After reviewing the summary, type 'exit' and press Enter to close this Terminal."
+    print_notice "Open a new Terminal before running another IT 140 script or command so it loads the latest PATH and environment settings."
+}
 
 usage() {
     cat <<USAGE
@@ -1000,6 +1007,7 @@ finish() {
     else
         print_warning "The update completed only partially and requires remediation."
     fi
+    print_closing_notices
     return "$exit_code"
 }
 

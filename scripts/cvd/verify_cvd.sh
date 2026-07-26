@@ -11,7 +11,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.26.3"
+readonly SCRIPT_VERSION="2026.07.26.4"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -53,6 +53,13 @@ print_header() {
 print_info() { printf '[INFO] %s\n' "$1"; }
 print_notice() { printf '[NOTICE] %s\n' "$1"; }
 print_error() { printf '[ERROR] %s\n' "$1" >&2; }
+
+print_closing_notices() {
+    print_notice "A log containing all output displayed while this script ran is available here:"
+    print_notice "$LOG_FILE"
+    print_notice "After reviewing the summary, type 'exit' and press Enter to close this Terminal."
+    print_notice "Open a new Terminal before running another IT 140 script or command so it loads the latest PATH and environment settings."
+}
 
 cleanup() {
     if [[ -n "$SUPPORT_STAGING" && -d "$SUPPORT_STAGING" ]]; then
@@ -297,7 +304,6 @@ else:
     raise SystemExit(f"unsupported manifest query: {query}")
 PY
 }
-
 has_managed_path_block() {
     local file="$1"
     [[ -r "$file" ]] || return 1
@@ -902,6 +908,7 @@ print_summary() {
     else
         printf '[ERROR] The IT 140 CVD is not ready for course work.\n' >&2
     fi
+    print_closing_notices
 }
 
 main() {
