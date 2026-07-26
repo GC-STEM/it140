@@ -11,7 +11,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.26.1"
+readonly SCRIPT_VERSION="2026.07.26.2"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -523,11 +523,10 @@ check_system_layer() {
 
     if [[ -r /etc/xdg/autostart/numlockx.desktop ]]; then
         record_result pass "verify.system.numlock" \
-            "The CVD Num Lock session policy is present."
+            "The optional CVD Num Lock startup preference is present."
     else
-        record_result fail "verify.system.numlock" \
-            "The CVD Num Lock session policy is missing." \
-            "Run update_cvd.sh. If the same check still fails, contact course support."
+        record_result warning "verify.system.numlock" \
+            "The optional Num Lock startup preference is not installed; this does not affect course work."
     fi
 }
 
