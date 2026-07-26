@@ -72,7 +72,7 @@ function Test-IsAdministrator {
     )
 }
 
-function Refresh-ProcessEnvironment {
+function Update-ProcessEnvironment {
     $MachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
     $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
     $env:Path = @($MachinePath, $UserPath) -join ";"
@@ -114,24 +114,27 @@ function Read-ControlledManifest {
     }
 
     $Platform = Get-PropertyValue -Object $Manifest.platforms -Name $PlatformId
-    $Profile = Get-PropertyValue `
+    $DeploymentProfileRecord = Get-PropertyValue `
         -Object $Manifest.deployment_profiles `
         -Name $DeploymentProfile
 
     if ($null -eq $Platform -or -not [bool]$Platform.enabled) {
         throw "The Windows platform is not enabled."
     }
-    if ($null -eq $Profile -or -not [bool]$Profile.enabled) {
+    if (
+        $null -eq $DeploymentProfileRecord -or
+        -not [bool]$DeploymentProfileRecord.enabled
+    ) {
         throw "The deployment profile is not enabled: $DeploymentProfile"
     }
-    if ([string]$Profile.platform_id -ne $PlatformId) {
+    if ([string]$DeploymentProfileRecord.platform_id -ne $PlatformId) {
         throw "The deployment profile does not select Windows."
     }
 
     return [pscustomobject]@{
         Manifest = $Manifest
         Platform = $Platform
-        Profile = $Profile
+        Profile = $DeploymentProfileRecord
     }
 }
 
@@ -190,7 +193,7 @@ function Enter-MutationLock {
 }
 
 function Assert-SystemLayer {
-    Refresh-ProcessEnvironment
+    Update-ProcessEnvironment
     $RequiredCommands = @("git.exe", "gh.exe", "python.exe", "code.cmd")
     $Missing = @()
 
@@ -215,7 +218,7 @@ function Assert-SystemLayer {
     }
 }
 
-function Ensure-CourseRepository {
+function Initialize-CourseRepository {
     if (
         (Test-Path -LiteralPath $ManifestPath -PathType Leaf) -and
         (Test-Path -LiteralPath $WindowsScriptDirectory -PathType Container)
@@ -262,7 +265,7 @@ function Ensure-CourseRepository {
     }
 }
 
-function Ensure-UserPathEntry {
+function Add-UserPathEntry {
     param([Parameter(Mandatory = $true)][string]$PathEntry)
 
     $CanonicalEntry = [IO.Path]::GetFullPath($PathEntry).TrimEnd("\")
@@ -300,7 +303,7 @@ function Ensure-UserPathEntry {
     }
 }
 
-function Ensure-PythonEnvironment {
+function Initialize-PythonEnvironment {
     if (-not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) {
         Write-Info "Creating the IT 140 Python virtual environment."
         & python.exe -m venv $VenvDirectory
@@ -321,7 +324,7 @@ function Ensure-PythonEnvironment {
     }
 }
 
-function Ensure-GitHubIdentity {
+function Set-GitHubIdentity {
     param([Parameter(Mandatory = $true)]$Manifest)
 
     & gh.exe auth status --hostname github.com *> $null
@@ -435,7 +438,7 @@ function Get-RequiredExtensions {
     return @($Extensions | Sort-Object -Unique)
 }
 
-function Ensure-VsCodeExtensions {
+function Install-VsCodeExtensions {
     param([Parameter(Mandatory = $true)][string[]]$Extensions)
 
     $env:NODE_NO_WARNINGS = "1"
@@ -572,7 +575,7 @@ function Merge-VsCodeSettings {
     }
 }
 
-function Ensure-CourseShortcut {
+function Set-CourseShortcut {
     $Desktop = [Environment]::GetFolderPath("Desktop")
     $ShortcutPath = Join-Path $Desktop "IT 140.lnk"
     $Shell = New-Object -ComObject WScript.Shell
@@ -651,9 +654,9 @@ try {
     }
 
     $MutationMutex = Enter-MutationLock
-    Refresh-ProcessEnvironment
+    Update-ProcessEnvironment
     Assert-SystemLayer
-    Ensure-CourseRepository
+    Initialize-CourseRepository
 
     $Controlled = Read-ControlledManifest
     $WindowsFacts = Get-WindowsFacts
@@ -664,16 +667,16 @@ try {
     New-Item -ItemType Directory -Path $CourseRoot -Force | Out-Null
     New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null
 
-    Ensure-UserPathEntry -PathEntry $WindowsScriptDirectory
-    Ensure-PythonEnvironment
-    Ensure-UserPathEntry -PathEntry $VenvScripts
+    Add-UserPathEntry -PathEntry $WindowsScriptDirectory
+    Initialize-PythonEnvironment
+    Add-UserPathEntry -PathEntry $VenvScripts
 
-    Ensure-GitHubIdentity -Manifest $Controlled.Manifest
+    Set-GitHubIdentity -Manifest $Controlled.Manifest
 
     $Extensions = Get-RequiredExtensions -Platform $Controlled.Platform
-    Ensure-VsCodeExtensions -Extensions $Extensions
+    Install-VsCodeExtensions -Extensions $Extensions
     Merge-VsCodeSettings -Manifest $Controlled.Manifest
-    Ensure-CourseShortcut
+    Set-CourseShortcut
 
     Write-Host ""
     Write-Host "============================================================"
