@@ -1,0 +1,141 @@
+
+============================================================
+IT 140 CODIO VIRTUAL DESKTOP UPDATE
+============================================================
+[INFO] Script version: 2026.07.26.2
+[INFO] Current user  : ubuntu
+[INFO] Purpose       : Maintain approved software and course-managed assets.
+[INFO] Log file      : /home/ubuntu/it140/logs/update_cvd_20260726_141819.log
+[NOTICE] The update will not upgrade Ubuntu to a different release.
+[NOTICE] Keep this terminal window open until the update finishes.
+[SUCCESS] Installed manifest release 2026.07.25.2 validated.
+[SUCCESS] Existing IT 140 user configuration was detected.
+
+============================================================
+Step 1: Synchronize Course Automation Assets
+============================================================
+[INFO] Retrieving the approved course repository into private staging...
+Cloning into '/tmp/tmp.e0EXAr8BtT/it140'...
+[SUCCESS] Staged manifest release 2026.07.25.2 validated.
+[SUCCESS] configure_cvd.sh 2026.07.26.1 synchronized.
+[SUCCESS] verify_cvd.sh 2026.07.26.1 synchronized.
+[SUCCESS] update_cvd.sh 2026.07.26.2 synchronized.
+[SUCCESS] Course-managed assets are active and valid.
+
+============================================================
+Step 2: Update Ubuntu and Required System Software
+============================================================
+Hit:1 http://us-east-1.ec2.archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://us-east-1.ec2.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:3 http://us-east-1.ec2.archive.ubuntu.com/ubuntu noble-backports InRelease
+Hit:4 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:5 https://cli.github.com/packages stable InRelease
+Hit:6 https://packages.microsoft.com/repos/code stable InRelease
+Hit:7 https://dl.google.com/linux/chrome-stable/deb stable InRelease
+Reading package lists...
+[INFO] Applying security and maintenance updates within Ubuntu 24.04...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Calculating upgrade...
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+[INFO] Installing or repairing manifest-declared system packages...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+ca-certificates is already the newest version (20260601~24.04.1).
+code is already the newest version (1.130.0-1784734578).
+curl is already the newest version (8.5.0-2ubuntu10.11).
+desktop-file-utils is already the newest version (0.27-2build1).
+direnv is already the newest version (2.32.1-2ubuntu0.24.04.3).
+gh is already the newest version (2.96.0).
+git is already the newest version (1:2.43.0-1ubuntu7.3).
+gpg is already the newest version (2.4.4-2ubuntu17.4).
+libsecret-1-0 is already the newest version (0.21.4-1build3).
+numlockx is already the newest version (1.2-9build1).
+python3.12 is already the newest version (3.12.3-1ubuntu0.15).
+python3.12-venv is already the newest version (3.12.3-1ubuntu0.15).
+tree is already the newest version (2.1.1-2ubuntu3.24.04.2).
+xclip is already the newest version (0.13-3).
+xdg-utils is already the newest version (1.1.3-4.1ubuntu3).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+[SUCCESS] Required system software is current.
+
+============================================================
+Step 3: Update Required User Tools and IDE Extensions
+============================================================
+Requirement already satisfied: pip in ./it140/.venv/lib/python3.12/site-packages (26.1.2)
+Requirement already satisfied: pytest in ./it140/.venv/lib/python3.12/site-packages (9.1.1)
+Requirement already satisfied: pytest-cov in ./it140/.venv/lib/python3.12/site-packages (7.1.0)
+Requirement already satisfied: ruff in ./it140/.venv/lib/python3.12/site-packages (0.16.0)
+Requirement already satisfied: iniconfig>=1.0.1 in ./it140/.venv/lib/python3.12/site-packages (from pytest) (2.3.0)
+Requirement already satisfied: packaging>=22 in ./it140/.venv/lib/python3.12/site-packages (from pytest) (26.2)
+Requirement already satisfied: pluggy<2,>=1.5 in ./it140/.venv/lib/python3.12/site-packages (from pytest) (1.6.0)
+Requirement already satisfied: pygments>=2.7.2 in ./it140/.venv/lib/python3.12/site-packages (from pytest) (2.20.0)
+Requirement already satisfied: coverage>=7.10.6 in ./it140/.venv/lib/python3.12/site-packages (from coverage[toml]>=7.10.6->pytest-cov) (7.15.2)
+[SUCCESS] Required course Python tools are current.
+No extension to update
+[SUCCESS] Installed IDE extensions were updated without removing optional extensions.
+Installing extensions...
+Extension 'ms-python.python' is already installed.
+[SUCCESS] Required extension is installed and current: ms-python.python
+Installing extensions...
+Extension 'charliermarsh.ruff' is already installed.
+[SUCCESS] Required extension is installed and current: charliermarsh.ruff
+Installing extensions...
+Extension 'hediet.vscode-drawio' is already installed.
+[SUCCESS] Required extension is installed and current: hediet.vscode-drawio
+Installing extensions...
+Extension 'i2p-hub.i2p-pseudo' is already installed.
+[SUCCESS] Required extension is installed and current: i2p-hub.i2p-pseudo
+Installing extensions...
+Extension 'streetsidesoftware.code-spell-checker' is already installed.
+[SUCCESS] Required extension is installed and current: streetsidesoftware.code-spell-checker
+Installing extensions...
+Extension 'cweijan.vscode-office' is already installed.
+[SUCCESS] Required extension is installed and current: cweijan.vscode-office
+
+============================================================
+Step 4: Refresh Course-Managed Desktop Integrations
+============================================================
+[SUCCESS] VS Code desktop and panel launcher files were refreshed.
+[SUCCESS] Managed IDE settings were refreshed.
+
+============================================================
+Step 5: Safe Cleanup
+============================================================
+[INFO] The manifest declares no obsolete CVD components for removal.
+Reading package lists...
+Building dependency tree...
+Reading state information...
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+[SUCCESS] Safe package cleanup and dependency checks completed.
+
+============================================================
+Step 6: Post-Update Validation
+============================================================
+[SUCCESS] Required commands, packages, tools, extensions, and assets passed validation.
+[NOTICE] Ubuntu does not currently require a virtual-machine restart.
+[NOTICE] Close this terminal and open a new Terminal before continuing.
+
+============================================================
+UPDATE SUMMARY
+============================================================
+Result          : PASS
+Workflow        : Periodic maintenance
+Script version  : 2026.07.26.2
+Manifest release: 2026.07.25.2
+Warnings        : 0
+Failures        : 0
+Restart VM      : No
+Elapsed time    : 17 seconds
+Next step       : Close this terminal, open a new Terminal, and run verify_cvd.sh.
+Log file        : /home/ubuntu/it140/logs/update_cvd_20260726_141819.log
+Exit code       : 0
+[SUCCESS] The IT 140 CVD update completed successfully.

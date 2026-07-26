@@ -1,0 +1,78 @@
+
+============================================================
+IT 140 CODIO VIRTUAL DESKTOP CONFIGURATION
+============================================================
+[INFO] Script version  : 2026.07.26.1
+[INFO] Current user    : ubuntu
+[INFO] Purpose         : Configure the current user's course environment.
+[INFO] Log file        : /home/ubuntu/it140/logs/configure_cvd_20260726_134708.log
+[NOTICE] This script does not install or change system-wide software.
+[SUCCESS] Manifest release 2026.07.25.2 validated.
+
+============================================================
+Step 1: Course Folders and System Prerequisites
+============================================================
+[SUCCESS] Required system components are present.
+[INFO] Creating or repairing course folders without deleting existing content...
+[SUCCESS] Course folders, script permissions, and PATH entries are configured.
+
+============================================================
+Step 2: Source-Code Hosting Authentication and Identity
+============================================================
+[INFO] Checking GitHub authentication status...
+[NOTICE] GitHub CLI will display a one-time code and open a browser.
+[NOTICE] Write down or copy the code, complete the browser steps, and return here.
+[ACTION REQUIRED] Press Enter to begin, or type C to cancel:
+! First copy your one-time code: 7091-C1C6
+Open this URL to continue in your web browser: https://github.com/login/device
+\u2713 Authentication complete.
+- gh config set -h github.com git_protocol https
+\u2713 Configured git protocol
+\u2713 Logged in as petey-penmen
+[SUCCESS] GitHub authentication is valid.
+[NOTICE] Your Git display name is public in version-control history.
+[ACTION REQUIRED] Git display name [petey-penmen]: [SUCCESS] Git identity and course defaults are configured.
+[INFO] Git display name : Petey Penmen
+[INFO] Commit identity  : GitHub private noreply identity
+[INFO] GitHub account   : petey-penmen
+
+============================================================
+Step 3: Course Python Tools and IDE Extensions
+============================================================
+[SUCCESS] The IT 140 course virtual environment is available.
+[SUCCESS] Required course Python tools are already installed.
+[SUCCESS] Required IDE extensions are already installed.
+[SUCCESS] Required user-scoped tools and IDE extensions are configured.
+
+============================================================
+Step 4: Course IDE Settings
+============================================================
+[SUCCESS] Course-managed IDE settings were merged without removing unrelated settings.
+
+============================================================
+Step 4: CVD Desktop Integration
+============================================================
+/home/ubuntu/Desktop/visual-studio-code.desktop: hint: value item "TextEditor" in key "Categories" in group "Desktop Entry" can be extended with another category among the following categories: Utility
+[SUCCESS] Course desktop launchers and file associations are configured.
+
+============================================================
+Step 5: Configuration Validation
+============================================================
+[SUCCESS] User-layer validation passed.
+
+============================================================
+CONFIGURATION SUMMARY
+============================================================
+Result          : PASS
+Script version  : 2026.07.26.1
+Manifest release: 2026.07.25.2
+GitHub login    : Valid
+Course folder   : /home/ubuntu/it140
+Python          : /home/ubuntu/it140/.venv/bin/python
+Warnings        : 0
+Failures        : 0
+Elapsed time    : 279 seconds
+Next step       : Close this terminal, open a new Terminal, and run verify_cvd.sh.
+Log file        : /home/ubuntu/it140/logs/configure_cvd_20260726_134708.log
+Exit code       : 0
+[SUCCESS] The IT 140 CVD user configuration completed successfully.
