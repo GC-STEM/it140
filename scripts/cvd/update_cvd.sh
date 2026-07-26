@@ -11,7 +11,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.26.2"
+readonly SCRIPT_VERSION="2026.07.26.1"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -398,26 +398,19 @@ acquire_lock() {
     fi
 }
 
-script_version() {
+version_at_least_current() {
     local file="$1"
-    sed -n 's/^readonly SCRIPT_VERSION="\([^"]*\)"/\1/p; s/^SCRIPT_VERSION="\([^"]*\)"/\1/p' \
-        "$file" | head -1
-}
-
-is_valid_script_version() {
-    local version="$1"
-    [[ "$version" =~ ^[0-9]+(\.[0-9]+)*$ ]]
-}
-
-version_at_least() {
-    local candidate_version="$1"
-    local installed_version="$2"
-    python3 - "$candidate_version" "$installed_version" <<'PY'
+    local candidate
+    candidate="$(sed -n 's/^readonly SCRIPT_VERSION="\([^"]*\)"/\1/p; s/^SCRIPT_VERSION="\([^"]*\)"/\1/p' \
+        "$file" | head -1)"
+    [[ -n "$candidate" ]] || return 1
+    python3 - "$candidate" "$SCRIPT_VERSION" <<'PY'
+import re
 import sys
 
 
 def key(value):
-    return tuple(int(item) for item in value.split("."))
+    return tuple(int(item) for item in re.findall(r"\d+", value))
 
 
 raise SystemExit(key(sys.argv[1]) < key(sys.argv[2]))
@@ -512,56 +505,27 @@ synchronize_course_assets() {
     atomic_install_file "$candidate_schema" "$SCHEMA_PATH" 0644
     atomic_install_file "$candidate_manifest" "$MANIFEST_PATH" 0644
 
-    local source_script target_script candidate_name installed_script
-    local candidate_version installed_version
-    for target_script in configure_cvd.sh verify_cvd.sh update_cvd.sh; do
+    local source_script target_script candidate_name
+    for target_script in setup_cvd.sh configure_cvd.sh verify_cvd.sh update_cvd.sh; do
         candidate_name="$target_script"
         if [[ "$target_script" == configure_cvd.sh \
               && ! -f "$clone_dir/scripts/cvd/$candidate_name" \
               && -f "$clone_dir/scripts/cvd/config_cvd.sh" ]]; then
             candidate_name="config_cvd.sh"
         fi
-
         source_script="$clone_dir/scripts/cvd/$candidate_name"
-        installed_script="$PLATFORM_SCRIPT_DIR/$target_script"
-
         if [[ ! -r "$source_script" ]]; then
-            if [[ -r "$installed_script" ]] \
-                && validate_staged_file "$installed_script" 0755; then
-                print_notice "$target_script is not included in this repository release; the valid installed copy was preserved."
-            else
-                print_error "Required student script is unavailable: $target_script"
-                PARTIAL=true
-            fi
-            continue
-        fi
-
-        candidate_version="$(script_version "$source_script")"
-        if ! is_valid_script_version "$candidate_version"; then
-            print_error "The staged $candidate_name has an invalid or missing SCRIPT_VERSION."
+            print_warning "The repository does not yet contain $target_script; the installed copy was preserved."
             PARTIAL=true
             continue
         fi
-
-        installed_version=""
-        if [[ -r "$installed_script" ]]; then
-            installed_version="$(script_version "$installed_script")"
+        if version_at_least_current "$source_script"; then
+            atomic_install_file "$source_script" \
+                "$PLATFORM_SCRIPT_DIR/$target_script" 0755
+            print_success "$target_script synchronized."
+        else
+            print_warning "The staged $candidate_name does not identify an equal or newer release; the installed copy was preserved."
         fi
-
-        if [[ -n "$installed_version" ]] \
-            && is_valid_script_version "$installed_version" \
-            && ! version_at_least "$candidate_version" "$installed_version"; then
-            print_notice "$target_script $installed_version is newer than repository release $candidate_version; the installed copy was preserved."
-            continue
-        fi
-
-        if [[ -n "$installed_version" ]] \
-            && ! is_valid_script_version "$installed_version"; then
-            print_notice "$target_script has an invalid installed version marker and will be replaced from the repository."
-        fi
-
-        atomic_install_file "$source_script" "$installed_script" 0755
-        print_success "$target_script $candidate_version synchronized."
     done
 
     MANIFEST_RELEASE="$(validate_manifest_pair "$MANIFEST_PATH" "$SCHEMA_PATH")" \
