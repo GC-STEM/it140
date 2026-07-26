@@ -1,9 +1,9 @@
 <!-- To see this file in a clean, formatted view, right-click on the filename and choose “Open Preview.” -->
 
-# IT 140 - *Introduction to Scripting*
+# Main Course Repository
 
 - **Course**: IT 140 - *Introduction to Scripting*
-- **Activity Name**: Course Repository
+- **Activity Name**: Main Course Repository
 
 > [!WARNING]
 > This repository is a work in progress. Some modules and activities may not be fully implemented yet. Please check the status of each activity in the table below for the latest updates.
@@ -24,3 +24,14 @@ Click the links below to access the repositories for each module's activity. Eac
 | Five | Project One | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/6/2026 |
 | Six | Milestone | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/7/2026 |
 | Seven | Project Two | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/8/2026 |
+
+## Automation Scripts
+
+Click the links below to access the automation scripts for Windows, Mac, and CVD environments.
+
+| **Environment** | **Scripts Directory** |
+| --------------- | --------------------- |
+| Codio | [scripts/cvd](scripts/cvd) |
+| Windows | [scripts/win](scripts/win) |
+| MacOS | [scripts/mac](scripts/mac) |
+| Linux | [scripts/linux](scripts/linux) |
