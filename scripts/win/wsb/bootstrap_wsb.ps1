@@ -1,4 +1,27 @@
-﻿
+﻿# IT 140 Windows Sandbox bootstrap command set
+#
+# Repository path:
+#   scripts/win/wsb/bootstrap_wsb.ps1
+#
+# Purpose:
+#   Prepare a Windows Sandbox (WSB) environment to run the IT 140 lifecycle
+#   scripts. This script is intended to be run from a fresh Windows Sandbox
+#   session. After running this script, run the following Windows lifecycle
+#   scripts to complete the setup:
+#      1. scripts/win/bootstrap_win.ps1
+#      2. scripts/win/setup_win.ps1
+#      3. scripts/win/config_win.ps1
+#      4. scripts/win/verify_win.ps1
+#      5. scripts/win/update_win.ps1
+#
+# Artifact version:
+#   2026.07.27.1
+#
+# This file models the commands testers copy and run before setup. It is not a
+# managed lifecycle script and therefore does not create a transcript or accept
+# command-line options. Copy the commands below and paste them into a Windows
+# Sandbox Administrator PowerShell session to bootstrap the WSB.
+
 try {
 $ErrorActionPreference = 'Stop'
 $TempDir = Join-Path $env:TEMP 'winget-install'
