@@ -3,20 +3,21 @@
 # IT 140 macOS system setup and repair script
 #
 # Traceability: SET-FR-001 through SET-FR-012; SET-DES-001 through SET-DES-012
-# Scope: Xcode Command Line Tools, Homebrew, and manifest-declared system software.
-# Excludes: Provider authentication, Git identity, user tools, IDE settings,
-#           IDE extensions, and student-owned course work.
+# Scope: Xcode Command Line Tools, current-release Apple updates, Homebrew, and
+#        manifest-declared system software for the local IT 140 course IDE.
+# Excludes: Provider authentication, Git identity, user-scoped Python tools,
+#           IDE extensions and settings, student work, and macOS release upgrades.
 
 set -euo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.25.2"
+readonly SCRIPT_VERSION="2026.07.27.1"
 readonly PLATFORM_ID="macos"
 readonly PLATFORM_ABBREVIATION="mac"
 readonly DEPLOYMENT_PROFILE_ID="macos_bare_metal"
 readonly COURSE_ROOT="${HOME}/it140"
 readonly SCRIPT_ROOT="${COURSE_ROOT}/scripts"
-readonly PLATFORM_SCRIPT_DIR="${SCRIPT_ROOT}/mac"
+readonly PLATFORM_SCRIPT_DIR="${SCRIPT_ROOT}/${PLATFORM_ABBREVIATION}"
 readonly MANIFEST_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.json"
 readonly SCHEMA_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.schema.json"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
@@ -42,61 +43,30 @@ print_header() {
 print_info() { printf '[INFO] %s\n' "$1"; }
 print_success() { printf '[SUCCESS] %s\n' "$1"; }
 print_notice() { printf '[NOTICE] %s\n' "$1"; }
-print_warning() {
-    printf '[WARNING] %s\n' "$1"
-    WARNINGS=$(( WARNINGS + 1 ))
-}
+print_warning() { printf '[WARNING] %s\n' "$1"; WARNINGS=$(( WARNINGS + 1 )); }
 print_error() { printf '[ERROR] %s\n' "$1" >&2; }
+
+print_closing_notices() {
+    print_notice "A log containing all output displayed while this script ran is available here:"
+    print_notice "$LOG_FILE"
+    print_notice "After reviewing the summary, type 'exit' and press Enter to close this Terminal."
+    print_notice "Open a new Terminal before running another script or command so it loads the latest PATH and environment settings."
+}
 
 usage() {
     cat <<'USAGE'
 Usage: setup_mac.sh [--help] [--version] [--noninteractive]
                     [--deployment-profile macos_bare_metal]
 
-Installs or repairs the manifest-declared system layer for the IT 140 macOS
-course environment. Run as the intended macOS user, not with sudo.
+Installs or repairs the system layer for the local IT 140 macOS course IDE.
+Run as the intended student or faculty macOS user, not with sudo.
 
-The initial supported macOS implementation targets Apple Silicon. Homebrew may
-request administrator authorization during its first installation.
+The script installs current-release Apple updates when they can be safely
+classified, but it never installs a different major macOS release. Homebrew may
+request administrator authorization during installation or maintenance.
 
 Log directory: ~/it140/logs/
 USAGE
-}
-
-cleanup() {
-    set +e
-    local path
-    for path in "${TEMP_PATHS[@]}"; do
-        [[ -n "$path" ]] && rm -rf "$path"
-    done
-    if [[ "$LOCK_HELD" == true && -d "$LOCK_DIR" ]]; then
-        rm -rf "$LOCK_DIR"
-    fi
-}
-
-on_error() {
-    local status=$?
-    trap - ERR
-    set +e
-    print_error "Setup stopped near line ${LINENO:-unknown} with exit status ${status}."
-    print_error "Review the log: ${LOG_FILE}"
-    cleanup
-    if [[ "$CHANGED" == true ]]; then
-        exit 7
-    fi
-    exit 1
-}
-
-on_interrupt() {
-    trap - INT TERM
-    set +e
-    print_error "Setup was interrupted."
-    print_error "Rerun setup_mac.sh to repair the system layer."
-    cleanup
-    if [[ "$CHANGED" == true ]]; then
-        exit 7
-    fi
-    exit 6
 }
 
 parse_options() {
@@ -137,6 +107,58 @@ initialize_log() {
     exec > >(tee -a "$LOG_FILE") 2>&1
 }
 
+cleanup() {
+    set +e
+    local temp_path
+    for temp_path in "${TEMP_PATHS[@]}"; do
+        [[ -n "$temp_path" ]] && rm -rf "$temp_path"
+    done
+    if [[ "$LOCK_HELD" == true && -d "$LOCK_DIR" && ! -L "$LOCK_DIR" ]]; then
+        rm -rf "$LOCK_DIR"
+    fi
+}
+
+on_error() {
+    local exit_code=$?
+    trap - ERR
+    set +e
+    print_error "Setup stopped near line ${LINENO:-unknown} with exit status ${exit_code}."
+    print_error "Review the log: ${LOG_FILE}"
+    cleanup
+    if [[ "$CHANGED" == true ]]; then
+        exit 7
+    fi
+    exit 1
+}
+
+on_interrupt() {
+    trap - INT TERM
+    set +e
+    print_error "Setup was interrupted."
+    print_error "Rerun setup_mac.sh to repair the system layer."
+    cleanup
+    if [[ "$CHANGED" == true ]]; then
+        exit 7
+    fi
+    exit 6
+}
+
+check_basic_context() {
+    if [[ "$(uname -s)" != "Darwin" ]]; then
+        print_error "This script supports macOS only."
+        exit 2
+    fi
+    if (( EUID == 0 )); then
+        print_error "Do not run setup_mac.sh with sudo."
+        print_error "Run it from the intended macOS user account."
+        exit 2
+    fi
+    if [[ "$REQUESTED_PROFILE" != "$DEPLOYMENT_PROFILE_ID" ]]; then
+        print_error "Unsupported deployment profile: $REQUESTED_PROFILE"
+        exit 2
+    fi
+}
+
 manifest_raw() {
     /usr/bin/plutil -extract "$1" raw -o - "$MANIFEST_PATH"
 }
@@ -170,8 +192,7 @@ validate_manifest_bootstrap() {
         print_error "The requested macOS deployment profile is not enabled."
         return 1
     }
-    [[ "$(manifest_raw \
-        "deployment_profiles.${REQUESTED_PROFILE}.platform_id")" == "$PLATFORM_ID" ]] || {
+    [[ "$(manifest_raw deployment_profiles.${REQUESTED_PROFILE}.platform_id)" == "$PLATFORM_ID" ]] || {
         print_error "The requested deployment profile does not reference macOS."
         return 1
     }
@@ -196,23 +217,19 @@ check_platform() {
     product_version="$(/usr/bin/sw_vers -productVersion)"
     major="${product_version%%.*}"
     architecture="$(uname -m)"
-    releases_json="$(/usr/bin/plutil -extract platforms.macos.os.releases json \
-        -o - "$MANIFEST_PATH")"
-    architectures_json="$(/usr/bin/plutil -extract platforms.macos.os.architectures json \
-        -o - "$MANIFEST_PATH")"
+    releases_json="$(/usr/bin/plutil -extract platforms.macos.os.releases json -o - "$MANIFEST_PATH")"
+    architectures_json="$(/usr/bin/plutil -extract platforms.macos.os.architectures json -o - "$MANIFEST_PATH")"
 
     if ! printf '%s\n' "$releases_json" \
         | grep -Eq "\"release_id\"[[:space:]]*:[[:space:]]*\"${major}\""; then
         print_error "macOS ${product_version} is not approved by the current manifest."
         exit 2
     fi
-    if ! printf '%s\n' "$architectures_json" \
-        | grep -Eq "\"${architecture}\""; then
+    if ! printf '%s\n' "$architectures_json" | grep -Eq "\"${architecture}\""; then
         print_error "Architecture ${architecture} is not enabled for macOS."
         exit 2
     fi
-    if [[ "$(manifest_raw deployment_profiles.${REQUESTED_PROFILE}.architecture)" \
-        != "$architecture" ]]; then
+    if [[ "$(manifest_raw deployment_profiles.${REQUESTED_PROFILE}.architecture)" != "$architecture" ]]; then
         print_error "The selected deployment profile does not match ${architecture}."
         exit 2
     fi
@@ -232,8 +249,7 @@ check_disk_space() {
 
 check_network() {
     if ! /usr/bin/curl -fsSIL --connect-timeout 10 --max-time 30 \
-        https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh \
-        >/dev/null; then
+        https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh >/dev/null; then
         print_error "The Homebrew installer source could not be reached."
         exit 4
     fi
@@ -241,7 +257,10 @@ check_network() {
 
 acquire_lock() {
     mkdir -p "$LOCK_PARENT"
-
+    if [[ -L "$LOCK_DIR" ]]; then
+        print_error "The lifecycle lock path is an unexpected symbolic link: $LOCK_DIR"
+        exit 1
+    fi
     if mkdir "$LOCK_DIR" 2>/dev/null; then
         printf '%s\n' "$$" > "$LOCK_DIR/pid"
         LOCK_HELD=true
@@ -251,11 +270,10 @@ acquire_lock() {
     local existing_pid=""
     [[ -r "$LOCK_DIR/pid" ]] && existing_pid="$(cat "$LOCK_DIR/pid")"
     case "$existing_pid" in
-        ''|*[!0-9]*)
-            ;;
+        ''|*[!0-9]*) ;;
         *)
             if kill -0 "$existing_pid" 2>/dev/null; then
-                print_error "Another IT 140 macOS setup, configure, or update operation is running."
+                print_error "Another IT 140 macOS setup, configuration, or update operation is running."
                 exit 1
             fi
             ;;
@@ -268,23 +286,14 @@ acquire_lock() {
 }
 
 initialize_homebrew_environment() {
-    if [[ "$(uname -m)" == "arm64" ]]; then
-        if [[ -x /opt/homebrew/bin/brew ]]; then
-            eval "$(/opt/homebrew/bin/brew shellenv)"
-            return 0
+    local candidate
+    for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+        if [[ -x "$candidate" ]]; then
+            eval "$("$candidate" shellenv)"
+            command -v brew >/dev/null 2>&1
+            return
         fi
-        if command -v brew >/dev/null 2>&1 \
-            && [[ "$(brew --prefix 2>/dev/null || true)" == "/opt/homebrew" ]]; then
-            eval "$(brew shellenv)"
-            return 0
-        fi
-        return 1
-    fi
-
-    if [[ -x /usr/local/bin/brew ]]; then
-        eval "$(/usr/local/bin/brew shellenv)"
-        return 0
-    fi
+    done
     return 1
 }
 
@@ -293,7 +302,6 @@ retry_operation() {
     shift
     local attempt=1
     local delay=5
-
     while (( attempt <= 5 )); do
         if "$@"; then
             return 0
@@ -312,7 +320,6 @@ retry_operation() {
 
 ensure_command_line_tools() {
     print_header "Step 1: Xcode Command Line Tools"
-
     if /usr/bin/xcode-select -p >/dev/null 2>&1 \
         && /usr/bin/xcrun --find clang >/dev/null 2>&1; then
         print_success "Xcode Command Line Tools are available."
@@ -328,7 +335,6 @@ ensure_command_line_tools() {
     print_notice "macOS will open the Apple Command Line Tools installer."
     print_notice "Complete the installer before returning to this Terminal window."
     /usr/bin/xcode-select --install >/dev/null 2>&1 || true
-
     printf '[ACTION REQUIRED] Press Enter after installation, or type C to cancel: '
     local response
     IFS= read -r response
@@ -342,14 +348,12 @@ ensure_command_line_tools() {
         print_error "Xcode Command Line Tools are still unavailable."
         exit 1
     fi
-
     CHANGED=true
     print_success "Xcode Command Line Tools are available."
 }
 
 update_current_macos_release() {
     print_header "Step 2: Update the Current macOS Release"
-
     local output_file current_major
     output_file="$(mktemp "${TMPDIR:-/tmp}/it140-softwareupdate.XXXXXX")"
     TEMP_PATHS+=("$output_file")
@@ -361,7 +365,6 @@ update_current_macos_release() {
         print_error "Apple Software Update could not complete its check."
         exit 4
     fi
-
     cat "$output_file"
 
     local -a safe_labels
@@ -370,7 +373,6 @@ update_current_macos_release() {
     while IFS= read -r label; do
         [[ -n "$label" ]] || continue
         lower_label="$(printf '%s' "$label" | tr '[:upper:]' '[:lower:]')"
-
         if [[ "$lower_label" == *"macos"* ]]; then
             if printf '%s\n' "$label" \
                 | grep -Eiq "macOS.*(^|[^0-9])${current_major}([. -]|$)"; then
@@ -381,11 +383,7 @@ update_current_macos_release() {
         else
             safe_labels+=("$label")
         fi
-    done < <(
-        sed -nE \
-            's/^[[:space:]]*[*-][[:space:]]+Label:[[:space:]]*(.*)$/\1/p' \
-            "$output_file"
-    )
+    done < <(sed -nE 's/^[[:space:]]*[*-][[:space:]]+Label:[[:space:]]*(.*)$/\1/p' "$output_file")
 
     if (( ${#safe_labels[@]} == 0 )); then
         if grep -Fq "No new software available" "$output_file"; then
@@ -422,7 +420,6 @@ update_current_macos_release() {
 
 ensure_homebrew() {
     print_header "Step 3: Homebrew"
-
     if initialize_homebrew_environment; then
         print_success "Homebrew is already installed."
         return
@@ -431,43 +428,35 @@ ensure_homebrew() {
     print_notice "Homebrew will explain its changes and may request administrator authorization."
     local installer_url="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
     if [[ "$NONINTERACTIVE" == true ]]; then
-        if ! NONINTERACTIVE=1 /bin/bash -c \
-            "$(/usr/bin/curl -fsSL "$installer_url")"; then
-            exit 3
-        fi
+        NONINTERACTIVE=1 /bin/bash -c "$(/usr/bin/curl -fsSL "$installer_url")" || exit 3
     else
         /bin/bash -c "$(/usr/bin/curl -fsSL "$installer_url")"
     fi
 
-    if ! initialize_homebrew_environment; then
+    initialize_homebrew_environment || {
         print_error "Homebrew installation completed without an available brew command."
         exit 1
-    fi
-
+    }
     CHANGED=true
     print_success "Homebrew is installed and available."
 }
 
 manifest_package() {
-    local role="$1"
-    manifest_raw "platforms.macos.course_ide_bindings.${role}.package_identifier"
+    manifest_raw "platforms.macos.course_ide_bindings.${1}.package_identifier"
 }
 
 install_or_upgrade_formula() {
     local formula="$1"
-
     if brew list --formula "$formula" >/dev/null 2>&1; then
         if brew outdated --formula "$formula" | grep -Fxq "$formula"; then
-            retry_operation "Homebrew upgrade for ${formula}" brew upgrade "$formula" \
-                || exit 4
+            retry_operation "Homebrew upgrade for ${formula}" brew upgrade "$formula" || exit 4
             CHANGED=true
             print_success "${formula} was upgraded."
         else
             print_success "${formula} is already current."
         fi
     else
-        retry_operation "Homebrew installation for ${formula}" brew install "$formula" \
-            || exit 4
+        retry_operation "Homebrew installation for ${formula}" brew install "$formula" || exit 4
         CHANGED=true
         print_success "${formula} was installed."
     fi
@@ -475,19 +464,16 @@ install_or_upgrade_formula() {
 
 install_or_upgrade_cask() {
     local cask="$1"
-
     if brew list --cask "$cask" >/dev/null 2>&1; then
         if brew outdated --cask "$cask" | grep -Fxq "$cask"; then
-            retry_operation "Homebrew cask upgrade for ${cask}" \
-                brew upgrade --cask --no-quit "$cask" || exit 4
+            retry_operation "Homebrew cask upgrade for ${cask}" brew upgrade --cask "$cask" || exit 4
             CHANGED=true
             print_success "${cask} was upgraded."
         else
             print_success "${cask} is already current."
         fi
     else
-        retry_operation "Homebrew cask installation for ${cask}" \
-            brew install --cask "$cask" || exit 4
+        retry_operation "Homebrew cask installation for ${cask}" brew install --cask "$cask" || exit 4
         CHANGED=true
         print_success "${cask} was installed."
     fi
@@ -495,7 +481,6 @@ install_or_upgrade_cask() {
 
 install_system_software() {
     print_header "Step 4: Course IDE System Software"
-
     retry_operation "Homebrew metadata update" brew update || exit 4
 
     local -a formulae
@@ -504,16 +489,14 @@ install_system_software() {
         "$(manifest_package source_hosting_client)"
         "$(manifest_package programming_language_runtime)"
     )
-
     local formula
     for formula in "${formulae[@]}"; do
-        [[ -n "$formula" ]] || continue
-        install_or_upgrade_formula "$formula"
+        [[ -n "$formula" ]] && install_or_upgrade_formula "$formula"
     done
 
     local ide_cask
     ide_cask="$(manifest_package source_code_ide)"
-    install_or_upgrade_cask "$ide_cask"
+    [[ -n "$ide_cask" ]] && install_or_upgrade_cask "$ide_cask"
 }
 
 resolve_python() {
@@ -522,7 +505,8 @@ resolve_python() {
         return
     fi
     local prefix
-    prefix="$(brew --prefix "$(manifest_package programming_language_runtime)")"
+    prefix="$(brew --prefix "$(manifest_package programming_language_runtime)" 2>/dev/null || true)"
+    [[ -n "$prefix" && -x "$prefix/bin/python3.12" ]] || return 1
     printf '%s/bin/python3.12\n' "$prefix"
 }
 
@@ -531,17 +515,14 @@ resolve_code_cli() {
         command -v code
         return
     fi
-    printf '%s\n' "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+    local candidate="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+    [[ -x "$candidate" ]] || return 1
+    printf '%s\n' "$candidate"
 }
 
 validate_installed_manifest() {
     local python_path
-    python_path="$(resolve_python)"
-    [[ -x "$python_path" ]] || {
-        print_error "Python 3.12 is unavailable after installation."
-        exit 1
-    }
-
+    python_path="$(resolve_python)" || return 1
     "$python_path" - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" \
         "$REQUESTED_PROFILE" "$(uname -m)" "$(/usr/bin/sw_vers -productVersion)" <<'PY'
 import json
@@ -561,15 +542,18 @@ def no_duplicates(pairs):
         result[key] = value
     return result
 
-manifest = json.loads(
-    pathlib.Path(manifest_path).read_text(encoding="utf-8"),
-    object_pairs_hook=no_duplicates,
-)
-schema = json.loads(
-    pathlib.Path(schema_path).read_text(encoding="utf-8"),
-    object_pairs_hook=no_duplicates,
-)
-if manifest.get("schema_version") != "1.0":
+manifest = json.loads(pathlib.Path(manifest_path).read_text(encoding="utf-8"), object_pairs_hook=no_duplicates)
+schema = json.loads(pathlib.Path(schema_path).read_text(encoding="utf-8"), object_pairs_hook=no_duplicates)
+required = {
+    "schema_version", "automation_release", "course", "control", "policy",
+    "capabilities", "products", "software_sources", "provider_profiles",
+    "platforms", "deployment_profiles", "managed_settings", "managed_assets",
+    "obsolete_components", "logging",
+}
+missing = sorted(required - manifest.keys())
+if missing:
+    raise SystemExit(f"manifest missing required keys: {', '.join(missing)}")
+if manifest["schema_version"] != "1.0":
     raise SystemExit("unsupported manifest schema version")
 if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
     raise SystemExit("unapproved JSON Schema dialect")
@@ -579,14 +563,10 @@ platform = manifest["platforms"].get(platform_id)
 profile = manifest["deployment_profiles"].get(profile_id)
 if not platform or not platform.get("enabled"):
     raise SystemExit("macOS platform is not enabled")
-if not profile or not profile.get("enabled"):
-    raise SystemExit("macOS deployment profile is not enabled")
-if profile.get("platform_id") != platform_id:
-    raise SystemExit("deployment profile platform mismatch")
-if architecture not in platform["os"]["architectures"]:
-    raise SystemExit("unsupported architecture")
-if profile.get("architecture") != architecture:
-    raise SystemExit("deployment profile architecture mismatch")
+if not profile or not profile.get("enabled") or profile.get("platform_id") != platform_id:
+    raise SystemExit("macOS deployment profile is invalid")
+if architecture not in platform["os"]["architectures"] or profile.get("architecture") != architecture:
+    raise SystemExit("unsupported architecture or deployment profile")
 major = version.split(".", 1)[0]
 if major not in {item["release_id"] for item in platform["os"]["releases"]}:
     raise SystemExit("unsupported macOS release")
@@ -603,39 +583,45 @@ PY
 
 post_validate() {
     print_header "Step 5: System-Layer Verification"
+    local failed=0 python_path code_cli python_version
+    python_path="$(resolve_python 2>/dev/null || true)"
+    code_cli="$(resolve_code_cli 2>/dev/null || true)"
 
-    local python_path code_cli
-    python_path="$(resolve_python)"
-    code_cli="$(resolve_code_cli)"
-
-    command -v brew >/dev/null 2>&1 || {
-        print_error "Homebrew is unavailable."
-        exit 7
-    }
-    command -v git >/dev/null 2>&1 || {
-        print_error "Git is unavailable."
-        exit 7
-    }
-    command -v gh >/dev/null 2>&1 || {
-        print_error "GitHub CLI is unavailable."
-        exit 7
-    }
-    [[ -x "$python_path" ]] || {
-        print_error "Python 3.12 is unavailable."
-        exit 7
-    }
-    [[ -x "$code_cli" ]] || {
-        print_error "The Visual Studio Code command-line interface is unavailable."
-        exit 7
+    command -v brew >/dev/null 2>&1 || { print_error "Homebrew is unavailable."; failed=1; }
+    local formula
+    for formula in \
+        "$(manifest_package version_control_system)" \
+        "$(manifest_package source_hosting_client)" \
+        "$(manifest_package programming_language_runtime)"; do
+        brew list --formula "$formula" >/dev/null 2>&1 || {
+            print_error "Required Homebrew formula is missing: $formula"
+            failed=1
+        }
+    done
+    local cask
+    cask="$(manifest_package source_code_ide)"
+    brew list --cask "$cask" >/dev/null 2>&1 || {
+        print_error "Required Homebrew cask is missing: $cask"
+        failed=1
     }
 
-    local python_version
-    python_version="$("$python_path" -c \
-        'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
-    [[ "$python_version" == "3.12" ]] || {
-        print_error "Python 3.12 was expected; detected ${python_version}."
+    command -v git >/dev/null 2>&1 || { print_error "Git is unavailable."; failed=1; }
+    command -v gh >/dev/null 2>&1 || { print_error "GitHub CLI is unavailable."; failed=1; }
+    [[ -x "$python_path" ]] || { print_error "Python 3.12 is unavailable."; failed=1; }
+    [[ -x "$code_cli" ]] || { print_error "The Visual Studio Code command-line interface is unavailable."; failed=1; }
+
+    if [[ -x "$python_path" ]]; then
+        python_version="$("$python_path" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+        [[ "$python_version" == "3.12" ]] || {
+            print_error "Python 3.12 was expected; detected ${python_version}."
+            failed=1
+        }
+    fi
+
+    if (( failed )); then
+        print_error "System-layer verification failed. Rerun setup_mac.sh."
         exit 7
-    }
+    fi
 
     print_success "Required system components are installed and usable."
     printf 'Homebrew     : %s\n' "$(brew --version | head -n 1)"
@@ -645,7 +631,7 @@ post_validate() {
     printf 'VS Code      : %s\n' "$("$code_cli" --version | head -n 1)"
 
     if ! brew doctor >/dev/null 2>&1; then
-        print_warning "Homebrew reported diagnostic warnings. Review the log before deployment."
+        print_warning "Homebrew reported diagnostic warnings. Review the log before continuing."
     fi
 }
 
@@ -668,7 +654,7 @@ finish() {
     else
         printf 'Restart guidance: No Apple update was installed by this run.\n'
     fi
-    printf 'Next step       : Run config_mac.sh\n'
+    printf 'Next step       : Close this Terminal, open a new Terminal, and run config_mac.sh.\n'
     printf 'Log file        : %s\n' "$LOG_FILE"
     print_success "The IT 140 macOS system setup completed successfully."
 }
@@ -685,8 +671,10 @@ main() {
     print_info "Current user   : $(id -un)"
     print_info "Purpose        : Install or repair system-level course IDE components."
     print_info "Log file       : $LOG_FILE"
-    print_notice "This script does not configure Git identity, provider login, or user settings."
+    print_notice "This script does not configure Git identity, GitHub login, or user settings."
+    print_notice "Keep this Terminal open until the script displays its final summary."
 
+    check_basic_context
     validate_manifest_bootstrap || exit 5
     check_platform
     check_disk_space
@@ -703,9 +691,9 @@ main() {
 
     MANIFEST_RELEASE="$(validate_installed_manifest)" || exit 5
     print_success "Manifest release $MANIFEST_RELEASE passed installed validation."
-
     post_validate
     finish
+    print_closing_notices
 
     trap - ERR INT TERM
 }

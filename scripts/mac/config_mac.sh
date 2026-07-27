@@ -3,21 +3,22 @@
 # IT 140 macOS user configuration and repair script
 #
 # Traceability: CFG-FR-001 through CFG-FR-016; CFG-DES-001 through CFG-DES-016
-# Scope: Current-user folders, shell PATH, provider authentication, Git identity
-#        and settings, course virtual environment, IDE extensions, and settings.
-# Excludes: Homebrew installation, system package changes, macOS updates, and
-#           student-owned course work.
+# Scope: Current-user folders, zsh environment, GitHub authentication, Git
+#        identity and settings, course virtual environment, VS Code extensions,
+#        managed IDE settings, and a safe desktop course-folder shortcut.
+# Excludes: Homebrew installation, system package changes, macOS updates,
+#           student-owned course work, and unrelated user settings.
 
 set -euo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.25.2"
+readonly SCRIPT_VERSION="2026.07.27.1"
 readonly PLATFORM_ID="macos"
 readonly PLATFORM_ABBREVIATION="mac"
 readonly DEPLOYMENT_PROFILE_ID="macos_bare_metal"
 readonly COURSE_ROOT="${HOME}/it140"
 readonly SCRIPT_ROOT="${COURSE_ROOT}/scripts"
-readonly PLATFORM_SCRIPT_DIR="${SCRIPT_ROOT}/mac"
+readonly PLATFORM_SCRIPT_DIR="${SCRIPT_ROOT}/${PLATFORM_ABBREVIATION}"
 readonly MANIFEST_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.json"
 readonly SCHEMA_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.schema.json"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
@@ -26,6 +27,9 @@ readonly VENV_DIR="${COURSE_ROOT}/.venv"
 readonly VSCODE_SETTINGS_FILE="${HOME}/Library/Application Support/Code/User/settings.json"
 readonly LOCK_PARENT="${HOME}/Library/Caches"
 readonly LOCK_DIR="${LOCK_PARENT}/it140-${PLATFORM_ABBREVIATION}-mutation.lock"
+readonly MANAGED_ENV_START="# >>> IT 140 managed environment >>>"
+readonly MANAGED_ENV_END="# <<< IT 140 managed environment <<<"
+readonly DESKTOP_SHORTCUT="${HOME}/Desktop/IT 140"
 
 NONINTERACTIVE=false
 REQUESTED_PROFILE="$DEPLOYMENT_PROFILE_ID"
@@ -44,11 +48,15 @@ print_header() {
 print_info() { printf '[INFO] %s\n' "$1"; }
 print_success() { printf '[SUCCESS] %s\n' "$1"; }
 print_notice() { printf '[NOTICE] %s\n' "$1"; }
-print_warning() {
-    printf '[WARNING] %s\n' "$1"
-    WARNINGS=$(( WARNINGS + 1 ))
-}
+print_warning() { printf '[WARNING] %s\n' "$1"; WARNINGS=$(( WARNINGS + 1 )); }
 print_error() { printf '[ERROR] %s\n' "$1" >&2; }
+
+print_closing_notices() {
+    print_notice "A log containing all output displayed while this script ran is available here:"
+    print_notice "$LOG_FILE"
+    print_notice "After reviewing the summary, type 'exit' and press Enter to close this Terminal."
+    print_notice "Open a new Terminal before running another script or command so it loads the latest PATH and environment settings."
+}
 
 exit_canceled() {
     if [[ "$CHANGED" == true ]]; then
@@ -61,52 +69,16 @@ exit_canceled() {
 usage() {
     cat <<'USAGE'
 Usage: config_mac.sh [--help] [--version] [--noninteractive]
-                        [--deployment-profile macos_bare_metal]
+                     [--deployment-profile macos_bare_metal]
 
-Configures or repairs the current user's IT 140 macOS environment. Run from the
-student or faculty macOS account that will complete course work, not with sudo.
+Configures or repairs the current user's local IT 140 macOS environment. Run
+from the student or faculty account that will complete course work, not with sudo.
 
-In noninteractive mode, an existing GitHub CLI login is required and the GitHub
-username is used as the Git display name.
+In noninteractive mode, an existing GitHub CLI login is required. An existing
+Git display name is retained; when none exists, the GitHub username is used.
 
 Log directory: ~/it140/logs/
 USAGE
-}
-
-cleanup() {
-    set +e
-    local path
-    for path in "${TEMP_PATHS[@]}"; do
-        [[ -n "$path" ]] && rm -rf "$path"
-    done
-    if [[ "$LOCK_HELD" == true && -d "$LOCK_DIR" ]]; then
-        rm -rf "$LOCK_DIR"
-    fi
-}
-
-on_error() {
-    local status=$?
-    trap - ERR
-    set +e
-    print_error "Configuration stopped near line ${LINENO:-unknown} with exit status ${status}."
-    print_error "Review the log: ${LOG_FILE}"
-    cleanup
-    if [[ "$CHANGED" == true ]]; then
-        exit 7
-    fi
-    exit 1
-}
-
-on_interrupt() {
-    trap - INT TERM
-    set +e
-    print_error "Configuration was canceled."
-    print_error "Rerun config_mac.sh to continue."
-    cleanup
-    if [[ "$CHANGED" == true ]]; then
-        exit 7
-    fi
-    exit 6
 }
 
 parse_options() {
@@ -147,24 +119,51 @@ initialize_log() {
     exec > >(tee -a "$LOG_FILE") 2>&1
 }
 
-initialize_homebrew_environment() {
-    if [[ "$(uname -m)" == "arm64" ]]; then
-        if [[ -x /opt/homebrew/bin/brew ]]; then
-            eval "$(/opt/homebrew/bin/brew shellenv)"
-            return 0
-        fi
-        if command -v brew >/dev/null 2>&1 \
-            && [[ "$(brew --prefix 2>/dev/null || true)" == "/opt/homebrew" ]]; then
-            eval "$(brew shellenv)"
-            return 0
-        fi
-        return 1
+cleanup() {
+    set +e
+    local temp_path
+    for temp_path in "${TEMP_PATHS[@]}"; do
+        [[ -n "$temp_path" ]] && rm -rf "$temp_path"
+    done
+    if [[ "$LOCK_HELD" == true && -d "$LOCK_DIR" && ! -L "$LOCK_DIR" ]]; then
+        rm -rf "$LOCK_DIR"
     fi
+}
 
-    if [[ -x /usr/local/bin/brew ]]; then
-        eval "$(/usr/local/bin/brew shellenv)"
-        return 0
+on_error() {
+    local exit_code=$?
+    trap - ERR
+    set +e
+    print_error "Configuration stopped near line ${LINENO:-unknown} with exit status ${exit_code}."
+    print_error "Review the log: ${LOG_FILE}"
+    cleanup
+    if [[ "$CHANGED" == true ]]; then
+        exit 7
     fi
+    exit 1
+}
+
+on_interrupt() {
+    trap - INT TERM
+    set +e
+    print_error "Configuration was canceled."
+    print_error "Rerun config_mac.sh to continue."
+    cleanup
+    if [[ "$CHANGED" == true ]]; then
+        exit 7
+    fi
+    exit 6
+}
+
+initialize_homebrew_environment() {
+    local candidate
+    for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+        if [[ -x "$candidate" ]]; then
+            eval "$("$candidate" shellenv)"
+            command -v brew >/dev/null 2>&1
+            return
+        fi
+    done
     return 1
 }
 
@@ -221,21 +220,16 @@ def no_duplicates(pairs):
     return result
 
 try:
-    manifest = json.loads(
-        pathlib.Path(manifest_path).read_text(encoding="utf-8"),
-        object_pairs_hook=no_duplicates,
-    )
-    schema = json.loads(
-        pathlib.Path(schema_path).read_text(encoding="utf-8"),
-        object_pairs_hook=no_duplicates,
-    )
+    manifest = json.loads(pathlib.Path(manifest_path).read_text(encoding="utf-8"), object_pairs_hook=no_duplicates)
+    schema = json.loads(pathlib.Path(schema_path).read_text(encoding="utf-8"), object_pairs_hook=no_duplicates)
 except (OSError, UnicodeError, json.JSONDecodeError, DuplicateKeyError) as exc:
     raise SystemExit(f"manifest validation failed: {exc}")
 
 required = {
-    "schema_version", "automation_release", "policy", "platforms",
-    "deployment_profiles", "provider_profiles", "managed_settings",
-    "managed_assets", "logging",
+    "schema_version", "automation_release", "course", "control", "policy",
+    "capabilities", "products", "software_sources", "provider_profiles",
+    "platforms", "deployment_profiles", "managed_settings", "managed_assets",
+    "obsolete_components", "logging",
 }
 missing = sorted(required - manifest.keys())
 if missing:
@@ -250,14 +244,10 @@ platform = manifest["platforms"].get(platform_id)
 profile = manifest["deployment_profiles"].get(profile_id)
 if not platform or not platform.get("enabled"):
     raise SystemExit("macOS platform is not enabled")
-if not profile or not profile.get("enabled"):
-    raise SystemExit("macOS deployment profile is not enabled")
-if profile.get("platform_id") != platform_id:
-    raise SystemExit("deployment profile platform mismatch")
-if architecture not in platform["os"]["architectures"]:
-    raise SystemExit("unsupported architecture")
-if profile.get("architecture") != architecture:
-    raise SystemExit("deployment profile architecture mismatch")
+if not profile or not profile.get("enabled") or profile.get("platform_id") != platform_id:
+    raise SystemExit("macOS deployment profile is invalid")
+if architecture not in platform["os"]["architectures"] or profile.get("architecture") != architecture:
+    raise SystemExit("unsupported architecture or deployment profile")
 major = version.split(".", 1)[0]
 if major not in {item["release_id"] for item in platform["os"]["releases"]}:
     raise SystemExit("unsupported macOS release")
@@ -313,8 +303,10 @@ elif query == "extensions":
             print(binding["package_identifier"])
 elif query == "git_settings":
     for profile_id in bindings["version_control_system"].get("settings_profile_ids", []):
-        values = manifest["managed_settings"][profile_id]["values"]
-        for key, value in values.items():
+        profile = manifest["managed_settings"][profile_id]
+        if platform_id not in profile.get("platform_ids", []):
+            continue
+        for key, value in profile["values"].items():
             if isinstance(value, bool):
                 value = "true" if value else "false"
             print(f"{key}\t{value}")
@@ -339,11 +331,6 @@ check_platform_and_user() {
         print_error "Unsupported deployment profile: $REQUESTED_PROFILE"
         exit 2
     fi
-    if [[ "$(uname -m)" != "arm64" ]]; then
-        print_error "The initial macOS release supports Apple Silicon only."
-        print_error "Detected architecture: $(uname -m)"
-        exit 2
-    fi
 }
 
 check_supported_release() {
@@ -351,17 +338,12 @@ check_supported_release() {
         print_error "The course manifest is not valid JSON."
         exit 5
     }
-
     local product_version major releases_json architecture profile_architecture
     product_version="$(/usr/bin/sw_vers -productVersion)"
     major="${product_version%%.*}"
     architecture="$(uname -m)"
-    releases_json="$(/usr/bin/plutil -extract platforms.macos.os.releases json \
-        -o - "$MANIFEST_PATH")" || exit 5
-    profile_architecture="$(/usr/bin/plutil -extract \
-        "deployment_profiles.${REQUESTED_PROFILE}.architecture" raw \
-        -o - "$MANIFEST_PATH")" || exit 5
-
+    releases_json="$(/usr/bin/plutil -extract platforms.macos.os.releases json -o - "$MANIFEST_PATH")" || exit 5
+    profile_architecture="$(/usr/bin/plutil -extract deployment_profiles.${REQUESTED_PROFILE}.architecture raw -o - "$MANIFEST_PATH")" || exit 5
     if ! printf '%s\n' "$releases_json" \
         | grep -Eq "\"release_id\"[[:space:]]*:[[:space:]]*\"${major}\""; then
         print_error "macOS ${product_version} is not supported by the current manifest."
@@ -386,26 +368,26 @@ check_disk_space() {
 
 acquire_lock() {
     mkdir -p "$LOCK_PARENT"
-
+    if [[ -L "$LOCK_DIR" ]]; then
+        print_error "The lifecycle lock path is an unexpected symbolic link: $LOCK_DIR"
+        exit 1
+    fi
     if mkdir "$LOCK_DIR" 2>/dev/null; then
         printf '%s\n' "$$" > "$LOCK_DIR/pid"
         LOCK_HELD=true
         return
     fi
-
     local existing_pid=""
     [[ -r "$LOCK_DIR/pid" ]] && existing_pid="$(cat "$LOCK_DIR/pid")"
     case "$existing_pid" in
-        ''|*[!0-9]*)
-            ;;
+        ''|*[!0-9]*) ;;
         *)
             if kill -0 "$existing_pid" 2>/dev/null; then
-                print_error "Another IT 140 macOS setup, configure, or update operation is running."
+                print_error "Another IT 140 macOS setup, configuration, or update operation is running."
                 exit 1
             fi
             ;;
     esac
-
     rm -rf "$LOCK_DIR"
     mkdir "$LOCK_DIR"
     printf '%s\n' "$$" > "$LOCK_DIR/pid"
@@ -417,132 +399,110 @@ check_system_layer() {
         print_error "Homebrew is unavailable. Run setup_mac.sh first."
         exit 1
     }
-
-    local python_path code_cli
-    python_path="$(resolve_python)" || true
-    code_cli="$(resolve_code_cli)" || true
-
-    local failed=0 command_name missing
+    local python_path code_cli failed=0 command_name missing
+    python_path="$(resolve_python 2>/dev/null || true)"
+    code_cli="$(resolve_code_cli 2>/dev/null || true)"
     while IFS= read -r command_name; do
         [[ -n "$command_name" ]] || continue
         missing=false
         case "$command_name" in
-            python3.12)
-                [[ -x "$python_path" ]] || missing=true
-                ;;
-            code)
-                [[ -x "$code_cli" ]] || missing=true
-                ;;
-            *)
-                command -v "$command_name" >/dev/null 2>&1 || missing=true
-                ;;
+            python3.12) [[ -x "$python_path" ]] || missing=true ;;
+            code) [[ -x "$code_cli" ]] || missing=true ;;
+            *) command -v "$command_name" >/dev/null 2>&1 || missing=true ;;
         esac
         if [[ "$missing" == true ]]; then
             print_error "Required system command is missing: $command_name"
             failed=1
         fi
     done < <(manifest_lines system_commands)
-
     if (( failed )); then
         print_error "The system layer is incomplete. Run setup_mac.sh first."
         exit 1
     fi
-
     print_success "Required system components are present."
 }
 
 upsert_managed_environment_block() {
-    local profile_file="$HOME/.zprofile"
+    local target_file="$1"
     local brew_path
     brew_path="$(command -v brew)"
-
-    "$(resolve_python)" - "$profile_file" "$brew_path" \
-        "$VENV_DIR/bin" "$PLATFORM_SCRIPT_DIR" <<'PY'
+    "$(resolve_python)" - "$target_file" "$brew_path" <<'PY'
 from pathlib import Path
 import sys
 
-path = Path(sys.argv[1])
-brew_path, venv_dir, script_dir = sys.argv[2:]
+target = Path(sys.argv[1])
+brew_path = sys.argv[2]
 start = "# >>> IT 140 managed environment >>>"
 end = "# <<< IT 140 managed environment <<<"
 block = (
     f"{start}\n"
     f'eval "$({brew_path} shellenv)"\n'
     'export PATH="/Applications/Visual Studio Code.app/Contents/Resources/app/bin:'
-    f'{venv_dir}:{script_dir}:$PATH"\n'
+    '$HOME/it140/.venv/bin:$HOME/it140/scripts/mac:$PATH"\n'
     f"{end}\n"
 )
-original = path.read_text(encoding="utf-8") if path.exists() else ""
+original = target.read_text(encoding="utf-8") if target.exists() else ""
 if original.count(start) != original.count(end):
-    raise SystemExit(
-        "The existing ~/.zprofile contains an incomplete IT 140 managed block; "
-        "the file was preserved."
-    )
+    raise SystemExit(f"{target} contains an incomplete IT 140 managed block; it was preserved")
 if original.count(start) > 1 or original.count(end) > 1:
-    raise SystemExit(
-        "The existing ~/.zprofile contains duplicate IT 140 managed blocks; "
-        "the file was preserved."
-    )
+    raise SystemExit(f"{target} contains duplicate IT 140 managed blocks; it was preserved")
 if start in original and original.index(start) > original.index(end):
-    raise SystemExit(
-        "The existing ~/.zprofile has reversed IT 140 block markers; "
-        "the file was preserved."
-    )
-
-text = original
-if start in text and end in text:
-    before = text.split(start, 1)[0].rstrip("\n")
-    after = text.split(end, 1)[1].lstrip("\n")
-    text = (before + "\n\n" if before else "") + block
+    raise SystemExit(f"{target} contains reversed IT 140 managed markers; it was preserved")
+if start in original:
+    before = original.split(start, 1)[0].rstrip("\n")
+    after = original.split(end, 1)[1].lstrip("\n")
+    updated = (before + "\n\n" if before else "") + block
     if after:
-        text += "\n" + after
+        updated += "\n" + after
 else:
-    if text and not text.endswith("\n"):
-        text += "\n"
-    if text:
-        text += "\n"
-    text += block
-if text == original:
+    updated = original
+    if updated and not updated.endswith("\n"):
+        updated += "\n"
+    if updated:
+        updated += "\n"
+    updated += block
+if updated == original:
     print("unchanged")
     raise SystemExit(0)
-path.parent.mkdir(parents=True, exist_ok=True)
-temp = path.with_name(path.name + ".it140.tmp")
+target.parent.mkdir(parents=True, exist_ok=True)
+temporary = target.with_name(target.name + ".it140.tmp")
 try:
-    temp.write_text(text, encoding="utf-8", newline="\n")
-    temp.replace(path)
+    temporary.write_text(updated, encoding="utf-8", newline="\n")
+    temporary.replace(target)
 finally:
-    if temp.exists():
-        temp.unlink()
+    if temporary.exists():
+        temporary.unlink()
 print("changed")
 PY
 }
 
 config_course_folders_and_path() {
     print_header "Step 1: Course Folders and Terminal Environment"
-
-    local folders_changed=false path_result
+    local folders_changed=false profile_result rc_result
     [[ -d "$COURSE_ROOT" ]] || folders_changed=true
     [[ -d "$LOG_DIR" ]] || folders_changed=true
     [[ -d "$PLATFORM_SCRIPT_DIR" ]] || folders_changed=true
-
     mkdir -p "$COURSE_ROOT" "$LOG_DIR" "$PLATFORM_SCRIPT_DIR"
     chmod 0700 "$LOG_DIR"
 
-    path_result="$(upsert_managed_environment_block)"
+    profile_result="$(upsert_managed_environment_block "$HOME/.zprofile")"
+    rc_result="$(upsert_managed_environment_block "$HOME/.zshrc")"
+
     local vscode_cli_dir="/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
     export PATH="${vscode_cli_dir}:${VENV_DIR}/bin:${PLATFORM_SCRIPT_DIR}:$PATH"
+    hash -r 2>/dev/null || rehash
 
     setopt local_options null_glob
-    local script_path
-    for script_path in "$PLATFORM_SCRIPT_DIR"/*_mac.sh; do
-        [[ -f "$script_path" ]] && chmod 0755 "$script_path"
+    local script_file
+    for script_file in "$PLATFORM_SCRIPT_DIR"/*_mac.sh; do
+        [[ -f "$script_file" ]] && chmod 0755 "$script_file"
     done
 
-    if [[ "$folders_changed" == true || "$path_result" == "changed" ]]; then
+    if [[ "$folders_changed" == true || "$profile_result" == "changed" || "$rc_result" == "changed" ]]; then
         CHANGED=true
-        print_success "Course folders and the managed terminal environment were configured."
+        print_success "Course folders and the managed zsh environment were configured."
     else
-        print_success "Course folders and the managed terminal environment are already correct."
+        print_success "Course folders and the managed zsh environment are already correct."
     fi
     print_success "Course script permissions were verified."
 }
@@ -550,13 +510,11 @@ config_course_folders_and_path() {
 config_provider_identity() {
     print_header "Step 2: GitHub Authentication and Git Identity"
     print_info "Checking GitHub CLI authentication status..."
-
     if ! gh auth status --hostname github.com >/dev/null 2>&1; then
         if [[ "$NONINTERACTIVE" == true ]]; then
             print_error "GitHub authentication is required but interaction is disabled."
             exit_canceled
         fi
-
         print_notice "GitHub CLI will display a one-time code and open a browser."
         print_notice "Complete the browser steps, then return to this Terminal window."
         printf '[ACTION REQUIRED] Press Enter to begin, or type C to cancel: '
@@ -566,8 +524,7 @@ config_provider_identity() {
         if [[ "$response" == "c" || "$response" == "cancel" ]]; then
             exit_canceled
         fi
-
-        if ! gh auth login --hostname github.com --git-protocol https --web --clipboard; then
+        if ! gh auth login --hostname github.com --git-protocol https --web; then
             print_error "GitHub authentication was canceled or did not complete."
             exit_canceled
         fi
@@ -578,41 +535,38 @@ config_provider_identity() {
         print_error "GitHub authentication did not complete successfully."
         exit 1
     }
+    gh auth setup-git --hostname github.com >/dev/null
     print_success "GitHub authentication is valid."
 
-    local gh_id gh_user private_email display_name
+    local gh_id gh_user private_email current_name default_display_name display_name
     gh_id="$(gh api user --jq '.id' 2>/dev/null || true)"
     gh_user="$(gh api user --jq '.login' 2>/dev/null || true)"
-
     if [[ -z "$gh_id" || -z "$gh_user" ]]; then
         local python_path
         python_path="$(resolve_python)"
-        gh_id="$(gh api user | "$python_path" -c \
-            'import json,sys; print(json.load(sys.stdin)["id"])')"
-        gh_user="$(gh api user | "$python_path" -c \
-            'import json,sys; print(json.load(sys.stdin)["login"])')"
+        gh_id="$(gh api user | "$python_path" -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+        gh_user="$(gh api user | "$python_path" -c 'import json,sys; print(json.load(sys.stdin)["login"])')"
     fi
-
     case "$gh_id" in
-        ''|*[!0-9]*)
-            print_error "The provider account ID is invalid."
-            exit 1
-            ;;
+        ''|*[!0-9]*) print_error "The GitHub account ID is invalid."; exit 1 ;;
     esac
     if ! printf '%s\n' "$gh_user" | grep -Eq '^[A-Za-z0-9-]+$'; then
-        print_error "The provider username is invalid."
+        print_error "The GitHub username is invalid."
         exit 1
     fi
 
     private_email="${gh_id}+${gh_user}@users.noreply.github.com"
+    current_name="$(git config --global --get user.name 2>/dev/null || true)"
+    default_display_name="${current_name:-$gh_user}"
 
     if [[ "$NONINTERACTIVE" == true ]]; then
-        display_name="$gh_user"
+        display_name="$default_display_name"
     else
         print_notice "Your Git display name is public in version-control history."
-        printf '[ACTION REQUIRED] Git display name [%s]: ' "$gh_user"
+        print_notice "Press Enter to accept the displayed default, or enter a different author name."
+        printf '[ACTION REQUIRED] Git display name [%s]: ' "$default_display_name"
         IFS= read -r display_name
-        display_name="${display_name:-$gh_user}"
+        display_name="${display_name:-$default_display_name}"
     fi
 
     if [[ -z "$display_name" || ${#display_name} -gt 100 \
@@ -621,20 +575,17 @@ config_provider_identity() {
         exit 1
     fi
 
-    local identity_changed=false current_value
+    local identity_changed=false current_value key value
     current_value="$(git config --global --get user.name 2>/dev/null || true)"
     if [[ "$current_value" != "$display_name" ]]; then
         git config --global user.name "$display_name"
         identity_changed=true
     fi
-
     current_value="$(git config --global --get user.email 2>/dev/null || true)"
     if [[ "$current_value" != "$private_email" ]]; then
         git config --global user.email "$private_email"
         identity_changed=true
     fi
-
-    local key value
     while IFS=$'\t' read -r key value; do
         [[ -n "$key" ]] || continue
         current_value="$(git config --global --get "$key" 2>/dev/null || true)"
@@ -657,41 +608,43 @@ config_provider_identity() {
 
 config_user_tools() {
     print_header "Step 3: Course Python Tools and VS Code Extensions"
-
-    local python_path code_cli
+    local python_path code_cli venv_version
     python_path="$(resolve_python)"
     code_cli="$(resolve_code_cli)"
 
+    if [[ -x "$VENV_DIR/bin/python" ]]; then
+        venv_version="$("$VENV_DIR/bin/python" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
+        if [[ "$venv_version" != "3.12" ]]; then
+            print_warning "The managed virtual environment used Python ${venv_version:-unknown} and will be rebuilt with Python 3.12."
+            rm -rf "$VENV_DIR"
+            CHANGED=true
+        fi
+    fi
     if [[ ! -x "$VENV_DIR/bin/python" ]]; then
         print_info "Creating the IT 140 course virtual environment..."
         "$python_path" -m venv "$VENV_DIR"
         CHANGED=true
     fi
 
-    local -a venv_packages
-    venv_packages=()
+    local -a missing_packages
+    missing_packages=()
     local package
     while IFS= read -r package; do
-        [[ -n "$package" ]] && venv_packages+=("$package")
+        [[ -n "$package" ]] || continue
+        if ! "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1; then
+            missing_packages+=("$package")
+        fi
     done < <(manifest_lines venv_packages)
+    if (( ${#missing_packages[@]} > 0 )); then
+        print_info "Installing missing required course Python tools..."
+        "$VENV_DIR/bin/python" -m pip install "${missing_packages[@]}"
+        CHANGED=true
+    fi
 
-    print_info "Installing or repairing required course Python tools..."
-    "$VENV_DIR/bin/python" -m pip install --upgrade pip
-    "$VENV_DIR/bin/python" -m pip install --upgrade "${venv_packages[@]}"
-    CHANGED=true
-
-    local -a extensions
-    extensions=()
-    local extension
+    local installed_extensions extension
+    installed_extensions="$(NODE_NO_WARNINGS=1 "$code_cli" --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')"
     while IFS= read -r extension; do
-        [[ -n "$extension" ]] && extensions+=("$extension")
-    done < <(manifest_lines extensions)
-
-    print_info "Installing missing required VS Code extensions..."
-    local installed_extensions
-    installed_extensions="$(NODE_NO_WARNINGS=1 "$code_cli" --list-extensions 2>/dev/null \
-        | tr '[:upper:]' '[:lower:]')"
-    for extension in "${extensions[@]}"; do
+        [[ -n "$extension" ]] || continue
         if printf '%s\n' "$installed_extensions" \
             | grep -Fxq "$(printf '%s' "$extension" | tr '[:upper:]' '[:lower:]')"; then
             print_success "Required extension is already installed: ${extension}"
@@ -700,14 +653,12 @@ config_user_tools() {
             CHANGED=true
             print_success "Required extension was installed: ${extension}"
         fi
-    done
-
+    done < <(manifest_lines extensions)
     print_success "Required user-scoped tools and extensions are configured."
 }
 
 merge_vscode_settings() {
     print_header "Step 4: VS Code Course Settings"
-
     local python_path before_hash after_hash
     python_path="$(resolve_python)"
     mkdir -p "$(dirname "$VSCODE_SETTINGS_FILE")"
@@ -727,19 +678,18 @@ manifest_path, platform_id, settings_path, interpreter_path, log_dir = sys.argv[
 manifest = json.load(open(manifest_path, encoding="utf-8"))
 settings_file = pathlib.Path(settings_path)
 settings_file.parent.mkdir(parents=True, exist_ok=True)
-
 bindings = manifest["platforms"][platform_id]["course_ide_bindings"]
 managed = {}
 for profile_id in bindings["source_code_ide"].get("settings_profile_ids", []):
     profile = manifest["managed_settings"][profile_id]
     if platform_id in profile.get("platform_ids", []):
         managed.update(profile["values"])
-
 managed.update({
     "python.defaultInterpreterPath": interpreter_path,
     "python.testing.pytestArgs": ["."],
+    "terminal.integrated.defaultProfile.osx": "zsh",
+    "terminal.integrated.cwd": "${userHome}/it140",
 })
-
 existing = {}
 if settings_file.exists() and settings_file.stat().st_size:
     try:
@@ -775,14 +725,14 @@ if "python.defaultInterpreterPath" not in ignored:
     ignored.append("python.defaultInterpreterPath")
 existing["settingsSync.ignoredSettings"] = ignored
 serialized = json.dumps(existing, indent=4, ensure_ascii=False) + "\n"
-temp = settings_file.with_name(settings_file.name + ".it140.tmp")
+temporary = settings_file.with_name(settings_file.name + ".it140.tmp")
 try:
-    temp.write_text(serialized, encoding="utf-8", newline="\n")
-    json.loads(temp.read_text(encoding="utf-8"))
-    temp.replace(settings_file)
+    temporary.write_text(serialized, encoding="utf-8", newline="\n")
+    json.loads(temporary.read_text(encoding="utf-8"))
+    temporary.replace(settings_file)
 finally:
-    if temp.exists():
-        temp.unlink()
+    if temporary.exists():
+        temporary.unlink()
 PY
 
     after_hash="$(/usr/bin/shasum -a 256 "$VSCODE_SETTINGS_FILE" | awk '{print $1}')"
@@ -794,29 +744,97 @@ PY
     fi
 }
 
-post_validate() {
-    print_header "Step 5: User-Layer Verification"
+config_desktop_integration() {
+    print_header "Step 5: macOS Desktop Integration"
+    mkdir -p "$HOME/Desktop"
+    if [[ -L "$DESKTOP_SHORTCUT" ]]; then
+        local target
+        target="$(/usr/bin/readlink "$DESKTOP_SHORTCUT")"
+        if [[ "$target" == "$COURSE_ROOT" ]]; then
+            print_success "The IT 140 desktop course-folder shortcut is already correct."
+        else
+            print_warning "The existing desktop shortcut named 'IT 140' points elsewhere and was preserved."
+        fi
+    elif [[ -e "$DESKTOP_SHORTCUT" ]]; then
+        print_warning "A desktop item named 'IT 140' already exists and was preserved."
+    else
+        ln -s "$COURSE_ROOT" "$DESKTOP_SHORTCUT"
+        CHANGED=true
+        print_success "A desktop shortcut to the IT 140 course folder was created."
+    fi
+    print_notice "Visual Studio Code remains available from Applications, Spotlight, and the Dock when pinned manually."
+}
 
-    local failed=0 package extension key expected actual
-    local code_cli
+validate_vscode_settings() {
+    "$(resolve_python)" - "$MANIFEST_PATH" "$PLATFORM_ID" "$VSCODE_SETTINGS_FILE" \
+        "$VENV_DIR/bin/python" <<'PY'
+import json
+import pathlib
+import sys
+
+manifest_path, platform_id, settings_path, interpreter_path = sys.argv[1:]
+manifest = json.load(open(manifest_path, encoding="utf-8"))
+settings = json.loads(pathlib.Path(settings_path).read_text(encoding="utf-8"))
+if not isinstance(settings, dict):
+    raise SystemExit("VS Code settings root is not an object")
+bindings = manifest["platforms"][platform_id]["course_ide_bindings"]
+expected = {}
+for profile_id in bindings["source_code_ide"].get("settings_profile_ids", []):
+    profile = manifest["managed_settings"][profile_id]
+    if platform_id in profile.get("platform_ids", []):
+        expected.update(profile["values"])
+expected.update({
+    "python.defaultInterpreterPath": interpreter_path,
+    "python.testing.pytestArgs": ["."],
+    "terminal.integrated.defaultProfile.osx": "zsh",
+    "terminal.integrated.cwd": "${userHome}/it140",
+})
+
+def contains(actual, desired):
+    if isinstance(desired, dict):
+        return isinstance(actual, dict) and all(
+            key in actual and contains(actual[key], value)
+            for key, value in desired.items()
+        )
+    return actual == desired
+
+if not contains(settings, expected):
+    raise SystemExit("managed VS Code settings differ")
+PY
+}
+
+post_validate() {
+    print_header "Step 6: User-Layer Verification"
+    local failed=0 package extension key expected actual code_cli
     code_cli="$(resolve_code_cli)"
 
     [[ -d "$COURSE_ROOT" && -d "$LOG_DIR" && -x "$VENV_DIR/bin/python" ]] || {
         print_error "Required course folders or the virtual environment are missing."
         failed=1
     }
+    local shell_file
+    for shell_file in "$HOME/.zprofile" "$HOME/.zshrc"; do
+        if [[ -r "$shell_file" ]] \
+            && grep -Fq "$MANAGED_ENV_START" "$shell_file" \
+            && grep -Fq '$HOME/it140/.venv/bin' "$shell_file" \
+            && grep -Fq '$HOME/it140/scripts/mac' "$shell_file"; then
+            :
+        else
+            print_error "The managed terminal environment is missing or incomplete in ${shell_file}."
+            failed=1
+        fi
+    done
 
     while IFS= read -r package; do
         [[ -n "$package" ]] || continue
-        if ! "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1; then
+        "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1 || {
             print_error "Required course Python package is missing: $package"
             failed=1
-        fi
+        }
     done < <(manifest_lines venv_packages)
 
     local installed_extensions
-    installed_extensions="$(NODE_NO_WARNINGS=1 "$code_cli" --list-extensions 2>/dev/null \
-        | tr '[:upper:]' '[:lower:]')"
+    installed_extensions="$(NODE_NO_WARNINGS=1 "$code_cli" --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')"
     while IFS= read -r extension; do
         [[ -n "$extension" ]] || continue
         if ! printf '%s\n' "$installed_extensions" \
@@ -834,7 +852,6 @@ post_validate() {
         print_error "Git display name is not configured."
         failed=1
     }
-
     local configured_email
     configured_email="$(git config --global user.email 2>/dev/null || true)"
     if ! printf '%s\n' "$configured_email" \
@@ -842,7 +859,6 @@ post_validate() {
         print_error "Git does not use the approved private commit identity."
         failed=1
     fi
-
     while IFS=$'\t' read -r key expected; do
         [[ -n "$key" ]] || continue
         actual="$(git config --global --get "$key" 2>/dev/null || true)"
@@ -852,51 +868,10 @@ post_validate() {
         fi
     done < <(manifest_lines git_settings)
 
-    if [[ -r "$HOME/.zprofile" ]] \
-        && grep -Fq "# >>> IT 140 managed environment >>>" "$HOME/.zprofile" \
-        && grep -Fq "$VENV_DIR/bin" "$HOME/.zprofile" \
-        && grep -Fq "$PLATFORM_SCRIPT_DIR" "$HOME/.zprofile"; then
-        :
-    else
-        print_error "The managed terminal environment is missing or incomplete."
-        failed=1
-    fi
-
-    if ! "$(resolve_python)" - "$MANIFEST_PATH" "$PLATFORM_ID" \
-        "$VSCODE_SETTINGS_FILE" "$VENV_DIR/bin/python" <<'PY'
-import json
-import pathlib
-import sys
-
-manifest_path, platform_id, settings_path, interpreter_path = sys.argv[1:]
-manifest = json.load(open(manifest_path, encoding="utf-8"))
-settings = json.loads(pathlib.Path(settings_path).read_text(encoding="utf-8"))
-bindings = manifest["platforms"][platform_id]["course_ide_bindings"]
-expected = {}
-for profile_id in bindings["source_code_ide"].get("settings_profile_ids", []):
-    profile = manifest["managed_settings"][profile_id]
-    if platform_id in profile.get("platform_ids", []):
-        expected.update(profile["values"])
-expected.update({
-    "python.defaultInterpreterPath": interpreter_path,
-    "python.testing.pytestArgs": ["."],
-})
-
-def contains(actual, desired):
-    if isinstance(desired, dict):
-        return isinstance(actual, dict) and all(
-            key in actual and contains(actual[key], value)
-            for key, value in desired.items()
-        )
-    return actual == desired
-
-if not contains(settings, expected):
-    raise SystemExit("managed VS Code settings differ")
-PY
-    then
+    validate_vscode_settings || {
         print_error "Managed VS Code settings are invalid or incomplete."
         failed=1
-    fi
+    }
 
     local script_name
     for script_name in setup_mac.sh config_mac.sh verify_mac.sh update_mac.sh; do
@@ -910,7 +885,6 @@ PY
         print_error "User-layer verification failed. Rerun config_mac.sh."
         exit 7
     fi
-
     print_success "User-layer verification passed."
 }
 
@@ -918,7 +892,6 @@ finish() {
     local elapsed=$(( $(date +%s) - START_EPOCH ))
     local result="PASS"
     (( WARNINGS > 0 )) && result="PASS WITH WARNINGS"
-
     print_header "CONFIGURATION SUMMARY"
     printf 'Result          : %s\n' "$result"
     printf 'Script version  : %s\n' "$SCRIPT_VERSION"
@@ -926,9 +899,10 @@ finish() {
     printf 'GitHub login    : Valid\n'
     printf 'Course folder   : %s\n' "$COURSE_ROOT"
     printf 'Python          : %s\n' "$VENV_DIR/bin/python"
+    printf 'Changes applied : %s\n' "$CHANGED"
     printf 'Warnings        : %s\n' "$WARNINGS"
     printf 'Elapsed time    : %s seconds\n' "$elapsed"
-    printf 'Next step       : Run verify_mac.sh\n'
+    printf 'Next step       : Close this Terminal, open a new Terminal, and run verify_mac.sh.\n'
     printf 'Log file        : %s\n' "$LOG_FILE"
     print_success "The IT 140 macOS user configuration completed successfully."
 }
@@ -946,18 +920,17 @@ main() {
     print_info "Purpose        : Configure the current user's course environment."
     print_info "Log file       : $LOG_FILE"
     print_notice "This script does not install or change system-wide software."
+    print_notice "Keep this Terminal open until the script displays its final summary."
 
     check_platform_and_user
     initialize_homebrew_environment || {
         print_error "Homebrew is unavailable. Run setup_mac.sh first."
         exit 1
     }
-
     [[ -r "$MANIFEST_PATH" && -r "$SCHEMA_PATH" ]] || {
-        print_error "The manifest or schema is missing. Run setup_mac.sh or update_mac.sh."
+        print_error "The manifest or schema is missing. Run bootstrap again or run update_mac.sh."
         exit 5
     }
-
     check_supported_release
     MANIFEST_RELEASE="$(validate_manifest)" || exit 5
     print_success "Manifest release $MANIFEST_RELEASE validated."
@@ -965,13 +938,14 @@ main() {
     check_disk_space
     acquire_lock
     check_system_layer
-
     config_course_folders_and_path
     config_provider_identity
     config_user_tools
     merge_vscode_settings
+    config_desktop_integration
     post_validate
     finish
+    print_closing_notices
 
     trap - ERR INT TERM
 }
