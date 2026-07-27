@@ -5,1059 +5,257 @@
 # Repository path:
 #     scripts/.dev/pseudoscripts/setup_any.pseudo
 #
-#
 # Purpose:
-#     Establish or repair the manifest-declared system-level course IDE.
+#     Install or repair the manifest-declared system layer and approved
+#     system-level course integrations.
 #
 # Artifact version:
-#     2026.07.25.1
+#     2026.07.27.1
 #
-# Implementation release target:
-#     2026.07.25.2
-#
-# SRS baseline:
-#     IT140-SRS-SCRIPTS, version 2026.07.25.2
-#
-# SDD baseline:
-#     IT140-SDD-SCRIPTS, version 2026.07.25.2
+# CVD implementation target:
+#     setup_cvd.sh version 2026.07.27.1
 #
 # Repository baseline:
-#     GC-STEM/it140 commit fe777dec65167a197627b2f9507111b69f8ed73a
+#     GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
 #
-# Authority:
-#     The SRS and SDD are authoritative. The controlled manifest selects
-#     current products, versions, sources, platforms, deployment profiles,
-#     provider rules, settings, paths, and managed assets.
+# SRS traceability:
+#     SET-FR-001 through SET-FR-012
 #
-# ==============================================================================
-
-
-# ==============================================================================
-# 1. DOCUMENT CONTROL
-# ==============================================================================
-#
-# Artifact:
-#     setup_any.pseudo
-#
-# Lifecycle action:
-#     setup
-#
-#
-# Purpose:
-#     Establish or repair the manifest-declared system-level course IDE.
-#
+# SDD traceability:
+#     SET-DES-001 through SET-DES-012
 #
 # Intended user:
-#     A reference-platform administrator or an approved standard user with controlled privilege
-#     elevation
+#     A reference-environment administrator or SME using the intended standard
+#     desktop account with approved operation-level elevation.
 #
 # State boundary:
 #     SYSTEM_LEVEL
 #
-#
-# Mutation policy:
-#     Change only manifest-declared system packages, applications, repositories, trust material,
-#     policies, and integrations
-#
-#
-# Privilege policy:
-#     Elevate only the specific approved system operation
-#
-# SRS traceability:
-#     SET-FR-001 through SET-FR-012
-#     PKG-FR-001 through PKG-FR-020
-#     PKG-NFR-001 through PKG-NFR-027
-#     PKG-TC-001 through PKG-TC-009
-#     PKG-QOS-001 through PKG-QOS-022
-#     REF-TC-001 through REF-TC-007 where applicable
-#
-# SDD traceability:
-#     SET-DES-001 through SET-DES-012
-#     ARC-DES-001 through ARC-DES-010
-#     DAT-DES-001 through DAT-DES-015
-#     INT-DES-001 through INT-DES-012
-#     SHR-DES-001 through SHR-DES-016
-#     ERR-DES-001 through ERR-DES-012
-#     SEC-DES-001 through SEC-DES-012
-#     PLT-DES-001 through PLT-DES-011
-#
-#
-# Preconditions:
-#     - The platform-native script entry point is available.
-#     - The user can create the minimum home-derived log path.
-#     - The approved manifest and schema are present and readable.
-#
-#
-# Successful postconditions:
-#     - Every required system capability is present and usable.
-#     - The operating-system release is unchanged.
-#     - No personal authentication or user preference is configured.
-#
-#
 # Explicit exclusions:
-#     - Student source files and assignment repositories
-#     - Student version-control history
-#     - Secrets, authentication tokens, and browser session data
-#     - Optional software and unrelated user settings
-#     - Provider authentication and account identity
-#     - User-scoped tools, IDE settings, extensions, and launchers
+#     - Provider authentication and Git identity
+#     - User-scoped Python tools and IDE extensions
+#     - User IDE settings, launchers, panel configuration, and file associations
+#     - Student source files, assignment repositories, and Git history
 #     - Operating-system release upgrades
 #
-#
 # Normal next step:
-#     Run the matching configure script.
+#     Close the terminal, open a new terminal, and run config_<platform>.
 #
 # ==============================================================================
 
-
-# ==============================================================================
-# 2. ACTION PROFILE
-# ==============================================================================
-#
-# Action:
-#     setup
-#
-# State scope:
-#     system
-#
-# May change managed state:
-#     TRUE
-#
-# Operation lock required:
-#     TRUE
-#
-# Lock scope:
-#     system_packages_trust_sources_and_system_integrations
-#
-# Privilege model:
-#     elevate approved individual operations only
-#
-# ==============================================================================
 
 action_id = "setup"
-state_scope = "system"
 may_change_state = TRUE
 lock_required = TRUE
-normal_next_step = "configure"
-lock_scope = "system_packages_trust_sources_and_system_integrations"
-
-purpose_text = join_text([
-    "Establish or repair the manifest-declared system-level course",
-    "IDE."
-])
-intended_user_text = join_text([
-    "A reference-platform administrator or an approved standard user",
-    "with controlled privilege elevation"
-])
-privilege_policy_text = "Elevate only the specific approved system operation"
-help_prerequisites_text = join_text([
-    "Supported platform, approved OS release, network access, disk",
-    "space, and controlled privilege elevation"
-])
-expected_interaction_text = join_text([
-    "Privilege prompts may occur for individual approved system",
-    "operations."
-])
+required_options = [
+    "help",
+    "version",
+    "noninteractive",
+    "deployment_profile"
+]
 
 
 # ==============================================================================
-# 3. COMMON MAIN PROCEDURE
+# 1. MAIN PROCEDURE
 # ==============================================================================
 
 PROCEDURE main(arguments)
 
-    BEGIN STAGE "run.initialize"
+    options = parse_supported_options_before_logging(arguments, required_options)
 
-        enable_strict_error_handling()
-        install_interruption_handlers()
-
-        run_context = create_minimal_run_context(
-            action_id,
-            script_version = "2026.07.25.2",
-            supported_schema_range = "1.0"
-        )
-
-        run_summary = create_empty_run_summary()
-        operation_lock = NONE
-        transcript_started = FALSE
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "run.options"
-
-        option_result = parse_supported_options(
-            arguments,
-            allowed_options = [
-                "help",
-            "version",
-            "noninteractive",
-            "deployment_profile"
-            ]
-        )
-        append_result(run_summary, option_result)
-
-        IF option_result.status = fail
-            record_invalid_invocation(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        options = option_result.value
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "log.start"
-
-        path_result = resolve_bootstrap_paths(
-            run_context,
-            course_root_rule = "${HOME}/it140",
-            manifest_rule =
-                "${HOME}/it140/scripts/.manifest/it140_manifest.json",
-            schema_rule =
-                "${HOME}/it140/scripts/.manifest/it140_manifest.schema.json"
-        )
-        append_result(run_summary, path_result)
-
-        IF path_result.status = fail
-            GOTO FINALIZE_WITHOUT_TRANSCRIPT
-        ENDIF
-
-        log_result = create_log_directory_and_start_transcript(
-            run_context,
-            filename_pattern =
-                "<action>_<platform>_<YYYYMMDD>_<HHMMSS>.log"
-        )
-        append_result(run_summary, log_result)
-
-        IF log_result.status = fail
-            GOTO FINALIZE_WITHOUT_TRANSCRIPT
-        ENDIF
-
-        transcript_started = TRUE
-
-    ENDSTAGE
-
-
-    IF options.help_requested = TRUE
-
-        display_help(
-            purpose = purpose_text,
-            intended_user = intended_user_text,
-            prerequisites = help_prerequisites_text,
-            log_location = run_context.log_directory,
-            exit_code_meanings = standard_exit_code_catalog
-        )
-
-        append_success_result(run_summary, "run.help")
-        GOTO FINALIZE_RUN
-
-    ENDIF
-
-
-    IF options.version_requested = TRUE
-
-        display_version(
-            script_version = run_context.script_version,
-            supported_schema_range = run_context.supported_schema_range
-        )
-
-        append_success_result(run_summary, "run.version")
-        GOTO FINALIZE_RUN
-
-    ENDIF
-
-
-    BEGIN STAGE "run.opening"
-
-        display_opening_information(
-            package_name = "IT 140 Course Automation Scripts",
-            action_id = action_id,
-            script_version = run_context.script_version,
-            current_user_id = sanitized_current_user_id(),
-            purpose = purpose_text,
-            state_scope = state_scope,
-            expected_privilege = privilege_policy_text,
-            expected_interaction = expected_interaction_text,
-            log_path = run_context.log_path
-        )
-
-        append_success_result(run_summary, "run.opening")
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "platform.detect"
-
-        platform_facts = detect_platform_facts()
-        platform_result = validate_minimum_platform_facts(platform_facts)
-        append_result(run_summary, platform_result)
-
-        IF platform_result.status = fail
-            record_unsupported_or_unreadable_platform(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "deployment.resolve"
-
-        deployment_result = resolve_deployment_profile(
-            platform_facts,
-            explicit_approved_context = options.deployment_profile
-        )
-        append_result(run_summary, deployment_result)
-
-        IF deployment_result.status = fail
-            record_unsupported_deployment(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        deployment_profile = deployment_result.value
-        run_context.deployment_profile_id = deployment_profile.profile_id
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "platform.match"
-
-        match_result = confirm_action_platform_match(
-            action_id,
-            expected_platform_id = platform_implementation_id(),
-            platform_facts,
-            deployment_profile
-        )
-        append_result(run_summary, match_result)
-
-        IF match_result.status = fail
-            record_unsupported_invocation(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "manifest.validate"
-
-        manifest_result = load_and_validate_manifest(
-            manifest_path = run_context.manifest_path,
-            schema_path = run_context.schema_path,
-            validation_layers = [
-                file_validation,
-                duplicate_key_validation,
-                json_syntax_validation,
-                schema_validation,
-                semantic_validation,
-                cross_reference_validation,
-                deployment_profile_validation,
-                adapter_allowlist_validation,
-                path_boundary_validation,
-                trust_and_integrity_validation,
-                script_manifest_compatibility_validation,
-                secret_and_personal_value_validation
-            ]
-        )
-        append_result(run_summary, manifest_result)
-
-        IF manifest_result.status = fail
-            record_manifest_failure(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        manifest = freeze_validated_configuration(manifest_result.value)
-        run_context.manifest_release = manifest.automation_release
-        run_context.platform_id = deployment_profile.platform_id
-
-        display_manifest_release(run_context.manifest_release)
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "adapter.resolve"
-
-        adapter_result = resolve_allowlisted_adapters(
-            action_id,
-            run_context.platform_id,
-            run_context.deployment_profile_id,
-            manifest
-        )
-        append_result(run_summary, adapter_result)
-
-        IF adapter_result.status = fail
-            record_unsupported_configuration(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        adapters = adapter_result.value
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "boundary.validate"
-
-        boundary_result = validate_action_boundaries(
-            action_id,
-            state_scope,
-            may_change_state,
-            adapters,
-            manifest
-        )
-        append_result(run_summary, boundary_result)
-
-        IF boundary_result.status = fail
-            record_unsafe_design_or_configuration(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    IF lock_required = TRUE
-
-        BEGIN STAGE "lock.acquire"
-
-            lock_result = acquire_operation_lock(
-                action_id,
-                run_context.platform_id,
-                managed_resource_scope = lock_scope
-            )
-            append_result(run_summary, lock_result)
-
-            IF lock_result.status = fail
-                record_concurrent_operation_failure(run_summary)
-                GOTO FINALIZE_RUN
-            ENDIF
-
-            operation_lock = lock_result.value
-
-        ENDSTAGE
-
-    ENDIF
-
-
-    BEGIN STAGE "setup.prerequisites"
-
-        prerequisite_results = run_action_prerequisites(
-            run_context,
-            platform_facts,
-            deployment_profile,
-            manifest,
-            adapters
-        )
-        append_results(run_summary, prerequisite_results)
-
-        IF has_blocking_required_failure(prerequisite_results)
-            mark_dependent_operations_skipped(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "setup.plan"
-
-        plan_result = build_action_plan(
-            run_context,
-            platform_facts,
-            deployment_profile,
-            manifest,
-            adapters,
-            prerequisite_results,
-            options
-        )
-        append_result(run_summary, plan_result)
-
-        IF plan_result.status = fail
-            record_planning_failure(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        action_plan = plan_result.value
-        display_sanitized_plan_summary(action_plan)
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "setup.execute"
-
-        FOR EACH plan_stage IN action_plan.stages IN dependency_order
-
-            IF required_dependency_failed(plan_stage, run_summary)
-
-                stage_result = create_skipped_dependency_result(plan_stage)
-                append_result(run_summary, stage_result)
-                display_stage_result(stage_result)
-                CONTINUE
-
-            ENDIF
-
-            TRY
-
-                stage_results = execute_action_stage(
-                    plan_stage,
-                    run_context,
-                    manifest,
-                    adapters,
-                    options
-                )
-
-            CATCH user_cancellation
-
-                stage_results = create_canceled_result(
-                    plan_stage.operation_id,
-                    remediation_owner = "setup"
-                )
-
-            CATCH temporary_external_failure
-
-                stage_results = retry_with_manifest_policy(
-                    plan_stage,
-                    manifest.policy.retry_profiles,
-                    adapters
-                )
-
-            CATCH handled_operation_failure
-
-                stage_results = create_handled_failure_result(
-                    plan_stage.operation_id,
-                    sanitized_error()
-                )
-
-            CATCH unexpected_failure
-
-                stage_results = create_unexpected_failure_result(
-                    plan_stage.operation_id,
-                    sanitized_error()
-                )
-
-            END TRY
-
-            append_results(run_summary, stage_results)
-            display_stage_results(stage_results)
-
-        ENDFOR
-
-    ENDSTAGE
-
-
-    IF may_change_state = TRUE AND run_summary.changed_items IS NOT EMPTY
-
-        BEGIN STAGE "setup.post_validate"
-
-            post_validation_results = post_validate_action(
-                run_context,
-                platform_facts,
-                deployment_profile,
-                manifest,
-                adapters,
-                run_summary.changed_items
-            )
-            append_results(run_summary, post_validation_results)
-
-            IF has_required_failure(post_validation_results)
-                record_partial_or_failed_final_state(run_summary)
-            ENDIF
-
-        ENDSTAGE
-
-    ENDIF
-
-
-    IF action_id = "verify"
-
-        BEGIN STAGE "verify.read_only_assertion"
-
-            read_only_result = confirm_no_managed_state_changed(run_summary)
-            append_result(run_summary, read_only_result)
-
-            IF read_only_result.status = fail
-                record_critical_design_failure(run_summary)
-            ENDIF
-
-        ENDSTAGE
-
-    ENDIF
-
-
-FINALIZE_RUN:
-
-    BEGIN STAGE "run.finalize"
-
-        restart_result = determine_restart_guidance(
-            run_context,
-            platform_facts,
-            deployment_profile,
-            run_summary
-        )
-        append_result(run_summary, restart_result)
-
-        run_summary.remediation = determine_remediation(run_summary)
-        run_summary.next_step = determine_next_step(
-            action_id,
-            normal_next_step,
-            run_summary
-        )
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "run.cleanup"
-
-        cleanup_results = remove_private_temporary_data()
-        append_results_without_overriding_primary_failure(
-            run_summary,
-            cleanup_results
-        )
-
-        IF operation_lock IS NOT NONE
-
-            release_result = release_operation_lock(operation_lock)
-            append_result_without_overriding_primary_failure(
-                run_summary,
-                release_result
-            )
-
-        ENDIF
-
-    ENDSTAGE
-
-
-    run_summary.final_exit_code = resolve_standard_exit_code(run_summary)
-    run_summary.elapsed_time = calculate_elapsed_time(run_context.start_time)
-
-
-    BEGIN STAGE "run.summary"
-
-        display_final_summary(
-            overall_result = determine_overall_result(run_summary),
-            changed_items = run_summary.changed_items,
-            warnings = run_summary.warnings,
-            failures = run_summary.failures,
-            restart_guidance = run_summary.restart_guidance,
-            remediation = run_summary.remediation,
-            next_step = run_summary.next_step,
-            log_path = run_context.log_path,
-            exit_code = run_summary.final_exit_code
-        )
-
-    ENDSTAGE
-
-
-    IF transcript_started = TRUE
-        close_transcript()
-    ENDIF
-
-    RETURN run_summary.final_exit_code
-
-
-FINALIZE_WITHOUT_TRANSCRIPT:
-
-    minimal_exit_code = resolve_standard_exit_code(run_summary)
-    display_minimum_safe_summary(run_summary, minimal_exit_code)
-    RETURN minimal_exit_code
-
-ENDPROCEDURE
-
-
-# ==============================================================================
-# 4. SETUP-SPECIFIC PROCEDURES
-# ==============================================================================
-
-PROCEDURE run_action_prerequisites(
-    run_context,
-    platform_facts,
-    deployment_profile,
-    manifest,
-    adapters
-)
-
-    results = new_result_collection()
-
-    append_result(
-        results,
-        check_supported_os_release(
-            platform_facts,
-            manifest.platforms[deployment_profile.platform_id]
-        )
-    )
-
-    append_result(
-        results,
-        check_supported_architecture(
-            platform_facts,
-            deployment_profile
-        )
-    )
-
-    append_result(
-        results,
-        check_minimum_free_space(
-            run_context,
-            manifest.policy.minimum_free_space_bytes
-        )
-    )
-
-    append_result(
-        results,
-        check_required_network_reachability(
-            manifest,
-            purpose = "system software installation"
-        )
-    )
-
-    append_result(
-        results,
-        check_privilege_capability(
-            platform_facts,
-            required_policy = "elevate_one_approved_operation"
-        )
-    )
-
-    append_result(
-        results,
-        check_native_package_manager_readiness(adapters.package_manager)
-    )
-
-    append_result(
-        results,
-        check_trust_roots_available(
-            manifest.software_sources,
-            adapters
-        )
-    )
-
-    append_result(
-        results,
-        confirm_os_release_upgrade_is_excluded(adapters)
-    )
-
-    append_result(
-        results,
-        confirm_setup_has_no_user_configuration_authority(adapters)
-    )
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE build_action_plan(
-    run_context,
-    platform_facts,
-    deployment_profile,
-    manifest,
-    adapters,
-    prerequisite_results,
-    options
-)
-
-    action_plan = create_empty_dependency_aware_plan()
-
-    required_bindings = select_required_system_scope_bindings(
-        manifest,
-        deployment_profile.platform_id
-    )
-
-    required_os_packages = select_required_os_support_packages(
-        manifest,
-        deployment_profile.platform_id
-    )
-
-    required_integrations = select_required_system_integrations(
-        manifest,
-        deployment_profile
-    )
-
-    trusted_source_plan = compare_trusted_source_state(
-        manifest.software_sources,
-        adapters
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "setup.trust_sources",
-        operation_type = "config_trusted_sources",
-        dependencies = [],
-        planned_items = trusted_source_plan,
-        mutating = TRUE,
-        privilege_scope = "elevate_one_command",
-        managed_targets = trusted_source_plan.targets,
-        blocks_dependents = TRUE,
-        recovery = "preserve existing valid trust configuration",
-        traceability = ["SET-FR-004", "SET-FR-005",
-                        "SET-DES-004", "SET-DES-005"]
-    )
-
-    maintenance_plan = compare_os_maintenance_state(
-        platform_facts,
-        manifest,
-        adapters.package_manager
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "setup.os_maintenance",
-        operation_type = "maintain_current_os_release",
-        dependencies = ["setup.trust_sources"],
-        planned_items = maintenance_plan,
-        mutating = TRUE,
-        privilege_scope = "elevate_one_command",
-        managed_targets = maintenance_plan.targets,
-        blocks_dependents = TRUE,
-        recovery = "native package-manager recovery",
-        traceability = ["SET-FR-006", "SET-DES-006"]
-    )
-
-    package_plan = compare_os_package_state(
-        required_os_packages,
-        adapters.package_manager
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "setup.os_packages",
-        operation_type = "install_or_repair_os_packages",
-        dependencies = ["setup.trust_sources",
-                        "setup.os_maintenance"],
-        planned_items = package_plan,
-        mutating = TRUE,
-        privilege_scope = "elevate_one_command",
-        managed_targets = package_plan.targets,
-        blocks_dependents = TRUE,
-        recovery = "native package-manager recovery",
-        traceability = ["SET-FR-003", "SET-FR-009",
-                        "SET-FR-010", "SET-DES-003",
-                        "SET-DES-009", "SET-DES-010"]
-    )
-
-    capability_plan = compare_system_capability_state(
-        required_bindings,
-        adapters.capabilities
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "setup.system_capabilities",
-        operation_type = "install_or_repair_system_capabilities",
-        dependencies = ["setup.os_packages"],
-        planned_items = capability_plan,
-        mutating = TRUE,
-        privilege_scope = "binding_defined_single_operation",
-        managed_targets = capability_plan.targets,
-        blocks_dependents = TRUE,
-        recovery = "adapter-defined repair or rollback",
-        traceability = ["SET-FR-003", "SET-FR-008",
-                        "SET-FR-009", "SET-FR-010",
-                        "SET-DES-003", "SET-DES-008",
-                        "SET-DES-009", "SET-DES-010"]
-    )
-
-    integration_plan = compare_system_integration_state(
-        required_integrations,
-        adapters.platform
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "setup.system_integrations",
-        operation_type = "apply_system_integrations",
-        dependencies = ["setup.system_capabilities"],
-        planned_items = integration_plan,
-        mutating = TRUE,
-        privilege_scope = "binding_defined_single_operation",
-        managed_targets = integration_plan.targets,
-        blocks_dependents = FALSE,
-        recovery = "adapter-defined restoration",
-        traceability = ["SET-FR-007", "SET-DES-007"]
-    )
-
-    assert_plan_contains_no_user_scope_operations(action_plan)
-    assert_plan_contains_no_os_release_upgrade(action_plan)
-    validate_plan_against_action_boundaries(action_plan, state_scope)
-
-    RETURN successful_plan_result(action_plan)
-
-ENDPROCEDURE
-
-
-PROCEDURE execute_action_stage(
-    plan_stage,
-    run_context,
-    manifest,
-    adapters,
-    options
-)
-
-    results = new_result_collection()
-
-    FOR EACH plan_item IN plan_stage.planned_items
-
-        current_state = query_plan_item_state(plan_item, adapters)
-
-        IF state_satisfies_rule(current_state, plan_item.expected_rule)
-
-            append_result(
-                results,
-                create_unchanged_result(
-                    plan_item.operation_id,
-                    sanitized_detail = current_state.summary
-                )
-            )
-            CONTINUE
-
-        ENDIF
-
-        validate_managed_targets(plan_item.managed_targets, manifest)
-        validate_approved_sources(plan_item.sources, manifest)
-
-        display_truthful_operation_start(plan_item)
-
-        operation_result = apply_smallest_approved_system_change(
-            plan_item,
-            adapters,
-            privilege_policy = plan_item.privilege_scope
-        )
-        append_result(results, operation_result)
-
-        IF operation_result.status = fail
-            CONTINUE
-        ENDIF
-
-        final_state = query_plan_item_state(plan_item, adapters)
-        verification_result = compare_final_state(
-            plan_item,
-            final_state
-        )
-        append_result(results, verification_result)
-
-        IF verification_result.status = fail
-            recovery_result = attempt_approved_recovery(
-                plan_item,
-                adapters
-            )
-            append_result(results, recovery_result)
-        ENDIF
-
-    ENDFOR
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE post_validate_action(
-    run_context,
-    platform_facts,
-    deployment_profile,
-    manifest,
-    adapters,
-    changed_items
-)
-
-    results = new_result_collection()
-
-    FOR EACH binding IN select_required_system_scope_bindings(
-        manifest,
-        deployment_profile.platform_id
-    )
-
-        append_result(
-            results,
-            verify_required_system_capability(binding, adapters)
-        )
-
-    ENDFOR
-
-    FOR EACH package IN select_required_os_support_packages(
-        manifest,
-        deployment_profile.platform_id
-    )
-
-        append_result(
-            results,
-            verify_required_os_package(package, adapters.package_manager)
-        )
-
-    ENDFOR
-
-    FOR EACH integration IN select_required_system_integrations(
-        manifest,
-        deployment_profile
-    )
-
-        append_result(
-            results,
-            verify_system_integration(integration, adapters.platform)
-        )
-
-    ENDFOR
-
-    append_result(
-        results,
-        validate_package_manager_consistency(adapters.package_manager)
-    )
-
-    append_result(
-        results,
-        confirm_os_release_unchanged(
-            starting_release = platform_facts.operating_system_release,
-            current_release = detect_current_os_release()
-        )
-    )
-
-    append_result(
-        results,
-        confirm_no_user_configuration_changed(changed_items)
-    )
-
-    IF has_no_required_failure(results)
-        set_next_step(
-            run_context,
-            render_matching_lifecycle_command("configure")
-        )
-    ENDIF
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-# ==============================================================================
-# 5. STANDARD EXIT-CODE RESOLUTION
-# ==============================================================================
-#
-# Precedence is based on safety and remediation value, not numeric order:
-#
-#     5  Invalid, corrupt, incompatible, or integrity-failed manifest or asset
-#     2  Invalid use, unsupported platform, deployment, or OS release
-#     3  Required permission or privilege unavailable
-#     4  Approved external source or service unavailable after retries
-#     7  Partial completion or changed state requiring remediation
-#     1  Other required operation or check failure
-#     6  Required interactive operation canceled
-#     0  All required operations or checks completed successfully
-#
-# ==============================================================================
-
-PROCEDURE resolve_standard_exit_code(run_summary)
-
-    IF has_manifest_or_integrity_failure(run_summary)
-        RETURN 5
-    ELSE IF has_unsupported_condition(run_summary)
-        RETURN 2
-    ELSE IF has_required_privilege_failure(run_summary)
-        RETURN 3
-    ELSE IF has_exhausted_external_failure(run_summary)
-        RETURN 4
-    ELSE IF has_partial_completion(run_summary)
-        RETURN 7
-    ELSE IF has_other_required_failure(run_summary)
-        RETURN 1
-    ELSE IF has_required_cancellation(run_summary)
-        RETURN 6
-    ELSE
+    IF options.help_requested
+        display_setup_help()
         RETURN 0
     ENDIF
 
+    IF options.version_requested
+        display_setup_version()
+        RETURN 0
+    ENDIF
+
+    enable_strict_error_handling()
+    set_private_default_file_permissions()
+
+    run_context = resolve_setup_paths_and_start_private_transcript(
+        filename_pattern = "setup_<platform>_<YYYYMMDD>_<HHMMSS>.log"
+    )
+
+    changed = FALSE
+    warnings = 0
+    temporary_files = []
+
+    INSTALL error handler:
+        - report the failing location and log path;
+        - clean temporary files;
+        - return 7 when managed state changed, otherwise 1.
+
+    INSTALL interruption handler:
+        - instruct the user to rerun setup to repair the system layer;
+        - clean temporary files;
+        - return 7 when managed state changed, otherwise 6.
+
+    DISPLAY opening information
+    DISPLAY NOTICE that system software may change but personal settings will not
+
+    validate_platform_and_privilege(run_context)
+    acquire_shared_mutation_lock(action_id, run_context.platform_id)
+
+    REQUIRE the controlled manifest and schema are readable
+    manifest_release = validate_setup_manifest(run_context)
+    check_required_free_space(run_context, manifest_release)
+
+    install_or_repair_system_layer(run_context)
+    configure_system_integrations(run_context)
+    post_validate_system_layer(run_context)
+
+    DISPLAY setup summary:
+        result = PASS
+        warnings
+        failures = 0
+        elapsed time
+        next step = close terminal, open new terminal, run configure
+        log path
+        exit code = 0
+
+    DISPLAY closing log and fresh-terminal notices
+    CLEAN temporary files
+    RETURN 0
+
 ENDPROCEDURE
 
 
 # ==============================================================================
-# END OF PSEUDOSCRIPT
+# 2. PLATFORM AND MANIFEST VALIDATION
 # ==============================================================================
+
+PROCEDURE validate_platform_and_privilege(run_context)
+
+    REJECT execution as root or the platform system-administrator account
+    REQUIRE the detected operating-system family and release match the
+        implementation and deployment profile
+    REQUIRE the detected architecture matches the implementation and profile
+    REQUIRE the required desktop-management interface is available
+    REQUIRE the platform elevation command is available
+    REQUIRE approved noninteractive operation-level elevation is available
+
+    IF privilege is unavailable
+        DISPLAY ERROR directing the administrator to platform or course support
+        RETURN exit code 3
+    ENDIF
+
+ENDPROCEDURE
+
+
+PROCEDURE validate_setup_manifest(run_context)
+
+    RETURN validate_controlled_manifest_pair(
+        run_context.manifest_path,
+        run_context.schema_path,
+        run_context.platform_id,
+        run_context.deployment_profile_id,
+        required_top_level_keys = [
+            "schema_version",
+            "automation_release",
+            "policy",
+            "platforms",
+            "deployment_profiles",
+            "managed_settings",
+            "managed_assets",
+            "logging"
+        ]
+    )
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 3. SYSTEM SOFTWARE
+# ==============================================================================
+
+PROCEDURE install_or_repair_system_layer(run_context)
+
+    package_adapter = resolve_manifest_package_adapter(run_context.platform_id)
+    required_packages = manifest_required_system_packages(run_context.platform_id)
+
+    REQUIRE required_packages is not empty
+
+    REFRESH native package metadata using the approved retry policy
+
+    INSTALL package-manager trust and retrieval prerequisites
+
+    FOR EACH approved external software source required by the implementation
+        RETRIEVE trust material using verified transport and bounded retries
+        INSTALL trust material with system-readable permissions
+        CREATE or replace the controlled source definition
+    ENDFOR
+
+    REFRESH native package metadata using the approved retry policy
+
+    APPLY security and maintenance updates within the current supported
+        operating-system release
+    NEVER invoke an operating-system release upgrade
+
+    INSTALL or repair all manifest-required system packages
+    SET changed = TRUE
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 4. SYSTEM INTEGRATIONS
+# ==============================================================================
+
+PROCEDURE configure_system_integrations(run_context)
+
+    FOR EACH approved system desktop-startup integration
+        WRITE the controlled integration atomically with system ownership
+        SET system-readable permissions
+        VALIDATE the integration when a validator is available
+    ENDFOR
+
+    FOR EACH approved system application policy or managed asset
+        WRITE the controlled policy or asset
+        SET system ownership and system-readable permissions
+        VALIDATE structured content before reporting success
+    ENDFOR
+
+    # The tested CVD implementation currently includes:
+    #     - an optional Num Lock desktop-startup integration;
+    #     - a managed browser bookmark policy for IT 140 resources.
+
+    SET changed = TRUE
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 5. POST-VALIDATION
+# ==============================================================================
+
+PROCEDURE post_validate_system_layer(run_context)
+
+    failed = FALSE
+
+    FOR EACH manifest-required system package
+        REQUIRE the native package database reports it installed
+    ENDFOR
+
+    FOR EACH required system capability
+        REQUIRE at least one approved executable is discoverable
+    ENDFOR
+
+    REQUIRE the required programming-language runtime satisfies its declared
+        major and minor version rule
+
+    FOR EACH structured system integration created by setup
+        REQUIRE the file exists and passes its format validator
+    ENDFOR
+
+    IF any required check fails
+        DISPLAY ERROR instructing the administrator to rerun setup
+        RETURN exit code 7
+    ENDIF
+
+    DISPLAY SUCCESS that system-layer verification passed
+
+ENDPROCEDURE

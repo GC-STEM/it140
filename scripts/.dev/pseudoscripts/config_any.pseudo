@@ -5,1331 +5,452 @@
 # Repository path:
 #     scripts/.dev/pseudoscripts/config_any.pseudo
 #
-#
 # Purpose:
-#     Establish or repair the current user's manifest-declared course environment.
+#     Configure or repair the intended user's course folders, authentication,
+#     identity, user tools, IDE settings, and desktop integrations.
 #
 # Artifact version:
-#     2026.07.25.1
+#     2026.07.27.1
 #
-# Implementation release target:
-#     2026.07.25.2
-#
-# SRS baseline:
-#     IT140-SRS-SCRIPTS, version 2026.07.25.2
-#
-# SDD baseline:
-#     IT140-SDD-SCRIPTS, version 2026.07.25.2
+# CVD implementation target:
+#     config_cvd.sh version 2026.07.26.5
 #
 # Repository baseline:
-#     GC-STEM/it140 commit fe777dec65167a197627b2f9507111b69f8ed73a
-#
-# Authority:
-#     The SRS and SDD are authoritative. The controlled manifest selects
-#     current products, versions, sources, platforms, deployment profiles,
-#     provider rules, settings, paths, and managed assets.
-#
-# ==============================================================================
-
-
-# ==============================================================================
-# 1. DOCUMENT CONTROL
-# ==============================================================================
-#
-# Artifact:
-#     config_any.pseudo
-#
-# Lifecycle action:
-#     configure
-#
-#
-# Purpose:
-#     Establish or repair the current user's manifest-declared course environment.
-#
-#
-# Intended user:
-#     The standard student or faculty account that will complete course work
-#
-# State boundary:
-#     USER_SPECIFIC
-#
-#
-# Mutation policy:
-#     Change only current-user course folders, managed settings, required user tools,
-#     authentication integration, and launchers
-#
-#
-# Privilege policy:
-#     Run as the intended standard user without system elevation
+#     GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
 #
 # SRS traceability:
 #     CFG-FR-001 through CFG-FR-016
-#     PKG-FR-001 through PKG-FR-020
-#     PKG-NFR-001 through PKG-NFR-027
-#     PKG-TC-001 through PKG-TC-009
-#     PKG-QOS-001 through PKG-QOS-022
-#     REF-TC-001 through REF-TC-007 where applicable
 #
 # SDD traceability:
 #     CFG-DES-001 through CFG-DES-016
-#     ARC-DES-001 through ARC-DES-010
-#     DAT-DES-001 through DAT-DES-015
-#     INT-DES-001 through INT-DES-012
-#     SHR-DES-001 through SHR-DES-016
-#     ERR-DES-001 through ERR-DES-012
-#     SEC-DES-001 through SEC-DES-012
-#     PLT-DES-001 through PLT-DES-011
 #
+# Intended user:
+#     The standard student or faculty account that will complete course work.
 #
-# Preconditions:
-#     - The matching setup script has established the required system layer.
-#     - The script runs as the intended standard user.
-#     - The approved manifest and schema are present and readable.
-#
-#
-# Successful postconditions:
-#     - Required user tools, settings, folders, and integrations are usable.
-#     - Provider identity follows the approved privacy rule when configured.
-#     - Optional extensions and unrelated valid settings are preserved.
-#
+# State boundary:
+#     CURRENT_USER
 #
 # Explicit exclusions:
-#     - Student source files and assignment repositories
-#     - Student version-control history
-#     - Secrets, authentication tokens, and browser session data
-#     - Optional software and unrelated user settings
-#     - System-wide package, repository, policy, and application changes
-#     - Passwords, tokens, private keys, and provider credential-store contents
-#     - Whole-file replacement of unrelated user settings
-#
+#     - System package, repository, policy, and system application changes
+#     - Student source files, assignment repositories, and Git history
+#     - Secrets or provider credential-store contents
+#     - Removal of optional IDE extensions
+#     - Removal of unrelated valid user settings
 #
 # Normal next step:
-#     Run the matching verify script.
+#     Close the terminal, open a new terminal, and run verify_<platform>.
 #
 # ==============================================================================
 
-
-# ==============================================================================
-# 2. ACTION PROFILE
-# ==============================================================================
-#
-# Action:
-#     configure
-#
-# State scope:
-#     current_user
-#
-# May change managed state:
-#     TRUE
-#
-# Operation lock required:
-#     TRUE
-#
-# Lock scope:
-#     current_user_managed_settings_tools_and_integrations
-#
-# Privilege model:
-#     standard user; reject unintended elevated context
-#
-# ==============================================================================
 
 action_id = "configure"
-state_scope = "current_user"
 may_change_state = TRUE
 lock_required = TRUE
-normal_next_step = "verify"
-lock_scope = "current_user_managed_settings_tools_and_integrations"
-
-purpose_text = join_text([
-    "Establish or repair the current user's manifest-declared course",
-    "environment."
-])
-intended_user_text = join_text([
-    "The standard student or faculty account that will complete",
-    "course work"
-])
-privilege_policy_text = "Run as the intended standard user without system elevation"
-help_prerequisites_text = join_text([
-    "Completed system setup, intended standard account, and network",
-    "access when provider authentication is required"
-])
-expected_interaction_text = join_text([
-    "Provider authentication and display-name prompts may occur only",
-    "when required."
-])
+required_options = [
+    "help",
+    "version",
+    "noninteractive",
+    "deployment_profile"
+]
 
 
 # ==============================================================================
-# 3. COMMON MAIN PROCEDURE
+# 1. MAIN PROCEDURE
 # ==============================================================================
 
 PROCEDURE main(arguments)
 
-    BEGIN STAGE "run.initialize"
+    options = parse_supported_options_before_logging(arguments, required_options)
 
-        enable_strict_error_handling()
-        install_interruption_handlers()
-
-        run_context = create_minimal_run_context(
-            action_id,
-            script_version = "2026.07.25.2",
-            supported_schema_range = "1.0"
-        )
-
-        run_summary = create_empty_run_summary()
-        operation_lock = NONE
-        transcript_started = FALSE
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "run.options"
-
-        option_result = parse_supported_options(
-            arguments,
-            allowed_options = [
-                "help",
-            "version",
-            "noninteractive",
-            "deployment_profile"
-            ]
-        )
-        append_result(run_summary, option_result)
-
-        IF option_result.status = fail
-            record_invalid_invocation(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        options = option_result.value
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "log.start"
-
-        path_result = resolve_bootstrap_paths(
-            run_context,
-            course_root_rule = "${HOME}/it140",
-            manifest_rule =
-                "${HOME}/it140/scripts/.manifest/it140_manifest.json",
-            schema_rule =
-                "${HOME}/it140/scripts/.manifest/it140_manifest.schema.json"
-        )
-        append_result(run_summary, path_result)
-
-        IF path_result.status = fail
-            GOTO FINALIZE_WITHOUT_TRANSCRIPT
-        ENDIF
-
-        log_result = create_log_directory_and_start_transcript(
-            run_context,
-            filename_pattern =
-                "<action>_<platform>_<YYYYMMDD>_<HHMMSS>.log"
-        )
-        append_result(run_summary, log_result)
-
-        IF log_result.status = fail
-            GOTO FINALIZE_WITHOUT_TRANSCRIPT
-        ENDIF
-
-        transcript_started = TRUE
-
-    ENDSTAGE
-
-
-    IF options.help_requested = TRUE
-
-        display_help(
-            purpose = purpose_text,
-            intended_user = intended_user_text,
-            prerequisites = help_prerequisites_text,
-            log_location = run_context.log_directory,
-            exit_code_meanings = standard_exit_code_catalog
-        )
-
-        append_success_result(run_summary, "run.help")
-        GOTO FINALIZE_RUN
-
-    ENDIF
-
-
-    IF options.version_requested = TRUE
-
-        display_version(
-            script_version = run_context.script_version,
-            supported_schema_range = run_context.supported_schema_range
-        )
-
-        append_success_result(run_summary, "run.version")
-        GOTO FINALIZE_RUN
-
-    ENDIF
-
-
-    BEGIN STAGE "run.opening"
-
-        display_opening_information(
-            package_name = "IT 140 Course Automation Scripts",
-            action_id = action_id,
-            script_version = run_context.script_version,
-            current_user_id = sanitized_current_user_id(),
-            purpose = purpose_text,
-            state_scope = state_scope,
-            expected_privilege = privilege_policy_text,
-            expected_interaction = expected_interaction_text,
-            log_path = run_context.log_path
-        )
-
-        append_success_result(run_summary, "run.opening")
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "platform.detect"
-
-        platform_facts = detect_platform_facts()
-        platform_result = validate_minimum_platform_facts(platform_facts)
-        append_result(run_summary, platform_result)
-
-        IF platform_result.status = fail
-            record_unsupported_or_unreadable_platform(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "deployment.resolve"
-
-        deployment_result = resolve_deployment_profile(
-            platform_facts,
-            explicit_approved_context = options.deployment_profile
-        )
-        append_result(run_summary, deployment_result)
-
-        IF deployment_result.status = fail
-            record_unsupported_deployment(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        deployment_profile = deployment_result.value
-        run_context.deployment_profile_id = deployment_profile.profile_id
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "platform.match"
-
-        match_result = confirm_action_platform_match(
-            action_id,
-            expected_platform_id = platform_implementation_id(),
-            platform_facts,
-            deployment_profile
-        )
-        append_result(run_summary, match_result)
-
-        IF match_result.status = fail
-            record_unsupported_invocation(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "manifest.validate"
-
-        manifest_result = load_and_validate_manifest(
-            manifest_path = run_context.manifest_path,
-            schema_path = run_context.schema_path,
-            validation_layers = [
-                file_validation,
-                duplicate_key_validation,
-                json_syntax_validation,
-                schema_validation,
-                semantic_validation,
-                cross_reference_validation,
-                deployment_profile_validation,
-                adapter_allowlist_validation,
-                path_boundary_validation,
-                trust_and_integrity_validation,
-                script_manifest_compatibility_validation,
-                secret_and_personal_value_validation
-            ]
-        )
-        append_result(run_summary, manifest_result)
-
-        IF manifest_result.status = fail
-            record_manifest_failure(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        manifest = freeze_validated_configuration(manifest_result.value)
-        run_context.manifest_release = manifest.automation_release
-        run_context.platform_id = deployment_profile.platform_id
-
-        display_manifest_release(run_context.manifest_release)
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "adapter.resolve"
-
-        adapter_result = resolve_allowlisted_adapters(
-            action_id,
-            run_context.platform_id,
-            run_context.deployment_profile_id,
-            manifest
-        )
-        append_result(run_summary, adapter_result)
-
-        IF adapter_result.status = fail
-            record_unsupported_configuration(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        adapters = adapter_result.value
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "boundary.validate"
-
-        boundary_result = validate_action_boundaries(
-            action_id,
-            state_scope,
-            may_change_state,
-            adapters,
-            manifest
-        )
-        append_result(run_summary, boundary_result)
-
-        IF boundary_result.status = fail
-            record_unsafe_design_or_configuration(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    IF lock_required = TRUE
-
-        BEGIN STAGE "lock.acquire"
-
-            lock_result = acquire_operation_lock(
-                action_id,
-                run_context.platform_id,
-                managed_resource_scope = lock_scope
-            )
-            append_result(run_summary, lock_result)
-
-            IF lock_result.status = fail
-                record_concurrent_operation_failure(run_summary)
-                GOTO FINALIZE_RUN
-            ENDIF
-
-            operation_lock = lock_result.value
-
-        ENDSTAGE
-
-    ENDIF
-
-
-    BEGIN STAGE "configure.prerequisites"
-
-        prerequisite_results = run_action_prerequisites(
-            run_context,
-            platform_facts,
-            deployment_profile,
-            manifest,
-            adapters
-        )
-        append_results(run_summary, prerequisite_results)
-
-        IF has_blocking_required_failure(prerequisite_results)
-            mark_dependent_operations_skipped(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "configure.plan"
-
-        plan_result = build_action_plan(
-            run_context,
-            platform_facts,
-            deployment_profile,
-            manifest,
-            adapters,
-            prerequisite_results,
-            options
-        )
-        append_result(run_summary, plan_result)
-
-        IF plan_result.status = fail
-            record_planning_failure(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        action_plan = plan_result.value
-        display_sanitized_plan_summary(action_plan)
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "configure.execute"
-
-        FOR EACH plan_stage IN action_plan.stages IN dependency_order
-
-            IF required_dependency_failed(plan_stage, run_summary)
-
-                stage_result = create_skipped_dependency_result(plan_stage)
-                append_result(run_summary, stage_result)
-                display_stage_result(stage_result)
-                CONTINUE
-
-            ENDIF
-
-            TRY
-
-                stage_results = execute_action_stage(
-                    plan_stage,
-                    run_context,
-                    manifest,
-                    adapters,
-                    options
-                )
-
-            CATCH user_cancellation
-
-                stage_results = create_canceled_result(
-                    plan_stage.operation_id,
-                    remediation_owner = "configure"
-                )
-
-            CATCH temporary_external_failure
-
-                stage_results = retry_with_manifest_policy(
-                    plan_stage,
-                    manifest.policy.retry_profiles,
-                    adapters
-                )
-
-            CATCH handled_operation_failure
-
-                stage_results = create_handled_failure_result(
-                    plan_stage.operation_id,
-                    sanitized_error()
-                )
-
-            CATCH unexpected_failure
-
-                stage_results = create_unexpected_failure_result(
-                    plan_stage.operation_id,
-                    sanitized_error()
-                )
-
-            END TRY
-
-            append_results(run_summary, stage_results)
-            display_stage_results(stage_results)
-
-        ENDFOR
-
-    ENDSTAGE
-
-
-    IF may_change_state = TRUE AND run_summary.changed_items IS NOT EMPTY
-
-        BEGIN STAGE "configure.post_validate"
-
-            post_validation_results = post_validate_action(
-                run_context,
-                platform_facts,
-                deployment_profile,
-                manifest,
-                adapters,
-                run_summary.changed_items
-            )
-            append_results(run_summary, post_validation_results)
-
-            IF has_required_failure(post_validation_results)
-                record_partial_or_failed_final_state(run_summary)
-            ENDIF
-
-        ENDSTAGE
-
-    ENDIF
-
-
-    IF action_id = "verify"
-
-        BEGIN STAGE "verify.read_only_assertion"
-
-            read_only_result = confirm_no_managed_state_changed(run_summary)
-            append_result(run_summary, read_only_result)
-
-            IF read_only_result.status = fail
-                record_critical_design_failure(run_summary)
-            ENDIF
-
-        ENDSTAGE
-
-    ENDIF
-
-
-FINALIZE_RUN:
-
-    BEGIN STAGE "run.finalize"
-
-        restart_result = determine_restart_guidance(
-            run_context,
-            platform_facts,
-            deployment_profile,
-            run_summary
-        )
-        append_result(run_summary, restart_result)
-
-        run_summary.remediation = determine_remediation(run_summary)
-        run_summary.next_step = determine_next_step(
-            action_id,
-            normal_next_step,
-            run_summary
-        )
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "run.cleanup"
-
-        cleanup_results = remove_private_temporary_data()
-        append_results_without_overriding_primary_failure(
-            run_summary,
-            cleanup_results
-        )
-
-        IF operation_lock IS NOT NONE
-
-            release_result = release_operation_lock(operation_lock)
-            append_result_without_overriding_primary_failure(
-                run_summary,
-                release_result
-            )
-
-        ENDIF
-
-    ENDSTAGE
-
-
-    run_summary.final_exit_code = resolve_standard_exit_code(run_summary)
-    run_summary.elapsed_time = calculate_elapsed_time(run_context.start_time)
-
-
-    BEGIN STAGE "run.summary"
-
-        display_final_summary(
-            overall_result = determine_overall_result(run_summary),
-            changed_items = run_summary.changed_items,
-            warnings = run_summary.warnings,
-            failures = run_summary.failures,
-            restart_guidance = run_summary.restart_guidance,
-            remediation = run_summary.remediation,
-            next_step = run_summary.next_step,
-            log_path = run_context.log_path,
-            exit_code = run_summary.final_exit_code
-        )
-
-    ENDSTAGE
-
-
-    IF transcript_started = TRUE
-        close_transcript()
-    ENDIF
-
-    RETURN run_summary.final_exit_code
-
-
-FINALIZE_WITHOUT_TRANSCRIPT:
-
-    minimal_exit_code = resolve_standard_exit_code(run_summary)
-    display_minimum_safe_summary(run_summary, minimal_exit_code)
-    RETURN minimal_exit_code
-
-ENDPROCEDURE
-
-
-# ==============================================================================
-# 4. CONFIGURE-SPECIFIC PROCEDURES
-# ==============================================================================
-
-PROCEDURE run_action_prerequisites(
-    run_context,
-    platform_facts,
-    deployment_profile,
-    manifest,
-    adapters
-)
-
-    results = new_result_collection()
-
-    append_result(
-        results,
-        confirm_intended_standard_user_context(platform_facts)
-    )
-
-    append_result(
-        results,
-        reject_root_or_system_administrator_execution(
-            platform_facts,
-            allowed_exception = NONE
-        )
-    )
-
-    append_results(
-        results,
-        probe_required_system_layer(
-            manifest,
-            deployment_profile.platform_id,
-            adapters.read_only_capabilities,
-            remediation_owner = "setup"
-        )
-    )
-
-    append_result(
-        results,
-        check_home_derived_course_paths(run_context)
-    )
-
-    append_result(
-        results,
-        check_user_write_access_to_managed_paths(run_context, manifest)
-    )
-
-    append_result(
-        results,
-        validate_provider_profiles_needed_for_configuration(manifest)
-    )
-
-    append_result(
-        results,
-        check_required_network_reachability(
-            manifest,
-            purpose = "provider authentication when required",
-            allow_not_needed_when_authenticated = TRUE
-        )
-    )
-
-    append_result(
-        results,
-        confirm_no_system_scope_adapter_methods_are_available(adapters)
-    )
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE build_action_plan(
-    run_context,
-    platform_facts,
-    deployment_profile,
-    manifest,
-    adapters,
-    prerequisite_results,
-    options
-)
-
-    action_plan = create_empty_dependency_aware_plan()
-
-    folder_plan = compare_course_folder_state(
-        run_context,
-        manifest.policy
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "configure.course_folders",
-        operation_type = "create_or_repair_course_folders",
-        dependencies = [],
-        planned_items = folder_plan,
-        mutating = TRUE,
-        privilege_scope = "none",
-        managed_targets = folder_plan.targets,
-        blocks_dependents = TRUE,
-        recovery = "preserve existing folder contents",
-        traceability = ["CFG-FR-003", "CFG-FR-012",
-                        "CFG-DES-003", "CFG-DES-012"]
-    )
-
-    path_plan = compare_user_executable_path_state(
-        run_context,
-        platform_implementation_script_directory(),
-        manifest
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "configure.user_path",
-        operation_type = "merge_user_executable_path",
-        dependencies = ["configure.course_folders"],
-        planned_items = path_plan,
-        mutating = TRUE,
-        privilege_scope = "none",
-        managed_targets = path_plan.targets,
-        blocks_dependents = FALSE,
-        recovery = "restore previous valid managed entry",
-        traceability = ["CFG-FR-004", "CFG-FR-015",
-                        "CFG-DES-004", "CFG-DES-015"]
-    )
-
-    provider_plan = build_provider_authentication_and_identity_plan(
-        manifest.provider_profiles,
-        adapters.providers
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "configure.provider_identity",
-        operation_type = "authenticate_and_config_identity",
-        dependencies = ["configure.course_folders"],
-        planned_items = provider_plan,
-        mutating = TRUE,
-        privilege_scope = "none",
-        managed_targets = provider_plan.identity_setting_targets,
-        blocks_dependents = TRUE,
-        recovery = "leave provider credentials in provider-owned store",
-        traceability = ["CFG-FR-005", "CFG-FR-006",
-                        "CFG-FR-007", "CFG-FR-008",
-                        "CFG-DES-005", "CFG-DES-006",
-                        "CFG-DES-007", "CFG-DES-008"]
-    )
-
-    version_control_plan = compare_managed_version_control_settings(
-        manifest.managed_settings,
-        adapters.version_control
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "configure.version_control",
-        operation_type = "merge_version_control_settings",
-        dependencies = ["configure.provider_identity"],
-        planned_items = version_control_plan,
-        mutating = TRUE,
-        privilege_scope = "none",
-        managed_targets = version_control_plan.targets,
-        blocks_dependents = FALSE,
-        recovery = "restore prior managed values when available",
-        traceability = ["CFG-FR-009", "CFG-FR-015",
-                        "CFG-DES-009", "CFG-DES-015"]
-    )
-
-    user_tool_plan = compare_required_user_tool_state(
-        manifest,
-        deployment_profile.platform_id,
-        adapters.capabilities
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "configure.user_tools",
-        operation_type = "install_or_repair_user_tools",
-        dependencies = ["configure.course_folders"],
-        planned_items = user_tool_plan,
-        mutating = TRUE,
-        privilege_scope = "none",
-        managed_targets = user_tool_plan.targets,
-        blocks_dependents = TRUE,
-        recovery = "adapter-defined user-scope repair",
-        traceability = ["CFG-FR-010", "CFG-FR-015",
-                        "CFG-DES-010", "CFG-DES-015"]
-    )
-
-    ide_settings_plan = compare_managed_ide_settings(
-        manifest.managed_settings,
-        adapters.ide
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "configure.ide_settings",
-        operation_type = "merge_managed_ide_settings",
-        dependencies = ["configure.user_tools"],
-        planned_items = ide_settings_plan,
-        mutating = TRUE,
-        privilege_scope = "none",
-        managed_targets = ide_settings_plan.targets,
-        blocks_dependents = FALSE,
-        recovery = "preserve original file and restore staged backup",
-        traceability = ["CFG-FR-011", "CFG-FR-015",
-                        "CFG-DES-011", "CFG-DES-015",
-                        "ERR-DES-009"]
-    )
-
-    integration_plan = compare_user_integration_state(
-        manifest,
-        deployment_profile,
-        adapters.platform
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "configure.user_integrations",
-        operation_type = "create_or_repair_user_integrations",
-        dependencies = ["configure.course_folders",
-                        "configure.user_tools"],
-        planned_items = integration_plan,
-        mutating = TRUE,
-        privilege_scope = "none",
-        managed_targets = integration_plan.targets,
-        blocks_dependents = FALSE,
-        recovery = "restore previous declared integration",
-        traceability = ["CFG-FR-013", "CFG-FR-015",
-                        "CFG-DES-013", "CFG-DES-015"]
-    )
-
-    permission_plan = compare_script_permission_state(
-        platform_implementation_script_directory(),
-        manifest
-    )
-    add_plan_stage(
-        action_plan,
-        operation_id = "configure.script_permissions",
-        operation_type = "repair_user_executable_permissions",
-        dependencies = ["configure.course_folders"],
-        planned_items = permission_plan,
-        mutating = TRUE,
-        privilege_scope = "none",
-        managed_targets = permission_plan.targets,
-        blocks_dependents = FALSE,
-        recovery = "restore prior permissions when available",
-        traceability = ["CFG-FR-014", "CFG-DES-014"]
-    )
-
-    assert_plan_contains_only_current_user_scope_operations(action_plan)
-    validate_plan_against_action_boundaries(action_plan, state_scope)
-
-    RETURN successful_plan_result(action_plan)
-
-ENDPROCEDURE
-
-
-PROCEDURE execute_action_stage(
-    plan_stage,
-    run_context,
-    manifest,
-    adapters,
-    options
-)
-
-    IF plan_stage.operation_type =
-        "authenticate_and_config_identity"
-
-        RETURN execute_provider_identity_stage(
-            plan_stage,
-            run_context,
-            manifest,
-            adapters,
-            options
-        )
-
-    ENDIF
-
-    IF plan_stage.operation_type = "merge_managed_ide_settings"
-
-        RETURN execute_validated_settings_merge(
-            plan_stage,
-            manifest,
-            adapters.ide
-        )
-
-    ENDIF
-
-    results = new_result_collection()
-
-    FOR EACH plan_item IN plan_stage.planned_items
-
-        current_state = query_plan_item_state(plan_item, adapters)
-
-        IF state_satisfies_rule(current_state, plan_item.expected_rule)
-
-            append_result(
-                results,
-                create_unchanged_result(
-                    plan_item.operation_id,
-                    sanitized_detail = current_state.summary
-                )
-            )
-            CONTINUE
-
-        ENDIF
-
-        validate_user_input_fields(plan_item)
-        validate_managed_targets(plan_item.managed_targets, manifest)
-
-        operation_result = apply_smallest_approved_user_change(
-            plan_item,
-            adapters
-        )
-        append_result(results, operation_result)
-
-        IF operation_result.status = fail
-            CONTINUE
-        ENDIF
-
-        final_state = query_plan_item_state(plan_item, adapters)
-        append_result(
-            results,
-            compare_final_state(plan_item, final_state)
-        )
-
-    ENDFOR
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE execute_provider_identity_stage(
-    plan_stage,
-    run_context,
-    manifest,
-    adapters,
-    options
-)
-
-    results = new_result_collection()
-    provider_profile = plan_stage.planned_items.provider_profile
-    provider_adapter = adapters.providers[provider_profile.adapter_id]
-
-    auth_status = provider_adapter.get_authentication_status()
-    append_result(results, sanitize_provider_status(auth_status))
-
-    IF auth_status.is_valid = FALSE
-
-        IF options.noninteractive = TRUE
-
-            append_result(
-                results,
-                create_required_interaction_failure(
-                    "configure.provider_authentication",
-                    remediation_owner = "configure"
-                )
-            )
-            RETURN results
-
-        ENDIF
-
-        explain_authentication_action(
-            provider_profile.authentication_method,
-            expected_browser_or_device_interaction =
-                provider_profile.user_instructions,
-            cancellation_method = "choose cancel before authentication"
-        )
-
-        confirmation = request_bounded_confirmation(
-            prompt_id = "provider.auth.action_required",
-            default = "cancel"
-        )
-
-        IF confirmation = "cancel"
-            RAISE user_cancellation
-        ENDIF
-
-        auth_result =
-            provider_adapter.start_approved_authentication_flow()
-        append_result(results, sanitize_provider_result(auth_result))
-
-        IF auth_result.status = fail
-            RETURN results
-        ENDIF
-
-        auth_status = provider_adapter.get_authentication_status()
-        append_result(results, sanitize_provider_status(auth_status))
-
-        IF auth_status.is_valid = FALSE
-
-            append_result(
-                results,
-                create_required_failure(
-                    "configure.provider_authentication",
-                    remediation_owner = "configure"
-                )
-            )
-            RETURN results
-
-        ENDIF
-
-    ENDIF
-
-    account_identity = provider_adapter.get_account_identity(
-        provider_profile.account_fields
-    )
-
-    identity_validation = validate_minimum_account_identity(
-        account_identity,
-        provider_profile
-    )
-    append_result(results, identity_validation)
-
-    IF identity_validation.status = fail
-        RETURN results
-    ENDIF
-
-    private_commit_identity =
-        provider_adapter.derive_private_commit_identity(
-            provider_profile.private_commit_identity_rule,
-            account_identity
-        )
-
-    IF options.noninteractive = TRUE
-
-        display_name = account_identity.user_name
-
-    ELSE
-
-        explain_display_name_choice(
-            default_value = account_identity.user_name,
-            privacy_note =
-                "The display name is public in version-control history."
-        )
-
-        display_name = request_validated_display_name(
-            default = account_identity.user_name,
-            bounded_attempts = manifest.policy.input_attempt_limit
-        )
-
-    ENDIF
-
-    append_result(
-        results,
-        apply_managed_version_control_identity(
-            display_name,
-            private_commit_identity,
-            adapters.version_control,
-            redact_complete_identity = TRUE
-        )
-    )
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE execute_validated_settings_merge(
-    plan_stage,
-    manifest,
-    ide_adapter
-)
-
-    results = new_result_collection()
-    target = plan_stage.planned_items.target
-
-    existing_result = ide_adapter.read_settings(target)
-    append_result(results, existing_result)
-
-    IF existing_result.status = fail
-        RETURN results
-    ENDIF
-
-    IF existing_result.value.is_invalid = TRUE
-
-        diagnostic_result = preserve_sanitized_diagnostic_copy(
-            existing_result.value,
-            target
-        )
-        append_result(results, diagnostic_result)
-
-        append_result(
-            results,
-            create_required_failure(
-                "configure.ide_settings.invalid_existing",
-                remediation_owner = "technical_support"
-            )
-        )
-        RETURN results
-
-    ENDIF
-
-    merged_settings = merge_only_manifest_declared_keys(
-        existing_result.value,
-        plan_stage.planned_items.managed_keys
-    )
-
-    staged_result = stage_deterministic_settings(
-        target,
-        merged_settings
-    )
-    append_result(results, staged_result)
-
-    IF staged_result.status = fail
-        RETURN results
-    ENDIF
-
-    validation_result = validate_staged_settings(
-        staged_result.value,
-        plan_stage.planned_items.validation_rules
-    )
-    append_result(results, validation_result)
-
-    IF validation_result.status = fail
-        RETURN results
-    ENDIF
-
-    replacement_result = atomically_replace_user_settings(
-        target,
-        staged_result.value,
-        preserve_previous = TRUE
-    )
-    append_result(results, replacement_result)
-
-    IF replacement_result.status = fail
-        RETURN results
-    ENDIF
-
-    append_result(
-        results,
-        verify_managed_setting_keys(
-            target,
-            plan_stage.planned_items.managed_keys,
-            ide_adapter
-        )
-    )
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE post_validate_action(
-    run_context,
-    platform_facts,
-    deployment_profile,
-    manifest,
-    adapters,
-    changed_items
-)
-
-    results = new_result_collection()
-
-    append_results(
-        results,
-        verify_required_system_layer_read_only(
-            manifest,
-            deployment_profile.platform_id,
-            adapters.read_only_capabilities
-        )
-    )
-
-    append_result(
-        results,
-        verify_course_folders_preserve_existing_contents(
-            run_context,
-            manifest
-        )
-    )
-
-    append_result(
-        results,
-        verify_user_executable_path_has_one_managed_entry(
-            platform_implementation_script_directory()
-        )
-    )
-
-    append_results(
-        results,
-        verify_provider_identity_and_authentication(
-            manifest.provider_profiles,
-            adapters.providers,
-            redact_complete_identity = TRUE
-        )
-    )
-
-    append_results(
-        results,
-        verify_managed_version_control_settings(
-            manifest.managed_settings,
-            adapters.version_control
-        )
-    )
-
-    append_results(
-        results,
-        verify_required_user_tools_and_extensions(
-            manifest,
-            deployment_profile.platform_id,
-            adapters
-        )
-    )
-
-    append_results(
-        results,
-        verify_managed_ide_settings_preserve_unrelated_keys(
-            manifest.managed_settings,
-            adapters.ide
-        )
-    )
-
-    append_results(
-        results,
-        verify_user_integrations(
-            manifest,
-            deployment_profile,
-            adapters.platform
-        )
-    )
-
-    append_result(
-        results,
-        confirm_no_system_scope_state_changed(changed_items)
-    )
-
-    IF has_no_required_failure(results)
-        set_next_step(
-            run_context,
-            render_matching_lifecycle_command("verify")
-        )
-    ENDIF
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-# ==============================================================================
-# 5. STANDARD EXIT-CODE RESOLUTION
-# ==============================================================================
-#
-# Precedence is based on safety and remediation value, not numeric order:
-#
-#     5  Invalid, corrupt, incompatible, or integrity-failed manifest or asset
-#     2  Invalid use, unsupported platform, deployment, or OS release
-#     3  Required permission or privilege unavailable
-#     4  Approved external source or service unavailable after retries
-#     7  Partial completion or changed state requiring remediation
-#     1  Other required operation or check failure
-#     6  Required interactive operation canceled
-#     0  All required operations or checks completed successfully
-#
-# ==============================================================================
-
-PROCEDURE resolve_standard_exit_code(run_summary)
-
-    IF has_manifest_or_integrity_failure(run_summary)
-        RETURN 5
-    ELSE IF has_unsupported_condition(run_summary)
-        RETURN 2
-    ELSE IF has_required_privilege_failure(run_summary)
-        RETURN 3
-    ELSE IF has_exhausted_external_failure(run_summary)
-        RETURN 4
-    ELSE IF has_partial_completion(run_summary)
-        RETURN 7
-    ELSE IF has_other_required_failure(run_summary)
-        RETURN 1
-    ELSE IF has_required_cancellation(run_summary)
-        RETURN 6
-    ELSE
+    IF options.help_requested
+        display_configure_help()
         RETURN 0
     ENDIF
 
+    IF options.version_requested
+        display_configure_version()
+        RETURN 0
+    ENDIF
+
+    enable_strict_error_handling()
+    set_private_default_file_permissions()
+
+    run_context = resolve_configure_paths_and_start_private_transcript(
+        filename_pattern = "config_<platform>_<YYYYMMDD>_<HHMMSS>.log"
+    )
+
+    changed = FALSE
+    warnings = 0
+
+    INSTALL error handler:
+        - report the failing location and log path;
+        - return 7 when managed user state changed, otherwise 1.
+
+    INSTALL interruption handler:
+        - instruct the user to rerun configure;
+        - return 7 when managed user state changed, otherwise 6.
+
+    DISPLAY opening information
+    DISPLAY NOTICE that system-wide software will not be changed
+
+    validate_platform_and_user_context(run_context)
+    acquire_shared_mutation_lock(action_id, run_context.platform_id)
+
+    REQUIRE the controlled manifest and schema are readable
+    manifest_release = validate_configure_manifest(run_context)
+
+    check_required_system_layer(run_context)
+
+    configure_course_folders_path_and_permissions(run_context)
+    configure_provider_authentication_and_git_identity(run_context, options)
+    configure_user_tools_and_required_extensions(run_context)
+    merge_course_managed_ide_settings(run_context)
+    configure_user_desktop_integrations(run_context)
+    post_validate_user_layer(run_context)
+
+    DISPLAY configuration summary:
+        result = PASS
+        provider login = valid
+        course folder
+        course interpreter
+        warnings
+        failures = 0
+        elapsed time
+        next step = close terminal, open new terminal, run verify
+        log path
+        exit code = 0
+
+    DISPLAY closing log and fresh-terminal notices
+    RETURN 0
+
 ENDPROCEDURE
 
 
 # ==============================================================================
-# END OF PSEUDOSCRIPT
+# 2. PLATFORM, USER, AND MANIFEST VALIDATION
 # ==============================================================================
+
+PROCEDURE validate_platform_and_user_context(run_context)
+
+    REJECT root or system-administrator execution
+    REQUIRE operating-system family and release match the implementation
+    REQUIRE architecture matches the implementation
+    REQUIRE the required desktop-management interface is available
+
+ENDPROCEDURE
+
+
+PROCEDURE validate_configure_manifest(run_context)
+
+    RETURN validate_controlled_manifest_pair(
+        run_context.manifest_path,
+        run_context.schema_path,
+        run_context.platform_id,
+        run_context.deployment_profile_id,
+        required_top_level_keys = [
+            "schema_version",
+            "automation_release",
+            "policy",
+            "platforms",
+            "deployment_profiles",
+            "provider_profiles",
+            "managed_settings"
+        ]
+    )
+
+ENDPROCEDURE
+
+
+PROCEDURE check_required_system_layer(run_context)
+
+    required_commands = manifest_required_system_executables(run_context.platform_id)
+    ADD the exact required programming-language runtime executable
+
+    FOR EACH required command
+        IF the command is unavailable
+            DISPLAY ERROR directing the user to run update
+            IF update already passed
+                DISPLAY ERROR directing the user to course support
+            ENDIF
+            RETURN failure
+        ENDIF
+    ENDFOR
+
+    DISPLAY SUCCESS that required system components are present
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 3. COURSE FOLDERS, PATH, AND SCRIPT PERMISSIONS
+# ==============================================================================
+
+PROCEDURE configure_course_folders_path_and_permissions(run_context)
+
+    CREATE OR REPAIR without deleting existing content:
+        course root
+        private log directory
+        matching platform script directory
+
+    SET the log directory to current-user-only permissions
+
+    managed_path_block = exact block that prepends:
+        course virtual-environment executable directory
+        matching platform script directory
+
+    UPSERT managed_path_block in:
+        the user's login-shell startup file
+        the user's interactive-shell startup file
+
+    PRESERVE all content outside the exact managed block
+
+    PREPEND both managed directories to the current process PATH when missing
+    REFRESH the current process command lookup cache
+
+    SET executable permission on matching student lifecycle scripts in the
+        platform script directory
+
+    SET changed = TRUE
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 4. PROVIDER AUTHENTICATION AND GIT IDENTITY
+# ==============================================================================
+
+PROCEDURE configure_provider_authentication_and_git_identity(run_context, options)
+
+    provider = manifest_required_source_hosting_provider()
+
+    IF provider authentication is not valid
+        IF options.noninteractive = TRUE
+            DISPLAY ERROR that existing authentication is required
+            RETURN exit code 6
+        ENDIF
+
+        DISPLAY step-by-step browser authentication instructions
+        PROMPT the user to begin or cancel
+
+        IF the user cancels
+            RETURN exit code 6 before changes, otherwise 7
+        ENDIF
+
+        START provider-owned web authentication using the approved secure flow
+        SET changed = TRUE
+    ENDIF
+
+    REQUIRE provider authentication is now valid
+
+    provider_account_id = query_authenticated_provider_account_id()
+    provider_username = query_authenticated_provider_username()
+
+    VALIDATE provider_account_id and provider_username
+    private_commit_identity = derive_provider_private_noreply_identity(
+        provider_account_id,
+        provider_username
+    )
+
+    default_display_name = existing Git display name when nonempty
+    OTHERWISE default_display_name = provider_username
+
+    IF options.noninteractive = TRUE
+        display_name = default_display_name
+    ELSE
+        DISPLAY NOTICE that the Git display name is public in version history
+        DISPLAY NOTICE that Enter accepts the displayed default
+        DISPLAY NOTICE that a different author name may be entered
+        PROMPT for display_name using default_display_name
+    ENDIF
+
+    VALIDATE display_name:
+        - nonempty;
+        - no newline characters;
+        - within the implementation length limit.
+
+    SET global Git display name to display_name
+    SET global Git email to private_commit_identity
+
+    FOR EACH manifest-declared managed Git setting
+        SET the global Git setting to the declared value
+    ENDFOR
+
+    SET changed = TRUE
+    DISPLAY only the public display name, provider username, and a statement that
+        the private noreply identity is in use
+    NEVER display provider credentials or tokens
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 5. USER TOOLS AND REQUIRED IDE EXTENSIONS
+# ==============================================================================
+
+PROCEDURE configure_user_tools_and_required_extensions(run_context)
+
+    IF the course virtual environment is not usable
+        CREATE it with the exact required system runtime
+        SET changed = TRUE
+    ENDIF
+
+    required_user_packages = manifest_required_virtual_environment_packages()
+    INCLUDE the required code-quality tool when declared as a required capability
+
+    INSTALL only missing required user packages
+    PRESERVE other packages in the course virtual environment
+
+    required_extensions = manifest_required_ide_extensions()
+    installed_extensions = query_installed_ide_extensions_case_insensitively()
+
+    INSTALL only missing required extensions
+    PRESERVE optional and unrelated installed extensions
+
+    SET changed = TRUE when any installation occurs
+    DISPLAY SUCCESS for the complete required user-tool layer
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 6. COURSE-MANAGED IDE SETTINGS
+# ==============================================================================
+
+PROCEDURE merge_course_managed_ide_settings(run_context)
+
+    settings_target = platform_user_ide_settings_file()
+    existing_settings = empty object
+
+    IF settings_target exists and is nonempty
+        TRY to parse it as a JSON object
+        IF parsing fails or the root is not an object
+            PRESERVE settings_target unchanged
+            WRITE a content-free diagnostic in the private log directory
+            DISPLAY ERROR with the diagnostic path
+            RETURN failure
+        ENDIF
+    ENDIF
+
+    managed_settings = manifest_required_ide_settings()
+    ADD implementation-required current-user values, including:
+        course interpreter path
+        course root as default folder
+        course testing arguments
+        course file-save and whitespace behavior
+        platform terminal profile
+        course file/editor associations
+        local-only settings excluded from settings synchronization
+
+    DEEP-MERGE managed_settings into existing_settings
+    PRESERVE unrelated keys and unrelated nested keys
+
+    WRITE the merged object to a temporary sibling file using UTF-8 and LF
+    REPARSE the temporary file
+    ATOMICALLY replace settings_target
+    REMOVE the temporary file
+
+    SET changed = TRUE
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 7. USER DESKTOP INTEGRATIONS
+# ==============================================================================
+
+PROCEDURE configure_user_desktop_integrations(run_context)
+
+    configure_optional_numlock_convenience(run_context)
+
+    HIDE implementation-selected default desktop icons when required
+
+    CREATE OR REPAIR a trusted desktop launcher for the course folder
+
+    IF the system IDE launcher is available
+        COPY it to the user's desktop
+        VALIDATE and mark the launcher trusted when supported
+    ELSE
+        RECORD a warning
+    ENDIF
+
+    IF the desktop panel contains the implementation directory-menu component
+        SET its base directory to the course root
+    ELSE
+        RECORD a warning
+    ENDIF
+
+    CREATE OR REPAIR a managed IDE panel launcher:
+        - reuse the saved plugin identifier only when valid;
+        - otherwise allocate a new identifier;
+        - store the identifier in a current-user marker file;
+        - install the launcher file;
+        - place the launcher at the end of the selected panel.
+
+    SET the IDE as default for implementation-selected text and source MIME types
+
+    RELOAD the desktop and panel when supported
+    SET changed = TRUE
+
+ENDPROCEDURE
+
+
+PROCEDURE configure_optional_numlock_convenience(run_context)
+
+    IF the optional Num Lock tool is unavailable
+        DISPLAY NOTICE to run update to attempt installation
+        DISPLAY NOTICE that course work is unaffected
+        RETURN success
+    ENDIF
+
+    DETERMINE whether an effective system or user startup entry already enables
+        Num Lock
+
+    IF no effective startup entry exists
+        CREATE and validate a current-user startup entry
+        IF it cannot be created or validated
+            DISPLAY NOTICE that course work is unaffected
+        ELSE
+            SET changed = TRUE
+        ENDIF
+    ENDIF
+
+    IF no graphical session is active
+        DISPLAY NOTICE that the startup preference will apply later when available
+    ELSE
+        ATTEMPT to enable Num Lock for the current session
+        IF the attempt fails
+            DISPLAY NOTICE that course work is unaffected
+        ENDIF
+    ENDIF
+
+    NEVER treat this optional convenience as a required failure
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 8. POST-VALIDATION
+# ==============================================================================
+
+PROCEDURE post_validate_user_layer(run_context)
+
+    REQUIRE course root, private log directory, and course virtual environment
+    REQUIRE exact managed PATH block in both managed shell startup files
+    REQUIRE all manifest-required virtual-environment packages
+    REQUIRE all manifest-required IDE extensions
+    REQUIRE valid provider authentication
+    REQUIRE a nonempty Git display name
+    REQUIRE the approved provider private noreply Git identity
+    REQUIRE all manifest-managed Git settings
+    REQUIRE required course-managed IDE settings
+    REQUIRE the managed IDE panel launcher record and launcher file
+    REQUIRE the matching verify script is present and executable
+
+    IF any required check fails
+        DISPLAY ERROR instructing the user to rerun configure
+        RETURN exit code 7
+    ENDIF
+
+    DISPLAY SUCCESS that user-layer validation passed
+
+ENDPROCEDURE

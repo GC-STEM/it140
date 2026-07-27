@@ -1,0 +1,109 @@
+# ==============================================================================
+# IT 140 BOOTSTRAP PSEUDOSCRIPT
+# ==============================================================================
+#
+# Repository path:
+#     scripts/.dev/pseudoscripts/bootstrap_any.pseudo
+#
+# Purpose:
+#     Retrieve the course automation package and make the matching student
+#     lifecycle scripts immediately available from the current terminal.
+#
+# Artifact version:
+#     2026.07.27.1
+#
+# CVD implementation baseline:
+#     scripts/cvd/bootstrap_cvd.sh at GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
+#
+# State boundary:
+#     PRE_MANIFEST_USER_FILES_AND_SHELL_PATH
+#
+# Intended user:
+#     A student or faculty user following the platform setup instructions.
+#
+# Important classification:
+#     This artifact models a manually copied command set, not a managed
+#     lifecycle script. It therefore has no command-line options, transcript,
+#     manifest dependency, lifecycle lock, summary, or exit-code catalog.
+#
+# Explicit exclusions:
+#     - Installing, updating, or repairing the operating system or course IDE
+#     - Running the administrator setup script
+#     - Authenticating with a source-code hosting provider
+#     - Configuring Git identity, user tools, IDE settings, or desktop launchers
+#     - Deleting unrelated files already stored under the course root
+#
+# Normal next step:
+#     Run the matching update script.
+#
+# ==============================================================================
+
+
+# ==============================================================================
+# 1. CONTROLLED IMPLEMENTATION VALUES
+# ==============================================================================
+
+platform_id = implementation_platform_id()
+course_repository_url = controlled_course_repository_url()
+course_root = "${HOME}/it140"
+temporary_root = create_unique_temporary_directory()
+temporary_clone = temporary_root + "/it140"
+student_script_directory = course_root + "/scripts/" + platform_id
+shell_startup_file = platform_primary_interactive_shell_startup_file()
+persistent_path_entry = student_script_directory
+
+
+# ==============================================================================
+# 2. BOOTSTRAP COMMAND SET
+# ==============================================================================
+
+BEGIN BOOTSTRAP
+
+    CREATE course_root if it does not exist
+
+    CREATE temporary_root
+
+    RETRIEVE a shallow snapshot of course_repository_url into temporary_clone
+
+    REMOVE repository metadata from temporary_clone
+
+    COPY all files and directories from temporary_clone into course_root:
+        - preserve repository file attributes when supported;
+        - replace matching course-automation files with the downloaded copies;
+        - do not delete unrelated existing files or directories in course_root.
+
+    REMOVE repository metadata from course_root if present
+
+    REMOVE temporary_root and its contents
+
+    SET executable permission on student lifecycle scripts located directly in:
+        student_script_directory
+
+    DEFINE the platform shell PATH statement that prepends:
+        student_script_directory
+
+    IF shell_startup_file does not already contain the exact PATH statement
+        APPEND one blank line and the PATH statement
+    ENDIF
+
+    IF the current shell PATH does not contain student_script_directory
+        PREPEND student_script_directory to the current shell PATH
+    ENDIF
+
+    REFRESH the current shell command lookup cache
+
+END BOOTSTRAP
+
+
+# ==============================================================================
+# 3. SUCCESSFUL POSTCONDITIONS
+# ==============================================================================
+#
+#     - The current repository snapshot is overlaid under ${HOME}/it140.
+#     - Neither the downloaded snapshot nor course root is a Git working tree.
+#     - Matching student lifecycle scripts are executable.
+#     - The matching script directory is available in the current shell PATH.
+#     - Future matching interactive shells receive the script directory in PATH.
+#     - Existing unrelated course-root content is not intentionally removed.
+#
+# ==============================================================================

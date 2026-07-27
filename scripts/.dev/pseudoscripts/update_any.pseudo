@@ -5,1502 +5,536 @@
 # Repository path:
 #     scripts/.dev/pseudoscripts/update_any.pseudo
 #
-#
 # Purpose:
-#     Maintain approved software and course-managed assets within the current OS release.
+#     Synchronize approved student automation assets and maintain the supported
+#     operating-system release, required tools, extensions, and integrations.
 #
 # Artifact version:
-#     2026.07.25.1
+#     2026.07.27.1
 #
-# Implementation release target:
-#     2026.07.25.2
-#
-# SRS baseline:
-#     IT140-SRS-SCRIPTS, version 2026.07.25.2
-#
-# SDD baseline:
-#     IT140-SDD-SCRIPTS, version 2026.07.25.2
+# CVD implementation target:
+#     update_cvd.sh version 2026.07.26.6
 #
 # Repository baseline:
-#     GC-STEM/it140 commit fe777dec65167a197627b2f9507111b69f8ed73a
-#
-# Authority:
-#     The SRS and SDD are authoritative. The controlled manifest selects
-#     current products, versions, sources, platforms, deployment profiles,
-#     provider rules, settings, paths, and managed assets.
-#
-# ==============================================================================
-
-
-# ==============================================================================
-# 1. DOCUMENT CONTROL
-# ==============================================================================
-#
-# Artifact:
-#     update_any.pseudo
-#
-# Lifecycle action:
-#     update
-#
-#
-# Purpose:
-#     Maintain approved software and course-managed assets within the current OS release.
-#
-#
-# Intended user:
-#     A student or faculty user with controlled privilege elevation when a system operation
-#     requires it
-#
-# State boundary:
-#     MANAGED_MAINTENANCE
-#
-#
-# Mutation policy:
-#     Change only manifest-declared system software, user-scoped course tools, integrations,
-#     assets, and obsolete targets
-#
-#
-# Privilege policy:
-#     Elevate only the specific approved system operation
+#     GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
 #
 # SRS traceability:
 #     UPD-FR-001 through UPD-FR-016
-#     PKG-FR-001 through PKG-FR-020
-#     PKG-NFR-001 through PKG-NFR-027
-#     PKG-TC-001 through PKG-TC-009
-#     PKG-QOS-001 through PKG-QOS-022
-#     REF-TC-001 through REF-TC-007 where applicable
 #
 # SDD traceability:
 #     UPD-DES-001 through UPD-DES-016
-#     ARC-DES-001 through ARC-DES-010
-#     DAT-DES-001 through DAT-DES-015
-#     INT-DES-001 through INT-DES-012
-#     SHR-DES-001 through SHR-DES-016
-#     ERR-DES-001 through ERR-DES-012
-#     SEC-DES-001 through SEC-DES-012
-#     PLT-DES-001 through PLT-DES-011
 #
+# Intended user:
+#     The standard student or faculty account during first use, after a reset,
+#     or for periodic maintenance.
 #
-# Preconditions:
-#     - The installed updater can validate the current manifest and trust root.
-#     - The supported platform has sufficient disk space and network access.
-#     - Controlled privilege elevation is available when required.
-#
-#
-# Successful postconditions:
-#     - Approved managed assets and required capabilities are current and usable.
-#     - The operating-system release and optional user extensions are preserved.
-#     - Restart and verification guidance reflects the observed final state.
-#
+# State boundary:
+#     APPROVED_SYSTEM_AND_COURSE_MANAGED_USER_STATE
 #
 # Explicit exclusions:
-#     - Student source files and assignment repositories
-#     - Student version-control history
-#     - Secrets, authentication tokens, and browser session data
-#     - Optional software and unrelated user settings
 #     - Operating-system release upgrades
-#     - Removal of optional extensions or undeclared components
-#     - Direct replacement of an installed valid asset with an unvalidated candidate
-#
+#     - Student source files, assignment repositories, and Git history
+#     - Synchronizing or replacing the administrator master/setup script
+#     - Removing optional IDE extensions
+#     - Replacing undeclared user files or settings
 #
 # Normal next step:
-#     Run verify after a warning, failure, partial result, or required restart; otherwise
-#     verification is optional.
+#     Configure when user configuration is incomplete; otherwise verify.
 #
 # ==============================================================================
 
-
-# ==============================================================================
-# 2. ACTION PROFILE
-# ==============================================================================
-#
-# Action:
-#     update
-#
-# State scope:
-#     approved_system_and_course_managed_user_state
-#
-# May change managed state:
-#     TRUE
-#
-# Operation lock required:
-#     TRUE
-#
-# Lock scope:
-#     system_packages_managed_assets_user_tools_and_integrations
-#
-# Privilege model:
-#     elevate approved individual operations only
-#
-# ==============================================================================
 
 action_id = "update"
-state_scope = "approved_system_and_course_managed_user_state"
 may_change_state = TRUE
 lock_required = TRUE
-normal_next_step = "verify_when_indicated"
-lock_scope = "system_packages_managed_assets_user_tools_and_integrations"
-
-purpose_text = join_text([
-    "Maintain approved software and course-managed assets within the",
-    "current OS release."
-])
-intended_user_text = join_text([
-    "A student or faculty user with controlled privilege elevation",
-    "when a system operation requires it"
-])
-privilege_policy_text = "Elevate only the specific approved system operation"
-help_prerequisites_text = join_text([
-    "Supported platform, network access, staging space, and",
-    "controlled privilege elevation"
-])
-expected_interaction_text = join_text([
-    "Privilege prompts may occur; the script never restarts an active",
-    "session automatically."
-])
+student_scripts_to_synchronize = [
+    "config_<platform>",
+    "update_<platform>",
+    "verify_<platform>"
+]
+administrator_scripts_to_exclude = [
+    "master/setup_<platform>"
+]
+required_options = [
+    "help",
+    "version",
+    "noninteractive",
+    "deployment_profile"
+]
 
 
 # ==============================================================================
-# 3. COMMON MAIN PROCEDURE
+# 1. MAIN PROCEDURE
 # ==============================================================================
 
 PROCEDURE main(arguments)
 
-    BEGIN STAGE "run.initialize"
+    options = parse_supported_options_before_logging(arguments, required_options)
 
-        enable_strict_error_handling()
-        install_interruption_handlers()
-
-        run_context = create_minimal_run_context(
-            action_id,
-            script_version = "2026.07.25.2",
-            supported_schema_range = "1.0"
-        )
-
-        run_summary = create_empty_run_summary()
-        operation_lock = NONE
-        transcript_started = FALSE
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "run.options"
-
-        option_result = parse_supported_options(
-            arguments,
-            allowed_options = [
-                "help",
-            "version",
-            "noninteractive",
-            "deployment_profile"
-            ]
-        )
-        append_result(run_summary, option_result)
-
-        IF option_result.status = fail
-            record_invalid_invocation(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        options = option_result.value
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "log.start"
-
-        path_result = resolve_bootstrap_paths(
-            run_context,
-            course_root_rule = "${HOME}/it140",
-            manifest_rule =
-                "${HOME}/it140/scripts/.manifest/it140_manifest.json",
-            schema_rule =
-                "${HOME}/it140/scripts/.manifest/it140_manifest.schema.json"
-        )
-        append_result(run_summary, path_result)
-
-        IF path_result.status = fail
-            GOTO FINALIZE_WITHOUT_TRANSCRIPT
-        ENDIF
-
-        log_result = create_log_directory_and_start_transcript(
-            run_context,
-            filename_pattern =
-                "<action>_<platform>_<YYYYMMDD>_<HHMMSS>.log"
-        )
-        append_result(run_summary, log_result)
-
-        IF log_result.status = fail
-            GOTO FINALIZE_WITHOUT_TRANSCRIPT
-        ENDIF
-
-        transcript_started = TRUE
-
-    ENDSTAGE
-
-
-    IF options.help_requested = TRUE
-
-        display_help(
-            purpose = purpose_text,
-            intended_user = intended_user_text,
-            prerequisites = help_prerequisites_text,
-            log_location = run_context.log_directory,
-            exit_code_meanings = standard_exit_code_catalog
-        )
-
-        append_success_result(run_summary, "run.help")
-        GOTO FINALIZE_RUN
-
-    ENDIF
-
-
-    IF options.version_requested = TRUE
-
-        display_version(
-            script_version = run_context.script_version,
-            supported_schema_range = run_context.supported_schema_range
-        )
-
-        append_success_result(run_summary, "run.version")
-        GOTO FINALIZE_RUN
-
-    ENDIF
-
-
-    BEGIN STAGE "run.opening"
-
-        display_opening_information(
-            package_name = "IT 140 Course Automation Scripts",
-            action_id = action_id,
-            script_version = run_context.script_version,
-            current_user_id = sanitized_current_user_id(),
-            purpose = purpose_text,
-            state_scope = state_scope,
-            expected_privilege = privilege_policy_text,
-            expected_interaction = expected_interaction_text,
-            log_path = run_context.log_path
-        )
-
-        append_success_result(run_summary, "run.opening")
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "platform.detect"
-
-        platform_facts = detect_platform_facts()
-        platform_result = validate_minimum_platform_facts(platform_facts)
-        append_result(run_summary, platform_result)
-
-        IF platform_result.status = fail
-            record_unsupported_or_unreadable_platform(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "deployment.resolve"
-
-        deployment_result = resolve_deployment_profile(
-            platform_facts,
-            explicit_approved_context = options.deployment_profile
-        )
-        append_result(run_summary, deployment_result)
-
-        IF deployment_result.status = fail
-            record_unsupported_deployment(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        deployment_profile = deployment_result.value
-        run_context.deployment_profile_id = deployment_profile.profile_id
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "platform.match"
-
-        match_result = confirm_action_platform_match(
-            action_id,
-            expected_platform_id = platform_implementation_id(),
-            platform_facts,
-            deployment_profile
-        )
-        append_result(run_summary, match_result)
-
-        IF match_result.status = fail
-            record_unsupported_invocation(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "manifest.validate"
-
-        manifest_result = load_and_validate_manifest(
-            manifest_path = run_context.manifest_path,
-            schema_path = run_context.schema_path,
-            validation_layers = [
-                file_validation,
-                duplicate_key_validation,
-                json_syntax_validation,
-                schema_validation,
-                semantic_validation,
-                cross_reference_validation,
-                deployment_profile_validation,
-                adapter_allowlist_validation,
-                path_boundary_validation,
-                trust_and_integrity_validation,
-                script_manifest_compatibility_validation,
-                secret_and_personal_value_validation
-            ]
-        )
-        append_result(run_summary, manifest_result)
-
-        IF manifest_result.status = fail
-            record_manifest_failure(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        manifest = freeze_validated_configuration(manifest_result.value)
-        run_context.manifest_release = manifest.automation_release
-        run_context.platform_id = deployment_profile.platform_id
-
-        display_manifest_release(run_context.manifest_release)
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "adapter.resolve"
-
-        adapter_result = resolve_allowlisted_adapters(
-            action_id,
-            run_context.platform_id,
-            run_context.deployment_profile_id,
-            manifest
-        )
-        append_result(run_summary, adapter_result)
-
-        IF adapter_result.status = fail
-            record_unsupported_configuration(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        adapters = adapter_result.value
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "boundary.validate"
-
-        boundary_result = validate_action_boundaries(
-            action_id,
-            state_scope,
-            may_change_state,
-            adapters,
-            manifest
-        )
-        append_result(run_summary, boundary_result)
-
-        IF boundary_result.status = fail
-            record_unsafe_design_or_configuration(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    IF lock_required = TRUE
-
-        BEGIN STAGE "lock.acquire"
-
-            lock_result = acquire_operation_lock(
-                action_id,
-                run_context.platform_id,
-                managed_resource_scope = lock_scope
-            )
-            append_result(run_summary, lock_result)
-
-            IF lock_result.status = fail
-                record_concurrent_operation_failure(run_summary)
-                GOTO FINALIZE_RUN
-            ENDIF
-
-            operation_lock = lock_result.value
-
-        ENDSTAGE
-
-    ENDIF
-
-
-    BEGIN STAGE "update.prerequisites"
-
-        prerequisite_results = run_action_prerequisites(
-            run_context,
-            platform_facts,
-            deployment_profile,
-            manifest,
-            adapters
-        )
-        append_results(run_summary, prerequisite_results)
-
-        IF has_blocking_required_failure(prerequisite_results)
-            mark_dependent_operations_skipped(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "update.plan"
-
-        plan_result = build_action_plan(
-            run_context,
-            platform_facts,
-            deployment_profile,
-            manifest,
-            adapters,
-            prerequisite_results,
-            options
-        )
-        append_result(run_summary, plan_result)
-
-        IF plan_result.status = fail
-            record_planning_failure(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        action_plan = plan_result.value
-        display_sanitized_plan_summary(action_plan)
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "update.execute"
-
-        FOR EACH plan_stage IN action_plan.stages IN dependency_order
-
-            IF required_dependency_failed(plan_stage, run_summary)
-
-                stage_result = create_skipped_dependency_result(plan_stage)
-                append_result(run_summary, stage_result)
-                display_stage_result(stage_result)
-                CONTINUE
-
-            ENDIF
-
-            TRY
-
-                stage_results = execute_action_stage(
-                    plan_stage,
-                    run_context,
-                    manifest,
-                    adapters,
-                    options
-                )
-
-            CATCH user_cancellation
-
-                stage_results = create_canceled_result(
-                    plan_stage.operation_id,
-                    remediation_owner = "update"
-                )
-
-            CATCH temporary_external_failure
-
-                stage_results = retry_with_manifest_policy(
-                    plan_stage,
-                    manifest.policy.retry_profiles,
-                    adapters
-                )
-
-            CATCH handled_operation_failure
-
-                stage_results = create_handled_failure_result(
-                    plan_stage.operation_id,
-                    sanitized_error()
-                )
-
-            CATCH unexpected_failure
-
-                stage_results = create_unexpected_failure_result(
-                    plan_stage.operation_id,
-                    sanitized_error()
-                )
-
-            END TRY
-
-            append_results(run_summary, stage_results)
-            display_stage_results(stage_results)
-
-        ENDFOR
-
-    ENDSTAGE
-
-
-    IF may_change_state = TRUE AND run_summary.changed_items IS NOT EMPTY
-
-        BEGIN STAGE "update.post_validate"
-
-            post_validation_results = post_validate_action(
-                run_context,
-                platform_facts,
-                deployment_profile,
-                manifest,
-                adapters,
-                run_summary.changed_items
-            )
-            append_results(run_summary, post_validation_results)
-
-            IF has_required_failure(post_validation_results)
-                record_partial_or_failed_final_state(run_summary)
-            ENDIF
-
-        ENDSTAGE
-
-    ENDIF
-
-
-    IF action_id = "verify"
-
-        BEGIN STAGE "verify.read_only_assertion"
-
-            read_only_result = confirm_no_managed_state_changed(run_summary)
-            append_result(run_summary, read_only_result)
-
-            IF read_only_result.status = fail
-                record_critical_design_failure(run_summary)
-            ENDIF
-
-        ENDSTAGE
-
-    ENDIF
-
-
-FINALIZE_RUN:
-
-    BEGIN STAGE "run.finalize"
-
-        restart_result = determine_restart_guidance(
-            run_context,
-            platform_facts,
-            deployment_profile,
-            run_summary
-        )
-        append_result(run_summary, restart_result)
-
-        run_summary.remediation = determine_remediation(run_summary)
-        run_summary.next_step = determine_next_step(
-            action_id,
-            normal_next_step,
-            run_summary
-        )
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "run.cleanup"
-
-        cleanup_results = remove_private_temporary_data()
-        append_results_without_overriding_primary_failure(
-            run_summary,
-            cleanup_results
-        )
-
-        IF operation_lock IS NOT NONE
-
-            release_result = release_operation_lock(operation_lock)
-            append_result_without_overriding_primary_failure(
-                run_summary,
-                release_result
-            )
-
-        ENDIF
-
-    ENDSTAGE
-
-
-    run_summary.final_exit_code = resolve_standard_exit_code(run_summary)
-    run_summary.elapsed_time = calculate_elapsed_time(run_context.start_time)
-
-
-    BEGIN STAGE "run.summary"
-
-        display_final_summary(
-            overall_result = determine_overall_result(run_summary),
-            changed_items = run_summary.changed_items,
-            warnings = run_summary.warnings,
-            failures = run_summary.failures,
-            restart_guidance = run_summary.restart_guidance,
-            remediation = run_summary.remediation,
-            next_step = run_summary.next_step,
-            log_path = run_context.log_path,
-            exit_code = run_summary.final_exit_code
-        )
-
-    ENDSTAGE
-
-
-    IF transcript_started = TRUE
-        close_transcript()
-    ENDIF
-
-    RETURN run_summary.final_exit_code
-
-
-FINALIZE_WITHOUT_TRANSCRIPT:
-
-    minimal_exit_code = resolve_standard_exit_code(run_summary)
-    display_minimum_safe_summary(run_summary, minimal_exit_code)
-    RETURN minimal_exit_code
-
-ENDPROCEDURE
-
-
-# ==============================================================================
-# 4. UPDATE-SPECIFIC PROCEDURES
-# ==============================================================================
-
-PROCEDURE run_action_prerequisites(
-    run_context,
-    platform_facts,
-    deployment_profile,
-    manifest,
-    adapters
-)
-
-    results = new_result_collection()
-
-    append_result(
-        results,
-        check_supported_os_release(
-            platform_facts,
-            manifest.platforms[deployment_profile.platform_id]
-        )
-    )
-
-    append_result(
-        results,
-        check_supported_architecture(
-            platform_facts,
-            deployment_profile
-        )
-    )
-
-    append_result(
-        results,
-        confirm_intended_student_or_faculty_user(platform_facts)
-    )
-
-    append_result(
-        results,
-        check_minimum_free_space(
-            run_context,
-            manifest.policy.minimum_free_space_bytes,
-            include_staging_reserve = TRUE
-        )
-    )
-
-    append_result(
-        results,
-        check_required_network_reachability(
-            manifest,
-            purpose = "approved maintenance and asset retrieval"
-        )
-    )
-
-    append_result(
-        results,
-        check_privilege_capability(
-            platform_facts,
-            required_policy = "elevate_one_approved_operation"
-        )
-    )
-
-    append_result(
-        results,
-        check_private_staging_capability(run_context.temporary_root)
-    )
-
-    append_result(
-        results,
-        check_installed_trust_root_available(run_context, manifest)
-    )
-
-    append_result(
-        results,
-        confirm_os_release_upgrade_is_excluded(adapters)
-    )
-
-    append_result(
-        results,
-        inventory_optional_user_extensions_before_update(adapters.ide)
-    )
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE build_action_plan(
-    run_context,
-    platform_facts,
-    deployment_profile,
-    manifest,
-    adapters,
-    prerequisite_results,
-    options
-)
-
-    action_plan = create_empty_dependency_aware_plan()
-
-    add_plan_stage(
-        action_plan,
-        operation_id = "update.release_transaction",
-        operation_type = "retrieve_stage_and_activate_release_assets",
-        dependencies = [],
-        planned_items = current_release_source_contract(manifest),
-        mutating = TRUE,
-        privilege_scope = "none",
-        managed_targets = manifest.managed_assets,
-        blocks_dependents = TRUE,
-        recovery = "preserve or restore previous valid assets",
-        traceability = ["UPD-FR-003", "UPD-FR-004",
-                        "UPD-FR-005", "UPD-FR-012",
-                        "UPD-FR-015", "UPD-DES-003",
-                        "UPD-DES-004", "UPD-DES-005",
-                        "UPD-DES-012", "UPD-DES-015"]
-    )
-
-    add_plan_stage(
-        action_plan,
-        operation_id = "update.system_packages",
-        operation_type = "refresh_and_update_system_packages",
-        dependencies = ["update.release_transaction"],
-        planned_items = "derive from activated validated manifest",
-        mutating = TRUE,
-        privilege_scope = "elevate_one_command",
-        managed_targets = "manifest-declared system packages",
-        blocks_dependents = TRUE,
-        recovery = "native package-manager recovery",
-        traceability = ["UPD-FR-006", "UPD-FR-007",
-                        "UPD-DES-006", "UPD-DES-007"]
-    )
-
-    add_plan_stage(
-        action_plan,
-        operation_id = "update.user_tools",
-        operation_type = "update_or_repair_required_user_tools",
-        dependencies = ["update.release_transaction"],
-        planned_items = "derive from activated validated manifest",
-        mutating = TRUE,
-        privilege_scope = "none",
-        managed_targets = "manifest-declared user tools and extensions",
-        blocks_dependents = FALSE,
-        recovery = "adapter-defined user-scope recovery",
-        traceability = ["UPD-FR-008", "UPD-FR-009",
-                        "UPD-DES-008", "UPD-DES-009"]
-    )
-
-    add_plan_stage(
-        action_plan,
-        operation_id = "update.managed_integrations",
-        operation_type = "refresh_managed_integrations",
-        dependencies = ["update.release_transaction",
-                        "update.system_packages",
-                        "update.user_tools"],
-        planned_items = "derive from activated validated manifest",
-        mutating = TRUE,
-        privilege_scope = "binding_defined_single_operation",
-        managed_targets = "manifest-declared integrations",
-        blocks_dependents = FALSE,
-        recovery = "restore previous declared integration",
-        traceability = ["UPD-FR-008", "UPD-DES-008"]
-    )
-
-    add_plan_stage(
-        action_plan,
-        operation_id = "update.obsolete_components",
-        operation_type = "remove_explicitly_obsolete_components",
-        dependencies = ["update.release_transaction",
-                        "update.managed_integrations"],
-        planned_items = "derive from activated validated manifest",
-        mutating = TRUE,
-        privilege_scope = "binding_defined_single_operation",
-        managed_targets = "exact approved obsolete targets",
-        blocks_dependents = FALSE,
-        recovery = "preserve item when validation is uncertain",
-        traceability = ["UPD-FR-010", "UPD-DES-010",
-                        "ERR-DES-010", "SEC-DES-004"]
-    )
-
-    add_plan_stage(
-        action_plan,
-        operation_id = "update.safe_cleanup",
-        operation_type = "perform_safe_cache_and_dependency_cleanup",
-        dependencies = ["update.system_packages",
-                        "update.user_tools",
-                        "update.obsolete_components"],
-        planned_items = "adapter-defined safe cleanup operations",
-        mutating = TRUE,
-        privilege_scope = "binding_defined_single_operation",
-        managed_targets = "adapter-declared cache and dependency scope",
-        blocks_dependents = FALSE,
-        recovery = "skip cleanup when safety cannot be proven",
-        traceability = ["UPD-FR-011", "UPD-DES-011"]
-    )
-
-    assert_plan_contains_no_os_release_upgrade(action_plan)
-    assert_plan_preserves_optional_user_extensions(action_plan)
-    validate_plan_against_action_boundaries(action_plan, state_scope)
-
-    RETURN successful_plan_result(action_plan)
-
-ENDPROCEDURE
-
-
-PROCEDURE execute_action_stage(
-    plan_stage,
-    run_context,
-    manifest,
-    adapters,
-    options
-)
-
-    IF plan_stage.operation_type =
-        "retrieve_stage_and_activate_release_assets"
-
-        RETURN execute_release_asset_transaction(
-            plan_stage,
-            run_context,
-            manifest,
-            adapters
-        )
-
-    ENDIF
-
-    active_manifest = run_context.active_manifest
-
-    IF active_manifest IS NONE
-        active_manifest = manifest
-    ENDIF
-
-    IF plan_stage.operation_type =
-        "refresh_and_update_system_packages"
-
-        RETURN execute_system_package_update(
-            plan_stage,
-            run_context,
-            active_manifest,
-            adapters
-        )
-
-    ENDIF
-
-    IF plan_stage.operation_type =
-        "update_or_repair_required_user_tools"
-
-        RETURN execute_required_user_tool_update(
-            plan_stage,
-            run_context,
-            active_manifest,
-            adapters
-        )
-
-    ENDIF
-
-    IF plan_stage.operation_type = "refresh_managed_integrations"
-
-        RETURN execute_managed_integration_update(
-            plan_stage,
-            run_context,
-            active_manifest,
-            adapters
-        )
-
-    ENDIF
-
-    IF plan_stage.operation_type =
-        "remove_explicitly_obsolete_components"
-
-        RETURN execute_obsolete_component_removal(
-            plan_stage,
-            active_manifest,
-            adapters
-        )
-
-    ENDIF
-
-    IF plan_stage.operation_type =
-        "perform_safe_cache_and_dependency_cleanup"
-
-        RETURN execute_safe_cleanup(
-            plan_stage,
-            active_manifest,
-            adapters
-        )
-
-    ENDIF
-
-    RETURN create_required_failure(
-        plan_stage.operation_id,
-        sanitized_detail = "The update stage type is not supported."
-    )
-
-ENDPROCEDURE
-
-
-PROCEDURE execute_release_asset_transaction(
-    plan_stage,
-    run_context,
-    installed_manifest,
-    adapters
-)
-
-    results = new_result_collection()
-
-    metadata_result = retrieve_approved_release_metadata(
-        installed_manifest.control,
-        adapters.managed_asset_source
-    )
-    append_result(results, metadata_result)
-
-    IF metadata_result.status = fail
-        RETURN results
-    ENDIF
-
-    trust_result = validate_release_metadata_trust(
-        metadata_result.value,
-        installed_trust_root()
-    )
-    append_result(results, trust_result)
-
-    IF trust_result.status = fail
-        RETURN results
-    ENDIF
-
-    compatibility_result = validate_updater_transition(
-        running_version = run_context.script_version,
-        current_schema_range = run_context.supported_schema_range,
-        release_metadata = metadata_result.value
-    )
-    append_result(results, compatibility_result)
-
-    IF compatibility_result.status = fail
-        RETURN results
-    ENDIF
-
-    IF compatibility_result.requires_bridge = TRUE
-
-        bridge_result = stage_validate_and_activate_approved_bridge(
-            metadata_result.value,
-            run_context,
-            adapters
-        )
-        append_result(results, bridge_result)
-
-        IF bridge_result.status = fail
-            RETURN results
-        ENDIF
-
-    ENDIF
-
-    staging_result = create_private_release_staging_directory(
-        run_context.temporary_root
-    )
-    append_result(results, staging_result)
-
-    IF staging_result.status = fail
-        RETURN results
-    ENDIF
-
-    candidate_set = download_candidate_release_assets(
-        metadata_result.value,
-        staging_result.value,
-        adapters.managed_asset_source,
-        retry_policy = installed_manifest.policy.retry_profiles
-    )
-    append_results(results, candidate_set.download_results)
-
-    IF candidate_set.has_required_failure = TRUE
-        RETURN results
-    ENDIF
-
-    candidate_validation = validate_candidate_release_set(
-        candidate_set,
-        validation_layers = [
-            size_validation,
-            integrity_validation,
-            json_syntax_validation,
-            schema_validation,
-            semantic_validation,
-            compatibility_validation,
-            managed_path_validation,
-            secret_and_personal_value_validation
-        ]
-    )
-    append_results(results, candidate_validation.results)
-
-    IF candidate_validation.has_required_failure = TRUE
-        RETURN results
-    ENDIF
-
-    previous_set = preserve_previous_valid_asset_set(
-        candidate_validation.activation_targets
-    )
-    append_result(results, previous_set.result)
-
-    IF previous_set.result.status = fail
-        RETURN results
-    ENDIF
-
-    FOR EACH candidate IN candidate_validation.activation_order
-
-        activation_result = atomically_activate_candidate(candidate)
-        append_result(results, activation_result)
-
-        IF activation_result.status = fail
-
-            rollback_results = restore_previous_valid_asset_set(
-                previous_set,
-                already_activated_targets()
-            )
-            append_results(results, rollback_results)
-            RETURN results
-
-        ENDIF
-
-        activated_validation = validate_activated_asset(candidate)
-        append_result(results, activated_validation)
-
-        IF activated_validation.status = fail
-
-            rollback_results = restore_previous_valid_asset_set(
-                previous_set,
-                already_activated_targets()
-            )
-            append_results(results, rollback_results)
-            RETURN results
-
-        ENDIF
-
-    ENDFOR
-
-    active_manifest_result = load_and_validate_activated_manifest(
-        run_context.manifest_path,
-        run_context.schema_path
-    )
-    append_result(results, active_manifest_result)
-
-    IF active_manifest_result.status = fail
-
-        rollback_results = restore_previous_valid_asset_set(
-            previous_set,
-            already_activated_targets()
-        )
-        append_results(results, rollback_results)
-        RETURN results
-
-    ENDIF
-
-    run_context.active_manifest =
-        freeze_validated_configuration(active_manifest_result.value)
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE execute_system_package_update(
-    plan_stage,
-    run_context,
-    active_manifest,
-    adapters
-)
-
-    results = new_result_collection()
-
-    append_result(
-        results,
-        confirm_os_release_upgrade_is_excluded(adapters)
-    )
-
-    metadata_refresh = refresh_package_metadata_with_retries(
-        adapters.package_manager,
-        active_manifest.policy.retry_profiles
-    )
-    append_result(results, metadata_refresh)
-
-    IF metadata_refresh.status = fail
-        RETURN results
-    ENDIF
-
-    package_plan = compare_approved_system_update_state(
-        active_manifest,
-        run_context.platform_id,
-        adapters.package_manager
-    )
-
-    FOR EACH package_item IN package_plan
-
-        IF package_item.current_state_is_compliant = TRUE
-
-            append_result(
-                results,
-                create_unchanged_result(package_item.operation_id)
-            )
-            CONTINUE
-
-        ENDIF
-
-        append_result(
-            results,
-            apply_approved_system_package_update(
-                package_item,
-                adapters.package_manager,
-                privilege_policy = "elevate_one_command"
-            )
-        )
-
-    ENDFOR
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE execute_required_user_tool_update(
-    plan_stage,
-    active_manifest,
-    adapters
-)
-
-    results = new_result_collection()
-    optional_inventory_before = read_optional_extension_inventory(
-        adapters.ide
-    )
-
-    required_plan = compare_required_user_tool_state(
-        active_manifest,
-        platform_implementation_id(),
-        adapters.capabilities
-    )
-
-    FOR EACH item IN required_plan
-
-        IF item.current_state_is_compliant = TRUE
-
-            append_result(
-                results,
-                create_unchanged_result(item.operation_id)
-            )
-            CONTINUE
-
-        ENDIF
-
-        append_result(
-            results,
-            update_or_repair_required_user_tool(item, adapters)
-        )
-
-    ENDFOR
-
-    optional_inventory_after = read_optional_extension_inventory(
-        adapters.ide
-    )
-
-    append_result(
-        results,
-        confirm_optional_extensions_preserved(
-            optional_inventory_before,
-            optional_inventory_after
-        )
-    )
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE execute_managed_integration_update(
-    plan_stage,
-    active_manifest,
-    adapters
-)
-
-    results = new_result_collection()
-
-    integration_plan = compare_all_managed_integration_state(
-        active_manifest,
-        current_deployment_profile(),
-        adapters.platform
-    )
-
-    FOR EACH integration IN integration_plan
-
-        IF integration.current_state_is_compliant = TRUE
-
-            append_result(
-                results,
-                create_unchanged_result(integration.operation_id)
-            )
-            CONTINUE
-
-        ENDIF
-
-        append_result(
-            results,
-            apply_smallest_approved_integration_change(
-                integration,
-                adapters
-            )
-        )
-
-    ENDFOR
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE execute_obsolete_component_removal(
-    plan_stage,
-    active_manifest,
-    adapters
-)
-
-    results = new_result_collection()
-
-    FOR EACH obsolete_item IN active_manifest.obsolete_components
-
-        target_result = validate_obsolete_removal_target(
-            obsolete_item,
-            active_manifest,
-            require_exact_asset_id = TRUE,
-            require_canonical_managed_path = TRUE
-        )
-        append_result(results, target_result)
-
-        IF target_result.status = fail
-            CONTINUE
-        ENDIF
-
-        current_state = query_obsolete_component_state(
-            obsolete_item,
-            adapters
-        )
-
-        IF current_state.is_absent = TRUE
-
-            append_result(
-                results,
-                create_unchanged_result(obsolete_item.operation_id)
-            )
-            CONTINUE
-
-        ENDIF
-
-        append_result(
-            results,
-            remove_explicitly_approved_obsolete_component(
-                obsolete_item,
-                adapters
-            )
-        )
-
-    ENDFOR
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE execute_safe_cleanup(
-    plan_stage,
-    active_manifest,
-    adapters
-)
-
-    results = new_result_collection()
-
-    cleanup_plan = adapters.package_manager.build_safe_cleanup_plan(
-        active_manifest
-    )
-
-    safety_result = validate_cleanup_plan_preserves_required_components(
-        cleanup_plan,
-        active_manifest
-    )
-    append_result(results, safety_result)
-
-    IF safety_result.status = fail
-        RETURN results
-    ENDIF
-
-    append_results(
-        results,
-        adapters.package_manager.execute_safe_cleanup(cleanup_plan)
-    )
-
-    append_results(
-        results,
-        verify_required_components_after_cleanup(
-            active_manifest,
-            adapters
-        )
-    )
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE post_validate_action(
-    run_context,
-    platform_facts,
-    deployment_profile,
-    manifest,
-    adapters,
-    changed_items
-)
-
-    results = new_result_collection()
-
-    active_manifest = run_context.active_manifest
-
-    IF active_manifest IS NONE
-        active_manifest = manifest
-    ENDIF
-
-    append_result(
-        results,
-        confirm_os_release_unchanged(
-            starting_release = platform_facts.operating_system_release,
-            current_release = detect_current_os_release()
-        )
-    )
-
-    append_results(
-        results,
-        verify_all_required_system_capabilities(
-            active_manifest,
-            deployment_profile.platform_id,
-            adapters
-        )
-    )
-
-    append_results(
-        results,
-        verify_all_required_user_capabilities(
-            active_manifest,
-            deployment_profile.platform_id,
-            adapters
-        )
-    )
-
-    append_results(
-        results,
-        verify_managed_assets_and_integrity(
-            active_manifest,
-            adapters
-        )
-    )
-
-    append_results(
-        results,
-        verify_managed_integrations(
-            active_manifest,
-            deployment_profile,
-            adapters
-        )
-    )
-
-    append_result(
-        results,
-        validate_package_manager_consistency(adapters.package_manager)
-    )
-
-    append_result(
-        results,
-        confirm_optional_extensions_preserved_against_start_inventory(
-            adapters.ide
-        )
-    )
-
-    append_result(
-        results,
-        detect_least_disruptive_restart_requirement(
-            platform_facts,
-            deployment_profile,
-            adapters
-        )
-    )
-
-    IF has_warning_failure_partial_or_restart(results)
-
-        set_next_step(
-            run_context,
-            render_matching_lifecycle_command("verify")
-        )
-
-    ELSE
-
-        set_next_step(
-            run_context,
-            "No required action. Verify may be run as an optional check."
-        )
-
-    ENDIF
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-# ==============================================================================
-# 5. STANDARD EXIT-CODE RESOLUTION
-# ==============================================================================
-#
-# Precedence is based on safety and remediation value, not numeric order:
-#
-#     5  Invalid, corrupt, incompatible, or integrity-failed manifest or asset
-#     2  Invalid use, unsupported platform, deployment, or OS release
-#     3  Required permission or privilege unavailable
-#     4  Approved external source or service unavailable after retries
-#     7  Partial completion or changed state requiring remediation
-#     1  Other required operation or check failure
-#     6  Required interactive operation canceled
-#     0  All required operations or checks completed successfully
-#
-# ==============================================================================
-
-PROCEDURE resolve_standard_exit_code(run_summary)
-
-    IF has_manifest_or_integrity_failure(run_summary)
-        RETURN 5
-    ELSE IF has_unsupported_condition(run_summary)
-        RETURN 2
-    ELSE IF has_required_privilege_failure(run_summary)
-        RETURN 3
-    ELSE IF has_exhausted_external_failure(run_summary)
-        RETURN 4
-    ELSE IF has_partial_completion(run_summary)
-        RETURN 7
-    ELSE IF has_other_required_failure(run_summary)
-        RETURN 1
-    ELSE IF has_required_cancellation(run_summary)
-        RETURN 6
-    ELSE
+    IF options.help_requested
+        display_update_help()
         RETURN 0
     ENDIF
 
+    IF options.version_requested
+        display_update_version()
+        RETURN 0
+    ENDIF
+
+    enable_strict_error_handling()
+    set_private_default_file_permissions()
+
+    run_context = resolve_update_paths_and_start_private_transcript(
+        filename_pattern = "update_<platform>_<YYYYMMDD>_<HHMMSS>.log"
+    )
+
+    changed = FALSE
+    partial = FALSE
+    warnings = 0
+    failures = 0
+    restart_required = FALSE
+    staging_root = NONE
+
+    INSTALL error handler:
+        - report the failing location and log path;
+        - remove private staging;
+        - return 7 when managed state changed, otherwise 1.
+
+    INSTALL interruption handler:
+        - instruct the user to rerun update for recovery;
+        - remove private staging;
+        - return 7 when managed state changed, otherwise 6.
+
+    INSTALL cleanup handler for private staging
+
+    DISPLAY opening information
+    DISPLAY NOTICE that the operating-system release will not be upgraded
+    DISPLAY NOTICE to keep the terminal open until completion
+
+    validate_platform_user_and_privilege(run_context)
+    acquire_shared_mutation_lock(action_id, run_context.platform_id)
+
+    REQUIRE the installed manifest and schema are readable
+    installed_manifest_release = validate_update_manifest_pair(
+        run_context.manifest_path,
+        run_context.schema_path
+    )
+
+    check_update_prerequisites(run_context)
+    detect_existing_user_configuration(run_context)
+
+    synchronize_student_course_assets(run_context)
+    update_system_packages(run_context)
+    update_required_user_tools_and_extensions(run_context)
+    refresh_course_managed_integrations(run_context)
+    perform_safe_cleanup(run_context)
+    post_validate_update(run_context)
+    determine_restart_guidance(run_context)
+
+    exit_code = display_update_summary_and_closing_notices(run_context)
+
+    REMOVE private staging
+    RETURN exit_code
+
 ENDPROCEDURE
 
 
 # ==============================================================================
-# END OF PSEUDOSCRIPT
+# 2. PLATFORM, MANIFEST, AND PREREQUISITES
 # ==============================================================================
+
+PROCEDURE validate_platform_user_and_privilege(run_context)
+
+    REJECT root or system-administrator execution
+    REQUIRE supported operating-system family and release
+    REQUIRE supported architecture
+    REQUIRE the platform elevation command
+    REQUIRE approved noninteractive operation-level elevation
+
+    IF privilege is unavailable
+        RETURN exit code 3
+    ENDIF
+
+ENDPROCEDURE
+
+
+PROCEDURE validate_update_manifest_pair(manifest_path, schema_path)
+
+    RETURN validate_controlled_manifest_pair(
+        manifest_path,
+        schema_path,
+        implementation_platform_id(),
+        requested_deployment_profile_id(),
+        required_top_level_keys = [
+            "schema_version",
+            "automation_release",
+            "policy",
+            "platforms",
+            "deployment_profiles",
+            "managed_settings",
+            "managed_assets",
+            "logging"
+        ]
+    )
+
+ENDPROCEDURE
+
+
+PROCEDURE check_update_prerequisites(run_context)
+
+    REQUIRE manifest-declared minimum free space
+    REQUIRE repository client, generic runtime, and IDE command required for
+        maintenance are available
+
+    IF the IDE is currently running
+        DISPLAY NOTICE to close and reopen it after the update
+    ENDIF
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 3. WORKFLOW DETECTION
+# ==============================================================================
+
+PROCEDURE detect_existing_user_configuration(run_context)
+
+    configuration_complete =
+        provider authentication is valid
+        AND Git display name is nonempty
+        AND Git email matches the approved private noreply pattern
+        AND exact managed PATH blocks are present
+        AND required course-managed IDE settings are valid
+        AND managed panel-launcher record and file are valid
+
+    IF configuration_complete
+        workflow_name = "Periodic maintenance"
+    ELSE
+        workflow_name = "First use or reset environment"
+        DISPLAY NOTICE that the summary will direct the user to configure
+    ENDIF
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 4. CONTROLLED COURSE-ASSET SYNCHRONIZATION
+# ==============================================================================
+
+PROCEDURE synchronize_student_course_assets(run_context)
+
+    CREATE a private staging directory
+    RETRIEVE a shallow course-repository snapshot using bounded retries
+
+    IF retrieval fails
+        RETURN exit code 4
+    ENDIF
+
+    candidate_manifest = staged controlled manifest
+    candidate_schema = staged controlled schema
+
+    REQUIRE both candidate files are readable
+    candidate_release = validate_update_manifest_pair(
+        candidate_manifest,
+        candidate_schema
+    )
+
+    ATOMICALLY install candidate_schema, then candidate_manifest:
+        - stage in the destination directory;
+        - validate structured syntax;
+        - preserve a previous copy;
+        - activate by atomic replacement;
+        - revalidate the active file;
+        - restore the previous valid file if activation validation fails.
+
+    FOR EACH target_script IN student_scripts_to_synchronize
+
+        source_script = matching staged student script
+        installed_script = matching active student script
+
+        IF source_script is unavailable
+            IF installed_script exists and passes script syntax validation
+                PRESERVE installed_script
+                DISPLAY NOTICE that this release omitted the script
+            ELSE
+                RECORD required failure
+                SET partial = TRUE
+            ENDIF
+            CONTINUE
+        ENDIF
+
+        candidate_version = read_script_version(source_script)
+        REQUIRE candidate_version is a numeric dotted version
+
+        installed_version = read_script_version(installed_script) when present
+
+        IF installed_version is valid AND candidate_version is older
+            PRESERVE the newer installed script
+            DISPLAY NOTICE that downgrade was prevented
+            CONTINUE
+        ENDIF
+
+        IF installed_version exists but is invalid
+            DISPLAY NOTICE that it will be replaced
+        ENDIF
+
+        ATOMICALLY install source_script with executable permissions:
+            - validate script syntax before activation;
+            - preserve a previous copy;
+            - revalidate after activation;
+            - restore the previous valid file on failure.
+
+    ENDFOR
+
+    NEVER retrieve, synchronize, preserve, compare, or install any path in
+        administrator_scripts_to_exclude as part of the student update workflow
+
+    active_manifest_release = validate_update_manifest_pair(
+        active manifest,
+        active schema
+    )
+
+    REMOVE private staging
+    DISPLAY SUCCESS that course-managed student assets are active
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 5. SYSTEM MAINTENANCE
+# ==============================================================================
+
+PROCEDURE update_system_packages(run_context)
+
+    REFRESH native package metadata using the manifest retry policy
+
+    IF metadata refresh fails after bounded retries
+        RETURN exit code 4
+    ENDIF
+
+    APPLY security and maintenance updates within the current supported release
+    NEVER invoke an operating-system release upgrade
+
+    INSTALL or repair all manifest-required system packages
+    SET changed = TRUE
+
+    optional_convenience_package = manifest_optional_numlock_package_when_declared()
+
+    IF optional_convenience_package is declared
+        ATTEMPT to install or repair it
+        IF the attempt fails
+            DISPLAY NOTICE that course work is unaffected
+        ELSE
+            SET changed = TRUE
+        ENDIF
+    ENDIF
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 6. USER TOOLS AND EXTENSIONS
+# ==============================================================================
+
+PROCEDURE update_required_user_tools_and_extensions(run_context)
+
+    IF course virtual environment is missing
+        CREATE it with the exact required system runtime
+        IF workflow is periodic maintenance
+            RECORD warning that a missing environment was repaired
+        ELSE
+            DISPLAY first-use notice
+        ENDIF
+        SET changed = TRUE
+    ENDIF
+
+    UPGRADE the package installer inside the course virtual environment
+    UPGRADE all manifest-required course packages
+    SET changed = TRUE
+
+    ATTEMPT to update all installed IDE extensions
+    PRESERVE optional extensions
+    IF any installed extension update fails
+        RECORD warning
+        SET partial = TRUE
+    ENDIF
+
+    FOR EACH manifest-required IDE extension
+        FORCE install or update the extension
+        IF the required extension cannot be installed
+            RECORD warning
+            SET partial = TRUE
+        ENDIF
+    ENDFOR
+
+    SET changed = TRUE
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 7. COURSE-MANAGED INTEGRATIONS
+# ==============================================================================
+
+PROCEDURE refresh_course_managed_integrations(run_context)
+
+    configure_optional_numlock_for_update(run_context)
+
+    IF the system IDE launcher exists
+        REFRESH the user's IDE desktop launcher
+
+        IF a valid managed panel-launcher identifier exists
+            REFRESH its launcher file
+        ELSE IF user configuration is complete
+            RECORD warning that the managed panel record is missing
+        ELSE
+            DISPLAY NOTICE that configure will create the panel launcher
+        ENDIF
+
+        RELOAD the desktop when supported
+        SET changed = TRUE
+    ELSE
+        RECORD warning
+        SET partial = TRUE
+    ENDIF
+
+    IF the user IDE settings file exists
+        TRY to parse it as a JSON object
+        DEEP-MERGE only current manifest-managed IDE settings plus current
+            interpreter and course-root paths
+        WRITE, validate, and atomically replace the file
+        PRESERVE unrelated settings
+        IF refresh fails
+            PRESERVE the existing settings
+            RECORD warning
+            SET partial = TRUE
+        ELSE
+            SET changed = TRUE
+        ENDIF
+    ENDIF
+
+ENDPROCEDURE
+
+
+PROCEDURE configure_optional_numlock_for_update(run_context)
+
+    IF optional Num Lock tool is unavailable
+        DISPLAY NOTICE that course work is unaffected
+        RETURN success
+    ENDIF
+
+    BUILD and validate the approved startup entry in private temporary storage
+
+    ATTEMPT to install or repair the system startup entry using approved
+        noninteractive elevation
+
+    IF the system entry cannot be installed
+        DISPLAY NOTICE that a user fallback will be attempted
+    ENDIF
+
+    IF a user entry already overrides the system entry OR no valid system entry
+        INSTALL or repair the current-user startup entry
+    ENDIF
+
+    ATTEMPT to enable Num Lock in the current graphical session
+    DISPLAY only nonblocking notices when unavailable or unsuccessful
+
+    NEVER set partial or failure solely because this optional convenience failed
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 8. SAFE CLEANUP AND POST-VALIDATION
+# ==============================================================================
+
+PROCEDURE perform_safe_cleanup(run_context)
+
+    DISPLAY the manifest-declared obsolete-component plan
+
+    IF no obsolete components are declared
+        REMOVE only package-manager dependencies proven unused
+        CLEAN only safe package-manager caches
+    ELSE
+        REMOVE only explicitly manifest-declared obsolete managed components
+    ENDIF
+
+    RUN the native package dependency-consistency check
+    SET changed = TRUE
+
+ENDPROCEDURE
+
+
+PROCEDURE post_validate_update(run_context)
+
+    VALIDATE the active manifest and schema
+
+    REQUIRE every manifest-required system package
+    REQUIRE every manifest-required virtual-environment package
+    REQUIRE every manifest-required IDE extension
+    REQUIRE every required system command
+    REQUIRE active student scripts and controlled assets remain valid
+
+    IF any required check fails
+        RECORD required failure
+        SET partial = TRUE
+    ELSE
+        DISPLAY SUCCESS that required updated state passed validation
+    ENDIF
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 9. RESTART AND SUMMARY GUIDANCE
+# ==============================================================================
+
+PROCEDURE determine_restart_guidance(run_context)
+
+    IF the platform indicates a restart is required
+        restart_required = TRUE
+        DISPLAY NOTICE to save work and use the platform VM or system restart
+            control
+    ELSE
+        restart_required = FALSE
+        DISPLAY NOTICE to close this terminal and open a new terminal
+    ENDIF
+
+ENDPROCEDURE
+
+
+PROCEDURE display_update_summary_and_closing_notices(run_context)
+
+    IF partial = TRUE OR failures > 0
+        result = PARTIAL
+        exit_code = 7
+        next_script = update
+    ELSE
+        result = PASS
+        exit_code = 0
+        IF user configuration is complete
+            next_script = verify
+        ELSE
+            next_script = configure
+        ENDIF
+    ENDIF
+
+    COMBINE next_script with restart_required to produce exact next-step guidance
+
+    DISPLAY:
+        result
+        workflow name
+        script version
+        active manifest release
+        warnings
+        failures
+        restart required
+        elapsed time
+        next step
+        log path
+        exit code
+
+    DISPLAY closing log and fresh-terminal notices
+    RETURN exit_code
+
+ENDPROCEDURE

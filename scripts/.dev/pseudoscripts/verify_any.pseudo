@@ -5,1283 +5,160 @@
 # Repository path:
 #     scripts/.dev/pseudoscripts/verify_any.pseudo
 #
-#
 # Purpose:
-#     Inspect the system and user course environment without changing it.
+#     Inspect the supported system and current-user course layers without
+#     installing, updating, removing, repairing, or rewriting managed state.
 #
 # Artifact version:
-#     2026.07.25.1
+#     2026.07.27.1
 #
-# Implementation release target:
-#     2026.07.25.2
-#
-# SRS baseline:
-#     IT140-SRS-SCRIPTS, version 2026.07.25.2
-#
-# SDD baseline:
-#     IT140-SDD-SCRIPTS, version 2026.07.25.2
+# CVD implementation target:
+#     verify_cvd.sh version 2026.07.26.4
 #
 # Repository baseline:
-#     GC-STEM/it140 commit fe777dec65167a197627b2f9507111b69f8ed73a
-#
-# Authority:
-#     The SRS and SDD are authoritative. The controlled manifest selects
-#     current products, versions, sources, platforms, deployment profiles,
-#     provider rules, settings, paths, and managed assets.
-#
-# ==============================================================================
-
-
-# ==============================================================================
-# 1. DOCUMENT CONTROL
-# ==============================================================================
-#
-# Artifact:
-#     verify_any.pseudo
-#
-# Lifecycle action:
-#     verify
-#
-#
-# Purpose:
-#     Inspect the system and user course environment without changing it.
-#
-#
-# Intended user:
-#     A student, faculty member, AI support tool, or technical support user
-#
-# State boundary:
-#     READ_ONLY
-#
-#
-# Mutation policy:
-#     Do not install, update, remove, repair, or rewrite managed software, files, settings,
-#     authentication, or integrations
-#
-#
-# Privilege policy:
-#     Run as a standard user and never request elevation
+#     GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
 #
 # SRS traceability:
 #     VER-FR-001 through VER-FR-014
-#     PKG-FR-001 through PKG-FR-020
-#     PKG-NFR-001 through PKG-NFR-027
-#     PKG-TC-001 through PKG-TC-009
-#     PKG-QOS-001 through PKG-QOS-022
-#     REF-TC-001 through REF-TC-007 where applicable
 #
 # SDD traceability:
 #     VER-DES-001 through VER-DES-014
-#     ARC-DES-001 through ARC-DES-010
-#     DAT-DES-001 through DAT-DES-015
-#     INT-DES-001 through INT-DES-012
-#     SHR-DES-001 through SHR-DES-016
-#     ERR-DES-001 through ERR-DES-012
-#     SEC-DES-001 through SEC-DES-012
-#     PLT-DES-001 through PLT-DES-011
 #
+# Intended user:
+#     Students, faculty, course support, or technical support.
 #
-# Preconditions:
-#     - The platform-native verify entry point is available.
-#     - The user can create the minimum home-derived log path.
-#     - The approved manifest and schema are present and readable.
+# State boundary:
+#     READ_ONLY_SYSTEM_AND_USER_OBSERVATION
 #
-#
-# Successful postconditions:
-#     - Every applicable check has a status, requirement, and remediation owner.
-#     - The final totals and most serious standardized exit code are reported.
-#     - No managed state has changed.
-#
+# Permitted file creation:
+#     - The required private transcript
+#     - An explicitly requested and confirmed sanitized support bundle
 #
 # Explicit exclusions:
-#     - Student source files and assignment repositories
-#     - Student version-control history
-#     - Secrets, authentication tokens, and browser session data
-#     - Optional software and unrelated user settings
-#     - Any repair, installation, update, removal, or settings write
-#     - Privilege elevation
-#     - Support-bundle creation without explicit request and approval
-#
-#
-# Normal next step:
-#     Run the remediation owner for failed checks or take no action.
+#     - Administrative privilege
+#     - Repairing or changing a failed check
+#     - Course work, repositories, Git history, credentials, or browser data
 #
 # ==============================================================================
 
-
-# ==============================================================================
-# 2. ACTION PROFILE
-# ==============================================================================
-#
-# Action:
-#     verify
-#
-# State scope:
-#     read_only_system_and_user_observation
-#
-# May change managed state:
-#     FALSE
-#
-# Operation lock required:
-#     FALSE
-#
-# Lock scope:
-#     none
-#
-# Privilege model:
-#     read-only queries only
-#
-# ==============================================================================
 
 action_id = "verify"
-state_scope = "read_only_system_and_user_observation"
 may_change_state = FALSE
 lock_required = FALSE
-normal_next_step = "remediation_owner_or_no_action"
-lock_scope = "none"
-
-purpose_text = join_text([
-    "Inspect the system and user course environment without changing",
-    "it."
-])
-intended_user_text = join_text([
-    "A student, faculty member, AI support tool, or technical support",
-    "user"
-])
-privilege_policy_text = "Run as a standard user and never request elevation"
-help_prerequisites_text = join_text([
-    "Standard user access; network checks use bounded timeouts and do",
-    "not start authentication"
-])
-expected_interaction_text = join_text([
-    "No interaction unless a requested support bundle requires final",
-    "confirmation."
-])
+required_options = [
+    "help",
+    "version",
+    "noninteractive",
+    "deployment_profile",
+    "support_bundle",
+    "yes",
+    "skip_network"
+]
 
 
 # ==============================================================================
-# 3. COMMON MAIN PROCEDURE
+# 1. MAIN PROCEDURE
 # ==============================================================================
 
 PROCEDURE main(arguments)
 
-    BEGIN STAGE "run.initialize"
+    options = parse_supported_options_before_logging(arguments, required_options)
 
-        enable_strict_error_handling()
-        install_interruption_handlers()
-
-        run_context = create_minimal_run_context(
-            action_id,
-            script_version = "2026.07.25.2",
-            supported_schema_range = "1.0"
-        )
-
-        run_summary = create_empty_run_summary()
-        operation_lock = NONE
-        transcript_started = FALSE
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "run.options"
-
-        option_result = parse_supported_options(
-            arguments,
-            allowed_options = [
-                "help",
-            "version",
-            "noninteractive",
-            "deployment_profile",
-            "support_bundle",
-            "confirm_support_bundle"
-            ]
-        )
-        append_result(run_summary, option_result)
-
-        IF option_result.status = fail
-            record_invalid_invocation(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        options = option_result.value
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "log.start"
-
-        path_result = resolve_bootstrap_paths(
-            run_context,
-            course_root_rule = "${HOME}/it140",
-            manifest_rule =
-                "${HOME}/it140/scripts/.manifest/it140_manifest.json",
-            schema_rule =
-                "${HOME}/it140/scripts/.manifest/it140_manifest.schema.json"
-        )
-        append_result(run_summary, path_result)
-
-        IF path_result.status = fail
-            GOTO FINALIZE_WITHOUT_TRANSCRIPT
-        ENDIF
-
-        log_result = create_log_directory_and_start_transcript(
-            run_context,
-            filename_pattern =
-                "<action>_<platform>_<YYYYMMDD>_<HHMMSS>.log"
-        )
-        append_result(run_summary, log_result)
-
-        IF log_result.status = fail
-            GOTO FINALIZE_WITHOUT_TRANSCRIPT
-        ENDIF
-
-        transcript_started = TRUE
-
-    ENDSTAGE
-
-
-    IF options.help_requested = TRUE
-
-        display_help(
-            purpose = purpose_text,
-            intended_user = intended_user_text,
-            prerequisites = help_prerequisites_text,
-            log_location = run_context.log_directory,
-            exit_code_meanings = standard_exit_code_catalog
-        )
-
-        append_success_result(run_summary, "run.help")
-        GOTO FINALIZE_RUN
-
+    IF options.help_requested
+        display_verify_help()
+        RETURN 0
     ENDIF
 
-
-    IF options.version_requested = TRUE
-
-        display_version(
-            script_version = run_context.script_version,
-            supported_schema_range = run_context.supported_schema_range
-        )
-
-        append_success_result(run_summary, "run.version")
-        GOTO FINALIZE_RUN
-
+    IF options.version_requested
+        display_verify_version()
+        RETURN 0
     ENDIF
 
+    enable_strict_error_handling()
+    set_private_default_file_permissions()
 
-    BEGIN STAGE "run.opening"
+    run_context = resolve_verify_paths_and_start_private_transcript(
+        filename_pattern = "verify_<platform>_<YYYYMMDD>_<HHMMSS>.log"
+    )
 
-        display_opening_information(
-            package_name = "IT 140 Course Automation Scripts",
-            action_id = action_id,
-            script_version = run_context.script_version,
-            current_user_id = sanitized_current_user_id(),
-            purpose = purpose_text,
-            state_scope = state_scope,
-            expected_privilege = privilege_policy_text,
-            expected_interaction = expected_interaction_text,
-            log_path = run_context.log_path
-        )
+    initialize counts:
+        pass = 0
+        warning = 0
+        fail = 0
+        not_applicable = 0
 
-        append_success_result(run_summary, "run.opening")
+    initialize:
+        manifest_failure = FALSE
+        unsupported_failure = FALSE
+        unique_remediations = []
+        support_staging = NONE
 
-    ENDSTAGE
+    INSTALL cleanup handler for support_staging only
 
+    DISPLAY opening information
+    DISPLAY NOTICE that verify never elevates privilege or repairs failures
 
-    BEGIN STAGE "platform.detect"
+    check_platform_context(run_context)
 
-        platform_facts = detect_platform_facts()
-        platform_result = validate_minimum_platform_facts(platform_facts)
-        append_result(run_summary, platform_result)
-
-        IF platform_result.status = fail
-            record_unsupported_or_unreadable_platform(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "deployment.resolve"
-
-        deployment_result = resolve_deployment_profile(
-            platform_facts,
-            explicit_approved_context = options.deployment_profile
-        )
-        append_result(run_summary, deployment_result)
-
-        IF deployment_result.status = fail
-            record_unsupported_deployment(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        deployment_profile = deployment_result.value
-        run_context.deployment_profile_id = deployment_profile.profile_id
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "platform.match"
-
-        match_result = confirm_action_platform_match(
-            action_id,
-            expected_platform_id = platform_implementation_id(),
-            platform_facts,
-            deployment_profile
-        )
-        append_result(run_summary, match_result)
-
-        IF match_result.status = fail
-            record_unsupported_invocation(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "manifest.validate"
-
-        manifest_result = load_and_validate_manifest(
-            manifest_path = run_context.manifest_path,
-            schema_path = run_context.schema_path,
-            validation_layers = [
-                file_validation,
-                duplicate_key_validation,
-                json_syntax_validation,
-                schema_validation,
-                semantic_validation,
-                cross_reference_validation,
-                deployment_profile_validation,
-                adapter_allowlist_validation,
-                path_boundary_validation,
-                trust_and_integrity_validation,
-                script_manifest_compatibility_validation,
-                secret_and_personal_value_validation
-            ]
-        )
-        append_result(run_summary, manifest_result)
-
-        IF manifest_result.status = fail
-            record_manifest_failure(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        manifest = freeze_validated_configuration(manifest_result.value)
-        run_context.manifest_release = manifest.automation_release
-        run_context.platform_id = deployment_profile.platform_id
-
-        display_manifest_release(run_context.manifest_release)
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "adapter.resolve"
-
-        adapter_result = resolve_allowlisted_adapters(
-            action_id,
-            run_context.platform_id,
-            run_context.deployment_profile_id,
-            manifest
-        )
-        append_result(run_summary, adapter_result)
-
-        IF adapter_result.status = fail
-            record_unsupported_configuration(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        adapters = adapter_result.value
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "boundary.validate"
-
-        boundary_result = validate_action_boundaries(
-            action_id,
-            state_scope,
-            may_change_state,
-            adapters,
-            manifest
-        )
-        append_result(run_summary, boundary_result)
-
-        IF boundary_result.status = fail
-            record_unsafe_design_or_configuration(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    IF lock_required = TRUE
-
-        BEGIN STAGE "lock.acquire"
-
-            lock_result = acquire_operation_lock(
-                action_id,
-                run_context.platform_id,
-                managed_resource_scope = lock_scope
-            )
-            append_result(run_summary, lock_result)
-
-            IF lock_result.status = fail
-                record_concurrent_operation_failure(run_summary)
-                GOTO FINALIZE_RUN
-            ENDIF
-
-            operation_lock = lock_result.value
-
-        ENDSTAGE
-
+    IF controlled manifest or schema is missing
+        RECORD fail for verify.manifest
+        SET manifest_failure = TRUE
+        PRINT summary and RETURN exit code 5
     ENDIF
 
-
-    BEGIN STAGE "verify.prerequisites"
-
-        prerequisite_results = run_action_prerequisites(
-            run_context,
-            platform_facts,
-            deployment_profile,
-            manifest,
-            adapters
-        )
-        append_results(run_summary, prerequisite_results)
-
-        IF has_blocking_required_failure(prerequisite_results)
-            mark_dependent_operations_skipped(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "verify.plan"
-
-        plan_result = build_action_plan(
-            run_context,
-            platform_facts,
-            deployment_profile,
-            manifest,
-            adapters,
-            prerequisite_results,
-            options
-        )
-        append_result(run_summary, plan_result)
-
-        IF plan_result.status = fail
-            record_planning_failure(run_summary)
-            GOTO FINALIZE_RUN
-        ENDIF
-
-        action_plan = plan_result.value
-        display_sanitized_plan_summary(action_plan)
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "verify.execute"
-
-        FOR EACH plan_stage IN action_plan.stages IN dependency_order
-
-            IF required_dependency_failed(plan_stage, run_summary)
-
-                stage_result = create_skipped_dependency_result(plan_stage)
-                append_result(run_summary, stage_result)
-                display_stage_result(stage_result)
-                CONTINUE
-
-            ENDIF
-
-            TRY
-
-                stage_results = execute_action_stage(
-                    plan_stage,
-                    run_context,
-                    manifest,
-                    adapters,
-                    options
-                )
-
-            CATCH user_cancellation
-
-                stage_results = create_canceled_result(
-                    plan_stage.operation_id,
-                    remediation_owner = "verify"
-                )
-
-            CATCH temporary_external_failure
-
-                stage_results = retry_with_manifest_policy(
-                    plan_stage,
-                    manifest.policy.retry_profiles,
-                    adapters
-                )
-
-            CATCH handled_operation_failure
-
-                stage_results = create_handled_failure_result(
-                    plan_stage.operation_id,
-                    sanitized_error()
-                )
-
-            CATCH unexpected_failure
-
-                stage_results = create_unexpected_failure_result(
-                    plan_stage.operation_id,
-                    sanitized_error()
-                )
-
-            END TRY
-
-            append_results(run_summary, stage_results)
-            display_stage_results(stage_results)
-
-        ENDFOR
-
-    ENDSTAGE
-
-
-    IF may_change_state = TRUE AND run_summary.changed_items IS NOT EMPTY
-
-        BEGIN STAGE "verify.post_validate"
-
-            post_validation_results = post_validate_action(
-                run_context,
-                platform_facts,
-                deployment_profile,
-                manifest,
-                adapters,
-                run_summary.changed_items
-            )
-            append_results(run_summary, post_validation_results)
-
-            IF has_required_failure(post_validation_results)
-                record_partial_or_failed_final_state(run_summary)
-            ENDIF
-
-        ENDSTAGE
-
+    IF the generic manifest-validation runtime is unavailable
+        RECORD fail for verify.manifest_runtime
+        SET manifest_failure = TRUE
+        PRINT summary and RETURN exit code 5
     ENDIF
 
+    TRY
+        manifest_release = validate_verify_manifest(run_context)
+        RECORD pass for verify.manifest
+    CATCH validation_failure
+        RECORD fail for verify.manifest with sanitized validation detail
+        SET manifest_failure = TRUE
+        PRINT summary and RETURN exit code 5
+    END TRY
 
-    IF action_id = "verify"
+    check_disk_and_network(run_context, options)
+    check_system_layer(run_context)
+    check_user_layer(run_context)
+    check_managed_assets(run_context)
+    create_optional_sanitized_support_bundle(run_context, options)
 
-        BEGIN STAGE "verify.read_only_assertion"
-
-            read_only_result = confirm_no_managed_state_changed(run_summary)
-            append_result(run_summary, read_only_result)
-
-            IF read_only_result.status = fail
-                record_critical_design_failure(run_summary)
-            ENDIF
-
-        ENDSTAGE
-
-    ENDIF
-
-
-FINALIZE_RUN:
-
-    BEGIN STAGE "run.finalize"
-
-        restart_result = determine_restart_guidance(
-            run_context,
-            platform_facts,
-            deployment_profile,
-            run_summary
-        )
-        append_result(run_summary, restart_result)
-
-        run_summary.remediation = determine_remediation(run_summary)
-        run_summary.next_step = determine_next_step(
-            action_id,
-            normal_next_step,
-            run_summary
-        )
-
-    ENDSTAGE
-
-
-    BEGIN STAGE "run.cleanup"
-
-        cleanup_results = remove_private_temporary_data()
-        append_results_without_overriding_primary_failure(
-            run_summary,
-            cleanup_results
-        )
-
-        IF operation_lock IS NOT NONE
-
-            release_result = release_operation_lock(operation_lock)
-            append_result_without_overriding_primary_failure(
-                run_summary,
-                release_result
-            )
-
-        ENDIF
-
-    ENDSTAGE
-
-
-    run_summary.final_exit_code = resolve_standard_exit_code(run_summary)
-    run_summary.elapsed_time = calculate_elapsed_time(run_context.start_time)
-
-
-    BEGIN STAGE "run.summary"
-
-        display_final_summary(
-            overall_result = determine_overall_result(run_summary),
-            changed_items = run_summary.changed_items,
-            warnings = run_summary.warnings,
-            failures = run_summary.failures,
-            restart_guidance = run_summary.restart_guidance,
-            remediation = run_summary.remediation,
-            next_step = run_summary.next_step,
-            log_path = run_context.log_path,
-            exit_code = run_summary.final_exit_code
-        )
-
-    ENDSTAGE
-
-
-    IF transcript_started = TRUE
-        close_transcript()
-    ENDIF
-
-    RETURN run_summary.final_exit_code
-
-
-FINALIZE_WITHOUT_TRANSCRIPT:
-
-    minimal_exit_code = resolve_standard_exit_code(run_summary)
-    display_minimum_safe_summary(run_summary, minimal_exit_code)
-    RETURN minimal_exit_code
+    exit_code = resolve_verify_exit_code()
+    print_verification_summary(run_context, exit_code)
+    RETURN exit_code
 
 ENDPROCEDURE
 
 
 # ==============================================================================
-# 4. VERIFY-SPECIFIC PROCEDURES
+# 2. RESULT AND EXIT-CODE RULES
 # ==============================================================================
 
-PROCEDURE run_action_prerequisites(
-    run_context,
-    platform_facts,
-    deployment_profile,
-    manifest,
-    adapters
-)
+PROCEDURE record_result(status, check_id, message, remediation = NONE)
 
-    results = new_result_collection()
+    REQUIRE status is pass, warning, fail, or not_applicable
+    DISPLAY "[STATUS] [check_id] message"
+    INCREMENT the matching count
 
-    append_result(
-        results,
-        confirm_standard_user_or_support_context(platform_facts)
-    )
-
-    append_result(
-        results,
-        confirm_no_privilege_elevation_will_be_requested(adapters)
-    )
-
-    append_result(
-        results,
-        confirm_only_read_only_adapter_interfaces_are_available(adapters)
-    )
-
-    append_result(
-        results,
-        validate_verification_timeouts(
-            manifest.policy,
-            maximum_total_seconds = 90
-        )
-    )
-
-    append_result(
-        results,
-        validate_support_bundle_allowlist(
-            manifest.logging.support_bundle
-        )
-    )
-
-    RETURN results
+    IF status = fail AND remediation is not empty
+        ADD remediation once to unique_remediations
+    ENDIF
 
 ENDPROCEDURE
 
 
-PROCEDURE build_action_plan(
-    run_context,
-    platform_facts,
-    deployment_profile,
-    manifest,
-    adapters,
-    prerequisite_results,
-    options
-)
+PROCEDURE resolve_verify_exit_code()
 
-    action_plan = create_empty_dependency_aware_plan()
-    check_registry = create_empty_ordered_check_registry()
-
-    register_check(
-        check_registry,
-        check_id = "verify.platform",
-        related_srs_ids = ["VER-FR-004"],
-        required_or_optional = "required",
-        read_operation = "read_platform_facts",
-        expected_rule = deployment_profile.platform_constraints,
-        redaction_rule = "platform_facts",
-        remediation_action = "technical_support",
-        support_escalation_rule =
-            deployment_profile.support_escalation_rule
-    )
-
-    register_check(
-        check_registry,
-        check_id = "verify.disk_space",
-        related_srs_ids = ["VER-FR-004"],
-        required_or_optional = "required",
-        read_operation = "read_available_disk_space",
-        expected_rule = manifest.policy.minimum_free_space_bytes,
-        redaction_rule = "none",
-        remediation_action = "technical_support",
-        support_escalation_rule = "platform_support_when_unreadable"
-    )
-
-    register_check(
-        check_registry,
-        check_id = "verify.network",
-        related_srs_ids = ["VER-FR-004"],
-        required_or_optional = "required_when_service_needed",
-        read_operation = "probe_approved_endpoints",
-        expected_rule = manifest.software_sources,
-        redaction_rule = "approved_endpoint_only",
-        remediation_action = "technical_support",
-        support_escalation_rule = "network_support"
-    )
-
-    FOR EACH binding IN select_all_platform_capability_bindings(
-        manifest,
-        deployment_profile.platform_id
-    )
-
-        register_capability_check(
-            check_registry,
-            binding,
-            related_srs_ids = ["VER-FR-005", "VER-FR-006"],
-            remediation_action =
-                remediation_owner_for_binding_scope(binding.scope)
-        )
-
-    ENDFOR
-
-    FOR EACH package IN select_required_os_support_packages(
-        manifest,
-        deployment_profile.platform_id
-    )
-
-        register_os_package_check(
-            check_registry,
-            package,
-            related_srs_ids = ["VER-FR-005"],
-            remediation_action = "setup"
-        )
-
-    ENDFOR
-
-    FOR EACH provider_profile IN manifest.provider_profiles
-
-        register_provider_authentication_check(
-            check_registry,
-            provider_profile,
-            related_srs_ids = ["VER-FR-006", "VER-FR-007"],
-            remediation_action = "configure",
-            redaction_rule = "provider_identity_minimum"
-        )
-
-    ENDFOR
-
-    FOR EACH managed_setting IN manifest.managed_settings
-
-        register_managed_setting_check(
-            check_registry,
-            managed_setting,
-            related_srs_ids = ["VER-FR-006", "VER-FR-007"],
-            remediation_action =
-                remediation_owner_for_setting(managed_setting)
-        )
-
-    ENDFOR
-
-    register_check(
-        check_registry,
-        check_id = "verify.script_permissions",
-        related_srs_ids = ["VER-FR-006"],
-        required_or_optional = "required",
-        read_operation = "read_script_permissions",
-        expected_rule = platform_script_permission_rule(),
-        redaction_rule = "normalize_home_path",
-        remediation_action = "configure",
-        support_escalation_rule = "technical_support_when_unreadable"
-    )
-
-    register_check(
-        check_registry,
-        check_id = "verify.course_folders",
-        related_srs_ids = ["VER-FR-006"],
-        required_or_optional = "required",
-        read_operation = "read_course_folder_state",
-        expected_rule = manifest.policy.course_folder_rules,
-        redaction_rule = "normalize_home_path",
-        remediation_action = "configure",
-        support_escalation_rule = "technical_support_when_unsafe"
-    )
-
-    FOR EACH integration IN select_all_managed_integrations(
-        manifest,
-        deployment_profile
-    )
-
-        register_integration_check(
-            check_registry,
-            integration,
-            related_srs_ids = ["VER-FR-006"],
-            remediation_action =
-                remediation_owner_for_integration(integration)
-        )
-
-    ENDFOR
-
-    FOR EACH managed_asset IN manifest.managed_assets
-
-        register_managed_asset_check(
-            check_registry,
-            managed_asset,
-            related_srs_ids = ["VER-FR-007"],
-            remediation_action = "update",
-            redaction_rule = "normalize_home_path"
-        )
-
-    ENDFOR
-
-    add_plan_stage(
-        action_plan,
-        operation_id = "verify.environment",
-        operation_type = "run_check_group",
-        dependencies = [],
-        planned_items = select_environment_checks(check_registry),
-        mutating = FALSE,
-        privilege_scope = "none",
-        managed_targets = [],
-        blocks_dependents = FALSE,
-        recovery = "not_applicable",
-        traceability = ["VER-FR-001", "VER-FR-002",
-                        "VER-FR-003", "VER-FR-004",
-                        "VER-DES-001", "VER-DES-002",
-                        "VER-DES-003", "VER-DES-004"]
-    )
-
-    add_plan_stage(
-        action_plan,
-        operation_id = "verify.system_layer",
-        operation_type = "run_check_group",
-        dependencies = [],
-        planned_items = select_system_checks(check_registry),
-        mutating = FALSE,
-        privilege_scope = "none",
-        managed_targets = [],
-        blocks_dependents = FALSE,
-        recovery = "not_applicable",
-        traceability = ["VER-FR-005", "VER-DES-005"]
-    )
-
-    add_plan_stage(
-        action_plan,
-        operation_id = "verify.user_layer",
-        operation_type = "run_check_group",
-        dependencies = [],
-        planned_items = select_user_checks(check_registry),
-        mutating = FALSE,
-        privilege_scope = "none",
-        managed_targets = [],
-        blocks_dependents = FALSE,
-        recovery = "not_applicable",
-        traceability = ["VER-FR-006", "VER-FR-007",
-                        "VER-DES-006", "VER-DES-007"]
-    )
-
-    add_plan_stage(
-        action_plan,
-        operation_id = "verify.managed_assets",
-        operation_type = "run_check_group",
-        dependencies = [],
-        planned_items = select_asset_checks(check_registry),
-        mutating = FALSE,
-        privilege_scope = "none",
-        managed_targets = [],
-        blocks_dependents = FALSE,
-        recovery = "not_applicable",
-        traceability = ["VER-FR-006", "VER-FR-007",
-                        "VER-DES-006", "VER-DES-007"]
-    )
-
-    IF options.support_bundle_requested = TRUE
-
-        add_plan_stage(
-            action_plan,
-            operation_id = "verify.support_bundle",
-            operation_type = "prepare_support_bundle",
-            dependencies = ["verify.environment",
-                            "verify.system_layer",
-                            "verify.user_layer",
-                            "verify.managed_assets"],
-            planned_items =
-                manifest.logging.support_bundle.approved_inventory,
-            mutating = FALSE,
-            privilege_scope = "none",
-            managed_targets = [],
-            blocks_dependents = FALSE,
-            recovery = "remove temporary bundle staging",
-            traceability = ["VER-FR-013", "VER-DES-013",
-                            "PKG-QOS-021", "PKG-QOS-022"]
-        )
-
-    ENDIF
-
-    assert_every_check_has_requirement_and_remediation(check_registry)
-    assert_optional_checks_cannot_create_required_failure(check_registry)
-    assert_plan_contains_no_mutating_operations(action_plan)
-    validate_plan_against_action_boundaries(action_plan, state_scope)
-
-    RETURN successful_plan_result(action_plan)
-
-ENDPROCEDURE
-
-
-PROCEDURE execute_action_stage(
-    plan_stage,
-    run_context,
-    manifest,
-    adapters,
-    options
-)
-
-    IF plan_stage.operation_type = "prepare_support_bundle"
-
-        RETURN prepare_sanitized_support_bundle(
-            plan_stage,
-            run_context,
-            manifest,
-            adapters,
-            options
-        )
-
-    ENDIF
-
-    results = new_result_collection()
-
-    FOR EACH check_definition IN plan_stage.planned_items
-
-        IF check_does_not_apply(
-            check_definition,
-            run_context,
-            manifest
-        )
-
-            append_result(
-                results,
-                create_check_result(
-                    check_definition,
-                    status = "not_applicable",
-                    observed_value = NONE,
-                    sanitized_detail =
-                        "The approved configuration does not use this item."
-                )
-            )
-            CONTINUE
-
-        ENDIF
-
-        TRY
-
-            observed_value = execute_read_only_probe(
-                check_definition.read_operation,
-                adapters
-            )
-
-            sanitized_value = apply_redaction_rule(
-                observed_value,
-                check_definition.redaction_rule
-            )
-
-            comparison = compare_observed_with_expected(
-                sanitized_value,
-                check_definition.expected_rule
-            )
-
-            result_status = map_comparison_to_check_status(
-                comparison,
-                check_definition.required_or_optional
-            )
-
-            append_result(
-                results,
-                create_check_result(
-                    check_definition,
-                    status = result_status,
-                    observed_value = sanitized_value,
-                    sanitized_detail = comparison.detail,
-                    remediation_owner =
-                        check_definition.remediation_action,
-                    support_escalation_rule =
-                        check_definition.support_escalation_rule
-                )
-            )
-
-        CATCH read_permission_denied
-
-            append_result(
-                results,
-                create_check_result(
-                    check_definition,
-                    status =
-                        status_for_unreadable_check(check_definition),
-                    observed_value = NONE,
-                    sanitized_detail =
-                        "The current user could not read this condition.",
-                    remediation_owner =
-                        check_definition.remediation_action
-                )
-            )
-
-        CATCH temporary_external_failure
-
-            append_result(
-                results,
-                create_check_result(
-                    check_definition,
-                    status =
-                        status_for_external_check_failure(check_definition),
-                    observed_value = NONE,
-                    sanitized_detail =
-                        "The approved service did not respond in time.",
-                    remediation_owner =
-                        check_definition.remediation_action
-                )
-            )
-
-        CATCH unexpected_failure
-
-            append_result(
-                results,
-                create_check_result(
-                    check_definition,
-                    status = "fail",
-                    observed_value = NONE,
-                    sanitized_detail = sanitized_error(),
-                    remediation_owner =
-                        check_definition.remediation_action
-                )
-            )
-
-        END TRY
-
-    ENDFOR
-
-    display_check_group_results(results)
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE prepare_sanitized_support_bundle(
-    plan_stage,
-    run_context,
-    manifest,
-    adapters,
-    options
-)
-
-    results = new_result_collection()
-
-    inventory = build_support_bundle_inventory(
-        approved_items = plan_stage.planned_items,
-        exclusions = [
-            "student source files",
-            "assignment repositories",
-            "version-control history",
-            "authentication stores",
-            "browser profiles",
-            "unrelated settings"
-        ]
-    )
-
-    inventory_validation = validate_support_bundle_inventory(inventory)
-    append_result(results, inventory_validation)
-
-    IF inventory_validation.status = fail
-        RETURN results
-    ENDIF
-
-    display_support_bundle_inventory(inventory)
-
-    IF options.noninteractive = TRUE
-
-        IF options.confirm_support_bundle = FALSE
-
-            append_result(
-                results,
-                create_canceled_result(
-                    "verify.support_bundle",
-                    sanitized_detail =
-                        "Noninteractive creation requires explicit confirmation."
-                )
-            )
-            RETURN results
-
-        ENDIF
-
-    ELSE
-
-        confirmation = request_bounded_confirmation(
-            prompt_id = "support_bundle.confirm",
-            default = "cancel"
-        )
-
-        IF confirmation = "cancel"
-
-            append_result(
-                results,
-                create_canceled_result(
-                    "verify.support_bundle",
-                    sanitized_detail =
-                        "The verification report remains available in the log."
-                )
-            )
-            RETURN results
-
-        ENDIF
-
-    ENDIF
-
-    staging_result = create_private_bundle_staging_directory(
-        run_context.temporary_root
-    )
-    append_result(results, staging_result)
-
-    IF staging_result.status = fail
-        RETURN results
-    ENDIF
-
-    FOR EACH inventory_item IN inventory
-
-        candidate = collect_approved_diagnostic(
-            inventory_item,
-            run_context,
-            adapters
-        )
-
-        sanitized_candidate = apply_field_and_pattern_redaction(
-            candidate
-        )
-
-        scan_result = scan_for_prohibited_bundle_content(
-            sanitized_candidate
-        )
-        append_result(results, scan_result)
-
-        IF scan_result.status = fail
-            RETURN results
-        ENDIF
-
-        append_result(
-            results,
-            add_diagnostic_to_bundle_staging(
-                sanitized_candidate,
-                inventory_item
-            )
-        )
-
-    ENDFOR
-
-    final_scan = scan_staged_bundle_and_inventory()
-    append_result(results, final_scan)
-
-    IF final_scan.status = fail
-        RETURN results
-    ENDIF
-
-    append_result(
-        results,
-        create_bundle_in_log_directory(
-            run_context.log_directory,
-            restrictive_user_permissions = TRUE
-        )
-    )
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-PROCEDURE post_validate_action(
-    run_context,
-    platform_facts,
-    deployment_profile,
-    manifest,
-    adapters,
-    changed_items
-)
-
-    results = new_result_collection()
-
-    append_result(
-        results,
-        create_not_applicable_result(
-            "verify.post_validate",
-            sanitized_detail =
-                "Verify does not change managed state."
-        )
-    )
-
-    RETURN results
-
-ENDPROCEDURE
-
-
-# ==============================================================================
-# 5. STANDARD EXIT-CODE RESOLUTION
-# ==============================================================================
-#
-# Precedence is based on safety and remediation value, not numeric order:
-#
-#     5  Invalid, corrupt, incompatible, or integrity-failed manifest or asset
-#     2  Invalid use, unsupported platform, deployment, or OS release
-#     3  Required permission or privilege unavailable
-#     4  Approved external source or service unavailable after retries
-#     7  Partial completion or changed state requiring remediation
-#     1  Other required operation or check failure
-#     6  Required interactive operation canceled
-#     0  All required operations or checks completed successfully
-#
-# ==============================================================================
-
-PROCEDURE resolve_standard_exit_code(run_summary)
-
-    IF has_manifest_or_integrity_failure(run_summary)
+    IF manifest_failure = TRUE
         RETURN 5
-    ELSE IF has_unsupported_condition(run_summary)
+    ELSE IF unsupported_failure = TRUE
         RETURN 2
-    ELSE IF has_required_privilege_failure(run_summary)
-        RETURN 3
-    ELSE IF has_exhausted_external_failure(run_summary)
-        RETURN 4
-    ELSE IF has_partial_completion(run_summary)
-        RETURN 7
-    ELSE IF has_other_required_failure(run_summary)
+    ELSE IF fail count > 0
         RETURN 1
-    ELSE IF has_required_cancellation(run_summary)
-        RETURN 6
     ELSE
         RETURN 0
     ENDIF
@@ -1290,5 +167,359 @@ ENDPROCEDURE
 
 
 # ==============================================================================
-# END OF PSEUDOSCRIPT
+# 3. PLATFORM AND MANIFEST
 # ==============================================================================
+
+PROCEDURE check_platform_context(run_context)
+
+    IF execution is root or system administrator
+        RECORD fail verify.user_context
+    ELSE
+        RECORD pass verify.user_context
+    ENDIF
+
+    IF operating-system facts cannot be read
+        RECORD fail verify.platform
+        SET unsupported_failure = TRUE
+        RETURN
+    ENDIF
+
+    IF operating-system family and release match the implementation
+        RECORD pass verify.os_release
+    ELSE
+        RECORD fail verify.os_release
+        SET unsupported_failure = TRUE
+    ENDIF
+
+    IF architecture matches the implementation
+        RECORD pass verify.architecture
+    ELSE
+        RECORD fail verify.architecture
+        SET unsupported_failure = TRUE
+    ENDIF
+
+    IF required desktop-management interface is available
+        RECORD pass verify.desktop
+    ELSE
+        RECORD fail verify.desktop
+        SET unsupported_failure = TRUE
+    ENDIF
+
+ENDPROCEDURE
+
+
+PROCEDURE validate_verify_manifest(run_context)
+
+    RETURN validate_controlled_manifest_pair(
+        run_context.manifest_path,
+        run_context.schema_path,
+        run_context.platform_id,
+        run_context.deployment_profile_id,
+        required_top_level_keys = [
+            "schema_version",
+            "automation_release",
+            "policy",
+            "platforms",
+            "deployment_profiles",
+            "provider_profiles",
+            "managed_settings",
+            "managed_assets",
+            "logging"
+        ]
+    )
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 4. ENVIRONMENT CHECKS
+# ==============================================================================
+
+PROCEDURE check_disk_and_network(run_context, options)
+
+    available_space = query_free_space_for_user_home()
+    required_space = manifest_minimum_free_space()
+
+    IF available_space meets required_space
+        RECORD pass verify.disk_space
+    ELSE
+        RECORD fail verify.disk_space with user-owned cleanup remediation
+    ENDIF
+
+    IF options.skip_network = TRUE
+        RECORD not_applicable verify.network
+        RETURN
+    ENDIF
+
+    timeout = manifest_network_timeout()
+
+    IF approved source-hosting endpoint responds within timeout
+        RECORD pass verify.network
+    ELSE
+        RECORD warning verify.network
+    ENDIF
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 5. SYSTEM-LAYER CHECKS
+# ==============================================================================
+
+PROCEDURE check_system_layer(run_context)
+
+    FOR EACH manifest-required operating-system package
+        IF native package database reports installed
+            RECORD pass verify.package.<package>
+        ELSE
+            RECORD fail verify.package.<package> with update remediation
+        ENDIF
+    ENDFOR
+
+    FOR EACH manifest-required system capability
+        REQUIRE at least one declared executable
+        QUERY availability of all required executable names
+
+        WHEN the capability has a specific version rule
+            QUERY and validate the version
+        ENDWHEN
+
+        IF capability is available and compliant
+            RECORD pass verify.capability.<role> with sanitized version
+        ELSE
+            RECORD fail verify.capability.<role> with update remediation
+        ENDIF
+    ENDFOR
+
+    FOR EACH required structured system integration
+        REQUIRE it exists and passes its format validator
+        RECORD pass or fail with update remediation
+    ENDFOR
+
+    # The tested CVD implementation checks its managed browser bookmark policy.
+
+    check_optional_numlock_state(run_context)
+
+ENDPROCEDURE
+
+
+PROCEDURE check_optional_numlock_state(run_context)
+
+    IF optional Num Lock tool is unavailable
+        DISPLAY NOTICE that course work is unaffected
+        RETURN
+    ENDIF
+
+    IF the effective user-over-system startup entry enables Num Lock
+        RECORD pass verify.optional.numlock_persistence
+    ELSE
+        DISPLAY NOTICE that automatic Num Lock is optional and not blocking
+    ENDIF
+
+    IF no graphical session is active
+        DISPLAY NOTICE that current Num Lock state cannot be checked
+        RETURN
+    ENDIF
+
+    IF Num Lock is currently enabled
+        RECORD pass verify.optional.numlock_session
+    ELSE
+        DISPLAY NOTICE that current Num Lock state is optional and not blocking
+    ENDIF
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 6. USER-LAYER CHECKS
+# ==============================================================================
+
+PROCEDURE check_user_layer(run_context)
+
+    REQUIRE course root and private log directory
+    RECORD pass or fail verify.course_folders with configure remediation
+
+    REQUIRE exact managed PATH block in both managed shell startup files
+    RECORD pass or fail verify.user_path_files with configure remediation
+
+    REQUIRE current process PATH includes:
+        course virtual-environment executable directory
+        matching platform student-script directory
+    RECORD pass or fail verify.current_path
+    REMEDIATION for current-path failure is to close this terminal, open a new
+        terminal, and rerun verify
+
+    REQUIRE usable course virtual environment
+    RECORD pass or fail verify.virtual_environment with configure remediation
+
+    FOR EACH manifest-required virtual-environment package
+        RECORD pass or fail verify.user_tool.<package> with configure remediation
+    ENDFOR
+
+    FOR EACH manifest-required IDE extension
+        RECORD pass or fail verify.extension.<role> with configure remediation
+    ENDFOR
+
+    REQUIRE valid source-hosting provider authentication
+    RECORD pass or fail verify.provider_authentication with configure remediation
+
+    REQUIRE nonempty Git display name
+    RECORD pass or fail verify.git_display_name with configure remediation
+
+    REQUIRE Git email matches provider-approved private noreply identity
+    RECORD pass or fail verify.git_private_identity with configure remediation
+
+    FOR EACH manifest-managed Git setting
+        REQUIRE exact declared value
+        RECORD pass or fail verify.git_setting.<key> with configure remediation
+    ENDFOR
+
+    REQUIRE the IDE settings object contains all managed settings, including the
+        current course interpreter and course-root paths
+    PRESERVE and ignore unrelated settings during comparison
+    RECORD pass or fail verify.ide_settings with configure remediation
+
+    REQUIRE course-folder and IDE desktop launchers
+    RECORD pass or fail verify.desktop_launchers with configure remediation
+
+    REQUIRE managed panel-launcher marker and launcher file
+    RECORD pass or fail verify.panel_launcher with configure remediation
+
+    FOR EACH student lifecycle script:
+        config_<platform>
+        update_<platform>
+        verify_<platform>
+        REQUIRE the script exists and is executable
+        RECORD pass or fail verify.script_permissions.<script>
+    ENDFOR
+
+    DO NOT require bootstrap to be executable
+    DO NOT inspect or require administrator master/setup in the student workflow
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 7. MANAGED-ASSET CHECKS
+# ==============================================================================
+
+PROCEDURE check_managed_assets(run_context)
+
+    FOR EACH manifest-declared managed asset destination
+        IF the destination is readable
+            RECORD pass verify.asset.<asset_id>
+        ELSE
+            RECORD fail verify.asset.<asset_id> with update remediation
+        ENDIF
+    ENDFOR
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 8. OPTIONAL SANITIZED SUPPORT BUNDLE
+# ==============================================================================
+
+PROCEDURE create_optional_sanitized_support_bundle(run_context, options)
+
+    IF options.support_bundle = FALSE
+        RETURN
+    ENDIF
+
+    DISPLAY exact bundle inventory:
+        sanitized verification log
+        manifest and script release summary
+        supported platform facts
+        required capability version summary
+
+    DISPLAY exclusions:
+        course work
+        repositories
+        Git history
+        credentials
+        browser data
+
+    IF options.noninteractive = TRUE AND options.yes = FALSE
+        RECORD not_applicable verify.support_bundle
+        RETURN
+    ENDIF
+
+    IF interactive confirmation has not already been supplied
+        PROMPT for explicit confirmation
+        IF declined
+            RECORD not_applicable verify.support_bundle
+            RETURN
+        ENDIF
+    ENDIF
+
+    CREATE private support staging
+
+    SANITIZE the transcript:
+        replace provider private noreply identities
+        replace user-specific home-directory names
+
+    WRITE:
+        release summary
+        supported platform facts
+        capability version summary
+        exact inventory
+
+    SCAN staged files for prohibited secret-like content
+
+    IF the safety scan detects prohibited content
+        REMOVE support staging
+        RECORD fail verify.support_bundle_safety
+        DO NOT create an archive
+        RETURN
+    ENDIF
+
+    CREATE compressed archive in the private log directory
+    SET archive permissions to current-user-only
+    REMOVE support staging
+    RECORD pass verify.support_bundle with archive path
+
+ENDPROCEDURE
+
+
+# ==============================================================================
+# 9. SUMMARY
+# ==============================================================================
+
+PROCEDURE print_verification_summary(run_context, exit_code)
+
+    IF exit_code = 0
+        result = PASS
+        course_readiness = READY
+        IF warning count > 0
+            next_step = review warning; no required failure detected
+        ELSE
+            next_step = course environment is ready for course work
+        ENDIF
+    ELSE
+        result = FAIL
+        course_readiness = ACTION_REQUIRED
+        next_step = complete recommended action and rerun verify
+    ENDIF
+
+    DISPLAY:
+        result
+        course readiness
+        pass count
+        warning count
+        fail count
+        not-applicable count
+        script version
+        manifest release
+        elapsed time
+        next step
+        log path
+        exit code
+
+    IF unique_remediations is not empty
+        DISPLAY each remediation once
+    ENDIF
+
+    DISPLAY success or error conclusion
+    DISPLAY closing log and fresh-terminal notices
+
+ENDPROCEDURE
