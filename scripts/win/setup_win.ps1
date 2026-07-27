@@ -45,7 +45,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "2026.07.27.1"
+$ScriptVersion = "2026.07.27.4"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
@@ -763,9 +763,32 @@ function Invoke-CurrentReleaseWindowsUpdate {
 
     $UpdateSession = New-Object -ComObject Microsoft.Update.Session
     $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
-    $SearchResult = $UpdateSearcher.Search(
-        "IsInstalled=0 and IsHidden=0 and Type='Software'"
-    )
+    $SearchCriteria = "IsInstalled=0 and IsHidden=0 and Type='Software'"
+
+    try {
+        $SearchResult = $UpdateSearcher.Search($SearchCriteria)
+    }
+    catch {
+        $HResultCode = "{0:X8}" -f $_.Exception.HResult
+        $IsWindowsSandbox = (
+            [Environment]::UserName -eq "WDAGUtilityAccount"
+        )
+
+        if (-not ($IsWindowsSandbox -and $HResultCode -eq "80072EE6")) {
+            throw
+        }
+
+        Write-Notice (
+            "The managed Windows Update service is unavailable in " +
+            "Windows Sandbox."
+        )
+        Write-Notice "Retrying with the public Windows Update service."
+
+        $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
+        $UpdateSearcher.ServerSelection = 2
+        $UpdateSearcher.Online = $true
+        $SearchResult = $UpdateSearcher.Search($SearchCriteria)
+    }
 
     $ApprovedUpdates = New-Object -ComObject Microsoft.Update.UpdateColl
     foreach ($UpdateRecord in $SearchResult.Updates) {
@@ -1072,7 +1095,7 @@ try {
     }
 
     $FreeSpace = [int64]$SystemDriveInfo.AvailableFreeSpace
-    
+
     $MinimumSpace = [int64]$Controlled.Manifest.policy.minimum_free_space_bytes
     if ($FreeSpace -lt $MinimumSpace) {
         throw (
