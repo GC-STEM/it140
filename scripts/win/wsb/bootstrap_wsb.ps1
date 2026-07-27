@@ -46,18 +46,32 @@ Write-Host "Installing WinGet dependencies and installer..."
 Expand-Archive -Path $DependenciesZip -DestinationPath $DependenciesDir -Force
 Get-ChildItem -Path $DependenciesDir -Recurse -File | Where-Object { $_.Extension -in '.appx','.msix' -and $_.FullName -match '(?i)x64' } | ForEach-Object { Add-AppxPackage -Path $_.FullName }
 Add-AppxPackage -Path $WingetBundle
-Write-Host "Installing Windows Notepad..."
+Write-Host "Installing Microsoft Edit..."
 $WinGetPath = Join-Path (Get-AppxPackage -Name Microsoft.DesktopAppInstaller -ErrorAction Stop).InstallLocation 'winget.exe'
-& $WinGetPath install --id 9MSMLRH6LZF3 --exact --source msstore --accept-package-agreements --accept-source-agreements --disable-interactivity
-if ($LASTEXITCODE -ne 0) { throw "Windows Notepad installation failed with WinGet exit code $LASTEXITCODE." }
-$NotepadPath = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\notepad.exe'
-if (!(Test-Path $NotepadPath)) { throw "Windows Notepad was installed, but its application alias was not found at $NotepadPath." }
-Write-Host "Associating .log files with Windows Notepad..."
+$EditPath = Get-Command edit.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
+
+if ([string]::IsNullOrWhiteSpace($EditPath)) {
+& $WinGetPath install --id Microsoft.Edit --exact --source winget --scope user --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+if ($LASTEXITCODE -ne 0) { throw "Microsoft Edit installation failed with WinGet exit code $LASTEXITCODE." }
+
+$EditPath = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\edit.exe'
+if (!(Test-Path $EditPath)) {
+$EditPath = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages') -Filter 'edit.exe' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+}
+}
+
+if ([string]::IsNullOrWhiteSpace($EditPath) -or !(Test-Path $EditPath)) {
+throw "Microsoft Edit was installed, but edit.exe could not be located."
+}
+
+Write-Host "Associating .log files with Microsoft Edit..."
 $LogFileClass = 'IT140.LogFile'
 New-Item -Path 'HKCU:\Software\Classes\.log' -Force | Out-Null
 Set-Item -Path 'HKCU:\Software\Classes\.log' -Value $LogFileClass
+New-Item -Path "HKCU:\Software\Classes\$LogFileClass" -Force | Out-Null
+Set-Item -Path "HKCU:\Software\Classes\$LogFileClass" -Value 'IT 140 log file'
 New-Item -Path "HKCU:\Software\Classes\$LogFileClass\shell\open\command" -Force | Out-Null
-Set-Item -Path "HKCU:\Software\Classes\$LogFileClass\shell\open\command" -Value "`"$NotepadPath`" `"%1`""
+Set-Item -Path "HKCU:\Software\Classes\$LogFileClass\shell\open\command" -Value "`"$EditPath`" `"%1`""
 }
 catch {
 Remove-Item "$DependenciesZip.part","$WingetBundle.part" -Force -ErrorAction SilentlyContinue
