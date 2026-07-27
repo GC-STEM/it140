@@ -50,10 +50,8 @@ Write-Host "Installing Windows Notepad..."
 $WinGetPath = Join-Path (Get-AppxPackage -Name Microsoft.DesktopAppInstaller -ErrorAction Stop).InstallLocation 'winget.exe'
 & $WinGetPath install --id 9MSMLRH6LZF3 --exact --source msstore --accept-package-agreements --accept-source-agreements --disable-interactivity
 if ($LASTEXITCODE -ne 0) { throw "Windows Notepad installation failed with WinGet exit code $LASTEXITCODE." }
-
 $NotepadPath = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\notepad.exe'
 if (!(Test-Path $NotepadPath)) { throw "Windows Notepad was installed, but its application alias was not found at $NotepadPath." }
-
 Write-Host "Associating .log files with Windows Notepad..."
 $LogFileClass = 'IT140.LogFile'
 New-Item -Path 'HKCU:\Software\Classes\.log' -Force | Out-Null
