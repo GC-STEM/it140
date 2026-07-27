@@ -15,7 +15,7 @@
 #      5. scripts/win/update_win.ps1
 #
 # Artifact version:
-#   2026.07.27.1
+#   2026.07.27.2
 #
 # This file models the commands testers copy and run before setup. It is not a
 # managed lifecycle script and therefore does not create a transcript or accept
