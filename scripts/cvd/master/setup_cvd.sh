@@ -10,7 +10,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="2026.07.25.2"
+readonly SCRIPT_VERSION="2026.07.27.1"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
@@ -25,6 +25,7 @@ NONINTERACTIVE=false
 REQUESTED_PROFILE="$DEPLOYMENT_PROFILE_ID"
 CHANGED=false
 START_EPOCH="$(date +%s)"
+WARNINGS=0
 TEMP_FILES=()
 
 cleanup() {
@@ -43,8 +44,15 @@ print_header() {
 print_info() { printf '[INFO] %s\n' "$1"; }
 print_success() { printf '[SUCCESS] %s\n' "$1"; }
 print_notice() { printf '[NOTICE] %s\n' "$1"; }
-print_warning() { printf '[WARNING] %s\n' "$1"; }
+print_warning() { printf '[WARNING] %s\n' "$1"; WARNINGS=$((WARNINGS + 1)); }
 print_error() { printf '[ERROR] %s\n' "$1" >&2; }
+
+print_closing_notices() {
+    print_notice "A log containing all output displayed while this script ran is available here:"
+    print_notice "$LOG_FILE"
+    print_notice "After reviewing the summary, type 'exit' and press Enter to close this Terminal."
+    print_notice "Open a new Terminal before running another script or command so it loads the updated system environment."
+}
 
 usage() {
     cat <<USAGE
@@ -74,7 +82,10 @@ parse_options() {
                 ;;
             --deployment-profile)
                 shift
-                [[ $# -gt 0 ]] || { print_error "Missing deployment profile."; exit 2; }
+                [[ $# -gt 0 ]] || {
+                    print_error "Missing deployment profile."
+                    exit 2
+                }
                 REQUESTED_PROFILE="$1"
                 ;;
             *)
@@ -115,8 +126,10 @@ import sys
 
 manifest_path, schema_path, platform_id, profile_id = sys.argv[1:]
 
+
 class DuplicateKeyError(ValueError):
     pass
+
 
 def no_duplicates(pairs):
     result = {}
@@ -125,6 +138,7 @@ def no_duplicates(pairs):
             raise DuplicateKeyError(f"duplicate key: {key}")
         result[key] = value
     return result
+
 
 try:
     manifest = json.loads(
@@ -215,7 +229,10 @@ check_platform() {
         exit 2
     fi
 
-    [[ -r /etc/os-release ]] || { print_error "Cannot identify the operating system."; exit 2; }
+    [[ -r /etc/os-release ]] || {
+        print_error "Cannot identify the operating system."
+        exit 2
+    }
     # shellcheck disable=SC1091
     source /etc/os-release
     if [[ "${ID:-}" != "ubuntu" || "${VERSION_ID:-}" != "24.04" ]]; then
@@ -236,7 +253,10 @@ check_platform() {
         exit 2
     }
 
-    command -v sudo >/dev/null 2>&1 || { print_error "sudo is unavailable."; exit 3; }
+    command -v sudo >/dev/null 2>&1 || {
+        print_error "sudo is unavailable."
+        exit 3
+    }
     sudo -n true >/dev/null 2>&1 || {
         print_error "The current user lacks the required passwordless sudo access."
         print_error "Contact Codio or course support."
@@ -248,7 +268,7 @@ check_disk_space() {
     local minimum available
     minimum="$(manifest_values minimum_space)"
     available="$(df -PB1 "$HOME" | awk 'NR==2 {print $4}')"
-    if (( available < minimum )); then
+    if ((available < minimum)); then
         print_error "At least $((minimum / 1024 / 1024 / 1024)) GB of free space is required."
         print_error "Available space: $((available / 1024 / 1024 / 1024)) GB."
         exit 1
@@ -440,6 +460,7 @@ post_validate() {
 
     python3.12 - <<'PY' || failed=1
 import sys
+
 if sys.version_info[:2] != (3, 12):
     raise SystemExit("Python 3.12 is required")
 PY
@@ -463,10 +484,14 @@ finish() {
     printf 'Script version  : %s\n' "$SCRIPT_VERSION"
     printf 'Manifest release: %s\n' "$MANIFEST_RELEASE"
     printf 'Platform        : %s\n' "$PLATFORM_ID"
+    printf 'Warnings        : %s\n' "$WARNINGS"
+    printf 'Failures        : 0\n'
     printf 'Elapsed time    : %s seconds\n' "$elapsed"
-    printf 'Next step       : Run config_cvd.sh\n'
+    printf 'Next step       : Close this terminal, open a new Terminal, and run config_cvd.sh.\n'
     printf 'Log file        : %s\n' "$LOG_FILE"
+    printf 'Exit code       : 0\n'
     print_success "The IT 140 CVD system setup completed successfully."
+    print_closing_notices
 }
 
 main() {
@@ -486,6 +511,7 @@ main() {
     print_info "Log file        : $LOG_FILE"
     print_notice "This script changes system software but does not configure personal settings."
 
+    print_header "Step 1: Platform and Manifest Validation"
     check_platform
     acquire_lock
 
@@ -499,8 +525,14 @@ main() {
     print_success "Manifest release $MANIFEST_RELEASE validated."
 
     check_disk_space
+
+    print_header "Step 2: System Software"
     install_system_layer
+
+    print_header "Step 3: System Integrations"
     config_system_integrations
+
+    print_header "Step 4: Setup Validation"
     post_validate
 
     trap - ERR INT TERM
