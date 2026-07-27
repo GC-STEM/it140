@@ -4,49 +4,101 @@
 Updates the Windows IT 140 Course IDE within the current Windows release.
 
 .DESCRIPTION
-Stages and validates controlled repository assets, updates current-release
-Windows quality and security updates, upgrades the manifest-declared WinGet
-packages, updates the course Python environment and required VS Code
-extensions, preserves optional extensions, refreshes managed settings, and
-reports restart guidance.
+Synchronizes validated student-facing Windows lifecycle assets, applies
+current-release Windows quality and security updates through a separate UAC
+elevated phase, updates or repairs manifest-required WinGet packages, upgrades
+the course Python environment and VS Code extensions, refreshes managed user
+settings and shortcuts, and reports restart guidance.
 
-Run this script from a normal, non-elevated PowerShell terminal. It launches a
-separate elevated system phase only for Windows and machine-package updates.
+The script never performs a Windows feature-release upgrade and never removes
+student source files, assignment repositories, Git history, optional VS Code
+extensions, or unrelated user settings.
+
+Run this script from a normal, non-elevated Windows PowerShell terminal.
+
+.NOTES
+Exit codes:
+  0 Success
+  1 Required operation failed before managed state changed
+  2 Unsupported Windows platform, release, or option
+  3 Required elevation was unavailable or used incorrectly
+  4 Required network or package-retrieval operation failed
+  5 Controlled manifest or managed asset validation failed
+  6 User canceled before managed state changed
+  7 Update completed partially or managed state changed before failure
+
+Logs are written under ~/it140/logs/. The elevated system phase writes a
+separate update_win_system log in the same directory.
 #>
 
 [CmdletBinding()]
 param(
     [switch]$Help,
     [switch]$Version,
+    [switch]$NonInteractive,
     [ValidateSet("windows_bare_metal")]
     [string]$DeploymentProfile = "windows_bare_metal",
-    [switch]$NonInteractive,
     [switch]$SystemPhase,
-    [string]$TransactionRoot
+    [string]$TransactionRoot,
+    [string]$CourseRootOverride
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "2026.07.25.2"
+$ScriptVersion = "2026.07.27.1"
 $PlatformId = "windows"
-$CourseRoot = Join-Path $HOME "it140"
-$ScriptRoot = Join-Path $CourseRoot "scripts"
-$WindowsScriptDirectory = Join-Path $ScriptRoot "win"
+$PlatformAbbreviation = "win"
+if (-not [string]::IsNullOrWhiteSpace($CourseRootOverride)) {
+    $CourseRoot = [IO.Path]::GetFullPath($CourseRootOverride)
+    $ScriptRoot = Join-Path $CourseRoot "scripts"
+    $ScriptDirectory = Join-Path $ScriptRoot $PlatformAbbreviation
+}
+else {
+    $ScriptDirectory = $PSScriptRoot
+    $ScriptRoot = Split-Path -Parent $ScriptDirectory
+    $CourseRoot = Split-Path -Parent $ScriptRoot
+}
+$WindowsScriptDirectory = Join-Path $ScriptRoot $PlatformAbbreviation
 $ManifestPath = Join-Path $ScriptRoot ".manifest\it140_manifest.json"
 $SchemaPath = Join-Path $ScriptRoot ".manifest\it140_manifest.schema.json"
 $LogDirectory = Join-Path $CourseRoot "logs"
 $LogPath = Join-Path $LogDirectory (
-    "update_win_{0}.log" -f (Get-Date -Format "yyyyMMdd_HHmmss")
+    "update_{0}_{1}.log" -f $PlatformAbbreviation, (Get-Date -Format "yyyyMMdd_HHmmss")
 )
 $VenvDirectory = Join-Path $CourseRoot ".venv"
-$VenvPython = Join-Path $VenvDirectory "Scripts\python.exe"
+$VenvScriptsDirectory = Join-Path $VenvDirectory "Scripts"
+$VenvPython = Join-Path $VenvScriptsDirectory "python.exe"
 $VsCodeSettings = Join-Path $env:APPDATA "Code\User\settings.json"
+$CourseShortcutPath = Join-Path (
+    [Environment]::GetFolderPath("Desktop")
+) "IT 140.lnk"
+$VsCodeShortcutPath = Join-Path (
+    [Environment]::GetFolderPath("Desktop")
+) "Visual Studio Code - IT 140.lnk"
+$StartTime = Get-Date
 $TranscriptStarted = $false
 $MutationMutex = $null
+$Transaction = $null
+$Changed = $false
+$Partial = $false
+$RestartRequired = $false
+$WarningCount = 0
+$FailureCount = 0
 $ExitCode = 0
-$PartialFailure = $false
+$FailureExitCode = 1
+$ConfigurationComplete = $false
+$WorkflowName = "First use or reset environment"
+
+function Write-Header {
+    param([Parameter(Mandatory = $true)][string]$Title)
+
+    Write-Host ""
+    Write-Host "============================================================"
+    Write-Host $Title
+    Write-Host "============================================================"
+}
 
 function Write-Info {
     param([Parameter(Mandatory = $true)][string]$Message)
@@ -63,14 +115,61 @@ function Write-Notice {
     Write-Host "[NOTICE] $Message"
 }
 
+function Write-WarningMessage {
+    param([Parameter(Mandatory = $true)][string]$Message)
+
+    $script:WarningCount++
+    Write-Host "[WARNING] $Message" -ForegroundColor Yellow
+}
+
+function Write-RequiredFailure {
+    param([Parameter(Mandatory = $true)][string]$Message)
+
+    $script:FailureCount++
+    $script:Partial = $true
+    Write-Host "[ERROR] $Message" -ForegroundColor Red
+}
+
 function Write-ErrorMessage {
     param([Parameter(Mandatory = $true)][string]$Message)
     Write-Host "[ERROR] $Message" -ForegroundColor Red
 }
 
+function Show-Usage {
+    @"
+IT 140 Windows update script
+
+Usage:
+  powershell.exe -ExecutionPolicy Bypass -File .\update_win.ps1
+  powershell.exe -ExecutionPolicy Bypass -File .\update_win.ps1 -NonInteractive
+  powershell.exe -ExecutionPolicy Bypass -File .\update_win.ps1 -Help
+  powershell.exe -ExecutionPolicy Bypass -File .\update_win.ps1 -Version
+
+Run from a normal, non-elevated Windows PowerShell terminal. A UAC prompt
+appears only for Windows and machine-package maintenance. The script never
+performs a Windows feature-release upgrade.
+
+Deployment profile: windows_bare_metal
+Log directory: $LogDirectory
+"@ | Write-Host
+}
+
+function Write-ClosingNotice {
+    Write-Notice "A log containing all output displayed while this script ran is available here:"
+    Write-Notice $LogPath
+    Write-Notice (
+        "After reviewing the summary, type 'exit' and press Enter to " +
+        "close this PowerShell window."
+    )
+    Write-Notice (
+        "Open a new PowerShell window before running another script so it " +
+        "loads the latest PATH and environment settings."
+    )
+}
+
 function Test-IsAdministrator {
     $Identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $Principal = New-Object Security.Principal.WindowsPrincipal($Identity)
+    $Principal = [Security.Principal.WindowsPrincipal]::new($Identity)
     return $Principal.IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator
     )
@@ -82,17 +181,308 @@ function Update-ProcessEnvironment {
     $env:Path = @($MachinePath, $UserPath) -join ";"
 }
 
+function Get-NormalizedPathEntry {
+    param([Parameter(Mandatory = $true)][string]$PathEntry)
+
+    try {
+        $ExpandedPath = [Environment]::ExpandEnvironmentVariables($PathEntry)
+        return [IO.Path]::GetFullPath($ExpandedPath).TrimEnd("\")
+    }
+    catch {
+        return $PathEntry.Trim().TrimEnd("\")
+    }
+}
+
+function Test-PathContainsEntry {
+    param(
+        [Parameter(Mandatory = $true)][string]$PathValue,
+        [Parameter(Mandatory = $true)][string]$ExpectedEntry
+    )
+
+    $NormalizedExpected = Get-NormalizedPathEntry -PathEntry $ExpectedEntry
+    foreach ($ObservedEntry in @($PathValue -split ";")) {
+        if ([string]::IsNullOrWhiteSpace($ObservedEntry)) {
+            continue
+        }
+        if (
+            (Get-NormalizedPathEntry -PathEntry $ObservedEntry) -ieq
+            $NormalizedExpected
+        ) {
+            return $true
+        }
+    }
+    return $false
+}
+
 function Get-PropertyValue {
     param(
         [Parameter(Mandatory = $true)]$Object,
         [Parameter(Mandatory = $true)][string]$Name
     )
 
-    $Property = $Object.PSObject.Properties[$Name]
-    if ($null -eq $Property) {
+    if ($null -eq $Object) {
         return $null
     }
-    return $Property.Value
+    $PropertyRecord = $Object.PSObject.Properties[$Name]
+    if ($null -eq $PropertyRecord) {
+        return $null
+    }
+    return $PropertyRecord.Value
+}
+
+function Test-JsonDuplicateKey {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if ($null -eq ("It140Automation.JsonDuplicateKeyValidator" -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
+
+namespace It140Automation
+{
+    public static class JsonDuplicateKeyValidator
+    {
+        public static void Validate(string json)
+        {
+            if (json == null)
+            {
+                throw new ArgumentNullException("json");
+            }
+
+            int index = 0;
+            ParseValue(json, ref index, 0);
+            SkipWhitespace(json, ref index);
+            if (index != json.Length)
+            {
+                throw new FormatException("Unexpected content after the JSON value.");
+            }
+        }
+
+        private static void ParseValue(string json, ref int index, int depth)
+        {
+            if (depth > 256)
+            {
+                throw new FormatException("JSON nesting exceeds the supported depth.");
+            }
+
+            SkipWhitespace(json, ref index);
+            if (index >= json.Length)
+            {
+                throw new FormatException("Unexpected end of JSON input.");
+            }
+
+            char current = json[index];
+            if (current == '{')
+            {
+                ParseObject(json, ref index, depth + 1);
+            }
+            else if (current == '[')
+            {
+                ParseArray(json, ref index, depth + 1);
+            }
+            else if (current == '"')
+            {
+                ParseString(json, ref index);
+            }
+            else
+            {
+                ParsePrimitive(json, ref index);
+            }
+        }
+
+        private static void ParseObject(string json, ref int index, int depth)
+        {
+            index++;
+            SkipWhitespace(json, ref index);
+            HashSet<string> keys = new HashSet<string>(StringComparer.Ordinal);
+
+            if (index < json.Length && json[index] == '}')
+            {
+                index++;
+                return;
+            }
+
+            while (true)
+            {
+                SkipWhitespace(json, ref index);
+                if (index >= json.Length || json[index] != '"')
+                {
+                    throw new FormatException("Expected a JSON object key.");
+                }
+
+                string key = ParseString(json, ref index);
+                if (!keys.Add(key))
+                {
+                    throw new FormatException("duplicate key: " + key);
+                }
+
+                SkipWhitespace(json, ref index);
+                if (index >= json.Length || json[index] != ':')
+                {
+                    throw new FormatException("Expected ':' after a JSON object key.");
+                }
+                index++;
+
+                ParseValue(json, ref index, depth);
+                SkipWhitespace(json, ref index);
+                if (index >= json.Length)
+                {
+                    throw new FormatException("Unexpected end of JSON object.");
+                }
+                if (json[index] == '}')
+                {
+                    index++;
+                    return;
+                }
+                if (json[index] != ',')
+                {
+                    throw new FormatException("Expected ',' or '}' in a JSON object.");
+                }
+                index++;
+            }
+        }
+
+        private static void ParseArray(string json, ref int index, int depth)
+        {
+            index++;
+            SkipWhitespace(json, ref index);
+            if (index < json.Length && json[index] == ']')
+            {
+                index++;
+                return;
+            }
+
+            while (true)
+            {
+                ParseValue(json, ref index, depth);
+                SkipWhitespace(json, ref index);
+                if (index >= json.Length)
+                {
+                    throw new FormatException("Unexpected end of JSON array.");
+                }
+                if (json[index] == ']')
+                {
+                    index++;
+                    return;
+                }
+                if (json[index] != ',')
+                {
+                    throw new FormatException("Expected ',' or ']' in a JSON array.");
+                }
+                index++;
+            }
+        }
+
+        private static string ParseString(string json, ref int index)
+        {
+            if (index >= json.Length || json[index] != '"')
+            {
+                throw new FormatException("Expected a JSON string.");
+            }
+            index++;
+            StringBuilder value = new StringBuilder();
+
+            while (index < json.Length)
+            {
+                char current = json[index++];
+                if (current == '"')
+                {
+                    return value.ToString();
+                }
+                if (current == '\\')
+                {
+                    if (index >= json.Length)
+                    {
+                        throw new FormatException("Incomplete JSON escape sequence.");
+                    }
+                    char escaped = json[index++];
+                    switch (escaped)
+                    {
+                        case '"': value.Append('"'); break;
+                        case '\\': value.Append('\\'); break;
+                        case '/': value.Append('/'); break;
+                        case 'b': value.Append('\b'); break;
+                        case 'f': value.Append('\f'); break;
+                        case 'n': value.Append('\n'); break;
+                        case 'r': value.Append('\r'); break;
+                        case 't': value.Append('\t'); break;
+                        case 'u':
+                            if (index + 4 > json.Length)
+                            {
+                                throw new FormatException("Incomplete JSON Unicode escape.");
+                            }
+                            int codePoint;
+                            if (!Int32.TryParse(
+                                json.Substring(index, 4),
+                                NumberStyles.HexNumber,
+                                CultureInfo.InvariantCulture,
+                                out codePoint))
+                            {
+                                throw new FormatException("Invalid JSON Unicode escape.");
+                            }
+                            value.Append((char)codePoint);
+                            index += 4;
+                            break;
+                        default:
+                            throw new FormatException("Invalid JSON escape sequence.");
+                    }
+                }
+                else
+                {
+                    if (current < 0x20)
+                    {
+                        throw new FormatException("Unescaped control character in JSON string.");
+                    }
+                    value.Append(current);
+                }
+            }
+
+            throw new FormatException("Unterminated JSON string.");
+        }
+
+        private static void ParsePrimitive(string json, ref int index)
+        {
+            int start = index;
+            while (index < json.Length)
+            {
+                char current = json[index];
+                if (
+                    Char.IsWhiteSpace(current) ||
+                    current == ',' ||
+                    current == ']' ||
+                    current == '}')
+                {
+                    break;
+                }
+                index++;
+            }
+            if (index == start)
+            {
+                throw new FormatException("Invalid JSON primitive value.");
+            }
+        }
+
+        private static void SkipWhitespace(string json, ref int index)
+        {
+            while (index < json.Length && Char.IsWhiteSpace(json[index]))
+            {
+                index++;
+            }
+        }
+    }
+}
+'@
+    }
+
+    try {
+        $JsonText = Get-Content -LiteralPath $Path -Raw
+        [It140Automation.JsonDuplicateKeyValidator]::Validate($JsonText)
+    }
+    catch {
+        throw "JSON duplicate-key validation failed for $Path. $($_.Exception.Message)"
+    }
 }
 
 function Read-ManifestAtPath {
@@ -105,41 +495,62 @@ function Read-ManifestAtPath {
         throw "The controlled manifest is missing: $CandidateManifest"
     }
     if (-not (Test-Path -LiteralPath $CandidateSchema -PathType Leaf)) {
-        throw "The manifest schema is missing: $CandidateSchema"
+        throw "The controlled manifest schema is missing: $CandidateSchema"
     }
+
+    Test-JsonDuplicateKey -Path $CandidateManifest
+    Test-JsonDuplicateKey -Path $CandidateSchema
 
     try {
         $Manifest = Get-Content -LiteralPath $CandidateManifest -Raw |
             ConvertFrom-Json
-        $null = Get-Content -LiteralPath $CandidateSchema -Raw |
+        $Schema = Get-Content -LiteralPath $CandidateSchema -Raw |
             ConvertFrom-Json
     }
     catch {
-        throw "The manifest or schema is not valid JSON."
+        throw "The controlled manifest or schema is not valid JSON. $($_.Exception.Message)"
     }
 
+    $RequiredKeys = @(
+        "schema_version",
+        "automation_release",
+        "policy",
+        "platforms",
+        "deployment_profiles",
+        "managed_settings",
+        "managed_assets",
+        "logging"
+    )
+    foreach ($RequiredKey in $RequiredKeys) {
+        if ($null -eq $Manifest.PSObject.Properties[$RequiredKey]) {
+            throw "The controlled manifest is missing required key: $RequiredKey"
+        }
+    }
     if ([string]$Manifest.schema_version -ne "1.0") {
         throw "Unsupported manifest schema version: $($Manifest.schema_version)"
     }
+    if ([string]$Schema.'$schema' -ne "https://json-schema.org/draft/2020-12/schema") {
+        throw "The manifest schema is not the approved Draft 2020-12 format."
+    }
 
     $Platform = Get-PropertyValue -Object $Manifest.platforms -Name $PlatformId
-    $DeploymentProfileRecord = Get-PropertyValue `
+    $ProfileRecord = Get-PropertyValue `
         -Object $Manifest.deployment_profiles `
         -Name $DeploymentProfile
     if ($null -eq $Platform -or -not [bool]$Platform.enabled) {
-        throw "The Windows platform is not enabled."
+        throw "The Windows platform is not enabled in the controlled manifest."
     }
-    if ($null -eq $DeploymentProfileRecord -or -not [bool]$DeploymentProfileRecord.enabled) {
-        throw "The deployment profile is not enabled."
+    if ($null -eq $ProfileRecord -or -not [bool]$ProfileRecord.enabled) {
+        throw "The deployment profile is not enabled: $DeploymentProfile"
     }
-    if ([string]$DeploymentProfileRecord.platform_id -ne $PlatformId) {
-        throw "The deployment profile does not select Windows."
+    if ([string]$ProfileRecord.platform_id -ne $PlatformId) {
+        throw "The deployment profile does not select the Windows platform."
     }
 
     return [pscustomobject]@{
         Manifest = $Manifest
         Platform = $Platform
-        Profile = $DeploymentProfileRecord
+        Profile = $ProfileRecord
     }
 }
 
@@ -149,7 +560,7 @@ function Read-ControlledManifest {
         -CandidateSchema $SchemaPath
 }
 
-function Get-WindowsFacts {
+function Get-OperatingSystemFact {
     $OperatingSystem = Get-CimInstance -ClassName Win32_OperatingSystem
     $CurrentVersion = Get-ItemProperty `
         -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
@@ -162,30 +573,34 @@ function Get-WindowsFacts {
     }
 }
 
-function Assert-SupportedWindows {
+function Test-SupportedOperatingSystem {
     param(
         [Parameter(Mandatory = $true)]$WindowsFacts,
         [Parameter(Mandatory = $true)]$Platform
     )
 
     if ($WindowsFacts.Caption -notmatch "Windows 11") {
-        throw "This script supports only Microsoft Windows 11."
+        throw "This script supports only Microsoft Windows 11. Detected: $($WindowsFacts.Caption)"
     }
     if ($WindowsFacts.Architecture -notmatch "64-bit") {
-        throw "This release supports only x64 Windows."
+        throw "This release supports only x64 Windows. Detected: $($WindowsFacts.Architecture)"
     }
 
     $SupportedReleases = @(
         $Platform.os.releases | ForEach-Object { [string]$_.release_id }
     )
     if ($WindowsFacts.DisplayVersion -notin $SupportedReleases) {
-        throw "Windows release $($WindowsFacts.DisplayVersion) is not enabled."
+        throw (
+            "Windows release {0} is not enabled. Supported releases: {1}" -f
+            $WindowsFacts.DisplayVersion,
+            ($SupportedReleases -join ", ")
+        )
     }
 }
 
 function Enter-MutationLock {
     $CreatedNew = $false
-    $Mutex = New-Object Threading.Mutex(
+    $Mutex = [Threading.Mutex]::new(
         $false,
         "Global\IT140AutomationMutation",
         [ref]$CreatedNew
@@ -204,20 +619,58 @@ function Enter-MutationLock {
     return $Mutex
 }
 
+function Remove-ExpiredLog {
+    if (-not (Test-Path -LiteralPath $LogDirectory -PathType Container)) {
+        return
+    }
+
+    Get-ChildItem -LiteralPath $LogDirectory -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-180) } |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+
+    $LogFiles = @(
+        Get-ChildItem -LiteralPath $LogDirectory -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending
+    )
+    if ($LogFiles.Count -gt 50) {
+        $LogFiles | Select-Object -Skip 50 |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Test-PowerShellScript {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     $Tokens = $null
-    $Errors = $null
+    $ParseErrors = $null
     $null = [Management.Automation.Language.Parser]::ParseFile(
         $Path,
         [ref]$Tokens,
-        [ref]$Errors
+        [ref]$ParseErrors
     )
-
-    if ($Errors.Count -gt 0) {
-        $Messages = @($Errors | ForEach-Object { $_.Message }) -join "; "
+    if ($ParseErrors.Count -gt 0) {
+        $Messages = @($ParseErrors | ForEach-Object { $_.Message }) -join "; "
         throw "PowerShell validation failed for $Path. $Messages"
+    }
+}
+
+function Get-ScriptVersion {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $ScriptText = Get-Content -LiteralPath $Path -Raw
+    $VersionMatch = [regex]::Match(
+        $ScriptText,
+        '(?m)^\$ScriptVersion\s*=\s*"(?<version>[0-9]+(?:\.[0-9]+)+)"'
+    )
+    if (-not $VersionMatch.Success) {
+        throw "A numeric script version could not be read from $Path"
+    }
+
+    try {
+        return [version]$VersionMatch.Groups["version"].Value
+    }
+    catch {
+        throw "The script version is not valid in $Path"
     }
 }
 
@@ -231,13 +684,16 @@ function Copy-FileAtomically {
     $DestinationDirectory = Split-Path -Parent $Destination
     New-Item -ItemType Directory -Path $DestinationDirectory -Force |
         Out-Null
+    New-Item -ItemType Directory -Path $BackupDirectory -Force |
+        Out-Null
 
     $RelativeName = (
         $Destination.Replace($CourseRoot, "").TrimStart("\") -replace
         "[\\:]", "_"
     )
     $BackupPath = Join-Path $BackupDirectory $RelativeName
-    if (Test-Path -LiteralPath $Destination -PathType Leaf) {
+    $HadOriginal = Test-Path -LiteralPath $Destination -PathType Leaf
+    if ($HadOriginal) {
         Copy-Item `
             -LiteralPath $Destination `
             -Destination $BackupPath `
@@ -250,6 +706,7 @@ function Copy-FileAtomically {
     try {
         if ($Destination -like "*.ps1") {
             Test-PowerShellScript -Path $StagedPath
+            $null = Get-ScriptVersion -Path $StagedPath
         }
         elseif ($Destination -like "*.json") {
             $null = Get-Content -LiteralPath $StagedPath -Raw |
@@ -260,18 +717,60 @@ function Copy-FileAtomically {
             -LiteralPath $StagedPath `
             -Destination $Destination `
             -Force
+        $script:Changed = $true
+
+        return [pscustomobject]@{
+            Destination = $Destination
+            BackupPath = $BackupPath
+            HadOriginal = $HadOriginal
+        }
     }
     catch {
         Remove-Item -LiteralPath $StagedPath -Force `
             -ErrorAction SilentlyContinue
-        if (Test-Path -LiteralPath $BackupPath -PathType Leaf) {
+        if ($HadOriginal -and (Test-Path -LiteralPath $BackupPath -PathType Leaf)) {
             Copy-Item `
                 -LiteralPath $BackupPath `
                 -Destination $Destination `
                 -Force
         }
+        elseif (-not $HadOriginal) {
+            Remove-Item -LiteralPath $Destination -Force `
+                -ErrorAction SilentlyContinue
+        }
         throw
     }
+}
+
+function Invoke-GitCloneWithRetry {
+    param(
+        [Parameter(Mandatory = $true)][string]$RepositoryUrl,
+        [Parameter(Mandatory = $true)][string]$Destination
+    )
+
+    $MaximumAttempts = 5
+    $DelaySeconds = 5
+    for ($Attempt = 1; $Attempt -le $MaximumAttempts; $Attempt++) {
+        Remove-Item -LiteralPath $Destination -Recurse -Force `
+            -ErrorAction SilentlyContinue
+        & git.exe clone --depth 1 $RepositoryUrl $Destination
+        if ($LASTEXITCODE -eq 0) {
+            return
+        }
+
+        if ($Attempt -lt $MaximumAttempts) {
+            Write-Notice (
+                "Repository retrieval attempt {0} of {1} failed; retrying in {2} seconds." -f
+                $Attempt,
+                $MaximumAttempts,
+                $DelaySeconds
+            )
+            Start-Sleep -Seconds $DelaySeconds
+            $DelaySeconds = [Math]::Min($DelaySeconds * 2, 60)
+        }
+    }
+
+    throw "The controlled IT 140 course package could not be retrieved."
 }
 
 function Invoke-AssetTransaction {
@@ -280,20 +779,17 @@ function Invoke-AssetTransaction {
         ("it140-update-{0}" -f ([guid]::NewGuid().ToString("N")))
     $CloneDirectory = Join-Path $TemporaryRoot "repository"
     $BackupDirectory = Join-Path $TemporaryRoot "backup"
-    $SystemPhaseScript = Join-Path $TemporaryRoot "update_system_phase.ps1"
+    $SystemPhaseScript = Join-Path $TemporaryRoot "update_win_system_phase.ps1"
+    $ActivationJournal = [Collections.Generic.List[object]]::new()
 
     New-Item -ItemType Directory -Path $TemporaryRoot -Force | Out-Null
     New-Item -ItemType Directory -Path $BackupDirectory -Force | Out-Null
     Copy-Item -LiteralPath $PSCommandPath -Destination $SystemPhaseScript -Force
 
-    Write-Info "Staging the current controlled course package."
-    & git.exe clone `
-        --depth 1 `
-        "https://github.com/GC-STEM/it140.git" `
-        $CloneDirectory
-    if ($LASTEXITCODE -ne 0) {
-        throw "The controlled course package could not be retrieved."
-    }
+    Write-Info "Staging the current controlled IT 140 course package."
+    Invoke-GitCloneWithRetry `
+        -RepositoryUrl "https://github.com/GC-STEM/it140.git" `
+        -Destination $CloneDirectory
 
     Remove-Item `
         -LiteralPath (Join-Path $CloneDirectory ".git") `
@@ -311,122 +807,196 @@ function Invoke-AssetTransaction {
         -CandidateManifest $CandidateManifest `
         -CandidateSchema $CandidateSchema
 
-    foreach ($ScriptName in @(
+    $LifecycleScripts = @(
         "setup_win.ps1",
         "config_win.ps1",
-        "verify_win.ps1",
-        "update_win.ps1"
-    )) {
-        $CandidateScript = Join-Path `
-            $CloneDirectory `
-            ("scripts\win\{0}" -f $ScriptName)
-        if (-not (Test-Path -LiteralPath $CandidateScript -PathType Leaf)) {
-            throw "The candidate package is missing $ScriptName."
-        }
-        Test-PowerShellScript -Path $CandidateScript
-    }
-
-    $ActivationPairs = @(
-        [pscustomobject]@{
-            Source = $CandidateSchema
-            Destination = $SchemaPath
-        },
-        [pscustomobject]@{
-            Source = $CandidateManifest
-            Destination = $ManifestPath
-        }
+        "update_win.ps1",
+        "verify_win.ps1"
     )
 
-    foreach ($ScriptName in @(
-        "setup_win.ps1",
-        "config_win.ps1",
-        "verify_win.ps1",
-        "update_win.ps1"
-    )) {
-        $ActivationPairs += [pscustomobject]@{
-            Source = Join-Path `
+    try {
+        foreach ($ScriptName in $LifecycleScripts) {
+            $CandidateScript = Join-Path `
                 $CloneDirectory `
                 ("scripts\win\{0}" -f $ScriptName)
-            Destination = Join-Path $WindowsScriptDirectory $ScriptName
+            $InstalledScript = Join-Path $WindowsScriptDirectory $ScriptName
+
+            if (-not (Test-Path -LiteralPath $CandidateScript -PathType Leaf)) {
+                if (Test-Path -LiteralPath $InstalledScript -PathType Leaf) {
+                    try {
+                        Test-PowerShellScript -Path $InstalledScript
+                        $null = Get-ScriptVersion -Path $InstalledScript
+                        Write-WarningMessage (
+                            "The repository release omitted $ScriptName; " +
+                            "the valid installed copy was preserved."
+                        )
+                        continue
+                    }
+                    catch {
+                        # Best-effort operation; preserve the primary result.
+                    }
+                }
+                throw "The candidate package is missing required script: $ScriptName"
+            }
+
+            Test-PowerShellScript -Path $CandidateScript
+            $CandidateVersion = Get-ScriptVersion -Path $CandidateScript
+
+            if (Test-Path -LiteralPath $InstalledScript -PathType Leaf) {
+                try {
+                    $InstalledVersion = Get-ScriptVersion -Path $InstalledScript
+                    if ($CandidateVersion -lt $InstalledVersion) {
+                        Write-Notice (
+                            "A downgrade of $ScriptName from " +
+                            "$InstalledVersion to $CandidateVersion was " +
+                            "prevented."
+                        )
+                        continue
+                    }
+                }
+                catch {
+                    Write-Notice (
+                        "The installed version metadata for $ScriptName is " +
+                        "invalid and will be replaced."
+                    )
+                }
+            }
+
+            $JournalRecord = Copy-FileAtomically `
+                -Source $CandidateScript `
+                -Destination $InstalledScript `
+                -BackupDirectory $BackupDirectory
+            $ActivationJournal.Add($JournalRecord)
+        }
+
+        Write-Info "Activating validated manifest assets."
+        $JournalRecord = Copy-FileAtomically `
+            -Source $CandidateSchema `
+            -Destination $SchemaPath `
+            -BackupDirectory $BackupDirectory
+        $ActivationJournal.Add($JournalRecord)
+
+        $JournalRecord = Copy-FileAtomically `
+            -Source $CandidateManifest `
+            -Destination $ManifestPath `
+            -BackupDirectory $BackupDirectory
+        $ActivationJournal.Add($JournalRecord)
+
+        $Activated = Read-ControlledManifest
+        if (
+            [string]$Activated.Manifest.automation_release -ne
+            [string]$CandidateControlled.Manifest.automation_release
+        ) {
+            throw "The activated manifest release does not match the validated candidate."
         }
     }
-
-    Write-Info "Activating validated managed assets."
-    foreach ($Pair in $ActivationPairs) {
-        Copy-FileAtomically `
-            -Source $Pair.Source `
-            -Destination $Pair.Destination `
-            -BackupDirectory $BackupDirectory
+    catch {
+        Write-Notice "Asset activation failed; restoring the pre-update managed assets."
+        for ($Index = $ActivationJournal.Count - 1; $Index -ge 0; $Index--) {
+            $JournalRecord = $ActivationJournal[$Index]
+            if (
+                [bool]$JournalRecord.HadOriginal -and
+                (Test-Path -LiteralPath $JournalRecord.BackupPath -PathType Leaf)
+            ) {
+                Copy-Item `
+                    -LiteralPath $JournalRecord.BackupPath `
+                    -Destination $JournalRecord.Destination `
+                    -Force
+            }
+            else {
+                Remove-Item `
+                    -LiteralPath $JournalRecord.Destination `
+                    -Force `
+                    -ErrorAction SilentlyContinue
+            }
+        }
+        $script:Changed = $false
+        throw
     }
 
-    $Activated = Read-ControlledManifest
-    if (
-        [string]$Activated.Manifest.automation_release -ne
-        [string]$CandidateControlled.Manifest.automation_release
-    ) {
-        throw "The activated manifest release does not match the candidate."
-    }
-
+    Write-Success "Validated student-facing Windows automation assets are active."
     return [pscustomobject]@{
         TemporaryRoot = $TemporaryRoot
+        BackupDirectory = $BackupDirectory
         SystemPhaseScript = $SystemPhaseScript
         Manifest = $Activated.Manifest
         Platform = $Activated.Platform
     }
 }
 
-function Get-SystemPackageIdentifiers {
+function Get-SystemPackageBinding {
     param([Parameter(Mandatory = $true)]$Platform)
 
-    $Identifiers = @()
-    foreach ($Property in $Platform.course_ide_bindings.PSObject.Properties) {
-        $Binding = $Property.Value
-        if ([string]$Binding.installation_scope -eq "system") {
-            $Identifiers += [string]$Binding.package_identifier
+    $Bindings = @()
+    foreach ($PropertyRecord in $Platform.course_ide_bindings.PSObject.Properties) {
+        $Binding = $PropertyRecord.Value
+        if (
+            [bool]$Binding.required -and
+            [string]$Binding.installation_scope -eq "system" -and
+            [string]$Binding.installer_adapter_id -eq "winget_package"
+        ) {
+            $Bindings += [pscustomobject]@{
+                Role = $PropertyRecord.Name
+                PackageIdentifier = [string]$Binding.package_identifier
+                ExecutableNames = @($Binding.verification.executable_names)
+            }
         }
     }
-    return @($Identifiers | Sort-Object -Unique)
+    return $Bindings
 }
 
-function Invoke-CurrentReleaseWindowsUpdates {
+function Test-WinGetPackageInstalled {
+    param([Parameter(Mandatory = $true)][string]$PackageIdentifier)
+
+    & winget.exe list `
+        --id $PackageIdentifier `
+        --exact `
+        --source winget `
+        --accept-source-agreements `
+        --disable-interactivity *> $null
+    return $LASTEXITCODE -eq 0
+}
+
+function Invoke-CurrentReleaseWindowsUpdate {
     Write-Info "Searching for current-release Windows quality and security updates."
 
-    $Session = New-Object -ComObject Microsoft.Update.Session
-    $Searcher = $Session.CreateUpdateSearcher()
-    $SearchResult = $Searcher.Search(
+    $UpdateSession = New-Object -ComObject Microsoft.Update.Session
+    $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
+    $SearchResult = $UpdateSearcher.Search(
         "IsInstalled=0 and IsHidden=0 and Type='Software'"
     )
 
-    $Updates = New-Object -ComObject Microsoft.Update.UpdateColl
-    foreach ($Update in $SearchResult.Updates) {
-        $Title = [string]$Update.Title
-        $IsFeatureUpgrade = (
+    $ApprovedUpdates = New-Object -ComObject Microsoft.Update.UpdateColl
+    foreach ($UpdateRecord in $SearchResult.Updates) {
+        $Title = [string]$UpdateRecord.Title
+        $IsReleaseUpgrade = (
             $Title -match "Feature update to Windows" -or
             $Title -match "Upgrade to Windows" -or
             $Title -match "Windows 11, version [0-9]+H[0-9]+"
         )
-        if ($IsFeatureUpgrade) {
-            Write-Notice "Skipping Windows release upgrade: $Title"
+        if ($IsReleaseUpgrade) {
+            Write-Notice "Skipping Windows feature-release upgrade: $Title"
+            continue
+        }
+        if ($Title -match "(?i)preview") {
+            Write-Notice "Skipping optional preview update: $Title"
             continue
         }
 
-        if (-not $Update.EulaAccepted) {
-            $Update.AcceptEula()
+        if (-not $UpdateRecord.EulaAccepted) {
+            $UpdateRecord.AcceptEula()
         }
-        $null = $Updates.Add($Update)
+        $null = $ApprovedUpdates.Add($UpdateRecord)
     }
 
-    if ($Updates.Count -eq 0) {
+    if ($ApprovedUpdates.Count -eq 0) {
         Write-Success "No applicable current-release Windows updates were found."
-        return [pscustomobject]@{
-            ResultCode = 0
-            RebootRequired = $false
-        }
+        return
     }
 
-    Write-Info ("Downloading {0} Windows update(s)." -f $Updates.Count)
-    $Downloader = $Session.CreateUpdateDownloader()
-    $Downloader.Updates = $Updates
+    Write-Info ("Downloading {0} Windows update(s)." -f $ApprovedUpdates.Count)
+    $Downloader = $UpdateSession.CreateUpdateDownloader()
+    $Downloader.Updates = $ApprovedUpdates
     $DownloadResult = $Downloader.Download()
     if ([int]$DownloadResult.ResultCode -notin @(2, 3)) {
         throw (
@@ -434,10 +1004,13 @@ function Invoke-CurrentReleaseWindowsUpdates {
             $DownloadResult.ResultCode
         )
     }
+    if ([int]$DownloadResult.ResultCode -eq 3) {
+        Write-WarningMessage "One or more Windows updates did not download completely."
+    }
 
     Write-Info "Installing current-release Windows updates."
-    $Installer = $Session.CreateUpdateInstaller()
-    $Installer.Updates = $Updates
+    $Installer = $UpdateSession.CreateUpdateInstaller()
+    $Installer.Updates = $ApprovedUpdates
     $InstallResult = $Installer.Install()
     if ([int]$InstallResult.ResultCode -notin @(2, 3)) {
         throw (
@@ -445,15 +1018,21 @@ function Invoke-CurrentReleaseWindowsUpdates {
             $InstallResult.ResultCode
         )
     }
-
-    return [pscustomobject]@{
-        ResultCode = [int]$InstallResult.ResultCode
-        RebootRequired = [bool]$InstallResult.RebootRequired
+    if ([int]$InstallResult.ResultCode -eq 3) {
+        Write-WarningMessage "One or more Windows updates were not installed completely."
     }
+    if ([bool]$InstallResult.RebootRequired) {
+        Set-Content `
+            -LiteralPath (Join-Path $TransactionRoot "reboot-required") `
+            -Value "true" `
+            -Encoding ASCII
+    }
+
+    Write-Success "Current-release Windows maintenance completed."
 }
 
-function Invoke-WinGetPackageUpdates {
-    param([Parameter(Mandatory = $true)][string[]]$PackageIdentifiers)
+function Invoke-WinGetPackageMaintenance {
+    param([Parameter(Mandatory = $true)]$Bindings)
 
     & winget.exe source update `
         --accept-source-agreements `
@@ -462,40 +1041,77 @@ function Invoke-WinGetPackageUpdates {
         throw "WinGet package sources could not be updated."
     }
 
-    foreach ($PackageIdentifier in $PackageIdentifiers) {
-        Write-Info "Updating or repairing $PackageIdentifier."
-        & winget.exe upgrade `
-            --id $PackageIdentifier `
-            --exact `
-            --source winget `
-            --scope machine `
-            --silent `
-            --disable-interactivity `
-            --accept-source-agreements `
-            --accept-package-agreements `
-            --verbose-logs
-
-        if ($LASTEXITCODE -ne 0) {
-            Write-Notice (
-                "WinGet did not complete an upgrade for $PackageIdentifier. " +
-                "The installed package will be verified."
-            )
-            & winget.exe list `
+    foreach ($Binding in $Bindings) {
+        $PackageIdentifier = [string]$Binding.PackageIdentifier
+        if (Test-WinGetPackageInstalled -PackageIdentifier $PackageIdentifier) {
+            Write-Info "Updating or verifying $PackageIdentifier."
+            & winget.exe upgrade `
                 --id $PackageIdentifier `
                 --exact `
                 --source winget `
+                --scope machine `
+                --silent `
+                --disable-interactivity `
                 --accept-source-agreements `
-                --disable-interactivity *> $null
+                --accept-package-agreements `
+                --verbose-logs
             if ($LASTEXITCODE -ne 0) {
-                throw "Required package is unavailable: $PackageIdentifier"
+                if (Test-WinGetPackageInstalled -PackageIdentifier $PackageIdentifier) {
+                    Write-Notice (
+                        "No WinGet upgrade was applied to $PackageIdentifier; " +
+                        "the installed package remains available."
+                    )
+                }
+                else {
+                    throw "Required package is unavailable: $PackageIdentifier"
+                }
+            }
+        }
+        else {
+            Write-Info "Installing missing required package $PackageIdentifier."
+            & winget.exe install `
+                --id $PackageIdentifier `
+                --exact `
+                --source winget `
+                --scope machine `
+                --silent `
+                --disable-interactivity `
+                --accept-source-agreements `
+                --accept-package-agreements `
+                --verbose-logs
+            if ($LASTEXITCODE -ne 0) {
+                throw "Required package installation failed: $PackageIdentifier"
             }
         }
     }
 }
 
+function Test-SystemCommand {
+    param([Parameter(Mandatory = $true)]$Bindings)
+
+    Update-ProcessEnvironment
+    $MissingCommands = @()
+    foreach ($Binding in $Bindings) {
+        foreach ($ExecutableName in @($Binding.ExecutableNames)) {
+            if ($null -eq (Get-Command $ExecutableName -ErrorAction SilentlyContinue)) {
+                $MissingCommands += [string]$ExecutableName
+            }
+        }
+    }
+    if ($null -eq (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+        $MissingCommands += "winget.exe"
+    }
+    if ($MissingCommands.Count -gt 0) {
+        throw (
+            "Required commands are missing after system maintenance: {0}" -f
+            ($MissingCommands -join ", ")
+        )
+    }
+}
+
 function Invoke-SystemPhase {
     if (-not (Test-IsAdministrator)) {
-        Write-ErrorMessage "The update system phase requires elevation."
+        Write-ErrorMessage "The Windows update system phase requires elevation."
         exit 3
     }
     if (
@@ -505,6 +1121,13 @@ function Invoke-SystemPhase {
         Write-ErrorMessage "The update transaction directory is invalid."
         exit 5
     }
+    if (
+        [string]::IsNullOrWhiteSpace($CourseRootOverride) -or
+        -not (Test-Path -LiteralPath $CourseRootOverride -PathType Container)
+    ) {
+        Write-ErrorMessage "The course root supplied to the system phase is invalid."
+        exit 5
+    }
 
     New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null
     $SystemLog = Join-Path $LogDirectory (
@@ -512,108 +1135,192 @@ function Invoke-SystemPhase {
     )
     Start-Transcript -Path $SystemLog -Append -Force | Out-Null
 
-    $SystemExit = 0
+    $SystemExitCode = 0
     try {
-        Write-Host ""
-        Write-Host "============================================================"
-        Write-Host "IT 140 WINDOWS UPDATE - ELEVATED SYSTEM PHASE"
-        Write-Host "============================================================"
+        Write-Header "IT 140 WINDOWS UPDATE - ELEVATED SYSTEM PHASE"
+        Write-Info "Course root      : $CourseRoot"
+        Write-Info "System log       : $SystemLog"
+        Write-Notice "Windows will remain on its current supported feature release."
+
         $Controlled = Read-ControlledManifest
-        $WindowsFacts = Get-WindowsFacts
-        Assert-SupportedWindows `
+        $WindowsFacts = Get-OperatingSystemFact
+        Test-SupportedOperatingSystem `
             -WindowsFacts $WindowsFacts `
             -Platform $Controlled.Platform
 
-        $UpdateResult = Invoke-CurrentReleaseWindowsUpdates
-        $PackageIdentifiers = Get-SystemPackageIdentifiers `
-            -Platform $Controlled.Platform
-        Invoke-WinGetPackageUpdates `
-            -PackageIdentifiers $PackageIdentifiers
+        Invoke-CurrentReleaseWindowsUpdate
+        $Bindings = Get-SystemPackageBinding -Platform $Controlled.Platform
+        Invoke-WinGetPackageMaintenance -Bindings $Bindings
+        Test-SystemCommand -Bindings $Bindings
 
-        if ($UpdateResult.RebootRequired) {
-            Set-Content `
-                -LiteralPath (Join-Path $TransactionRoot "reboot-required") `
-                -Value "true" `
-                -Encoding ASCII
-        }
-
-        Write-Success "The elevated system update phase completed."
+        Write-Success "The elevated Windows and machine-package update phase completed."
         Write-Info "System log: $SystemLog"
-        $SystemExit = 0
+        $SystemExitCode = 0
     }
     catch {
         Write-ErrorMessage $_.Exception.Message
         Write-Info "System log: $SystemLog"
-        $SystemExit = 1
+        $SystemExitCode = 1
     }
     finally {
         try {
             Stop-Transcript | Out-Null
         }
         catch {
+            # Best-effort operation; preserve the primary result.
         }
     }
 
-    exit $SystemExit
+    exit $SystemExitCode
 }
 
-function Get-RequiredExtensions {
+function Get-RequiredPythonPackage {
+    param([Parameter(Mandatory = $true)]$Platform)
+
+    $Packages = @()
+    foreach ($PropertyRecord in $Platform.course_ide_bindings.PSObject.Properties) {
+        $Binding = $PropertyRecord.Value
+        if (
+            [bool]$Binding.required -and
+            [string]$Binding.installation_scope -eq "user" -and
+            [string]$Binding.installer_adapter_id -eq "python_venv_package"
+        ) {
+            $Packages += [string]$Binding.package_identifier
+        }
+    }
+    $CodeQualityBinding = Get-PropertyValue `
+        -Object $Platform.course_ide_bindings `
+        -Name "code_quality_tool"
+    if ($null -ne $CodeQualityBinding -and [bool]$CodeQualityBinding.required) {
+        $Packages += "ruff"
+    }
+    return @($Packages | Where-Object { $_ } | Sort-Object -Unique)
+}
+
+function Get-RequiredExtension {
     param([Parameter(Mandatory = $true)]$Platform)
 
     $Extensions = @()
-    foreach ($Property in $Platform.course_ide_bindings.PSObject.Properties) {
-        $Binding = $Property.Value
+    foreach ($PropertyRecord in $Platform.course_ide_bindings.PSObject.Properties) {
+        $Binding = $PropertyRecord.Value
         if (
+            [bool]$Binding.required -and
             [string]$Binding.installation_scope -eq "user" -and
             [string]$Binding.installer_adapter_id -eq "vscode_extension"
         ) {
             $Extensions += [string]$Binding.package_identifier
         }
     }
-    return @($Extensions | Sort-Object -Unique)
+    return @($Extensions | Where-Object { $_ } | Sort-Object -Unique)
 }
 
-function Update-UserTools {
-    Update-ProcessEnvironment
-
+function Test-VenvPython {
     if (-not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) {
-        Write-Notice "The course virtual environment is missing; repairing it."
-        & python.exe -m venv $VenvDirectory
-        if ($LASTEXITCODE -ne 0) {
-            throw "The course virtual environment could not be repaired."
+        return $false
+    }
+    try {
+        $VenvVersion = & $VenvPython -c (
+            "import sys; print('.'.join(map(str, sys.version_info[:2])))"
+        )
+        return $LASTEXITCODE -eq 0 -and [string]$VenvVersion -eq "3.12"
+    }
+    catch {
+        return $false
+    }
+}
+
+function Update-UserTool {
+    param([Parameter(Mandatory = $true)]$Platform)
+
+    Update-ProcessEnvironment
+    if (-not (Test-VenvPython)) {
+        if (Test-Path -LiteralPath $VenvDirectory) {
+            Write-WarningMessage "The course Python environment was unusable and will be replaced."
+            Remove-Item -LiteralPath $VenvDirectory -Recurse -Force
         }
+        else {
+            Write-Notice "The course Python environment is missing and will be created."
+        }
+
+        & python.exe -m venv $VenvDirectory
+        if ($LASTEXITCODE -ne 0 -or -not (Test-VenvPython)) {
+            throw "The course Python virtual environment could not be repaired."
+        }
+        $script:Changed = $true
     }
 
-    & $VenvPython -m pip install `
-        --upgrade `
-        pip `
-        pytest `
-        pytest-cov `
-        ruff
+    $RequiredPackages = Get-RequiredPythonPackage -Platform $Platform
+    Write-Info "Updating the course Python package installer and required packages."
+    & $VenvPython -m pip install --upgrade pip @RequiredPackages
     if ($LASTEXITCODE -ne 0) {
-        throw "The course Python tools could not be updated."
+        throw "The required course Python packages could not be updated."
     }
+    $script:Changed = $true
 
+    $RequiredExtensions = Get-RequiredExtension -Platform $Platform
+    $PreviousNodeWarnings = [Environment]::GetEnvironmentVariable(
+        "NODE_NO_WARNINGS",
+        "Process"
+    )
     $env:NODE_NO_WARNINGS = "1"
     try {
         & code.cmd --update-extensions
         if ($LASTEXITCODE -ne 0) {
-            Write-Notice (
-                "One or more optional VS Code extensions did not update."
-            )
+            Write-WarningMessage "One or more optional VS Code extensions did not update."
         }
 
-        $Controlled = Read-ControlledManifest
-        foreach ($Extension in Get-RequiredExtensions $Controlled.Platform) {
-            & code.cmd --install-extension $Extension --force
+        foreach ($ExtensionId in $RequiredExtensions) {
+            Write-Info "Installing or updating required VS Code extension: $ExtensionId"
+            & code.cmd --install-extension $ExtensionId --force
             if ($LASTEXITCODE -ne 0) {
-                throw "Required extension update failed: $Extension"
+                Write-RequiredFailure "Required VS Code extension update failed: $ExtensionId"
             }
         }
     }
     finally {
-        Remove-Item Env:NODE_NO_WARNINGS -ErrorAction SilentlyContinue
+        if ($null -eq $PreviousNodeWarnings) {
+            Remove-Item Env:NODE_NO_WARNINGS -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:NODE_NO_WARNINGS = $PreviousNodeWarnings
+        }
     }
+
+    $script:Changed = $true
+}
+
+function ConvertTo-Hashtable {
+    param($InputObject)
+
+    if ($null -eq $InputObject) {
+        return $null
+    }
+    if ($InputObject -is [Collections.IDictionary]) {
+        $OutputTable = @{}
+        foreach ($Key in $InputObject.Keys) {
+            $OutputTable[$Key] = ConvertTo-Hashtable -InputObject $InputObject[$Key]
+        }
+        return $OutputTable
+    }
+    if ($InputObject -is [pscustomobject]) {
+        $OutputTable = @{}
+        foreach ($PropertyRecord in $InputObject.PSObject.Properties) {
+            $OutputTable[$PropertyRecord.Name] = ConvertTo-Hashtable `
+                -InputObject $PropertyRecord.Value
+        }
+        return $OutputTable
+    }
+    if (
+        $InputObject -is [Collections.IEnumerable] -and
+        $InputObject -isnot [string]
+    ) {
+        return @(
+            $InputObject | ForEach-Object {
+                ConvertTo-Hashtable -InputObject $_
+            }
+        )
+    }
+    return $InputObject
 }
 
 function Merge-Hashtable {
@@ -636,231 +1343,511 @@ function Merge-Hashtable {
     }
 }
 
-function ConvertTo-Hashtable {
-    param($InputObject)
-
-    if ($null -eq $InputObject) {
-        return $null
-    }
-    if ($InputObject -is [Collections.IDictionary]) {
-        $Result = @{}
-        foreach ($Key in $InputObject.Keys) {
-            $Result[$Key] = ConvertTo-Hashtable $InputObject[$Key]
-        }
-        return $Result
-    }
-    if ($InputObject -is [pscustomobject]) {
-        $Result = @{}
-        foreach ($Property in $InputObject.PSObject.Properties) {
-            $Result[$Property.Name] = ConvertTo-Hashtable $Property.Value
-        }
-        return $Result
-    }
-    if (
-        $InputObject -is [Collections.IEnumerable] -and
-        $InputObject -isnot [string]
-    ) {
-        return @($InputObject | ForEach-Object { ConvertTo-Hashtable $_ })
-    }
-    return $InputObject
-}
-
-function Update-ManagedSettings {
-    $Controlled = Read-ControlledManifest
-    $GitSettings = Get-PropertyValue `
-        -Object $Controlled.Manifest.managed_settings `
-        -Name "git_course_defaults"
-
-    foreach ($Property in $GitSettings.values.PSObject.Properties) {
-        $Value = $Property.Value
-        if ($Value -is [bool]) {
-            $Value = $Value.ToString().ToLowerInvariant()
-        }
-        & git.exe config --global $Property.Name ([string]$Value)
-        if ($LASTEXITCODE -ne 0) {
-            throw "Git setting refresh failed: $($Property.Name)"
-        }
-    }
+function Get-ManagedVsCodeSetting {
+    param([Parameter(Mandatory = $true)]$Manifest)
 
     $SettingsProfile = Get-PropertyValue `
-        -Object $Controlled.Manifest.managed_settings `
+        -Object $Manifest.managed_settings `
         -Name "vscode_course_defaults"
-    $Existing = @{}
-    if (Test-Path -LiteralPath $VsCodeSettings -PathType Leaf) {
-        $Existing = ConvertTo-Hashtable (
-            Get-Content -LiteralPath $VsCodeSettings -Raw |
-                ConvertFrom-Json
-        )
+    if ($null -eq $SettingsProfile) {
+        throw "The controlled VS Code settings profile is missing."
     }
 
-    $Managed = ConvertTo-Hashtable $SettingsProfile.values
-    $Managed["python.defaultInterpreterPath"] = $VenvPython
-    Merge-Hashtable -Target $Existing -Source $Managed
+    $ManagedSettings = ConvertTo-Hashtable -InputObject $SettingsProfile.values
+    $ImplementationSettings = @{
+        "files.autoSave" = "afterDelay"
+        "files.autoSaveDelay" = 1000
+        "files.trimTrailingWhitespace" = $true
+        "files.insertFinalNewline" = $true
+        "terminal.integrated.defaultProfile.windows" = "PowerShell"
+        "python.defaultInterpreterPath" = $VenvPython
+        "python.testing.pytestArgs" = @(".")
+        "cSpell.language" = "en"
+        "files.defaultFolder" = $CourseRoot
+        "workbench.editorAssociations" = @{
+            "README.md" = "vscode.markdown.preview.editor"
+            "*_srs.md" = "vscode.markdown.preview.editor"
+            "*_sdd.md" = "vscode.markdown.preview.editor"
+        }
+        "settingsSync.ignoredSettings" = @(
+            "python.defaultInterpreterPath",
+            "files.defaultFolder"
+        )
+    }
+    Merge-Hashtable -Target $ManagedSettings -Source $ImplementationSettings
+    return $ManagedSettings
+}
 
-    $Staged = "$VsCodeSettings.it140.tmp"
-    New-Item -ItemType Directory -Path (Split-Path $VsCodeSettings) -Force |
-        Out-Null
-    $Existing | ConvertTo-Json -Depth 50 |
-        Set-Content -LiteralPath $Staged -Encoding UTF8
-    $null = Get-Content -LiteralPath $Staged -Raw | ConvertFrom-Json
-    Move-Item -LiteralPath $Staged -Destination $VsCodeSettings -Force
+function Write-Utf8LfFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Content
+    )
+
+    $LfContent = $Content -replace "`r`n", "`n"
+    $Utf8NoBom = [Text.UTF8Encoding]::new($false)
+    [IO.File]::WriteAllText($Path, $LfContent, $Utf8NoBom)
+}
+
+function Update-ManagedGitSetting {
+    param([Parameter(Mandatory = $true)]$Manifest)
+
+    $GitSettings = Get-PropertyValue `
+        -Object $Manifest.managed_settings `
+        -Name "git_course_defaults"
+    if ($null -eq $GitSettings) {
+        throw "The controlled Git settings profile is missing."
+    }
+
+    foreach ($PropertyRecord in $GitSettings.values.PSObject.Properties) {
+        $SettingValue = $PropertyRecord.Value
+        if ($SettingValue -is [bool]) {
+            $SettingValue = $SettingValue.ToString().ToLowerInvariant()
+        }
+        & git.exe config --global $PropertyRecord.Name ([string]$SettingValue)
+        if ($LASTEXITCODE -ne 0) {
+            throw "Managed Git setting refresh failed: $($PropertyRecord.Name)"
+        }
+    }
+    $script:Changed = $true
+}
+
+function Update-ManagedVsCodeSetting {
+    param([Parameter(Mandatory = $true)]$Manifest)
+
+    if (-not (Test-Path -LiteralPath $VsCodeSettings -PathType Leaf)) {
+        Write-Notice "VS Code settings are not configured; config_win.ps1 will create them."
+        return
+    }
+
+    try {
+        $ExistingObject = Get-Content -LiteralPath $VsCodeSettings -Raw |
+            ConvertFrom-Json
+        if ($null -eq $ExistingObject -or $ExistingObject -isnot [pscustomobject]) {
+            throw "The root value is not a JSON object."
+        }
+        $ExistingSettings = ConvertTo-Hashtable -InputObject $ExistingObject
+    }
+    catch {
+        Write-WarningMessage "Existing VS Code settings are invalid and were preserved unchanged."
+        $script:Partial = $true
+        return
+    }
+
+    $ManagedSettings = Get-ManagedVsCodeSetting -Manifest $Manifest
+    Merge-Hashtable -Target $ExistingSettings -Source $ManagedSettings
+    $SerializedSettings = (
+        $ExistingSettings | ConvertTo-Json -Depth 50
+    ) -replace "`r`n", "`n"
+    $SerializedSettings += "`n"
+
+    $StagedPath = "$VsCodeSettings.it140.tmp"
+    $BackupPath = "$VsCodeSettings.it140.bak"
+    Write-Utf8LfFile -Path $StagedPath -Content $SerializedSettings
+    try {
+        $null = Get-Content -LiteralPath $StagedPath -Raw | ConvertFrom-Json
+        Copy-Item `
+            -LiteralPath $VsCodeSettings `
+            -Destination $BackupPath `
+            -Force
+        Move-Item `
+            -LiteralPath $StagedPath `
+            -Destination $VsCodeSettings `
+            -Force
+        Remove-Item -LiteralPath $BackupPath -Force -ErrorAction SilentlyContinue
+        $script:Changed = $true
+    }
+    catch {
+        Remove-Item -LiteralPath $StagedPath -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $BackupPath -PathType Leaf) {
+            Copy-Item `
+                -LiteralPath $BackupPath `
+                -Destination $VsCodeSettings `
+                -Force
+            Remove-Item -LiteralPath $BackupPath -Force -ErrorAction SilentlyContinue
+        }
+        Write-WarningMessage "Course-managed VS Code settings could not be refreshed."
+        $script:Partial = $true
+    }
+}
+
+function Get-VsCodeExecutablePath {
+    $CodeCommand = Get-Command code.cmd -ErrorAction SilentlyContinue
+    if ($null -eq $CodeCommand) {
+        return $null
+    }
+
+    $CodeBinDirectory = Split-Path -Parent $CodeCommand.Source
+    $CandidatePath = Join-Path (Split-Path -Parent $CodeBinDirectory) "Code.exe"
+    if (Test-Path -LiteralPath $CandidatePath -PathType Leaf) {
+        return $CandidatePath
+    }
+
+    $CodeExecutable = Get-Command Code.exe -ErrorAction SilentlyContinue
+    if ($null -ne $CodeExecutable) {
+        return $CodeExecutable.Source
+    }
+    return $null
+}
+
+function Set-DesktopShortcut {
+    $DesktopDirectory = [Environment]::GetFolderPath("Desktop")
+    $VsCodeExecutable = Get-VsCodeExecutablePath
+    if (
+        [string]::IsNullOrWhiteSpace($DesktopDirectory) -or
+        [string]::IsNullOrWhiteSpace($VsCodeExecutable)
+    ) {
+        throw "Windows desktop shortcuts could not be refreshed."
+    }
+
+    $ShellApplication = New-Object -ComObject WScript.Shell
+    $CourseShortcut = $ShellApplication.CreateShortcut($CourseShortcutPath)
+    $CourseShortcut.TargetPath = "$env:SystemRoot\explorer.exe"
+    $CourseShortcut.Arguments = ('"{0}"' -f $CourseRoot)
+    $CourseShortcut.WorkingDirectory = $CourseRoot
+    $CourseShortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,3"
+    $CourseShortcut.Description = "Open the IT 140 course folder"
+    $CourseShortcut.Save()
+
+    $VsCodeShortcut = $ShellApplication.CreateShortcut($VsCodeShortcutPath)
+    $VsCodeShortcut.TargetPath = $VsCodeExecutable
+    $VsCodeShortcut.Arguments = ('"{0}"' -f $CourseRoot)
+    $VsCodeShortcut.WorkingDirectory = $CourseRoot
+    $VsCodeShortcut.IconLocation = "$VsCodeExecutable,0"
+    $VsCodeShortcut.Description = "Open the IT 140 course folder in Visual Studio Code"
+    $VsCodeShortcut.Save()
+    $script:Changed = $true
+}
+
+function Get-GitConfigValue {
+    param([Parameter(Mandatory = $true)][string]$Key)
+
+    $ObservedOutput = @(& git.exe config --global --get $Key 2>$null)
+    if ($LASTEXITCODE -ne 0 -or $ObservedOutput.Count -eq 0) {
+        return ""
+    }
+    return ([string]$ObservedOutput[0]).Trim()
+}
+
+function Test-ConfigurationState {
+    param([Parameter(Mandatory = $true)]$Manifest)
+
+    if (-not (Test-VenvPython)) {
+        return $false
+    }
+
+    & gh.exe auth status --hostname github.com *> $null
+    if ($LASTEXITCODE -ne 0) {
+        return $false
+    }
+    if ([string]::IsNullOrWhiteSpace((Get-GitConfigValue -Key "user.name"))) {
+        return $false
+    }
+    if (
+        (Get-GitConfigValue -Key "user.email") -notmatch
+        "^[0-9]+\+[^@\s]+@users\.noreply\.github\.com$"
+    ) {
+        return $false
+    }
+
+    $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    foreach ($ManagedPath in @($VenvScriptsDirectory, $WindowsScriptDirectory)) {
+        if (-not (Test-PathContainsEntry -PathValue $UserPath -ExpectedEntry $ManagedPath)) {
+            return $false
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $VsCodeSettings -PathType Leaf)) {
+        return $false
+    }
+    try {
+        $ObservedSettings = Get-Content -LiteralPath $VsCodeSettings -Raw |
+            ConvertFrom-Json
+        $InterpreterProperty = $ObservedSettings.PSObject.Properties[
+            "python.defaultInterpreterPath"
+        ]
+        if (
+            $null -eq $InterpreterProperty -or
+            [string]$InterpreterProperty.Value -cne $VenvPython
+        ) {
+            return $false
+        }
+    }
+    catch {
+        return $false
+    }
+
+    foreach ($ShortcutPath in @($CourseShortcutPath, $VsCodeShortcutPath)) {
+        if (-not (Test-Path -LiteralPath $ShortcutPath -PathType Leaf)) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+function Update-ManagedIntegration {
+    param([Parameter(Mandatory = $true)]$Manifest)
+
+    Update-ManagedGitSetting -Manifest $Manifest
+    Update-ManagedVsCodeSetting -Manifest $Manifest
+
+    if (
+        $ConfigurationComplete -or
+        (Test-Path -LiteralPath $CourseShortcutPath -PathType Leaf) -or
+        (Test-Path -LiteralPath $VsCodeShortcutPath -PathType Leaf)
+    ) {
+        try {
+            Set-DesktopShortcut
+            Write-Success "Course-managed Windows shortcuts were refreshed."
+        }
+        catch {
+            Write-WarningMessage $_.Exception.Message
+            $script:Partial = $true
+        }
+    }
+    else {
+        Write-Notice "Desktop shortcuts are not configured; config_win.ps1 will create them."
+    }
+}
+
+function Test-PostUpdateState {
+    param([Parameter(Mandatory = $true)]$Platform)
+
+    try {
+        $null = Read-ControlledManifest
+    }
+    catch {
+        Write-RequiredFailure "The active manifest or schema is invalid after update."
+    }
+
+    foreach ($ScriptName in @(
+        "setup_win.ps1",
+        "config_win.ps1",
+        "update_win.ps1",
+        "verify_win.ps1"
+    )) {
+        $ScriptPath = Join-Path $WindowsScriptDirectory $ScriptName
+        if (-not (Test-Path -LiteralPath $ScriptPath -PathType Leaf)) {
+            Write-RequiredFailure "Required lifecycle script is missing: $ScriptName"
+            continue
+        }
+        try {
+            Test-PowerShellScript -Path $ScriptPath
+            $null = Get-ScriptVersion -Path $ScriptPath
+        }
+        catch {
+            Write-RequiredFailure "Required lifecycle script is invalid: $ScriptName"
+        }
+    }
+
+    $SystemBindings = Get-SystemPackageBinding -Platform $Platform
+    try {
+        Test-SystemCommand -Bindings $SystemBindings
+    }
+    catch {
+        Write-RequiredFailure $_.Exception.Message
+    }
+
+    if (-not (Test-VenvPython)) {
+        Write-RequiredFailure "The course Python 3.12 virtual environment is not usable."
+    }
+    else {
+        foreach ($PackageName in (Get-RequiredPythonPackage -Platform $Platform)) {
+            & $VenvPython -m pip show $PackageName *> $null
+            if ($LASTEXITCODE -ne 0) {
+                Write-RequiredFailure "Required course Python package is missing: $PackageName"
+            }
+        }
+    }
+
+    $InstalledExtensions = @(
+        & code.cmd --list-extensions 2>$null |
+            ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
+    )
+    foreach ($ExtensionId in (Get-RequiredExtension -Platform $Platform)) {
+        if ($ExtensionId.ToLowerInvariant() -notin $InstalledExtensions) {
+            Write-RequiredFailure "Required VS Code extension is missing: $ExtensionId"
+        }
+    }
 }
 
 function Test-PendingRestart {
-    $Paths = @(
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\" +
-            "Component Based Servicing\RebootPending",
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\" +
-            "WindowsUpdate\Auto Update\RebootRequired"
+    $RestartRegistryPaths = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending",
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
     )
-    foreach ($Path in $Paths) {
-        if (Test-Path -LiteralPath $Path) {
+    foreach ($RegistryPath in $RestartRegistryPaths) {
+        if (Test-Path -LiteralPath $RegistryPath) {
             return $true
         }
     }
 
     try {
         $SessionManager = Get-ItemProperty `
-            -LiteralPath (
-                "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager"
-            )
+            -LiteralPath "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager"
         if ($null -ne $SessionManager.PendingFileRenameOperations) {
             return $true
         }
     }
     catch {
+        # Best-effort operation; preserve the primary result.
     }
-
     return $false
 }
 
-function Show-Usage {
-    @"
-IT 140 Windows update script
+function Get-CommandVersionLine {
+    param([Parameter(Mandatory = $true)][string]$CommandName)
 
-Usage:
-  powershell.exe -ExecutionPolicy Bypass -File .\update_win.ps1
-  powershell.exe -ExecutionPolicy Bypass -File .\update_win.ps1 -Help
-
-Run this script from a normal, non-elevated PowerShell terminal. A UAC prompt
-appears only for the Windows and machine-package update phase.
-The script never performs a Windows feature-version upgrade.
-Logs: $LogDirectory
-"@ | Write-Host
+    try {
+        $VersionOutput = @(& $CommandName --version 2>&1)
+        if ($LASTEXITCODE -eq 0 -and $VersionOutput.Count -gt 0) {
+            return [string]$VersionOutput[0]
+        }
+    }
+    catch {
+        # Best-effort operation; preserve the primary result.
+    }
+    return "unavailable"
 }
 
 if ($SystemPhase) {
     Invoke-SystemPhase
 }
 
-$Transaction = $null
+if ($Help) {
+    Show-Usage
+    exit 0
+}
+if ($Version) {
+    Write-Host $ScriptVersion
+    exit 0
+}
+
 try {
     New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null
     Start-Transcript -Path $LogPath -Append -Force | Out-Null
     $TranscriptStarted = $true
+    Remove-ExpiredLog
 
-    if ($Help) {
-        Show-Usage
-        $ExitCode = 0
-        return
-    }
-
-    if ($Version) {
-        Write-Host $ScriptVersion
-        $ExitCode = 0
-        return
-    }
-
-    Write-Host ""
-    Write-Host "============================================================"
-    Write-Host "IT 140 WINDOWS UPDATE"
-    Write-Host "============================================================"
-    Write-Info "Script version : $ScriptVersion"
-    Write-Info "Deployment     : $DeploymentProfile"
-    Write-Info "Current user   : $([Environment]::UserName)"
-    Write-Info "Log file       : $LogPath"
+    Write-Header "IT 140 WINDOWS UPDATE"
+    Write-Info "Script version   : $ScriptVersion"
+    Write-Info "Deployment       : $DeploymentProfile"
+    Write-Info "Current user     : $([Environment]::UserName)"
+    Write-Info "Course root      : $CourseRoot"
+    Write-Info "Log file         : $LogPath"
+    Write-Notice "Keep this PowerShell window open until the update completes."
+    Write-Notice "Windows will remain on its current supported feature release."
     Write-Notice (
-        "Save open coursework before continuing. The script will not " +
-        "upgrade Windows to a different feature release."
+        "Student files, repositories, Git history, optional extensions, " +
+        "and unrelated settings will be preserved."
     )
 
     if (Test-IsAdministrator) {
-        Write-ErrorMessage (
-            "Run update_win.ps1 from a normal terminal. The script will " +
-            "request elevation only for its system phase."
+        $FailureExitCode = 3
+        throw (
+            "Run update_win.ps1 from a normal, non-elevated PowerShell window. " +
+            "The script will request UAC elevation only for its system-maintenance phase."
         )
-        $ExitCode = 3
-        return
     }
 
     $MutationMutex = Enter-MutationLock
     Update-ProcessEnvironment
 
+    $FailureExitCode = 5
     $Controlled = Read-ControlledManifest
-    $WindowsFacts = Get-WindowsFacts
-    Assert-SupportedWindows `
+
+    $FailureExitCode = 2
+    $WindowsFacts = Get-OperatingSystemFact
+    Test-SupportedOperatingSystem `
         -WindowsFacts $WindowsFacts `
         -Platform $Controlled.Platform
 
-    foreach ($Command in @("git.exe", "winget.exe", "python.exe", "code.cmd")) {
-        if ($null -eq (Get-Command $Command -ErrorAction SilentlyContinue)) {
-            throw "Required command is missing: $Command"
+    $FailureExitCode = 1
+    foreach ($RequiredCommand in @(
+        "git.exe",
+        "winget.exe",
+        "gh.exe",
+        "python.exe",
+        "code.cmd"
+    )) {
+        if ($null -eq (Get-Command $RequiredCommand -ErrorAction SilentlyContinue)) {
+            throw "Required update command is missing: $RequiredCommand. Run setup_win.ps1."
         }
     }
 
     $FreeSpace = (Get-PSDrive -Name $env:SystemDrive.TrimEnd(":")).Free
-    if ($FreeSpace -lt [int64]$Controlled.Manifest.policy.minimum_free_space_bytes) {
-        throw "The system drive does not have enough free space."
+    $MinimumSpace = [int64]$Controlled.Manifest.policy.minimum_free_space_bytes
+    if ($FreeSpace -lt $MinimumSpace) {
+        throw (
+            "The system drive has {0:N1} GB free; at least {1:N1} GB is required." -f
+            ($FreeSpace / 1GB),
+            ($MinimumSpace / 1GB)
+        )
     }
 
+    $ConfigurationComplete = Test-ConfigurationState `
+        -Manifest $Controlled.Manifest
+    if ($ConfigurationComplete) {
+        $WorkflowName = "Periodic maintenance"
+    }
+    else {
+        $WorkflowName = "First use or reset environment"
+        Write-Notice (
+            "User configuration is incomplete; the summary will direct " +
+            "you to config_win.ps1."
+        )
+    }
+    Write-Info "Workflow         : $WorkflowName"
+
+    $FailureExitCode = 4
     $Transaction = Invoke-AssetTransaction
 
-    Write-Info "Starting the elevated Windows and machine-package update phase."
+    Write-Info "Starting the elevated Windows and machine-package maintenance phase."
     $SystemArguments = @(
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
         "-File", ('"{0}"' -f $Transaction.SystemPhaseScript),
         "-SystemPhase",
         "-TransactionRoot", ('"{0}"' -f $Transaction.TemporaryRoot),
+        "-CourseRootOverride", ('"{0}"' -f $CourseRoot),
         "-DeploymentProfile", $DeploymentProfile
     )
-    $SystemProcess = Start-Process `
-        -FilePath "powershell.exe" `
-        -Verb RunAs `
-        -ArgumentList ($SystemArguments -join " ") `
-        -Wait `
-        -PassThru
+    if ($NonInteractive) {
+        $SystemArguments += "-NonInteractive"
+    }
 
-    if ($SystemProcess.ExitCode -ne 0) {
-        Write-Notice (
-            "The elevated system phase returned exit code {0}." -f
-            $SystemProcess.ExitCode
-        )
-        $PartialFailure = $true
+    try {
+        $SystemProcess = Start-Process `
+            -FilePath "powershell.exe" `
+            -Verb RunAs `
+            -ArgumentList ($SystemArguments -join " ") `
+            -Wait `
+            -PassThru
+        if ($SystemProcess.ExitCode -ne 0) {
+            Write-RequiredFailure (
+                "The elevated system phase returned exit code {0}." -f
+                $SystemProcess.ExitCode
+            )
+        }
+    }
+    catch [System.ComponentModel.Win32Exception] {
+        Write-RequiredFailure "The elevated system phase was canceled or could not start."
     }
 
     try {
         Write-Info "Updating current-user course tools and extensions."
-        Update-UserTools
-        Update-ManagedSettings
-        Write-Success "Current-user course components are current."
+        $ActiveControlled = Read-ControlledManifest
+        Update-UserTool -Platform $ActiveControlled.Platform
+        Update-ManagedIntegration -Manifest $ActiveControlled.Manifest
+        Write-Success "Current-user course components were updated."
     }
     catch {
-        Write-ErrorMessage $_.Exception.Message
-        $PartialFailure = $true
+        Write-RequiredFailure $_.Exception.Message
     }
 
-    Write-Host ""
-    Write-Host "============================================================"
-    Write-Host "UPDATE SUMMARY"
-    Write-Host "============================================================"
-    Write-Info "Windows        : $($WindowsFacts.Caption)"
-    Write-Info "Release        : $($WindowsFacts.DisplayVersion)"
-    Write-Info "Python         : $(& python.exe --version)"
-    Write-Info "Git            : $(& git.exe --version)"
-    Write-Info "GitHub CLI     : $((& gh.exe --version)[0])"
-    Write-Info "VS Code        : $((& code.cmd --version)[0])"
-    Write-Info "Log file       : $LogPath"
+    $ActiveControlled = Read-ControlledManifest
+    Test-PostUpdateState -Platform $ActiveControlled.Platform
 
     $TransactionRestart = $false
     if ($null -ne $Transaction) {
@@ -868,34 +1855,82 @@ try {
             Join-Path $Transaction.TemporaryRoot "reboot-required"
         )
     }
-
     if ($TransactionRestart -or (Test-PendingRestart)) {
-        Write-Notice "A Windows restart is required to finish applying updates."
-        Write-Notice "Save work, close applications, and restart Windows."
+        $RestartRequired = $true
+    }
+
+    $Elapsed = (Get-Date) - $StartTime
+    Write-Header "UPDATE SUMMARY"
+    Write-Info "Workflow          : $WorkflowName"
+    Write-Info "Windows           : $($WindowsFacts.Caption)"
+    Write-Info "Release           : $($WindowsFacts.DisplayVersion)"
+    Write-Info "Manifest release  : $($ActiveControlled.Manifest.automation_release)"
+    Write-Info "Git               : $(Get-CommandVersionLine -CommandName 'git.exe')"
+    Write-Info "GitHub CLI        : $(Get-CommandVersionLine -CommandName 'gh.exe')"
+    Write-Info "Python            : $(Get-CommandVersionLine -CommandName 'python.exe')"
+    Write-Info "VS Code           : $(Get-CommandVersionLine -CommandName 'code.cmd')"
+    Write-Info "Warnings          : $WarningCount"
+    Write-Info "Failures          : $FailureCount"
+    Write-Info ("Elapsed time      : {0:hh\:mm\:ss}" -f $Elapsed)
+    Write-Info "Log file          : $LogPath"
+
+    if ($RestartRequired) {
+        Write-Notice "Windows reports that a restart is required to finish applying updates."
+        Write-Notice "Save your work, close applications, and restart Windows before continuing."
     }
     else {
         Write-Notice "Windows does not currently report a required restart."
-        Write-Notice "Close and reopen VS Code before continuing coursework."
+        Write-Notice "Close and reopen Visual Studio Code before continuing coursework."
     }
 
-    if ($PartialFailure) {
-        Write-ErrorMessage (
-            "The update completed partially. Run verify_win.ps1 and follow " +
-            "its remediation guidance."
-        )
+    if ($Partial -or $FailureCount -gt 0) {
+        Write-ErrorMessage "The update completed partially."
+        if ($ConfigurationComplete) {
+            Write-Notice (
+                "Next step: after any required restart, run verify_win.ps1 " +
+                "and follow its remediation guidance."
+            )
+        }
+        else {
+            Write-Notice (
+                "Next step: after any required restart, run config_win.ps1, " +
+                "then verify_win.ps1."
+            )
+        }
+        Write-Info "Exit code         : 7"
+        Write-ClosingNotice
         $ExitCode = 7
     }
     else {
         Write-Success "The IT 140 Windows update completed successfully."
-        Write-Notice "Run verify_win.ps1 when convenient."
+        if ($ConfigurationComplete) {
+            Write-Notice "Next step: after any required restart, run verify_win.ps1."
+        }
+        else {
+            Write-Notice "Next step: after any required restart, run config_win.ps1."
+        }
+        Write-Info "Exit code         : 0"
+        Write-ClosingNotice
         $ExitCode = 0
     }
 }
 catch {
+    $LineNumber = $_.InvocationInfo.ScriptLineNumber
     Write-ErrorMessage $_.Exception.Message
-    Write-Notice "Review the update log before requesting support."
+    if ($LineNumber) {
+        Write-ErrorMessage "Update stopped near line $LineNumber."
+    }
     Write-Info "Update log: $LogPath"
-    $ExitCode = 1
+    if ($Changed) {
+        Write-Notice (
+            "Managed state changed before update stopped. " +
+            "Rerun update_win.ps1 to repair it."
+        )
+        $ExitCode = 7
+    }
+    else {
+        $ExitCode = $FailureExitCode
+    }
 }
 finally {
     if ($null -ne $Transaction) {
@@ -911,6 +1946,7 @@ finally {
             $MutationMutex.ReleaseMutex()
         }
         catch {
+            # Best-effort operation; preserve the primary result.
         }
         $MutationMutex.Dispose()
     }
@@ -920,6 +1956,7 @@ finally {
             Stop-Transcript | Out-Null
         }
         catch {
+            # Best-effort operation; preserve the primary result.
         }
     }
 }

@@ -4,49 +4,84 @@
 Verifies the Windows IT 140 Course IDE without repairing it.
 
 .DESCRIPTION
-Performs read-only checks of the supported Windows release, required software,
-Python course environment, VS Code extensions and settings, GitHub
-authentication, privacy-preserving Git identity, course paths, and managed
-assets. The script writes a diagnostic log under ~/it140/logs.
+Performs read-only checks of the supported Windows release, controlled
+manifest assets, required software, course Python environment, VS Code
+extensions and settings, GitHub authentication, privacy-preserving Git
+identity, Windows PATH, desktop shortcuts, and lifecycle scripts.
 
-An optional support bundle is created only after explicit confirmation.
+The script never elevates privilege or repairs failed checks. It creates only
+the required transcript and, when explicitly requested and confirmed, a
+sanitized support bundle under ~/it140/logs.
+
+.NOTES
+Exit codes:
+  0 All required checks passed; warnings may be present
+  1 One or more required checks failed
+  2 The Windows platform or release is unsupported
+  5 Controlled manifest or managed asset validation failed
+
+Logs and explicitly requested support bundles are written under
+~/it140/logs/.
 #>
 
 [CmdletBinding()]
 param(
     [switch]$Help,
     [switch]$Version,
+    [switch]$NonInteractive,
     [ValidateSet("windows_bare_metal")]
     [string]$DeploymentProfile = "windows_bare_metal",
-    [switch]$NonInteractive,
     [switch]$SupportBundle,
-    [switch]$ConfirmSupportBundle
+    [Alias("ConfirmSupportBundle")]
+    [switch]$Yes,
+    [switch]$SkipNetwork
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "2026.07.25.2"
+$ScriptVersion = "2026.07.27.1"
 $PlatformId = "windows"
-$CourseRoot = Join-Path $HOME "it140"
-$ScriptRoot = Join-Path $CourseRoot "scripts"
-$WindowsScriptDirectory = Join-Path $ScriptRoot "win"
+$PlatformAbbreviation = "win"
+$ScriptDirectory = $PSScriptRoot
+$ScriptRoot = Split-Path -Parent $ScriptDirectory
+$CourseRoot = Split-Path -Parent $ScriptRoot
+$WindowsScriptDirectory = Join-Path $ScriptRoot $PlatformAbbreviation
 $ManifestPath = Join-Path $ScriptRoot ".manifest\it140_manifest.json"
 $SchemaPath = Join-Path $ScriptRoot ".manifest\it140_manifest.schema.json"
 $LogDirectory = Join-Path $CourseRoot "logs"
 $LogPath = Join-Path $LogDirectory (
-    "verify_win_{0}.log" -f (Get-Date -Format "yyyyMMdd_HHmmss")
+    "verify_{0}_{1}.log" -f $PlatformAbbreviation, (Get-Date -Format "yyyyMMdd_HHmmss")
 )
 $VenvDirectory = Join-Path $CourseRoot ".venv"
-$VenvPython = Join-Path $VenvDirectory "Scripts\python.exe"
-$VenvScripts = Join-Path $VenvDirectory "Scripts"
+$VenvScriptsDirectory = Join-Path $VenvDirectory "Scripts"
+$VenvPython = Join-Path $VenvScriptsDirectory "python.exe"
 $VsCodeSettings = Join-Path $env:APPDATA "Code\User\settings.json"
+$CourseShortcutPath = Join-Path (
+    [Environment]::GetFolderPath("Desktop")
+) "IT 140.lnk"
+$VsCodeShortcutPath = Join-Path (
+    [Environment]::GetFolderPath("Desktop")
+) "Visual Studio Code - IT 140.lnk"
+$StartTime = Get-Date
 $TranscriptStarted = $false
-$ExitCode = 0
 $ManifestFailure = $false
 $UnsupportedFailure = $false
-$Results = New-Object Collections.Generic.List[object]
+$ExitCode = 0
+$Controlled = $null
+$WindowsFacts = $null
+$Results = [Collections.Generic.List[object]]::new()
+$Remediations = [Collections.Generic.List[string]]::new()
+
+function Write-Header {
+    param([Parameter(Mandatory = $true)][string]$Title)
+
+    Write-Host ""
+    Write-Host "============================================================"
+    Write-Host $Title
+    Write-Host "============================================================"
+}
 
 function Write-Info {
     param([Parameter(Mandatory = $true)][string]$Message)
@@ -58,17 +93,100 @@ function Write-Notice {
     Write-Host "[NOTICE] $Message"
 }
 
+function Write-ErrorMessage {
+    param([Parameter(Mandatory = $true)][string]$Message)
+    Write-Host "[ERROR] $Message" -ForegroundColor Red
+}
+
+function Show-Usage {
+    @"
+IT 140 Windows verification script
+
+Usage:
+  powershell.exe -ExecutionPolicy Bypass -File .\verify_win.ps1
+  powershell.exe -ExecutionPolicy Bypass -File .\verify_win.ps1 -SkipNetwork
+  powershell.exe -ExecutionPolicy Bypass -File .\verify_win.ps1 -SupportBundle
+  powershell.exe -ExecutionPolicy Bypass -File .\verify_win.ps1 -SupportBundle -Yes
+  powershell.exe -ExecutionPolicy Bypass -File .\verify_win.ps1 -Help
+  powershell.exe -ExecutionPolicy Bypass -File .\verify_win.ps1 -Version
+
+This script does not elevate privilege, install, repair, update, remove, or
+rewrite managed course state. Support-bundle creation requires explicit
+confirmation unless -Yes is supplied.
+
+Deployment profile: windows_bare_metal
+Log directory: $LogDirectory
+"@ | Write-Host
+}
+
+function Write-ClosingNotice {
+    Write-Notice "A log containing all output displayed while this script ran is available here:"
+    Write-Notice $LogPath
+    Write-Notice (
+        "After reviewing the summary, type 'exit' and press Enter to " +
+        "close this PowerShell window."
+    )
+    Write-Notice (
+        "Open a new PowerShell window before running another script or " +
+        "command so it uses the intended PATH and environment settings."
+    )
+}
+
+function Test-IsAdministrator {
+    $Identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $Principal = [Security.Principal.WindowsPrincipal]::new($Identity)
+    return $Principal.IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator
+    )
+}
+
+function Get-NormalizedPathEntry {
+    param([Parameter(Mandatory = $true)][string]$PathEntry)
+
+    try {
+        $ExpandedPath = [Environment]::ExpandEnvironmentVariables($PathEntry)
+        return [IO.Path]::GetFullPath($ExpandedPath).TrimEnd("\")
+    }
+    catch {
+        return $PathEntry.Trim().TrimEnd("\")
+    }
+}
+
+function Test-PathContainsEntry {
+    param(
+        [Parameter(Mandatory = $true)][string]$PathValue,
+        [Parameter(Mandatory = $true)][string]$ExpectedEntry
+    )
+
+    $NormalizedExpected = Get-NormalizedPathEntry -PathEntry $ExpectedEntry
+    foreach ($ObservedEntry in @($PathValue -split ";")) {
+        if ([string]::IsNullOrWhiteSpace($ObservedEntry)) {
+            continue
+        }
+        if (
+            (Get-NormalizedPathEntry -PathEntry $ObservedEntry) -ieq
+            $NormalizedExpected
+        ) {
+            return $true
+        }
+    }
+    return $false
+}
+
 function Get-PropertyValue {
     param(
         [Parameter(Mandatory = $true)]$Object,
         [Parameter(Mandatory = $true)][string]$Name
     )
 
-    $Property = $Object.PSObject.Properties[$Name]
-    if ($null -eq $Property) {
+    if ($null -eq $Object) {
         return $null
     }
-    return $Property.Value
+    $PropertyRecord = $Object.PSObject.Properties[$Name]
+    if ($null -eq $PropertyRecord) {
+        return $null
+    }
+    return $PropertyRecord.Value
 }
 
 function Add-CheckResult {
@@ -78,59 +196,351 @@ function Add-CheckResult {
         [ValidateSet("PASS", "WARNING", "FAIL", "NOT APPLICABLE")]
         [string]$Status,
         [Parameter(Mandatory = $true)][string]$Detail,
-        [Parameter(Mandatory = $true)][string]$Remediation
+        [string]$Remediation = ""
     )
 
-    $Result = [pscustomobject]@{
+    $ResultRecord = [pscustomobject]@{
         CheckId = $CheckId
         Status = $Status
         Detail = $Detail
         Remediation = $Remediation
     }
-    $Results.Add($Result)
+    $Results.Add($ResultRecord)
 
     $Label = "[$Status]"
-    Write-Host ("{0,-16} {1,-34} {2}" -f $Label, $CheckId, $Detail)
+    Write-Host ("{0,-18} {1,-40} {2}" -f $Label, $CheckId, $Detail)
+
+    if (
+        $Status -in @("FAIL", "WARNING") -and
+        -not [string]::IsNullOrWhiteSpace($Remediation) -and
+        $Remediation -notin $Remediations
+    ) {
+        $Remediations.Add($Remediation)
+    }
+}
+
+function Test-JsonDuplicateKey {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if ($null -eq ("It140Automation.JsonDuplicateKeyValidator" -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
+
+namespace It140Automation
+{
+    public static class JsonDuplicateKeyValidator
+    {
+        public static void Validate(string json)
+        {
+            if (json == null)
+            {
+                throw new ArgumentNullException("json");
+            }
+
+            int index = 0;
+            ParseValue(json, ref index, 0);
+            SkipWhitespace(json, ref index);
+            if (index != json.Length)
+            {
+                throw new FormatException("Unexpected content after the JSON value.");
+            }
+        }
+
+        private static void ParseValue(string json, ref int index, int depth)
+        {
+            if (depth > 256)
+            {
+                throw new FormatException("JSON nesting exceeds the supported depth.");
+            }
+
+            SkipWhitespace(json, ref index);
+            if (index >= json.Length)
+            {
+                throw new FormatException("Unexpected end of JSON input.");
+            }
+
+            char current = json[index];
+            if (current == '{')
+            {
+                ParseObject(json, ref index, depth + 1);
+            }
+            else if (current == '[')
+            {
+                ParseArray(json, ref index, depth + 1);
+            }
+            else if (current == '"')
+            {
+                ParseString(json, ref index);
+            }
+            else
+            {
+                ParsePrimitive(json, ref index);
+            }
+        }
+
+        private static void ParseObject(string json, ref int index, int depth)
+        {
+            index++;
+            SkipWhitespace(json, ref index);
+            HashSet<string> keys = new HashSet<string>(StringComparer.Ordinal);
+
+            if (index < json.Length && json[index] == '}')
+            {
+                index++;
+                return;
+            }
+
+            while (true)
+            {
+                SkipWhitespace(json, ref index);
+                if (index >= json.Length || json[index] != '"')
+                {
+                    throw new FormatException("Expected a JSON object key.");
+                }
+
+                string key = ParseString(json, ref index);
+                if (!keys.Add(key))
+                {
+                    throw new FormatException("duplicate key: " + key);
+                }
+
+                SkipWhitespace(json, ref index);
+                if (index >= json.Length || json[index] != ':')
+                {
+                    throw new FormatException("Expected ':' after a JSON object key.");
+                }
+                index++;
+
+                ParseValue(json, ref index, depth);
+                SkipWhitespace(json, ref index);
+                if (index >= json.Length)
+                {
+                    throw new FormatException("Unexpected end of JSON object.");
+                }
+                if (json[index] == '}')
+                {
+                    index++;
+                    return;
+                }
+                if (json[index] != ',')
+                {
+                    throw new FormatException("Expected ',' or '}' in a JSON object.");
+                }
+                index++;
+            }
+        }
+
+        private static void ParseArray(string json, ref int index, int depth)
+        {
+            index++;
+            SkipWhitespace(json, ref index);
+            if (index < json.Length && json[index] == ']')
+            {
+                index++;
+                return;
+            }
+
+            while (true)
+            {
+                ParseValue(json, ref index, depth);
+                SkipWhitespace(json, ref index);
+                if (index >= json.Length)
+                {
+                    throw new FormatException("Unexpected end of JSON array.");
+                }
+                if (json[index] == ']')
+                {
+                    index++;
+                    return;
+                }
+                if (json[index] != ',')
+                {
+                    throw new FormatException("Expected ',' or ']' in a JSON array.");
+                }
+                index++;
+            }
+        }
+
+        private static string ParseString(string json, ref int index)
+        {
+            if (index >= json.Length || json[index] != '"')
+            {
+                throw new FormatException("Expected a JSON string.");
+            }
+            index++;
+            StringBuilder value = new StringBuilder();
+
+            while (index < json.Length)
+            {
+                char current = json[index++];
+                if (current == '"')
+                {
+                    return value.ToString();
+                }
+                if (current == '\\')
+                {
+                    if (index >= json.Length)
+                    {
+                        throw new FormatException("Incomplete JSON escape sequence.");
+                    }
+                    char escaped = json[index++];
+                    switch (escaped)
+                    {
+                        case '"': value.Append('"'); break;
+                        case '\\': value.Append('\\'); break;
+                        case '/': value.Append('/'); break;
+                        case 'b': value.Append('\b'); break;
+                        case 'f': value.Append('\f'); break;
+                        case 'n': value.Append('\n'); break;
+                        case 'r': value.Append('\r'); break;
+                        case 't': value.Append('\t'); break;
+                        case 'u':
+                            if (index + 4 > json.Length)
+                            {
+                                throw new FormatException("Incomplete JSON Unicode escape.");
+                            }
+                            int codePoint;
+                            if (!Int32.TryParse(
+                                json.Substring(index, 4),
+                                NumberStyles.HexNumber,
+                                CultureInfo.InvariantCulture,
+                                out codePoint))
+                            {
+                                throw new FormatException("Invalid JSON Unicode escape.");
+                            }
+                            value.Append((char)codePoint);
+                            index += 4;
+                            break;
+                        default:
+                            throw new FormatException("Invalid JSON escape sequence.");
+                    }
+                }
+                else
+                {
+                    if (current < 0x20)
+                    {
+                        throw new FormatException("Unescaped control character in JSON string.");
+                    }
+                    value.Append(current);
+                }
+            }
+
+            throw new FormatException("Unterminated JSON string.");
+        }
+
+        private static void ParsePrimitive(string json, ref int index)
+        {
+            int start = index;
+            while (index < json.Length)
+            {
+                char current = json[index];
+                if (
+                    Char.IsWhiteSpace(current) ||
+                    current == ',' ||
+                    current == ']' ||
+                    current == '}')
+                {
+                    break;
+                }
+                index++;
+            }
+            if (index == start)
+            {
+                throw new FormatException("Invalid JSON primitive value.");
+            }
+        }
+
+        private static void SkipWhitespace(string json, ref int index)
+        {
+            while (index < json.Length && Char.IsWhiteSpace(json[index]))
+            {
+                index++;
+            }
+        }
+    }
+}
+'@
+    }
+
+    try {
+        $JsonText = Get-Content -LiteralPath $Path -Raw
+        [It140Automation.JsonDuplicateKeyValidator]::Validate($JsonText)
+    }
+    catch {
+        throw "JSON duplicate-key validation failed for $Path. $($_.Exception.Message)"
+    }
 }
 
 function Read-ControlledManifest {
     if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
-        throw "The controlled manifest is missing."
+        throw "The controlled manifest is missing: $ManifestPath"
     }
     if (-not (Test-Path -LiteralPath $SchemaPath -PathType Leaf)) {
-        throw "The manifest schema is missing."
+        throw "The controlled manifest schema is missing: $SchemaPath"
     }
+
+    Test-JsonDuplicateKey -Path $ManifestPath
+    Test-JsonDuplicateKey -Path $SchemaPath
 
     try {
-        $Manifest = Get-Content -LiteralPath $ManifestPath -Raw |
-            ConvertFrom-Json
-        $null = Get-Content -LiteralPath $SchemaPath -Raw |
-            ConvertFrom-Json
+        $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+        $Schema = Get-Content -LiteralPath $SchemaPath -Raw | ConvertFrom-Json
     }
     catch {
-        throw "The manifest or schema is not valid JSON."
+        throw "The controlled manifest or schema is not valid JSON. $($_.Exception.Message)"
     }
 
+    $RequiredKeys = @(
+        "schema_version",
+        "automation_release",
+        "policy",
+        "platforms",
+        "deployment_profiles",
+        "provider_profiles",
+        "managed_settings",
+        "managed_assets",
+        "logging"
+    )
+    foreach ($RequiredKey in $RequiredKeys) {
+        if ($null -eq $Manifest.PSObject.Properties[$RequiredKey]) {
+            throw "The controlled manifest is missing required key: $RequiredKey"
+        }
+    }
     if ([string]$Manifest.schema_version -ne "1.0") {
-        throw "The manifest schema version is not supported."
+        throw "Unsupported manifest schema version: $($Manifest.schema_version)"
+    }
+    if ([string]$Schema.'$schema' -ne "https://json-schema.org/draft/2020-12/schema") {
+        throw "The manifest schema is not the approved Draft 2020-12 format."
     }
 
     $Platform = Get-PropertyValue -Object $Manifest.platforms -Name $PlatformId
-    $DeploymentProfileRecord = Get-PropertyValue `
+    $ProfileRecord = Get-PropertyValue `
         -Object $Manifest.deployment_profiles `
         -Name $DeploymentProfile
-    if ($null -eq $Platform -or $null -eq $DeploymentProfileRecord) {
-        throw "The Windows platform or deployment profile is missing."
+    if ($null -eq $Platform -or -not [bool]$Platform.enabled) {
+        throw "The Windows platform is not enabled in the controlled manifest."
+    }
+    if ($null -eq $ProfileRecord -or -not [bool]$ProfileRecord.enabled) {
+        throw "The deployment profile is not enabled: $DeploymentProfile"
+    }
+    if ([string]$ProfileRecord.platform_id -ne $PlatformId) {
+        throw "The deployment profile does not select the Windows platform."
+    }
+    if ($null -eq (Get-PropertyValue -Object $Manifest.provider_profiles -Name "github_com")) {
+        throw "The required GitHub provider profile is unavailable."
     }
 
     return [pscustomobject]@{
         Manifest = $Manifest
         Platform = $Platform
-        Profile = $DeploymentProfileRecord
+        Profile = $ProfileRecord
     }
 }
 
-function Get-WindowsFacts {
+function Get-OperatingSystemFact {
     $OperatingSystem = Get-CimInstance -ClassName Win32_OperatingSystem
     $CurrentVersion = Get-ItemProperty `
         -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
@@ -148,318 +558,477 @@ function Test-CommandAvailable {
     return $null -ne (Get-Command $CommandName -ErrorAction SilentlyContinue)
 }
 
-function Get-RequiredExtensions {
+function Get-SystemPackageBinding {
+    param([Parameter(Mandatory = $true)]$Platform)
+
+    $Bindings = @()
+    foreach ($PropertyRecord in $Platform.course_ide_bindings.PSObject.Properties) {
+        $Binding = $PropertyRecord.Value
+        if (
+            [bool]$Binding.required -and
+            [string]$Binding.installation_scope -eq "system" -and
+            [string]$Binding.installer_adapter_id -eq "winget_package"
+        ) {
+            $Bindings += [pscustomobject]@{
+                Role = $PropertyRecord.Name
+                PackageIdentifier = [string]$Binding.package_identifier
+                ExecutableNames = @($Binding.verification.executable_names)
+            }
+        }
+    }
+    return $Bindings
+}
+
+function Get-RequiredPythonPackage {
+    param([Parameter(Mandatory = $true)]$Platform)
+
+    $Packages = @()
+    foreach ($PropertyRecord in $Platform.course_ide_bindings.PSObject.Properties) {
+        $Binding = $PropertyRecord.Value
+        if (
+            [bool]$Binding.required -and
+            [string]$Binding.installation_scope -eq "user" -and
+            [string]$Binding.installer_adapter_id -eq "python_venv_package"
+        ) {
+            $Packages += [string]$Binding.package_identifier
+        }
+    }
+    $CodeQualityBinding = Get-PropertyValue `
+        -Object $Platform.course_ide_bindings `
+        -Name "code_quality_tool"
+    if ($null -ne $CodeQualityBinding -and [bool]$CodeQualityBinding.required) {
+        $Packages += "ruff"
+    }
+    return @($Packages | Where-Object { $_ } | Sort-Object -Unique)
+}
+
+function Get-RequiredExtension {
     param([Parameter(Mandatory = $true)]$Platform)
 
     $Extensions = @()
-    foreach ($Property in $Platform.course_ide_bindings.PSObject.Properties) {
-        $Binding = $Property.Value
+    foreach ($PropertyRecord in $Platform.course_ide_bindings.PSObject.Properties) {
+        $Binding = $PropertyRecord.Value
         if (
+            [bool]$Binding.required -and
             [string]$Binding.installation_scope -eq "user" -and
             [string]$Binding.installer_adapter_id -eq "vscode_extension"
         ) {
             $Extensions += [string]$Binding.package_identifier
         }
     }
-    return @($Extensions | Sort-Object -Unique)
+    return @($Extensions | Where-Object { $_ } | Sort-Object -Unique)
 }
 
-function Test-JsonSettingValue {
+function Get-GitConfigValue {
+    param([Parameter(Mandatory = $true)][string]$Key)
+
+    $ObservedOutput = @(& git.exe config --global --get $Key 2>$null)
+    if ($LASTEXITCODE -ne 0 -or $ObservedOutput.Count -eq 0) {
+        return ""
+    }
+    return ([string]$ObservedOutput[0]).Trim()
+}
+
+function ConvertTo-Hashtable {
+    param($InputObject)
+
+    if ($null -eq $InputObject) {
+        return $null
+    }
+    if ($InputObject -is [Collections.IDictionary]) {
+        $OutputTable = @{}
+        foreach ($Key in $InputObject.Keys) {
+            $OutputTable[$Key] = ConvertTo-Hashtable -InputObject $InputObject[$Key]
+        }
+        return $OutputTable
+    }
+    if ($InputObject -is [pscustomobject]) {
+        $OutputTable = @{}
+        foreach ($PropertyRecord in $InputObject.PSObject.Properties) {
+            $OutputTable[$PropertyRecord.Name] = ConvertTo-Hashtable `
+                -InputObject $PropertyRecord.Value
+        }
+        return $OutputTable
+    }
+    if (
+        $InputObject -is [Collections.IEnumerable] -and
+        $InputObject -isnot [string]
+    ) {
+        return @(
+            $InputObject | ForEach-Object {
+                ConvertTo-Hashtable -InputObject $_
+            }
+        )
+    }
+    return $InputObject
+}
+
+function Merge-Hashtable {
     param(
-        [Parameter(Mandatory = $true)]$Settings,
-        [Parameter(Mandatory = $true)][string]$PropertyName,
+        [Parameter(Mandatory = $true)][hashtable]$Target,
+        [Parameter(Mandatory = $true)][hashtable]$Source
+    )
+
+    foreach ($Key in $Source.Keys) {
+        if (
+            $Source[$Key] -is [hashtable] -and
+            $Target.ContainsKey($Key) -and
+            $Target[$Key] -is [hashtable]
+        ) {
+            Merge-Hashtable -Target $Target[$Key] -Source $Source[$Key]
+        }
+        else {
+            $Target[$Key] = $Source[$Key]
+        }
+    }
+}
+
+function Get-ManagedVsCodeSetting {
+    param([Parameter(Mandatory = $true)]$Manifest)
+
+    $SettingsProfile = Get-PropertyValue `
+        -Object $Manifest.managed_settings `
+        -Name "vscode_course_defaults"
+    if ($null -eq $SettingsProfile) {
+        throw "The controlled VS Code settings profile is missing."
+    }
+
+    $ManagedSettings = ConvertTo-Hashtable -InputObject $SettingsProfile.values
+    $ImplementationSettings = @{
+        "files.autoSave" = "afterDelay"
+        "files.autoSaveDelay" = 1000
+        "files.trimTrailingWhitespace" = $true
+        "files.insertFinalNewline" = $true
+        "terminal.integrated.defaultProfile.windows" = "PowerShell"
+        "python.defaultInterpreterPath" = $VenvPython
+        "python.testing.pytestArgs" = @(".")
+        "cSpell.language" = "en"
+        "files.defaultFolder" = $CourseRoot
+        "workbench.editorAssociations" = @{
+            "README.md" = "vscode.markdown.preview.editor"
+            "*_srs.md" = "vscode.markdown.preview.editor"
+            "*_sdd.md" = "vscode.markdown.preview.editor"
+        }
+        "settingsSync.ignoredSettings" = @(
+            "python.defaultInterpreterPath",
+            "files.defaultFolder"
+        )
+    }
+    Merge-Hashtable -Target $ManagedSettings -Source $ImplementationSettings
+    return $ManagedSettings
+}
+
+function Test-ManagedSettingValue {
+    param(
+        [Parameter(Mandatory = $true)]$Observed,
         [Parameter(Mandatory = $true)]$Expected
     )
 
-    $Property = $Settings.PSObject.Properties[$PropertyName]
-    if ($null -eq $Property) {
-        return $false
+    if ($Expected -is [hashtable]) {
+        if ($Observed -isnot [pscustomobject] -and $Observed -isnot [hashtable]) {
+            return $false
+        }
+        foreach ($Key in $Expected.Keys) {
+            if ($Observed -is [hashtable]) {
+                if (-not $Observed.ContainsKey($Key)) {
+                    return $false
+                }
+                $ObservedValue = $Observed[$Key]
+            }
+            else {
+                $ObservedProperty = $Observed.PSObject.Properties[$Key]
+                if ($null -eq $ObservedProperty) {
+                    return $false
+                }
+                $ObservedValue = $ObservedProperty.Value
+            }
+            if (-not (
+                Test-ManagedSettingValue `
+                    -Observed $ObservedValue `
+                    -Expected $Expected[$Key]
+            )) {
+                return $false
+            }
+        }
+        return $true
     }
 
     return (
-        ($Property.Value | ConvertTo-Json -Compress -Depth 20) -eq
-        ($Expected | ConvertTo-Json -Compress -Depth 20)
+        ($Observed | ConvertTo-Json -Compress -Depth 30) -ceq
+        ($Expected | ConvertTo-Json -Compress -Depth 30)
     )
 }
 
-function Test-PendingRestart {
-    $Paths = @(
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\" +
-            "Component Based Servicing\RebootPending",
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\" +
-            "WindowsUpdate\Auto Update\RebootRequired"
-    )
+function Test-PowerShellScript {
+    param([Parameter(Mandatory = $true)][string]$Path)
 
-    foreach ($Path in $Paths) {
-        if (Test-Path -LiteralPath $Path) {
+    $Tokens = $null
+    $ParseErrors = $null
+    $null = [Management.Automation.Language.Parser]::ParseFile(
+        $Path,
+        [ref]$Tokens,
+        [ref]$ParseErrors
+    )
+    if ($ParseErrors.Count -gt 0) {
+        $Messages = @($ParseErrors | ForEach-Object { $_.Message }) -join "; "
+        throw "PowerShell validation failed. $Messages"
+    }
+}
+
+function Get-ScriptVersion {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $ScriptText = Get-Content -LiteralPath $Path -Raw
+    $VersionMatch = [regex]::Match(
+        $ScriptText,
+        '(?m)^\$ScriptVersion\s*=\s*"(?<version>[0-9]+(?:\.[0-9]+)+)"'
+    )
+    if (-not $VersionMatch.Success) {
+        throw "A numeric script version could not be read."
+    }
+    return $VersionMatch.Groups["version"].Value
+}
+
+function Get-ShortcutDefinition {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $ShellApplication = New-Object -ComObject WScript.Shell
+    $Shortcut = $ShellApplication.CreateShortcut($Path)
+    return [pscustomobject]@{
+        TargetPath = [string]$Shortcut.TargetPath
+        Arguments = [string]$Shortcut.Arguments
+        WorkingDirectory = [string]$Shortcut.WorkingDirectory
+    }
+}
+
+function Test-PendingRestart {
+    $RestartRegistryPaths = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending",
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
+    )
+    foreach ($RegistryPath in $RestartRegistryPaths) {
+        if (Test-Path -LiteralPath $RegistryPath) {
             return $true
         }
     }
 
     try {
         $SessionManager = Get-ItemProperty `
-            -LiteralPath (
-                "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager"
-            )
+            -LiteralPath "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager"
         if ($null -ne $SessionManager.PendingFileRenameOperations) {
             return $true
         }
     }
     catch {
+        # Best-effort operation; preserve the primary result.
     }
-
     return $false
 }
 
-function New-SupportBundle {
-    param([Parameter(Mandatory = $true)]$WindowsFacts)
+function Test-WinGetPackageInstalled {
+    param([Parameter(Mandatory = $true)][string]$PackageIdentifier)
 
-    if (-not $SupportBundle) {
-        return $null
-    }
-
-    if ($NonInteractive -and -not $ConfirmSupportBundle) {
-        Write-Notice (
-            "Support-bundle creation requires -ConfirmSupportBundle in " +
-            "noninteractive mode."
-        )
-        return $null
-    }
-
-    if (-not $ConfirmSupportBundle) {
-        Write-Host ""
-        Write-Notice (
-            "The bundle will contain only the sanitized verification report, " +
-            "platform facts, and version summary."
-        )
-        Write-Notice (
-            "It will not contain student files, repository contents, Git " +
-            "history, credentials, tokens, browser data, or a complete email."
-        )
-        $Answer = Read-Host "Type YES to create the support bundle"
-        if ($Answer -cne "YES") {
-            Write-Notice "Support-bundle creation was canceled."
-            return $null
-        }
-    }
-
-    $Timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $Staging = Join-Path $env:TEMP "it140-support-$Timestamp"
-    $ZipPath = Join-Path $LogDirectory "it140_support_win_$Timestamp.zip"
-
-    New-Item -ItemType Directory -Path $Staging -Force | Out-Null
-    try {
-        $Results |
-            Select-Object CheckId, Status, Detail, Remediation |
-            ConvertTo-Json -Depth 10 |
-            Set-Content `
-                -LiteralPath (Join-Path $Staging "verification.json") `
-                -Encoding UTF8
-
-        [pscustomobject]@{
-            Platform = "windows"
-            DeploymentProfile = $DeploymentProfile
-            Caption = $WindowsFacts.Caption
-            DisplayVersion = $WindowsFacts.DisplayVersion
-            BuildNumber = $WindowsFacts.BuildNumber
-            Architecture = $WindowsFacts.Architecture
-            ScriptVersion = $ScriptVersion
-        } |
-            ConvertTo-Json |
-            Set-Content `
-                -LiteralPath (Join-Path $Staging "platform.json") `
-                -Encoding UTF8
-
-        $VersionLines = @()
-        foreach ($Command in @("git.exe", "gh.exe", "python.exe", "code.cmd")) {
-            if (Test-CommandAvailable $Command) {
-                $Output = & $Command --version 2>&1
-                $VersionLines += "$Command : $($Output[0])"
-            }
-        }
-        $VersionLines |
-            Set-Content `
-                -LiteralPath (Join-Path $Staging "versions.txt") `
-                -Encoding UTF8
-
-        Compress-Archive `
-            -Path (Join-Path $Staging "*") `
-            -DestinationPath $ZipPath `
-            -Force
-    }
-    finally {
-        Remove-Item -LiteralPath $Staging -Recurse -Force `
-            -ErrorAction SilentlyContinue
-    }
-
-    return $ZipPath
+    & winget.exe list `
+        --id $PackageIdentifier `
+        --exact `
+        --source winget `
+        --accept-source-agreements `
+        --disable-interactivity *> $null
+    return $LASTEXITCODE -eq 0
 }
 
-function Show-Usage {
-    @"
-IT 140 Windows verification script
-
-Usage:
-  powershell.exe -ExecutionPolicy Bypass -File .\verify_win.ps1
-  powershell.exe -ExecutionPolicy Bypass -File .\verify_win.ps1 -SupportBundle
-  powershell.exe -ExecutionPolicy Bypass -File .\verify_win.ps1 -Help
-
-This script does not install, repair, update, or rewrite managed settings.
-Logs: $LogDirectory
-"@ | Write-Host
-}
-
-try {
-    New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null
-    Start-Transcript -Path $LogPath -Append -Force | Out-Null
-    $TranscriptStarted = $true
-
-    if ($Help) {
-        Show-Usage
-        $ExitCode = 0
-        return
-    }
-
-    if ($Version) {
-        Write-Host $ScriptVersion
-        $ExitCode = 0
-        return
-    }
-
-    Write-Host ""
-    Write-Host "============================================================"
-    Write-Host "IT 140 WINDOWS VERIFICATION"
-    Write-Host "============================================================"
-    Write-Info "Script version : $ScriptVersion"
-    Write-Info "Log file       : $LogPath"
-
-    try {
-        $Controlled = Read-ControlledManifest
-        Add-CheckResult `
-            -CheckId "manifest" `
-            -Status "PASS" `
-            -Detail (
-                "Release {0}" -f $Controlled.Manifest.automation_release
-            ) `
-            -Remediation "update"
-    }
-    catch {
-        $ManifestFailure = $true
-        Add-CheckResult `
-            -CheckId "manifest" `
-            -Status "FAIL" `
-            -Detail $_.Exception.Message `
-            -Remediation "update"
-        throw
-    }
-
-    $WindowsFacts = Get-WindowsFacts
-    $SupportedReleases = @(
-        $Controlled.Platform.os.releases |
-            ForEach-Object { [string]$_.release_id }
+function Test-PlatformContext {
+    param(
+        [Parameter(Mandatory = $true)]$Platform,
+        [Parameter(Mandatory = $true)]$ObservedWindowsFacts
     )
 
-    if ($WindowsFacts.Caption -match "Windows 11") {
+    if (Test-IsAdministrator) {
         Add-CheckResult `
-            -CheckId "operating_system" `
-            -Status "PASS" `
-            -Detail $WindowsFacts.Caption `
-            -Remediation "technical_support"
+            -CheckId "verify.user_context" `
+            -Status "FAIL" `
+            -Detail "Verification is running from an elevated terminal." `
+            -Remediation (
+                "Close this window and rerun verify_win.ps1 from a normal " +
+                "PowerShell window."
+            )
     }
     else {
-        $UnsupportedFailure = $true
         Add-CheckResult `
-            -CheckId "operating_system" `
-            -Status "FAIL" `
-            -Detail $WindowsFacts.Caption `
-            -Remediation "technical_support"
+            -CheckId "verify.user_context" `
+            -Status "PASS" `
+            -Detail "Normal, non-elevated user context"
     }
 
-    if ($WindowsFacts.DisplayVersion -in $SupportedReleases) {
+    if ($ObservedWindowsFacts.Caption -match "Windows 11") {
         Add-CheckResult `
-            -CheckId "os_release" `
+            -CheckId "verify.operating_system" `
             -Status "PASS" `
-            -Detail $WindowsFacts.DisplayVersion `
-            -Remediation "technical_support"
+            -Detail $ObservedWindowsFacts.Caption
     }
     else {
-        $UnsupportedFailure = $true
+        $script:UnsupportedFailure = $true
         Add-CheckResult `
-            -CheckId "os_release" `
+            -CheckId "verify.operating_system" `
             -Status "FAIL" `
-            -Detail (
-                "Unsupported release: {0}" -f $WindowsFacts.DisplayVersion
-            ) `
-            -Remediation "technical_support"
+            -Detail $ObservedWindowsFacts.Caption `
+            -Remediation "Use a supported Windows 11 computer or contact technical support."
     }
 
-    if ($WindowsFacts.Architecture -match "64-bit") {
+    $SupportedReleases = @(
+        $Platform.os.releases | ForEach-Object { [string]$_.release_id }
+    )
+    if ($ObservedWindowsFacts.DisplayVersion -in $SupportedReleases) {
         Add-CheckResult `
-            -CheckId "architecture" `
+            -CheckId "verify.os_release" `
             -Status "PASS" `
-            -Detail $WindowsFacts.Architecture `
-            -Remediation "technical_support"
+            -Detail $ObservedWindowsFacts.DisplayVersion
     }
     else {
-        $UnsupportedFailure = $true
+        $script:UnsupportedFailure = $true
         Add-CheckResult `
-            -CheckId "architecture" `
+            -CheckId "verify.os_release" `
             -Status "FAIL" `
-            -Detail $WindowsFacts.Architecture `
-            -Remediation "technical_support"
+            -Detail "Unsupported Windows release: $($ObservedWindowsFacts.DisplayVersion)" `
+            -Remediation (
+                "Update Windows to a course-supported release or contact " +
+                "technical support."
+            )
     }
+
+    if ($ObservedWindowsFacts.Architecture -match "64-bit") {
+        Add-CheckResult `
+            -CheckId "verify.architecture" `
+            -Status "PASS" `
+            -Detail $ObservedWindowsFacts.Architecture
+    }
+    else {
+        $script:UnsupportedFailure = $true
+        Add-CheckResult `
+            -CheckId "verify.architecture" `
+            -Status "FAIL" `
+            -Detail $ObservedWindowsFacts.Architecture `
+            -Remediation "Use a supported x64 Windows computer or contact technical support."
+    }
+}
+
+function Test-DiskAndNetwork {
+    param([Parameter(Mandatory = $true)]$Manifest)
 
     $FreeBytes = (Get-PSDrive -Name $env:SystemDrive.TrimEnd(":")).Free
-    $MinimumBytes = [int64]$Controlled.Manifest.policy.minimum_free_space_bytes
+    $MinimumBytes = [int64]$Manifest.policy.minimum_free_space_bytes
     if ($FreeBytes -ge $MinimumBytes) {
         Add-CheckResult `
-            -CheckId "disk_space" `
+            -CheckId "verify.disk_space" `
             -Status "PASS" `
-            -Detail ("{0:N1} GB free" -f ($FreeBytes / 1GB)) `
-            -Remediation "technical_support"
+            -Detail ("{0:N1} GB free" -f ($FreeBytes / 1GB))
     }
     else {
         Add-CheckResult `
-            -CheckId "disk_space" `
+            -CheckId "verify.disk_space" `
             -Status "FAIL" `
             -Detail ("{0:N1} GB free" -f ($FreeBytes / 1GB)) `
-            -Remediation "technical_support"
+            -Remediation (
+                "Remove unneeded user-owned files until at least 5 GB is " +
+                "free, then rerun verify_win.ps1."
+            )
+    }
+
+    if ($SkipNetwork) {
+        Add-CheckResult `
+            -CheckId "verify.network" `
+            -Status "NOT APPLICABLE" `
+            -Detail "Network check skipped by request"
+        return
     }
 
     try {
+        $TimeoutSeconds = [int]$Manifest.policy.network_timeout_seconds
         $Response = Invoke-WebRequest `
             -Uri "https://github.com/GC-STEM/it140" `
             -Method Head `
-            -TimeoutSec 15 `
+            -TimeoutSec $TimeoutSeconds `
             -UseBasicParsing
         Add-CheckResult `
-            -CheckId "network" `
+            -CheckId "verify.network" `
             -Status "PASS" `
-            -Detail ("HTTP {0}" -f $Response.StatusCode) `
-            -Remediation "technical_support"
+            -Detail ("Course repository responded with HTTP {0}" -f $Response.StatusCode)
     }
     catch {
         Add-CheckResult `
-            -CheckId "network" `
+            -CheckId "verify.network" `
             -Status "WARNING" `
-            -Detail "The course repository did not respond within the check." `
-            -Remediation "technical_support"
+            -Detail "The course repository did not respond within the verification check." `
+            -Remediation (
+                "Confirm internet access and retry later if update or " +
+                "authentication also fails."
+            )
+    }
+}
+
+function Test-SystemLayer {
+    param([Parameter(Mandatory = $true)]$Platform)
+
+    if (Test-CommandAvailable "winget.exe") {
+        Add-CheckResult `
+            -CheckId "verify.package_manager" `
+            -Status "PASS" `
+            -Detail "Windows Package Manager is available"
+    }
+    else {
+        Add-CheckResult `
+            -CheckId "verify.package_manager" `
+            -Status "FAIL" `
+            -Detail "Windows Package Manager is missing" `
+            -Remediation "Run setup_win.ps1 from an elevated PowerShell window."
     }
 
-    foreach ($Command in @("winget.exe", "git.exe", "gh.exe", "python.exe", "code.cmd")) {
-        if (Test-CommandAvailable $Command) {
+    $SystemBindings = Get-SystemPackageBinding -Platform $Platform
+    foreach ($Binding in $SystemBindings) {
+        if (
+            (Test-CommandAvailable "winget.exe") -and
+            (Test-WinGetPackageInstalled -PackageIdentifier $Binding.PackageIdentifier)
+        ) {
             Add-CheckResult `
-                -CheckId ("command.{0}" -f $Command) `
+                -CheckId ("verify.package.{0}" -f $Binding.Role) `
                 -Status "PASS" `
-                -Detail "Available" `
-                -Remediation "setup"
+                -Detail $Binding.PackageIdentifier
         }
         else {
             Add-CheckResult `
-                -CheckId ("command.{0}" -f $Command) `
+                -CheckId ("verify.package.{0}" -f $Binding.Role) `
                 -Status "FAIL" `
-                -Detail "Missing" `
-                -Remediation "setup"
+                -Detail "Missing or not reported: $($Binding.PackageIdentifier)" `
+                -Remediation (
+                    "Run update_win.ps1; if it cannot repair the package, " +
+                    "run setup_win.ps1."
+                )
+        }
+
+        foreach ($ExecutableName in @($Binding.ExecutableNames)) {
+            if (Test-CommandAvailable $ExecutableName) {
+                $VersionOutput = @(& $ExecutableName --version 2>&1)
+                $VersionDetail = if ($VersionOutput.Count -gt 0) {
+                    [string]$VersionOutput[0]
+                }
+                else {
+                    "Available"
+                }
+                Add-CheckResult `
+                    -CheckId ("verify.capability.{0}" -f $Binding.Role) `
+                    -Status "PASS" `
+                    -Detail $VersionDetail
+            }
+            else {
+                Add-CheckResult `
+                    -CheckId ("verify.capability.{0}" -f $Binding.Role) `
+                    -Status "FAIL" `
+                    -Detail "Required command is missing: $ExecutableName" `
+                    -Remediation (
+                        "Run update_win.ps1; if it cannot repair the " +
+                        "command, run setup_win.ps1."
+                    )
+            }
         }
     }
 
@@ -469,72 +1038,150 @@ try {
         )
         if ($LASTEXITCODE -eq 0 -and [string]$PythonVersion -eq "3.12") {
             Add-CheckResult `
-                -CheckId "python.version" `
+                -CheckId "verify.python_version" `
                 -Status "PASS" `
-                -Detail "Python 3.12" `
-                -Remediation "setup"
+                -Detail "Python 3.12"
         }
         else {
             Add-CheckResult `
-                -CheckId "python.version" `
+                -CheckId "verify.python_version" `
                 -Status "FAIL" `
-                -Detail "Python 3.12 is not active." `
-                -Remediation "setup"
+                -Detail "Python 3.12 is not the active Windows runtime." `
+                -Remediation "Run setup_win.ps1 from an elevated PowerShell window."
         }
+    }
+}
+
+function Test-UserLayer {
+    param(
+        [Parameter(Mandatory = $true)]$Manifest,
+        [Parameter(Mandatory = $true)]$Platform
+    )
+
+    $FoldersPresent = $true
+    foreach ($RequiredDirectory in @($CourseRoot, $LogDirectory, $WindowsScriptDirectory)) {
+        if (-not (Test-Path -LiteralPath $RequiredDirectory -PathType Container)) {
+            $FoldersPresent = $false
+        }
+    }
+    if ($FoldersPresent) {
+        Add-CheckResult `
+            -CheckId "verify.course_folders" `
+            -Status "PASS" `
+            -Detail "Course root, log, and Windows script directories are present"
+    }
+    else {
+        Add-CheckResult `
+            -CheckId "verify.course_folders" `
+            -Status "FAIL" `
+            -Detail "One or more required course directories are missing." `
+            -Remediation "Run bootstrap_win.ps1 again, then config_win.ps1."
+    }
+
+    $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $UserPathReady = $true
+    foreach ($ManagedPath in @($VenvScriptsDirectory, $WindowsScriptDirectory)) {
+        if (-not (Test-PathContainsEntry -PathValue $UserPath -ExpectedEntry $ManagedPath)) {
+            $UserPathReady = $false
+        }
+    }
+    if ($UserPathReady) {
+        Add-CheckResult `
+            -CheckId "verify.user_path" `
+            -Status "PASS" `
+            -Detail "Course Python and Windows script directories are in the user PATH"
+    }
+    else {
+        Add-CheckResult `
+            -CheckId "verify.user_path" `
+            -Status "FAIL" `
+            -Detail "The persistent user PATH is incomplete." `
+            -Remediation "Run config_win.ps1 from a normal PowerShell window."
+    }
+
+    $CurrentPathReady = $true
+    foreach ($ManagedPath in @($VenvScriptsDirectory, $WindowsScriptDirectory)) {
+        if (-not (Test-PathContainsEntry -PathValue $env:Path -ExpectedEntry $ManagedPath)) {
+            $CurrentPathReady = $false
+        }
+    }
+    if ($CurrentPathReady) {
+        Add-CheckResult `
+            -CheckId "verify.current_path" `
+            -Status "PASS" `
+            -Detail "The current PowerShell PATH contains both course directories"
+    }
+    else {
+        Add-CheckResult `
+            -CheckId "verify.current_path" `
+            -Status "FAIL" `
+            -Detail "The current PowerShell window has an outdated PATH." `
+            -Remediation "Close this PowerShell window, open a new one, and rerun verify_win.ps1."
     }
 
     if (Test-Path -LiteralPath $VenvPython -PathType Leaf) {
-        Add-CheckResult `
-            -CheckId "python.venv" `
-            -Status "PASS" `
-            -Detail $VenvDirectory `
-            -Remediation "configure"
-
-        foreach ($Package in @("pytest", "pytest-cov", "ruff")) {
-            & $VenvPython -m pip show $Package *> $null
-            if ($LASTEXITCODE -eq 0) {
-                Add-CheckResult `
-                    -CheckId ("python.package.{0}" -f $Package) `
-                    -Status "PASS" `
-                    -Detail "Installed" `
-                    -Remediation "configure"
-            }
-            else {
-                Add-CheckResult `
-                    -CheckId ("python.package.{0}" -f $Package) `
-                    -Status "FAIL" `
-                    -Detail "Missing" `
-                    -Remediation "configure"
-            }
+        $VenvVersion = & $VenvPython -c (
+            "import sys; print('.'.join(map(str, sys.version_info[:2])))"
+        )
+        if ($LASTEXITCODE -eq 0 -and [string]$VenvVersion -eq "3.12") {
+            Add-CheckResult `
+                -CheckId "verify.virtual_environment" `
+                -Status "PASS" `
+                -Detail $VenvDirectory
+        }
+        else {
+            Add-CheckResult `
+                -CheckId "verify.virtual_environment" `
+                -Status "FAIL" `
+                -Detail "The course virtual environment does not use Python 3.12." `
+                -Remediation "Run config_win.ps1 from a normal PowerShell window."
         }
     }
     else {
         Add-CheckResult `
-            -CheckId "python.venv" `
+            -CheckId "verify.virtual_environment" `
             -Status "FAIL" `
-            -Detail "Course virtual environment is missing." `
-            -Remediation "configure"
+            -Detail "The course virtual environment is missing." `
+            -Remediation "Run config_win.ps1 from a normal PowerShell window."
+    }
+
+    if (Test-Path -LiteralPath $VenvPython -PathType Leaf) {
+        foreach ($PackageName in (Get-RequiredPythonPackage -Platform $Platform)) {
+            & $VenvPython -m pip show $PackageName *> $null
+            if ($LASTEXITCODE -eq 0) {
+                Add-CheckResult `
+                    -CheckId ("verify.user_tool.{0}" -f $PackageName) `
+                    -Status "PASS" `
+                    -Detail "Installed"
+            }
+            else {
+                Add-CheckResult `
+                    -CheckId ("verify.user_tool.{0}" -f $PackageName) `
+                    -Status "FAIL" `
+                    -Detail "Missing" `
+                    -Remediation "Run config_win.ps1 from a normal PowerShell window."
+            }
+        }
     }
 
     if (Test-CommandAvailable "code.cmd") {
         $InstalledExtensions = @(
             & code.cmd --list-extensions 2>$null |
-                ForEach-Object { $_.Trim().ToLowerInvariant() }
+                ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
         )
-        foreach ($Extension in Get-RequiredExtensions $Controlled.Platform) {
-            if ($Extension.ToLowerInvariant() -in $InstalledExtensions) {
+        foreach ($ExtensionId in (Get-RequiredExtension -Platform $Platform)) {
+            if ($ExtensionId.ToLowerInvariant() -in $InstalledExtensions) {
                 Add-CheckResult `
-                    -CheckId ("extension.{0}" -f $Extension) `
+                    -CheckId ("verify.extension.{0}" -f $ExtensionId) `
                     -Status "PASS" `
-                    -Detail "Installed" `
-                    -Remediation "configure"
+                    -Detail "Installed"
             }
             else {
                 Add-CheckResult `
-                    -CheckId ("extension.{0}" -f $Extension) `
+                    -CheckId ("verify.extension.{0}" -f $ExtensionId) `
                     -Status "FAIL" `
                     -Detail "Missing" `
-                    -Remediation "configure"
+                    -Remediation "Run config_win.ps1 from a normal PowerShell window."
             }
         }
     }
@@ -543,255 +1190,587 @@ try {
         & gh.exe auth status --hostname github.com *> $null
         if ($LASTEXITCODE -eq 0) {
             Add-CheckResult `
-                -CheckId "github.authentication" `
+                -CheckId "verify.github_authentication" `
                 -Status "PASS" `
-                -Detail "Authenticated" `
-                -Remediation "configure"
+                -Detail "Authenticated to github.com"
         }
         else {
             Add-CheckResult `
-                -CheckId "github.authentication" `
+                -CheckId "verify.github_authentication" `
                 -Status "FAIL" `
-                -Detail "Not authenticated" `
-                -Remediation "configure"
+                -Detail "GitHub CLI is not authenticated." `
+                -Remediation "Run config_win.ps1 from a normal PowerShell window."
         }
     }
 
     if (Test-CommandAvailable "git.exe") {
-        $GitName = (& git.exe config --global --get user.name).Trim()
-        $GitEmail = (& git.exe config --global --get user.email).Trim()
-
-        if ($GitName) {
+        $GitDisplayName = Get-GitConfigValue -Key "user.name"
+        if ([string]::IsNullOrWhiteSpace($GitDisplayName)) {
             Add-CheckResult `
-                -CheckId "git.user_name" `
-                -Status "PASS" `
-                -Detail "Configured" `
-                -Remediation "configure"
+                -CheckId "verify.git_display_name" `
+                -Status "FAIL" `
+                -Detail "The Git display name is missing." `
+                -Remediation "Run config_win.ps1 from a normal PowerShell window."
         }
         else {
             Add-CheckResult `
-                -CheckId "git.user_name" `
-                -Status "FAIL" `
-                -Detail "Missing" `
-                -Remediation "configure"
+                -CheckId "verify.git_display_name" `
+                -Status "PASS" `
+                -Detail "Configured"
         }
 
-        if (
-            $GitEmail -match
-            "^[0-9]+\+[^@\s]+@users\.noreply\.github\.com$"
-        ) {
+        $GitEmail = Get-GitConfigValue -Key "user.email"
+        if ($GitEmail -match "^[0-9]+\+[^@\s]+@users\.noreply\.github\.com$") {
             Add-CheckResult `
-                -CheckId "git.private_email" `
+                -CheckId "verify.git_private_identity" `
                 -Status "PASS" `
-                -Detail "Private GitHub noreply address configured" `
-                -Remediation "configure"
+                -Detail "Private GitHub noreply identity configured"
         }
         else {
             Add-CheckResult `
-                -CheckId "git.private_email" `
+                -CheckId "verify.git_private_identity" `
                 -Status "FAIL" `
-                -Detail "Privacy-preserving address is not configured." `
-                -Remediation "configure"
+                -Detail "The privacy-preserving GitHub noreply identity is not configured." `
+                -Remediation "Run config_win.ps1 from a normal PowerShell window."
         }
 
         $GitSettings = Get-PropertyValue `
-            -Object $Controlled.Manifest.managed_settings `
+            -Object $Manifest.managed_settings `
             -Name "git_course_defaults"
-        foreach ($Property in $GitSettings.values.PSObject.Properties) {
-            $Observed = (& git.exe config --global --get $Property.Name).Trim()
-            $Expected = $Property.Value
-            if ($Expected -is [bool]) {
-                $Expected = $Expected.ToString().ToLowerInvariant()
+        foreach ($PropertyRecord in $GitSettings.values.PSObject.Properties) {
+            $ExpectedValue = $PropertyRecord.Value
+            if ($ExpectedValue -is [bool]) {
+                $ExpectedValue = $ExpectedValue.ToString().ToLowerInvariant()
             }
-            if ($Observed -ceq [string]$Expected) {
-                $Status = "PASS"
-                $Detail = [string]$Expected
+            $ObservedValue = Get-GitConfigValue -Key $PropertyRecord.Name
+            if ($ObservedValue -ceq [string]$ExpectedValue) {
+                Add-CheckResult `
+                    -CheckId ("verify.git_setting.{0}" -f $PropertyRecord.Name) `
+                    -Status "PASS" `
+                    -Detail ([string]$ExpectedValue)
             }
             else {
-                $Status = "FAIL"
-                $Detail = "Expected '$Expected'; observed '$Observed'"
+                Add-CheckResult `
+                    -CheckId ("verify.git_setting.{0}" -f $PropertyRecord.Name) `
+                    -Status "FAIL" `
+                    -Detail "Expected '$ExpectedValue'; observed '$ObservedValue'" `
+                    -Remediation "Run config_win.ps1 from a normal PowerShell window."
             }
-            Add-CheckResult `
-                -CheckId ("git.setting.{0}" -f $Property.Name) `
-                -Status $Status `
-                -Detail $Detail `
-                -Remediation "configure"
-        }
-    }
-
-    $UserPath = [Environment]::GetEnvironmentVariable("Path", "User") -split ";"
-    foreach ($Entry in @($WindowsScriptDirectory, $VenvScripts)) {
-        if ($Entry -in $UserPath) {
-            Add-CheckResult `
-                -CheckId ("path.{0}" -f (Split-Path $Entry -Leaf)) `
-                -Status "PASS" `
-                -Detail "Present in user PATH" `
-                -Remediation "configure"
-        }
-        else {
-            Add-CheckResult `
-                -CheckId ("path.{0}" -f (Split-Path $Entry -Leaf)) `
-                -Status "FAIL" `
-                -Detail "Missing from user PATH" `
-                -Remediation "configure"
         }
     }
 
     if (Test-Path -LiteralPath $VsCodeSettings -PathType Leaf) {
         try {
-            $Settings = Get-Content -LiteralPath $VsCodeSettings -Raw |
+            $ObservedSettings = Get-Content -LiteralPath $VsCodeSettings -Raw |
                 ConvertFrom-Json
-            $SettingsProfile = Get-PropertyValue `
-                -Object $Controlled.Manifest.managed_settings `
-                -Name "vscode_course_defaults"
-
-            foreach ($Property in $SettingsProfile.values.PSObject.Properties) {
-                if (
-                    Test-JsonSettingValue `
-                        -Settings $Settings `
-                        -PropertyName $Property.Name `
-                        -Expected $Property.Value
-                ) {
-                    $Status = "PASS"
-                    $Detail = "Managed value present"
-                }
-                else {
-                    $Status = "FAIL"
-                    $Detail = "Managed value missing or different"
-                }
-
+            $ExpectedSettings = Get-ManagedVsCodeSetting -Manifest $Manifest
+            if (Test-ManagedSettingValue -Observed $ObservedSettings -Expected $ExpectedSettings) {
                 Add-CheckResult `
-                    -CheckId ("vscode.setting.{0}" -f $Property.Name) `
-                    -Status $Status `
-                    -Detail $Detail `
-                    -Remediation "configure"
-            }
-
-            if (
-                Test-JsonSettingValue `
-                    -Settings $Settings `
-                    -PropertyName "python.defaultInterpreterPath" `
-                    -Expected $VenvPython
-            ) {
-                Add-CheckResult `
-                    -CheckId "vscode.python_path" `
+                    -CheckId "verify.vscode_settings" `
                     -Status "PASS" `
-                    -Detail "Course virtual environment selected" `
-                    -Remediation "configure"
+                    -Detail "All course-managed settings are present"
             }
             else {
                 Add-CheckResult `
-                    -CheckId "vscode.python_path" `
+                    -CheckId "verify.vscode_settings" `
                     -Status "FAIL" `
-                    -Detail "Course virtual environment is not selected." `
-                    -Remediation "configure"
+                    -Detail "One or more course-managed settings are missing or different." `
+                    -Remediation "Run config_win.ps1 from a normal PowerShell window."
             }
         }
         catch {
             Add-CheckResult `
-                -CheckId "vscode.settings" `
+                -CheckId "verify.vscode_settings" `
                 -Status "FAIL" `
-                -Detail "settings.json is not valid JSON." `
-                -Remediation "technical_support"
+                -Detail "The VS Code settings file is not a valid JSON object." `
+                -Remediation (
+                    "Preserve the file and contact course or technical " +
+                    "support before rerunning config_win.ps1."
+                )
         }
     }
     else {
         Add-CheckResult `
-            -CheckId "vscode.settings" `
+            -CheckId "verify.vscode_settings" `
             -Status "FAIL" `
-            -Detail "settings.json is missing." `
-            -Remediation "configure"
+            -Detail "The VS Code settings file is missing." `
+            -Remediation "Run config_win.ps1 from a normal PowerShell window."
     }
 
-    $ShortcutPath = Join-Path `
-        ([Environment]::GetFolderPath("Desktop")) `
-        "IT 140.lnk"
-    if (Test-Path -LiteralPath $ShortcutPath -PathType Leaf) {
-        Add-CheckResult `
-            -CheckId "desktop.shortcut" `
-            -Status "PASS" `
-            -Detail "IT 140 shortcut exists" `
-            -Remediation "configure"
+    if (Test-Path -LiteralPath $CourseShortcutPath -PathType Leaf) {
+        try {
+            $CourseShortcut = Get-ShortcutDefinition -Path $CourseShortcutPath
+            if (
+                $CourseShortcut.TargetPath -ieq "$env:SystemRoot\explorer.exe" -and
+                $CourseShortcut.Arguments -like "*$CourseRoot*"
+            ) {
+                Add-CheckResult `
+                    -CheckId "verify.desktop_shortcut.course" `
+                    -Status "PASS" `
+                    -Detail "Present and targets the IT 140 course folder"
+            }
+            else {
+                throw "The shortcut target is not the IT 140 course folder."
+            }
+        }
+        catch {
+            Add-CheckResult `
+                -CheckId "verify.desktop_shortcut.course" `
+                -Status "FAIL" `
+                -Detail $_.Exception.Message `
+                -Remediation "Run config_win.ps1 from a normal PowerShell window."
+        }
     }
     else {
         Add-CheckResult `
-            -CheckId "desktop.shortcut" `
+            -CheckId "verify.desktop_shortcut.course" `
             -Status "FAIL" `
-            -Detail "IT 140 shortcut is missing." `
-            -Remediation "configure"
+            -Detail "Missing" `
+            -Remediation "Run config_win.ps1 from a normal PowerShell window."
+    }
+
+    if (Test-Path -LiteralPath $VsCodeShortcutPath -PathType Leaf) {
+        try {
+            $VsCodeShortcut = Get-ShortcutDefinition -Path $VsCodeShortcutPath
+            if (
+                (Test-Path -LiteralPath $VsCodeShortcut.TargetPath -PathType Leaf) -and
+                $VsCodeShortcut.Arguments -like "*$CourseRoot*"
+            ) {
+                Add-CheckResult `
+                    -CheckId "verify.desktop_shortcut.vscode" `
+                    -Status "PASS" `
+                    -Detail "Present and opens the IT 140 course folder"
+            }
+            else {
+                throw "The VS Code shortcut target or course-folder argument is invalid."
+            }
+        }
+        catch {
+            Add-CheckResult `
+                -CheckId "verify.desktop_shortcut.vscode" `
+                -Status "FAIL" `
+                -Detail $_.Exception.Message `
+                -Remediation "Run config_win.ps1 from a normal PowerShell window."
+        }
+    }
+    else {
+        Add-CheckResult `
+            -CheckId "verify.desktop_shortcut.vscode" `
+            -Status "FAIL" `
+            -Detail "Missing" `
+            -Remediation "Run config_win.ps1 from a normal PowerShell window."
     }
 
     foreach ($ScriptName in @(
         "setup_win.ps1",
         "config_win.ps1",
-        "verify_win.ps1",
-        "update_win.ps1"
+        "update_win.ps1",
+        "verify_win.ps1"
     )) {
-        $ScriptPath = Join-Path $WindowsScriptDirectory $ScriptName
-        if (Test-Path -LiteralPath $ScriptPath -PathType Leaf) {
+        $LifecycleScript = Join-Path $WindowsScriptDirectory $ScriptName
+        if (-not (Test-Path -LiteralPath $LifecycleScript -PathType Leaf)) {
             Add-CheckResult `
-                -CheckId ("script.{0}" -f $ScriptName) `
+                -CheckId ("verify.script.{0}" -f $ScriptName) `
+                -Status "FAIL" `
+                -Detail "Missing" `
+                -Remediation "Run update_win.ps1 from a normal PowerShell window."
+            continue
+        }
+
+        try {
+            Test-PowerShellScript -Path $LifecycleScript
+            $LifecycleVersion = Get-ScriptVersion -Path $LifecycleScript
+            Add-CheckResult `
+                -CheckId ("verify.script.{0}" -f $ScriptName) `
                 -Status "PASS" `
-                -Detail "Present" `
-                -Remediation "update"
+                -Detail ("Valid; version {0}" -f $LifecycleVersion)
+        }
+        catch {
+            Add-CheckResult `
+                -CheckId ("verify.script.{0}" -f $ScriptName) `
+                -Status "FAIL" `
+                -Detail $_.Exception.Message `
+                -Remediation "Run update_win.ps1 from a normal PowerShell window."
+        }
+    }
+}
+
+function Test-ManagedAsset {
+    foreach ($AssetRecord in @(
+        [pscustomobject]@{
+            CheckId = "verify.asset.course_manifest"
+            Path = $ManifestPath
+        },
+        [pscustomobject]@{
+            CheckId = "verify.asset.manifest_schema"
+            Path = $SchemaPath
+        }
+    )) {
+        if (Test-Path -LiteralPath $AssetRecord.Path -PathType Leaf) {
+            Add-CheckResult `
+                -CheckId $AssetRecord.CheckId `
+                -Status "PASS" `
+                -Detail "Readable"
         }
         else {
             Add-CheckResult `
-                -CheckId ("script.{0}" -f $ScriptName) `
+                -CheckId $AssetRecord.CheckId `
                 -Status "FAIL" `
                 -Detail "Missing" `
-                -Remediation "update"
+                -Remediation "Run bootstrap_win.ps1 again, then update_win.ps1."
+        }
+    }
+}
+
+function Get-ResolvedExitCode {
+    if ($ManifestFailure) {
+        return 5
+    }
+    if ($UnsupportedFailure) {
+        return 2
+    }
+    if (@($Results | Where-Object { $_.Status -eq "FAIL" }).Count -gt 0) {
+        return 1
+    }
+    return 0
+}
+
+function Write-VerificationSummary {
+    param([Parameter(Mandatory = $true)][int]$ResolvedExitCode)
+
+    $PassCount = @($Results | Where-Object { $_.Status -eq "PASS" }).Count
+    $WarningCount = @($Results | Where-Object { $_.Status -eq "WARNING" }).Count
+    $FailCount = @($Results | Where-Object { $_.Status -eq "FAIL" }).Count
+    $NotApplicableCount = @(
+        $Results | Where-Object { $_.Status -eq "NOT APPLICABLE" }
+    ).Count
+    $Elapsed = (Get-Date) - $StartTime
+
+    Write-Header "VERIFICATION SUMMARY"
+    Write-Info "Passed           : $PassCount"
+    Write-Info "Warnings         : $WarningCount"
+    Write-Info "Failed           : $FailCount"
+    Write-Info "Not applicable   : $NotApplicableCount"
+    Write-Info ("Elapsed time     : {0:hh\:mm\:ss}" -f $Elapsed)
+    Write-Info "Log file         : $LogPath"
+
+    if ($Remediations.Count -gt 0) {
+        Write-Host ""
+        Write-Host "Remediation and follow-up:"
+        foreach ($Remediation in $Remediations) {
+            Write-Host "- $Remediation"
         }
     }
 
-    if (Test-PendingRestart) {
-        Add-CheckResult `
-            -CheckId "restart" `
-            -Status "WARNING" `
-            -Detail "Windows reports that a restart is pending." `
-            -Remediation "restart"
+    if ($ResolvedExitCode -eq 0) {
+        Write-Host "[SUCCESS] The Windows course environment passed all required checks."
     }
     else {
-        Add-CheckResult `
-            -CheckId "restart" `
-            -Status "PASS" `
-            -Detail "No pending restart was detected." `
-            -Remediation "none"
+        Write-ErrorMessage "One or more required checks failed."
+        Write-Notice "Complete the listed remediation, then rerun verify_win.ps1."
     }
+    Write-Info "Exit code        : $ResolvedExitCode"
+    Write-ClosingNotice
+}
 
-    $FailCount = @($Results | Where-Object { $_.Status -eq "FAIL" }).Count
-    $WarningCount = @(
-        $Results | Where-Object { $_.Status -eq "WARNING" }
-    ).Count
-    $PassCount = @($Results | Where-Object { $_.Status -eq "PASS" }).Count
+function Write-Utf8LfFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Content
+    )
+
+    $LfContent = $Content -replace "`r`n", "`n"
+    $Utf8NoBom = [Text.UTF8Encoding]::new($false)
+    [IO.File]::WriteAllText($Path, $LfContent, $Utf8NoBom)
+}
+
+function Get-SanitizedText {
+    param([Parameter(Mandatory = $true)][string]$Text)
+
+    $SanitizedText = $Text
+    $UserProfile = [Environment]::GetFolderPath("UserProfile")
+    if (-not [string]::IsNullOrWhiteSpace($UserProfile)) {
+        $SanitizedText = $SanitizedText -replace (
+            [regex]::Escape($UserProfile)
+        ), "<USER_HOME>"
+    }
+    $SanitizedText = $SanitizedText -replace (
+        "[0-9]+\+[^@\s]+@users\.noreply\.github\.com"
+    ), "<GITHUB_NOREPLY_EMAIL>"
+    $SanitizedText = $SanitizedText -replace (
+        "(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"
+    ), "<EMAIL>"
+    return $SanitizedText
+}
+
+function New-SupportBundle {
+    if (-not $SupportBundle) {
+        return $null
+    }
 
     Write-Host ""
-    Write-Host "============================================================"
-    Write-Host "VERIFICATION SUMMARY"
-    Write-Host "============================================================"
-    Write-Info "Passed          : $PassCount"
-    Write-Info "Warnings        : $WarningCount"
-    Write-Info "Failed          : $FailCount"
-    Write-Info "Log file        : $LogPath"
+    Write-Header "OPTIONAL SANITIZED SUPPORT BUNDLE"
+    Write-Notice "The bundle will contain:"
+    Write-Host "- A sanitized copy of this verification log"
+    Write-Host "- A sanitized verification-result report"
+    Write-Host "- Manifest and script release information"
+    Write-Host "- Supported Windows platform facts"
+    Write-Host "- Required capability version information"
+    Write-Notice (
+        "The bundle will not contain course work, repositories, Git " +
+        "history, credentials, or browser data."
+    )
 
-    if ($FailCount -eq 0) {
-        Write-Host "[SUCCESS] The Windows course environment passed all required checks."
-        $ExitCode = 0
-    }
-    else {
-        Write-Host "[ERROR] One or more required checks failed." -ForegroundColor Red
+    if ($NonInteractive -and -not $Yes) {
         Write-Notice (
-            "Run the remediation script named in each failed result, then " +
-            "run verify_win.ps1 again."
+            "Support-bundle creation was skipped because noninteractive " +
+            "mode requires -Yes."
         )
-        $ExitCode = 1
+        return $null
     }
+    if (-not $Yes) {
+        $Answer = Read-Host "Type YES to create the support bundle"
+        if ($Answer -cne "YES") {
+            Write-Notice "Support-bundle creation was canceled."
+            return $null
+        }
+    }
+
+    $Timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    $StagingDirectory = Join-Path $env:TEMP "it140-support-$Timestamp"
+    $BundlePath = Join-Path $LogDirectory "it140_support_win_$Timestamp.zip"
+    New-Item -ItemType Directory -Path $StagingDirectory -Force | Out-Null
+
+    try {
+        if (Test-Path -LiteralPath $LogPath -PathType Leaf) {
+            $LogText = Get-Content -LiteralPath $LogPath -Raw
+            Write-Utf8LfFile `
+                -Path (Join-Path $StagingDirectory "verify_win_sanitized.log") `
+                -Content (Get-SanitizedText -Text $LogText)
+        }
+
+        $SanitizedResults = @(
+            $Results | ForEach-Object {
+                [pscustomobject]@{
+                    CheckId = $_.CheckId
+                    Status = $_.Status
+                    Detail = Get-SanitizedText -Text ([string]$_.Detail)
+                    Remediation = Get-SanitizedText -Text ([string]$_.Remediation)
+                }
+            }
+        )
+        $ResultsJson = $SanitizedResults | ConvertTo-Json -Depth 10
+        Write-Utf8LfFile `
+            -Path (Join-Path $StagingDirectory "verification_results.json") `
+            -Content ("$ResultsJson`n")
+
+        $ManifestReleaseValue = "unavailable"
+        if ($null -ne $Controlled) {
+            $ManifestReleaseValue = [string]$Controlled.Manifest.automation_release
+        }
+        $LifecycleVersionSummary = @{}
+        foreach ($ScriptName in @(
+            "setup_win.ps1",
+            "config_win.ps1",
+            "update_win.ps1",
+            "verify_win.ps1"
+        )) {
+            $LifecyclePath = Join-Path $WindowsScriptDirectory $ScriptName
+            try {
+                $LifecycleVersionSummary[$ScriptName] = [string](
+                    Get-ScriptVersion -Path $LifecyclePath
+                )
+            }
+            catch {
+                $LifecycleVersionSummary[$ScriptName] = "unavailable"
+            }
+        }
+
+        $ReleaseSummary = [pscustomobject]@{
+            ManifestRelease = $ManifestReleaseValue
+            SetupScriptVersion = $LifecycleVersionSummary["setup_win.ps1"]
+            ConfigScriptVersion = $LifecycleVersionSummary["config_win.ps1"]
+            UpdateScriptVersion = $LifecycleVersionSummary["update_win.ps1"]
+            VerifyScriptVersion = $LifecycleVersionSummary["verify_win.ps1"]
+        } | ConvertTo-Json -Depth 5
+        Write-Utf8LfFile `
+            -Path (Join-Path $StagingDirectory "release_summary.json") `
+            -Content ("$ReleaseSummary`n")
+
+        $CaptionValue = "unavailable"
+        $DisplayVersionValue = "unavailable"
+        $BuildNumberValue = "unavailable"
+        $ArchitectureValue = "unavailable"
+        if ($null -ne $WindowsFacts) {
+            $CaptionValue = $WindowsFacts.Caption
+            $DisplayVersionValue = $WindowsFacts.DisplayVersion
+            $BuildNumberValue = $WindowsFacts.BuildNumber
+            $ArchitectureValue = $WindowsFacts.Architecture
+        }
+        $PlatformSummary = [pscustomobject]@{
+            Platform = "windows"
+            DeploymentProfile = $DeploymentProfile
+            Caption = $CaptionValue
+            DisplayVersion = $DisplayVersionValue
+            BuildNumber = $BuildNumberValue
+            Architecture = $ArchitectureValue
+        } | ConvertTo-Json -Depth 5
+        Write-Utf8LfFile `
+            -Path (Join-Path $StagingDirectory "platform_facts.json") `
+            -Content ("$PlatformSummary`n")
+
+        $VersionLines = @()
+        foreach ($CommandName in @(
+            "winget.exe",
+            "git.exe",
+            "gh.exe",
+            "python.exe",
+            "code.cmd"
+        )) {
+            if (Test-CommandAvailable $CommandName) {
+                $VersionOutput = @(& $CommandName --version 2>&1)
+                $FirstLine = if ($VersionOutput.Count -gt 0) {
+                    [string]$VersionOutput[0]
+                }
+                else {
+                    "available"
+                }
+                $VersionLines += "$CommandName : $FirstLine"
+            }
+            else {
+                $VersionLines += "$CommandName : unavailable"
+            }
+        }
+        Write-Utf8LfFile `
+            -Path (Join-Path $StagingDirectory "versions.txt") `
+            -Content (($VersionLines -join "`n") + "`n")
+
+        $Inventory = @(
+            "it140 sanitized support bundle"
+            "Included: sanitized verification log"
+            "Included: sanitized verification results"
+            "Included: release summary"
+            "Included: platform facts"
+            "Included: capability versions"
+            "Excluded: student source files"
+            "Excluded: repository contents and version-control history"
+            "Excluded: authentication data and browser data"
+        ) -join "`n"
+        Write-Utf8LfFile `
+            -Path (Join-Path $StagingDirectory "inventory.txt") `
+            -Content ("$Inventory`n")
+
+        $ProhibitedPatterns = @(
+            "github_pat_[A-Za-z0-9_]{20,}",
+            "gh[pousr]_[A-Za-z0-9_]{20,}",
+            "-----BEGIN [A-Z ]*PRIVATE KEY-----",
+            "(?i)authorization:\s*bearer\s+[A-Za-z0-9._-]{20,}",
+            "(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"
+        )
+        foreach ($StagedFile in (Get-ChildItem -LiteralPath $StagingDirectory -File)) {
+            $StagedText = Get-Content -LiteralPath $StagedFile.FullName -Raw
+            foreach ($Pattern in $ProhibitedPatterns) {
+                if ($StagedText -match $Pattern) {
+                    throw "The support bundle failed its prohibited-content scan."
+                }
+            }
+        }
+
+        Compress-Archive `
+            -Path (Join-Path $StagingDirectory "*") `
+            -DestinationPath $BundlePath `
+            -Force
+    }
+    finally {
+        Remove-Item -LiteralPath $StagingDirectory -Recurse -Force `
+            -ErrorAction SilentlyContinue
+    }
+
+    return $BundlePath
+}
+
+if ($Help) {
+    Show-Usage
+    exit 0
+}
+if ($Version) {
+    Write-Host $ScriptVersion
+    exit 0
+}
+
+try {
+    New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null
+    Start-Transcript -Path $LogPath -Append -Force | Out-Null
+    $TranscriptStarted = $true
+
+    Write-Header "IT 140 WINDOWS VERIFICATION"
+    Write-Info "Script version   : $ScriptVersion"
+    Write-Info "Deployment       : $DeploymentProfile"
+    Write-Info "Current user     : $([Environment]::UserName)"
+    Write-Info "Course root      : $CourseRoot"
+    Write-Info "Log file         : $LogPath"
+    Write-Notice "Verification does not elevate privilege or repair failed checks."
+
+    try {
+        $Controlled = Read-ControlledManifest
+        Add-CheckResult `
+            -CheckId "verify.manifest" `
+            -Status "PASS" `
+            -Detail ("Release {0}" -f $Controlled.Manifest.automation_release)
+    }
+    catch {
+        $ManifestFailure = $true
+        Add-CheckResult `
+            -CheckId "verify.manifest" `
+            -Status "FAIL" `
+            -Detail $_.Exception.Message `
+            -Remediation (
+                "Run bootstrap_win.ps1 again; if the problem remains, " +
+                "contact course support."
+            )
+    }
+
+    if (-not $ManifestFailure) {
+        try {
+            $WindowsFacts = Get-OperatingSystemFact
+            Test-PlatformContext `
+                -Platform $Controlled.Platform `
+                -ObservedWindowsFacts $WindowsFacts
+            Test-DiskAndNetwork -Manifest $Controlled.Manifest
+            Test-SystemLayer -Platform $Controlled.Platform
+            Test-UserLayer `
+                -Manifest $Controlled.Manifest `
+                -Platform $Controlled.Platform
+            Test-ManagedAsset
+
+            if (Test-PendingRestart) {
+                Add-CheckResult `
+                    -CheckId "verify.restart" `
+                    -Status "WARNING" `
+                    -Detail "Windows reports that a restart is pending." `
+                    -Remediation "Save your work and restart Windows before continuing coursework."
+            }
+            else {
+                Add-CheckResult `
+                    -CheckId "verify.restart" `
+                    -Status "PASS" `
+                    -Detail "No pending Windows restart was detected"
+            }
+        }
+        catch {
+            Add-CheckResult `
+                -CheckId "verify.unhandled_check" `
+                -Status "FAIL" `
+                -Detail $_.Exception.Message `
+                -Remediation "Review the verification log and contact course or technical support."
+        }
+    }
+
+    $ExitCode = Get-ResolvedExitCode
+    Write-VerificationSummary -ResolvedExitCode $ExitCode
 }
 catch {
-    if (-not $ManifestFailure) {
-        Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
-    }
-
+    Write-ErrorMessage $_.Exception.Message
     if ($ManifestFailure) {
         $ExitCode = 5
     }
@@ -808,22 +1787,20 @@ finally {
             Stop-Transcript | Out-Null
         }
         catch {
+            # Best-effort operation; preserve the primary result.
         }
     }
 }
 
-if ($SupportBundle -and $null -ne $WindowsFacts) {
+if ($SupportBundle) {
     try {
-        $BundlePath = New-SupportBundle -WindowsFacts $WindowsFacts
+        $BundlePath = New-SupportBundle
         if ($BundlePath) {
-            Write-Host "[SUCCESS] Support bundle created: $BundlePath"
+            Write-Host "[SUCCESS] Sanitized support bundle created: $BundlePath"
         }
     }
     catch {
-        Write-Host (
-            "[ERROR] Support bundle creation failed: {0}" -f
-            $_.Exception.Message
-        ) -ForegroundColor Red
+        Write-ErrorMessage ("Support bundle creation failed: {0}" -f $_.Exception.Message)
         if ($ExitCode -eq 0) {
             $ExitCode = 1
         }
