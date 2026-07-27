@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "automation_release": "2026.07.25.2",
+  "automation_release": "2026.07.25.3",
   "course": {
     "course_id": "IT 140",
     "course_title": "Introduction to Scripting",
@@ -1977,6 +1977,19 @@
       "architecture": "x86_64",
       "reset_method": "fresh_os_install",
       "notes": "Clean supported Windows 11 installation used for platform conformance testing."
+    },
+    "windows_sandbox": {
+      "display_name": "Windows Sandbox",
+      "enabled": true,
+      "reference_profile": false,
+      "platform_id": "windows",
+      "deployment_kind": "other",
+      "provider_name": "Microsoft",
+      "session_type": "local_desktop",
+      "architecture": "x86_64",
+      "profile_adapter_id": "windows_sandbox",
+      "reset_method": "image_reset",
+      "notes": "Ephemeral Windows Sandbox environment used for clean setup, verification, faculty testing, and technical-support reproduction. Closing the sandbox discards installed software and configuration."
     },
     "macos_bare_metal": {
       "display_name": "macOS Bare-Metal Computer",
