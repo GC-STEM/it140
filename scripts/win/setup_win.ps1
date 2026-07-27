@@ -1064,7 +1064,15 @@ try {
     Write-Info "Architecture     : $($WindowsFacts.Architecture)"
     Write-Info "Manifest release : $($Controlled.Manifest.automation_release)"
 
-    $FreeSpace = (Get-PSDrive -Name $env:SystemDrive.TrimEnd(":")).Free
+    $SystemDriveRoot = [IO.Path]::GetPathRoot($env:SystemRoot)
+    $SystemDriveInfo = [IO.DriveInfo]::new($SystemDriveRoot)
+
+    if (-not $SystemDriveInfo.IsReady) {
+        throw "The system drive is not ready: $SystemDriveRoot"
+    }
+
+    $FreeSpace = [int64]$SystemDriveInfo.AvailableFreeSpace
+    
     $MinimumSpace = [int64]$Controlled.Manifest.policy.minimum_free_space_bytes
     if ($FreeSpace -lt $MinimumSpace) {
         throw (

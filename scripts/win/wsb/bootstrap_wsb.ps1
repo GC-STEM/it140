@@ -49,21 +49,17 @@ Add-AppxPackage -Path $WingetBundle
 Write-Host "Installing Microsoft Edit..."
 $WinGetPath = Join-Path (Get-AppxPackage -Name Microsoft.DesktopAppInstaller -ErrorAction Stop).InstallLocation 'winget.exe'
 $EditPath = Get-Command edit.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
-
 if ([string]::IsNullOrWhiteSpace($EditPath)) {
 & $WinGetPath install --id Microsoft.Edit --exact --source winget --scope user --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
 if ($LASTEXITCODE -ne 0) { throw "Microsoft Edit installation failed with WinGet exit code $LASTEXITCODE." }
-
 $EditPath = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\edit.exe'
 if (!(Test-Path $EditPath)) {
 $EditPath = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages') -Filter 'edit.exe' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
 }
 }
-
 if ([string]::IsNullOrWhiteSpace($EditPath) -or !(Test-Path $EditPath)) {
 throw "Microsoft Edit was installed, but edit.exe could not be located."
 }
-
 Write-Host "Associating .log files with Microsoft Edit..."
 $LogFileClass = 'IT140.LogFile'
 New-Item -Path 'HKCU:\Software\Classes\.log' -Force | Out-Null
