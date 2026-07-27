@@ -25,6 +25,11 @@ Exit codes:
   7 Managed state changed before the operation stopped
 
 Logs are written under ~/it140/logs/.
+
+.USAGE
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+setup_win.ps1
+
 #>
 
 [CmdletBinding()]
