@@ -15,6 +15,8 @@
 # managed lifecycle script and therefore does not create a transcript or accept
 # command-line options.
 
+$LogDirectory = Join-Path ([Environment]::GetFolderPath("UserProfile")) "it140\logs"; New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null; Start-Transcript -Path (Join-Path $LogDirectory "bootstrap_win_$(Get-Date -Format 'yyyyMMdd_HHmmss').log") -Force
+
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
@@ -136,3 +138,5 @@ finally {
     Remove-Item -LiteralPath $TemporaryRoot -Recurse -Force `
         -ErrorAction SilentlyContinue
 }
+
+Stop-Transcript

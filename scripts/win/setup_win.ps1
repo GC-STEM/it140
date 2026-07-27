@@ -478,15 +478,26 @@ function Read-ControlledManifest {
 }
 
 function Get-OperatingSystemFact {
-    $OperatingSystem = Get-CimInstance -ClassName Win32_OperatingSystem
     $CurrentVersion = Get-ItemProperty `
         -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
 
+    $BuildNumber = [string][Environment]::OSVersion.Version.Build
+    $Caption = [string]$CurrentVersion.ProductName
+
+    if ([int]$BuildNumber -ge 22000 -and $Caption -notmatch "Windows 11") {
+        $Caption = $Caption -replace "Windows 10", "Windows 11"
+    }
+
     return [pscustomobject]@{
-        Caption = [string]$OperatingSystem.Caption
-        Architecture = [string]$OperatingSystem.OSArchitecture
+        Caption = $Caption
+        Architecture = if ([Environment]::Is64BitOperatingSystem) {
+            "64-bit"
+        }
+        else {
+            "32-bit"
+        }
         DisplayVersion = [string]$CurrentVersion.DisplayVersion
-        BuildNumber = [string]$OperatingSystem.BuildNumber
+        BuildNumber = $BuildNumber
     }
 }
 
