@@ -22,6 +22,7 @@
 # command-line options. Copy the commands below and paste them into a Windows
 # Sandbox Administrator PowerShell session to bootstrap the WSB.
 
+$LogDir = Join-Path $env:USERPROFILE 'it140\logs'; New-Item -ItemType Directory -Path $LogDir -Force | Out-Null; Start-Transcript -Path (Join-Path $LogDir "setup_win_$(Get-Date -Format 'yyyyMMdd_HHmmss').log") -Force
 try {
 $ErrorActionPreference = 'Stop'
 $TempDir = Join-Path $env:TEMP 'winget-install'
@@ -50,3 +51,4 @@ catch {
 Remove-Item "$DependenciesZip.part","$WingetBundle.part" -Force -ErrorAction SilentlyContinue
 Write-Error "Windows Sandbox bootstrap failed: $($_.Exception.Message)" -ErrorAction Continue
 }
+Stop-Transcript
