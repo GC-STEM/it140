@@ -40,6 +40,7 @@ Click the links below to access the repositories for each module's activity. Eac
 
 ### Development Status
 
+🗺️ Planned
 🗓️ Requirements
 📝 Design
 🚧 Construction
