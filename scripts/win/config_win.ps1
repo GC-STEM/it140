@@ -13,6 +13,9 @@ software.
 Run this script from a normal, non-elevated Windows PowerShell terminal after
 setup_win.ps1 completes.
 
+Artifact version:
+    2026.07.27.1
+
 .NOTES
 Exit codes:
   0 Success
@@ -25,6 +28,11 @@ Exit codes:
   7 Managed state changed before the operation stopped
 
 Logs are written under ~/it140/logs/.
+
+.USAGE
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+config_win.ps1
+
 #>
 
 [CmdletBinding()]

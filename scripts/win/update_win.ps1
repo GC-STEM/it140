@@ -16,6 +16,9 @@ extensions, or unrelated user settings.
 
 Run this script from a normal, non-elevated Windows PowerShell terminal.
 
+Artifact version:
+    2026.07.27.1
+
 .NOTES
 Exit codes:
   0 Success
@@ -29,6 +32,11 @@ Exit codes:
 
 Logs are written under ~/it140/logs/. The elevated system phase writes a
 separate update_win_system log in the same directory.
+
+.USAGE
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+update_win.ps1
+
 #>
 
 [CmdletBinding()]

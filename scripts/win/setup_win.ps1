@@ -13,6 +13,9 @@ Python-environment, VS Code-extension, or editor settings.
 Run this script from an elevated Windows PowerShell terminal opened by the
 intended student or faculty user.
 
+Artifact version:
+    2026.07.27.1
+
 .NOTES
 Exit codes:
   0 Success

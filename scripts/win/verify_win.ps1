@@ -13,6 +13,9 @@ The script never elevates privilege or repairs failed checks. It creates only
 the required transcript and, when explicitly requested and confirmed, a
 sanitized support bundle under ~/it140/logs.
 
+Artifact version:
+    2026.07.27.1
+
 .NOTES
 Exit codes:
   0 All required checks passed; warnings may be present
@@ -22,6 +25,11 @@ Exit codes:
 
 Logs and explicitly requested support bundles are written under
 ~/it140/logs/.
+
+.USAGE
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+verify_win.ps1
+
 #>
 
 [CmdletBinding()]
