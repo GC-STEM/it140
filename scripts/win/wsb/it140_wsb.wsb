@@ -1,0 +1,13 @@
+<Configuration>
+  <vGPU>Enable</vGPU>
+  <Networking>Enable</Networking>
+  <AudioInput>Disable</AudioInput>
+  <VideoInput>Disable</VideoInput>
+  <ProtectedClient>Disable</ProtectedClient>
+  <PrinterRedirection>Disable</PrinterRedirection>
+  <ClipboardRedirection>Enable</ClipboardRedirection>
+  <MemoryInMB>4096</MemoryInMB>
+  <LogonCommand>
+    <Command>powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "$BootstrapPath = Join-Path $env:TEMP 'bootstrap_wsb.ps1'; &amp; curl.exe --location --fail --show-error --retry 10 --retry-delay 5 --retry-all-errors --output $BootstrapPath 'https://raw.githubusercontent.com/GC-STEM/it140/refs/heads/main/scripts/win/wsb/bootstrap_wsb.ps1'; if ($LASTEXITCODE -ne 0) { throw 'The IT 140 Windows Sandbox bootstrap could not be downloaded.' }; &amp; $BootstrapPath"</Command>
+  </LogonCommand>
+</Configuration>

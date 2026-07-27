@@ -1,38 +1,30 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-Installs the system-level IT 140 Course IDE in Windows Sandbox.
+Prepares Windows Sandbox for the IT 140 Windows user configuration workflow.
 
 .DESCRIPTION
-Installs missing manifest-declared Windows software required by the IT 140
-Course IDE in a fresh Windows Sandbox session. The script is intended for
-course SMEs, faculty, and technical-support testing after bootstrap_wsb.ps1 and
-bootstrap_win.ps1 have completed.
+Validates the controlled IT 140 manifest and its windows_sandbox deployment
+profile, installs Windows Package Manager when the sandbox image does not
+provide it, and installs the manifest-required Windows software. The script
+does not run Windows Update and does not configure personal GitHub, Git,
+Python-environment, or VS Code settings.
 
-Unlike setup_win.ps1, this Windows Sandbox variant does not run Windows Update,
-upgrade installed software, or force machine-scope WinGet installation. It
-installs only missing packages and otherwise preserves the current ephemeral
-sandbox image. Personal GitHub, Git, Python-environment, VS Code-extension, and
-editor settings remain the responsibility of config_win.ps1.
-
-Run this script from the Windows Sandbox Administrator PowerShell session.
+After successful setup, the sandbox is ready for config_win.ps1 and
+verify_win.ps1. A normal PowerShell continuation shortcut is created on the
+desktop and opened automatically for interactive runs.
 
 .NOTES
 Exit codes:
   0 Success
   1 Required operation failed
   2 Unsupported Windows Sandbox platform or Windows release
-  3 Required administrator privilege is unavailable
+  3 Administrator privilege is unavailable
   4 Required network or package-retrieval operation failed
   5 Controlled manifest or managed asset validation failed
   7 Managed state changed before the operation stopped
 
 Logs are written under ~/it140/logs/.
-
-.USAGE
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-& "$HOME\it140\scripts\win\wsb\setup_wsb.ps1"
-
 #>
 
 [CmdletBinding()]
@@ -48,10 +40,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "2026.07.27.1"
+$ScriptVersion = "2026.07.27.3"
 $PlatformId = "windows"
 $PlatformAbbreviation = "wsb"
-$ManifestDeploymentProfile = "windows_bare_metal"
 $ScriptDirectory = $PSScriptRoot
 $WindowsScriptDirectory = Split-Path -Parent $ScriptDirectory
 $ScriptRoot = Split-Path -Parent $WindowsScriptDirectory
@@ -62,6 +53,9 @@ $LogDirectory = Join-Path $CourseRoot "logs"
 $LogPath = Join-Path $LogDirectory (
     "setup_{0}_{1}.log" -f $PlatformAbbreviation, (Get-Date -Format "yyyyMMdd_HHmmss")
 )
+$ContinuationShortcutPath = Join-Path (
+    [Environment]::GetFolderPath("Desktop")
+) "Continue IT 140 Setup.lnk"
 $StartTime = Get-Date
 $TranscriptStarted = $false
 $MutationMutex = $null
@@ -69,6 +63,7 @@ $Changed = $false
 $WarningCount = 0
 $ExitCode = 0
 $FailureExitCode = 1
+$WinGetExecutable = $null
 
 function Write-Header {
     param([Parameter(Mandatory = $true)][string]$Title)
@@ -111,35 +106,18 @@ function Show-Usage {
 IT 140 Windows Sandbox setup script
 
 Usage:
-  powershell.exe -ExecutionPolicy Bypass -File "$HOME\it140\scripts\win\wsb\setup_wsb.ps1"
-  powershell.exe -ExecutionPolicy Bypass -File "$HOME\it140\scripts\win\wsb\setup_wsb.ps1" -NonInteractive
-  powershell.exe -ExecutionPolicy Bypass -File "$HOME\it140\scripts\win\wsb\setup_wsb.ps1" -Help
-  powershell.exe -ExecutionPolicy Bypass -File "$HOME\it140\scripts\win\wsb\setup_wsb.ps1" -Version
+  powershell.exe -ExecutionPolicy Bypass -File "$PSCommandPath"
+  powershell.exe -ExecutionPolicy Bypass -File "$PSCommandPath" -NonInteractive
+  powershell.exe -ExecutionPolicy Bypass -File "$PSCommandPath" -Help
+  powershell.exe -ExecutionPolicy Bypass -File "$PSCommandPath" -Version
 
-Run from the Windows Sandbox Administrator PowerShell session after:
-  1. bootstrap_wsb.ps1
-  2. bootstrap_win.ps1
-
-This script installs missing system software only. It does not run Windows
-Update and does not upgrade software that WinGet already reports as installed.
+This script installs WinGet when needed and then installs missing
+manifest-required Windows software. It does not run Windows Update or configure
+personal user settings.
 
 Deployment profile: $DeploymentProfile
-Manifest package profile: $ManifestDeploymentProfile
 Log directory: $LogDirectory
 "@ | Write-Host
-}
-
-function Write-ClosingNotice {
-    Write-Notice "A log containing all output displayed while this script ran is available here:"
-    Write-Notice $LogPath
-    Write-Notice (
-        "After reviewing the summary, type 'exit' and press Enter to " +
-        "close this PowerShell window."
-    )
-    Write-Notice (
-        "Open a new, normal PowerShell window before running config_win.ps1 " +
-        "so it loads the latest PATH and environment settings."
-    )
 }
 
 function Test-IsAdministrator {
@@ -150,8 +128,89 @@ function Test-IsAdministrator {
     )
 }
 
+function Invoke-ElevatedSelf {
+    $ArgumentText = (
+        '-NoLogo -NoProfile -ExecutionPolicy Bypass -File "{0}"' -f
+        $PSCommandPath
+    )
+    if ($NonInteractive) {
+        $ArgumentText += " -NonInteractive"
+    }
+
+    try {
+        $ElevatedProcess = Start-Process `
+            -FilePath "powershell.exe" `
+            -Verb RunAs `
+            -ArgumentList $ArgumentText `
+            -Wait `
+            -PassThru
+        exit $ElevatedProcess.ExitCode
+    }
+    catch {
+        Write-ErrorMessage (
+            "Administrator privilege is required and elevation failed. " +
+            $_.Exception.Message
+        )
+        exit 3
+    }
+}
+
 function Test-IsWindowsSandbox {
     return [Environment]::UserName -eq "WDAGUtilityAccount"
+}
+
+function Get-PropertyValue {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    if ($null -eq $Object) {
+        return $null
+    }
+
+    $PropertyRecord = $Object.PSObject.Properties[$Name]
+    if ($null -eq $PropertyRecord) {
+        return $null
+    }
+
+    return $PropertyRecord.Value
+}
+
+function Get-NormalizedPathEntry {
+    param([Parameter(Mandatory = $true)][string]$PathEntry)
+
+    try {
+        $Expanded = [Environment]::ExpandEnvironmentVariables($PathEntry)
+        return [IO.Path]::GetFullPath($Expanded).TrimEnd("\")
+    }
+    catch {
+        return $PathEntry.Trim().TrimEnd("\")
+    }
+}
+
+function Set-UserPathEntry {
+    param([Parameter(Mandatory = $true)][string]$PathEntry)
+
+    $NormalizedTarget = Get-NormalizedPathEntry -PathEntry $PathEntry
+    $ExistingUserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $PreservedEntries = [Collections.Generic.List[string]]::new()
+
+    foreach ($Entry in @($ExistingUserPath -split ";")) {
+        if ([string]::IsNullOrWhiteSpace($Entry)) {
+            continue
+        }
+        if ((Get-NormalizedPathEntry -PathEntry $Entry) -ieq $NormalizedTarget) {
+            continue
+        }
+        $PreservedEntries.Add($Entry.Trim())
+    }
+
+    $NewUserPath = (@($PathEntry) + @($PreservedEntries)) -join ";"
+    if ($NewUserPath -cne [string]$ExistingUserPath) {
+        [Environment]::SetEnvironmentVariable("Path", $NewUserPath, "User")
+        $script:Changed = $true
+    }
 }
 
 function Update-ProcessEnvironment {
@@ -179,279 +238,6 @@ function Update-ProcessEnvironment {
     }
 }
 
-function Get-PropertyValue {
-    param(
-        [Parameter(Mandatory = $true)]$Object,
-        [Parameter(Mandatory = $true)][string]$Name
-    )
-
-    if ($null -eq $Object) {
-        return $null
-    }
-
-    $PropertyRecord = $Object.PSObject.Properties[$Name]
-    if ($null -eq $PropertyRecord) {
-        return $null
-    }
-
-    return $PropertyRecord.Value
-}
-
-function Test-JsonDuplicateKey {
-    param([Parameter(Mandatory = $true)][string]$Path)
-
-    if ($null -eq ("It140Automation.JsonDuplicateKeyValidator" -as [type])) {
-        Add-Type -TypeDefinition @'
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
-
-namespace It140Automation
-{
-    public static class JsonDuplicateKeyValidator
-    {
-        public static void Validate(string json)
-        {
-            if (json == null)
-            {
-                throw new ArgumentNullException("json");
-            }
-
-            int index = 0;
-            ParseValue(json, ref index, 0);
-            SkipWhitespace(json, ref index);
-            if (index != json.Length)
-            {
-                throw new FormatException("Unexpected content after the JSON value.");
-            }
-        }
-
-        private static void ParseValue(string json, ref int index, int depth)
-        {
-            if (depth > 256)
-            {
-                throw new FormatException("JSON nesting exceeds the supported depth.");
-            }
-
-            SkipWhitespace(json, ref index);
-            if (index >= json.Length)
-            {
-                throw new FormatException("Unexpected end of JSON input.");
-            }
-
-            char current = json[index];
-            if (current == '{')
-            {
-                ParseObject(json, ref index, depth + 1);
-            }
-            else if (current == '[')
-            {
-                ParseArray(json, ref index, depth + 1);
-            }
-            else if (current == '"')
-            {
-                ParseString(json, ref index);
-            }
-            else
-            {
-                ParsePrimitive(json, ref index);
-            }
-        }
-
-        private static void ParseObject(string json, ref int index, int depth)
-        {
-            index++;
-            SkipWhitespace(json, ref index);
-            HashSet<string> keys = new HashSet<string>(StringComparer.Ordinal);
-
-            if (index < json.Length && json[index] == '}')
-            {
-                index++;
-                return;
-            }
-
-            while (true)
-            {
-                SkipWhitespace(json, ref index);
-                if (index >= json.Length || json[index] != '"')
-                {
-                    throw new FormatException("Expected a JSON object key.");
-                }
-
-                string key = ParseString(json, ref index);
-                if (!keys.Add(key))
-                {
-                    throw new FormatException("duplicate key: " + key);
-                }
-
-                SkipWhitespace(json, ref index);
-                if (index >= json.Length || json[index] != ':')
-                {
-                    throw new FormatException("Expected ':' after a JSON object key.");
-                }
-                index++;
-
-                ParseValue(json, ref index, depth);
-                SkipWhitespace(json, ref index);
-                if (index >= json.Length)
-                {
-                    throw new FormatException("Unexpected end of JSON object.");
-                }
-                if (json[index] == '}')
-                {
-                    index++;
-                    return;
-                }
-                if (json[index] != ',')
-                {
-                    throw new FormatException("Expected ',' or '}' in a JSON object.");
-                }
-                index++;
-            }
-        }
-
-        private static void ParseArray(string json, ref int index, int depth)
-        {
-            index++;
-            SkipWhitespace(json, ref index);
-            if (index < json.Length && json[index] == ']')
-            {
-                index++;
-                return;
-            }
-
-            while (true)
-            {
-                ParseValue(json, ref index, depth);
-                SkipWhitespace(json, ref index);
-                if (index >= json.Length)
-                {
-                    throw new FormatException("Unexpected end of JSON array.");
-                }
-                if (json[index] == ']')
-                {
-                    index++;
-                    return;
-                }
-                if (json[index] != ',')
-                {
-                    throw new FormatException("Expected ',' or ']' in a JSON array.");
-                }
-                index++;
-            }
-        }
-
-        private static string ParseString(string json, ref int index)
-        {
-            if (index >= json.Length || json[index] != '"')
-            {
-                throw new FormatException("Expected a JSON string.");
-            }
-            index++;
-            StringBuilder value = new StringBuilder();
-
-            while (index < json.Length)
-            {
-                char current = json[index++];
-                if (current == '"')
-                {
-                    return value.ToString();
-                }
-                if (current == '\\')
-                {
-                    if (index >= json.Length)
-                    {
-                        throw new FormatException("Incomplete JSON escape sequence.");
-                    }
-                    char escaped = json[index++];
-                    switch (escaped)
-                    {
-                        case '"': value.Append('"'); break;
-                        case '\\': value.Append('\\'); break;
-                        case '/': value.Append('/'); break;
-                        case 'b': value.Append('\b'); break;
-                        case 'f': value.Append('\f'); break;
-                        case 'n': value.Append('\n'); break;
-                        case 'r': value.Append('\r'); break;
-                        case 't': value.Append('\t'); break;
-                        case 'u':
-                            if (index + 4 > json.Length)
-                            {
-                                throw new FormatException("Incomplete JSON Unicode escape.");
-                            }
-                            int codePoint;
-                            if (!Int32.TryParse(
-                                json.Substring(index, 4),
-                                NumberStyles.HexNumber,
-                                CultureInfo.InvariantCulture,
-                                out codePoint))
-                            {
-                                throw new FormatException("Invalid JSON Unicode escape.");
-                            }
-                            value.Append((char)codePoint);
-                            index += 4;
-                            break;
-                        default:
-                            throw new FormatException("Invalid JSON escape sequence.");
-                    }
-                }
-                else
-                {
-                    if (current < 0x20)
-                    {
-                        throw new FormatException("Unescaped control character in JSON string.");
-                    }
-                    value.Append(current);
-                }
-            }
-
-            throw new FormatException("Unterminated JSON string.");
-        }
-
-        private static void ParsePrimitive(string json, ref int index)
-        {
-            int start = index;
-            while (index < json.Length)
-            {
-                char current = json[index];
-                if (
-                    Char.IsWhiteSpace(current) ||
-                    current == ',' ||
-                    current == ']' ||
-                    current == '}')
-                {
-                    break;
-                }
-                index++;
-            }
-            if (index == start)
-            {
-                throw new FormatException("Invalid JSON primitive value.");
-            }
-        }
-
-        private static void SkipWhitespace(string json, ref int index)
-        {
-            while (index < json.Length && Char.IsWhiteSpace(json[index]))
-            {
-                index++;
-            }
-        }
-    }
-}
-'@
-    }
-
-    try {
-        $JsonText = Get-Content -LiteralPath $Path -Raw
-        [It140Automation.JsonDuplicateKeyValidator]::Validate($JsonText)
-    }
-    catch {
-        throw "JSON duplicate-key validation failed for $Path. $($_.Exception.Message)"
-    }
-}
-
 function Read-ControlledManifest {
     if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
         throw "The controlled manifest is missing: $ManifestPath"
@@ -459,9 +245,6 @@ function Read-ControlledManifest {
     if (-not (Test-Path -LiteralPath $SchemaPath -PathType Leaf)) {
         throw "The controlled manifest schema is missing: $SchemaPath"
     }
-
-    Test-JsonDuplicateKey -Path $ManifestPath
-    Test-JsonDuplicateKey -Path $SchemaPath
 
     try {
         $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
@@ -475,13 +258,11 @@ function Read-ControlledManifest {
         "schema_version",
         "automation_release",
         "policy",
+        "software_sources",
         "platforms",
         "deployment_profiles",
-        "managed_settings",
-        "managed_assets",
         "logging"
     )
-
     foreach ($RequiredKey in $RequiredKeys) {
         if ($null -eq $Manifest.PSObject.Properties[$RequiredKey]) {
             throw "The controlled manifest is missing required key: $RequiredKey"
@@ -496,24 +277,30 @@ function Read-ControlledManifest {
     }
 
     $Platform = Get-PropertyValue -Object $Manifest.platforms -Name $PlatformId
-    $ProfileRecord = Get-PropertyValue `
+    $Profile = Get-PropertyValue `
         -Object $Manifest.deployment_profiles `
-        -Name $ManifestDeploymentProfile
+        -Name $DeploymentProfile
 
     if ($null -eq $Platform -or -not [bool]$Platform.enabled) {
         throw "The Windows platform is not enabled in the controlled manifest."
     }
-    if ($null -eq $ProfileRecord -or -not [bool]$ProfileRecord.enabled) {
-        throw "The manifest package profile is not enabled: $ManifestDeploymentProfile"
+    if ($null -eq $Profile -or -not [bool]$Profile.enabled) {
+        throw "The deployment profile is not enabled: $DeploymentProfile"
     }
-    if ([string]$ProfileRecord.platform_id -ne $PlatformId) {
-        throw "The manifest package profile does not select the Windows platform."
+    if ([string]$Profile.platform_id -ne $PlatformId) {
+        throw "The Windows Sandbox deployment profile does not select the Windows platform."
+    }
+    if ([string]$Profile.profile_adapter_id -ne "windows_sandbox") {
+        throw "The deployment profile does not select the windows_sandbox adapter."
+    }
+    if ([string]$Profile.architecture -ne "x86_64") {
+        throw "The Windows Sandbox deployment profile is not enabled for x86_64."
     }
 
     return [pscustomobject]@{
         Manifest = $Manifest
         Platform = $Platform
-        Profile = $ProfileRecord
+        Profile = $Profile
     }
 }
 
@@ -523,9 +310,13 @@ function Get-OperatingSystemFact {
 
     $BuildNumber = [string][Environment]::OSVersion.Version.Build
     $Caption = [string]$CurrentVersion.ProductName
-
     if ([int]$BuildNumber -ge 22000 -and $Caption -notmatch "Windows 11") {
         $Caption = $Caption -replace "Windows 10", "Windows 11"
+    }
+
+    $DisplayVersion = [string]$CurrentVersion.DisplayVersion
+    if ([string]::IsNullOrWhiteSpace($DisplayVersion)) {
+        $DisplayVersion = [string]$CurrentVersion.ReleaseId
     }
 
     return [pscustomobject]@{
@@ -536,7 +327,7 @@ function Get-OperatingSystemFact {
         else {
             "32-bit"
         }
-        DisplayVersion = [string]$CurrentVersion.DisplayVersion
+        DisplayVersion = $DisplayVersion
         BuildNumber = $BuildNumber
     }
 }
@@ -548,15 +339,12 @@ function Test-SupportedOperatingSystem {
     )
 
     if (-not (Test-IsWindowsSandbox)) {
-        throw (
-            "This script supports only a fresh Windows Sandbox session using " +
-            "WDAGUtilityAccount. Use setup_win.ps1 on regular Windows."
-        )
+        throw "This script supports only Windows Sandbox using WDAGUtilityAccount."
     }
     if ($WindowsFacts.Caption -notmatch "Windows 11") {
         throw "This script supports only Microsoft Windows 11. Detected: $($WindowsFacts.Caption)"
     }
-    if ($WindowsFacts.Architecture -notmatch "64-bit") {
+    if ($WindowsFacts.Architecture -ne "64-bit") {
         throw "This release supports only x64 Windows. Detected: $($WindowsFacts.Architecture)"
     }
 
@@ -612,50 +400,197 @@ function Remove-ExpiredLog {
     }
 }
 
-function Invoke-ExternalCommand {
+function Invoke-Download {
     param(
-        [Parameter(Mandatory = $true)][string]$FilePath,
-        [Parameter(Mandatory = $true)][string[]]$ArgumentList,
-        [Parameter(Mandatory = $true)][string]$Operation,
-        [int[]]$SuccessExitCode = @(0)
+        [Parameter(Mandatory = $true)][string]$Uri,
+        [Parameter(Mandatory = $true)][string]$Destination,
+        [Parameter(Mandatory = $true)][string]$Description
     )
 
-    Write-Info $Operation
-    & $FilePath @ArgumentList
-    $CommandExitCode = $LASTEXITCODE
-    if ($CommandExitCode -notin $SuccessExitCode) {
-        throw "$Operation failed with exit code $CommandExitCode."
+    $PartialPath = "$Destination.part"
+    Remove-Item -LiteralPath $PartialPath -Force -ErrorAction SilentlyContinue
+
+    Write-Info "Downloading $Description."
+    & curl.exe `
+        --location `
+        --fail `
+        --show-error `
+        --retry 10 `
+        --retry-delay 5 `
+        --retry-all-errors `
+        --continue-at - `
+        --output $PartialPath `
+        $Uri
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Description download failed with curl exit code $LASTEXITCODE."
     }
+
+    Move-Item `
+        -LiteralPath $PartialPath `
+        -Destination $Destination `
+        -Force
 }
 
-function Confirm-WinGetAvailable {
+function Get-WinGetExecutable {
     Update-ProcessEnvironment
 
-    if ($null -ne (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
-        Write-Success "Windows Package Manager is available."
-        return
+    $WinGetCommand = Get-Command winget.exe -ErrorAction SilentlyContinue
+    if ($null -ne $WinGetCommand) {
+        return $WinGetCommand.Source
     }
 
     $AppInstaller = Get-AppxPackage `
         -Name Microsoft.DesktopAppInstaller `
         -ErrorAction SilentlyContinue |
         Select-Object -First 1
-
     if ($null -ne $AppInstaller) {
-        $WinGetExecutable = Join-Path $AppInstaller.InstallLocation "winget.exe"
-        if (Test-Path -LiteralPath $WinGetExecutable -PathType Leaf) {
+        $CandidatePath = Join-Path $AppInstaller.InstallLocation "winget.exe"
+        if (Test-Path -LiteralPath $CandidatePath -PathType Leaf) {
             $env:Path = "$($AppInstaller.InstallLocation);$env:Path"
+            return $CandidatePath
         }
     }
 
-    if ($null -eq (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
-        throw (
-            "Windows Package Manager is unavailable. Run bootstrap_wsb.ps1 " +
-            "again in a fresh Windows Sandbox session."
-        )
+    return $null
+}
+
+function Get-DependencyPriority {
+    param([Parameter(Mandatory = $true)][string]$FileName)
+
+    if ($FileName -match "(?i)VCLibs") {
+        return 10
+    }
+    if ($FileName -match "(?i)UI.Xaml") {
+        return 20
+    }
+    if ($FileName -match "(?i)WindowsAppRuntime") {
+        return 30
+    }
+    return 40
+}
+
+function Install-WinGet {
+    param([Parameter(Mandatory = $true)]$Manifest)
+
+    $script:WinGetExecutable = Get-WinGetExecutable
+    if (-not [string]::IsNullOrWhiteSpace($script:WinGetExecutable)) {
+        Write-Success "Windows Package Manager is available."
+        return
     }
 
-    Write-Success "Windows Package Manager is available."
+    $AppInstallerSource = Get-PropertyValue `
+        -Object $Manifest.software_sources `
+        -Name "microsoft_app_installer"
+    if ($null -eq $AppInstallerSource) {
+        throw "The manifest does not define the Microsoft App Installer source."
+    }
+
+    $TemporaryDirectory = Join-Path (
+        [IO.Path]::GetTempPath()
+    ) ("it140-winget-{0}" -f ([guid]::NewGuid().ToString("N")))
+    $DependenciesZip = Join-Path $TemporaryDirectory "DesktopAppInstaller_Dependencies.zip"
+    $DependenciesDirectory = Join-Path $TemporaryDirectory "Dependencies"
+    $AppInstallerBundle = Join-Path $TemporaryDirectory "Microsoft.DesktopAppInstaller.msixbundle"
+    $DependenciesUri = (
+        "https://github.com/microsoft/winget-cli/releases/latest/download/" +
+        "DesktopAppInstaller_Dependencies.zip"
+    )
+    $BundleUri = [string]$AppInstallerSource.base_uri
+
+    try {
+        New-Item -ItemType Directory -Path $TemporaryDirectory -Force | Out-Null
+        New-Item -ItemType Directory -Path $DependenciesDirectory -Force | Out-Null
+
+        Invoke-Download `
+            -Uri $DependenciesUri `
+            -Destination $DependenciesZip `
+            -Description "WinGet dependencies"
+        Invoke-Download `
+            -Uri $BundleUri `
+            -Destination $AppInstallerBundle `
+            -Description "Microsoft App Installer"
+
+        Write-Info "Expanding and installing WinGet dependencies."
+        Expand-Archive `
+            -LiteralPath $DependenciesZip `
+            -DestinationPath $DependenciesDirectory `
+            -Force
+
+        $DependencyPackages = @(
+            Get-ChildItem `
+                -LiteralPath $DependenciesDirectory `
+                -Recurse `
+                -File |
+                Where-Object {
+                    $_.Extension -in ".appx", ".msix" -and
+                    $_.FullName -match "(?i)(x64|neutral)"
+                } |
+                ForEach-Object {
+                    [pscustomobject]@{
+                        Path = $_.FullName
+                        Name = $_.Name
+                        Priority = Get-DependencyPriority -FileName $_.Name
+                    }
+                } |
+                Sort-Object Priority, Name
+        )
+        if ($DependencyPackages.Count -eq 0) {
+            throw "The WinGet dependency archive contains no x64 packages."
+        }
+
+        foreach ($DependencyPackage in $DependencyPackages) {
+            try {
+                Add-AppxPackage `
+                    -Path $DependencyPackage.Path `
+                    -ErrorAction Stop
+            }
+            catch {
+                if ($_.Exception.Message -match "0x80073D06|higher version") {
+                    Write-Notice "$($DependencyPackage.Name) is already satisfied."
+                }
+                else {
+                    throw
+                }
+            }
+        }
+
+        Write-Info "Installing Microsoft App Installer."
+        Add-AppxPackage -Path $AppInstallerBundle -ErrorAction Stop
+        $script:Changed = $true
+
+        $script:WinGetExecutable = Get-WinGetExecutable
+        if ([string]::IsNullOrWhiteSpace($script:WinGetExecutable)) {
+            throw "Microsoft App Installer completed, but winget.exe is unavailable."
+        }
+
+        Write-Success "Windows Package Manager was installed."
+    }
+    finally {
+        Remove-Item `
+            -LiteralPath $TemporaryDirectory `
+            -Recurse `
+            -Force `
+            -ErrorAction SilentlyContinue
+    }
+}
+
+function Invoke-WinGet {
+    param(
+        [Parameter(Mandatory = $true)][string[]]$ArgumentList,
+        [Parameter(Mandatory = $true)][string]$Operation,
+        [int[]]$SuccessExitCode = @(0)
+    )
+
+    if ([string]::IsNullOrWhiteSpace($script:WinGetExecutable)) {
+        throw "winget.exe has not been initialized."
+    }
+
+    Write-Info $Operation
+    & $script:WinGetExecutable @ArgumentList
+    $CommandExitCode = $LASTEXITCODE
+    if ($CommandExitCode -notin $SuccessExitCode) {
+        throw "$Operation failed with exit code $CommandExitCode."
+    }
 }
 
 function Get-SystemPackageBinding {
@@ -687,14 +622,20 @@ function Get-SystemPackageBinding {
 function Test-WinGetPackageInstalled {
     param([Parameter(Mandatory = $true)][string]$PackageIdentifier)
 
-    & winget.exe list `
-        --id $PackageIdentifier `
-        --exact `
-        --source winget `
-        --accept-source-agreements `
-        --disable-interactivity *> $null
+    $Output = @(
+        & $script:WinGetExecutable `
+            list `
+            --id $PackageIdentifier `
+            --exact `
+            --source winget `
+            --accept-source-agreements `
+            --disable-interactivity 2>&1
+    )
+    if ($LASTEXITCODE -ne 0) {
+        return $false
+    }
 
-    return $LASTEXITCODE -eq 0
+    return (($Output -join "`n") -match [regex]::Escape($PackageIdentifier))
 }
 
 function Install-SystemPackage {
@@ -704,12 +645,11 @@ function Install-SystemPackage {
         $PackageIdentifier = [string]$Binding.PackageIdentifier
 
         if (Test-WinGetPackageInstalled -PackageIdentifier $PackageIdentifier) {
-            Write-Success "$PackageIdentifier is already installed; no upgrade was requested."
+            Write-Success "$PackageIdentifier is already installed."
             continue
         }
 
-        Invoke-ExternalCommand `
-            -FilePath "winget.exe" `
+        Invoke-WinGet `
             -ArgumentList @(
                 "install",
                 "--id", $PackageIdentifier,
@@ -747,7 +687,9 @@ function Test-SystemLayer {
         }
     }
     if ($null -eq (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
-        $MissingCommands += "winget.exe"
+        if (-not (Test-Path -LiteralPath $script:WinGetExecutable -PathType Leaf)) {
+            $MissingCommands += "winget.exe"
+        }
     }
     if ($MissingCommands.Count -gt 0) {
         throw "Required commands are missing: $($MissingCommands -join ', ')"
@@ -783,10 +725,55 @@ function Get-CommandVersionLine {
         }
     }
     catch {
-        # Best-effort operation; preserve the primary result.
+        # Best-effort reporting; preserve the primary result.
     }
 
     return "unavailable"
+}
+
+function New-ContinuationShortcut {
+    $DesktopDirectory = [Environment]::GetFolderPath("Desktop")
+    if ([string]::IsNullOrWhiteSpace($DesktopDirectory)) {
+        throw "The Windows Desktop directory could not be resolved."
+    }
+
+    $PowerShellPath = Join-Path `
+        $env:SystemRoot `
+        "System32\WindowsPowerShell\v1.0\powershell.exe"
+    $CommandText = (
+        "Set-Location -LiteralPath '$CourseRoot'; " +
+        "Write-Host ''; " +
+        "Write-Host 'IT 140 Windows Sandbox is ready.' -ForegroundColor Green; " +
+        "Write-Host 'Run config_win.ps1 to configure the current user.' -ForegroundColor Cyan; " +
+        "Write-Host 'After configuration, open a new PowerShell window and run verify_win.ps1.' -ForegroundColor Cyan"
+    )
+
+    $ShellApplication = New-Object -ComObject WScript.Shell
+    $Shortcut = $ShellApplication.CreateShortcut($ContinuationShortcutPath)
+    $Shortcut.TargetPath = $PowerShellPath
+    $Shortcut.Arguments = (
+        '-NoLogo -NoProfile -NoExit -ExecutionPolicy Bypass -Command "{0}"' -f
+        $CommandText
+    )
+    $Shortcut.WorkingDirectory = $CourseRoot
+    $Shortcut.IconLocation = "$PowerShellPath,0"
+    $Shortcut.Description = "Continue the IT 140 Windows Sandbox setup"
+    $Shortcut.Save()
+
+    Write-Success "The continuation shortcut is available on the desktop."
+}
+
+function Start-ContinuationShell {
+    try {
+        & "$env:SystemRoot\explorer.exe" $ContinuationShortcutPath
+        Write-Notice "A normal PowerShell continuation window is opening."
+    }
+    catch {
+        Write-WarningMessage (
+            "The continuation window could not be opened automatically. " +
+            "Use the desktop shortcut instead."
+        )
+    }
 }
 
 if ($Help) {
@@ -796,6 +783,13 @@ if ($Help) {
 if ($Version) {
     Write-Host $ScriptVersion
     exit 0
+}
+if (-not (Test-IsWindowsSandbox)) {
+    Write-ErrorMessage "This script supports only Windows Sandbox."
+    exit 2
+}
+if (-not (Test-IsAdministrator)) {
+    Invoke-ElevatedSelf
 }
 
 try {
@@ -810,17 +804,8 @@ try {
     Write-Info "Current user     : $([Environment]::UserName)"
     Write-Info "Course root      : $CourseRoot"
     Write-Info "Log file         : $LogPath"
-    Write-Notice "This script installs missing course software in Windows Sandbox."
-    Write-Notice "It does not run Windows Update or upgrade installed software."
-    Write-Notice "It does not configure personal GitHub, Git, Python, or VS Code settings."
-
-    if (-not (Test-IsAdministrator)) {
-        $FailureExitCode = 3
-        throw (
-            "Setup requires the Windows Sandbox Administrator PowerShell session. " +
-            "Rerun setup_wsb.ps1 from that elevated session."
-        )
-    }
+    Write-Notice "This script prepares the Windows Sandbox system layer."
+    Write-Notice "It does not run Windows Update or configure personal settings."
 
     $MutationMutex = Enter-MutationLock
 
@@ -856,18 +841,22 @@ try {
     }
 
     $FailureExitCode = 4
-    Confirm-WinGetAvailable
+    Install-WinGet -Manifest $Controlled.Manifest
 
     $Bindings = Get-SystemPackageBinding -Platform $Controlled.Platform
     Install-SystemPackage -Bindings $Bindings
 
     $FailureExitCode = 1
+    Set-UserPathEntry -PathEntry $WindowsScriptDirectory
+    Update-ProcessEnvironment
     Test-SystemLayer -Bindings $Bindings -Platform $Controlled.Platform
+    New-ContinuationShortcut
 
     $Elapsed = (Get-Date) - $StartTime
     Write-Header "SETUP SUMMARY"
-    Write-Success "The Windows Sandbox system layer for the IT 140 Course IDE is installed."
+    Write-Success "Windows Sandbox is ready for config_win.ps1 and verify_win.ps1."
     Write-Info "Result           : PASS"
+    Write-Info "Deployment       : $DeploymentProfile"
     Write-Info "Git              : $(Get-CommandVersionLine -CommandName 'git.exe')"
     Write-Info "GitHub CLI       : $(Get-CommandVersionLine -CommandName 'gh.exe')"
     Write-Info "Python           : $(Get-CommandVersionLine -CommandName 'python.exe')"
@@ -876,12 +865,13 @@ try {
     Write-Info "Failures         : 0"
     Write-Info ("Elapsed time     : {0:hh\:mm\:ss}" -f $Elapsed)
     Write-Info "Log file         : $LogPath"
-    Write-Notice (
-        "Next step: close this Administrator PowerShell window, open a normal " +
-        "PowerShell window, and run config_win.ps1."
-    )
+    Write-Notice "Next step: run config_win.ps1 from a normal PowerShell window."
     Write-Info "Exit code        : 0"
-    Write-ClosingNotice
+
+    if (-not $NonInteractive) {
+        Start-ContinuationShell
+    }
+
     $ExitCode = 0
 }
 catch {
@@ -895,7 +885,7 @@ catch {
     if ($Changed) {
         Write-Notice (
             "Managed Windows Sandbox state changed before setup stopped. " +
-            "Rerun setup_wsb.ps1 in this session or begin with a fresh sandbox."
+            "Rerun setup_wsb.ps1 in this session or start a fresh sandbox."
         )
         $ExitCode = 7
     }
@@ -909,7 +899,7 @@ finally {
             $MutationMutex.ReleaseMutex()
         }
         catch {
-            # Best-effort operation; preserve the primary result.
+            # Best-effort cleanup; preserve the primary result.
         }
         $MutationMutex.Dispose()
     }
@@ -919,7 +909,7 @@ finally {
             Stop-Transcript | Out-Null
         }
         catch {
-            # Best-effort operation; preserve the primary result.
+            # Best-effort cleanup; preserve the primary result.
         }
     }
 }
