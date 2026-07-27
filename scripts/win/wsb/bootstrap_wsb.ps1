@@ -46,3 +46,7 @@ Expand-Archive -Path $DependenciesZip -DestinationPath $DependenciesDir -Force
 Get-ChildItem -Path $DependenciesDir -Recurse -File | Where-Object { $_.Extension -in '.appx','.msix' -and $_.FullName -match '(?i)x64' } | ForEach-Object { Add-AppxPackage -Path $_.FullName }
 Add-AppxPackage -Path $WingetBundle
 }
+catch {
+Remove-Item "$DependenciesZip.part","$WingetBundle.part" -Force -ErrorAction SilentlyContinue
+Write-Error "Windows Sandbox bootstrap failed: $($_.Exception.Message)" -ErrorAction Continue
+}
