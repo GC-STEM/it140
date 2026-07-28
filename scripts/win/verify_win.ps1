@@ -16,7 +16,7 @@ It creates only the required transcript and, when explicitly requested and
 confirmed, a sanitized support bundle under ~/it140/logs.
 
 Artifact version:
-    2026.07.27.2
+    2026.07.28.1
 
 .NOTES
 Exit codes:
@@ -51,7 +51,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "2026.07.27.2"
+$ScriptVersion = "2026.07.28.1"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
@@ -167,6 +167,62 @@ function Resolve-DeploymentProfile {
     else {
         "windows_bare_metal"
     }
+}
+
+function Get-ConfigRemediation {
+    if ($DeploymentProfile -eq "windows_sandbox") {
+        return "Run config_win.ps1 in the Windows Sandbox PowerShell window."
+    }
+    return "Run config_win.ps1 from a normal PowerShell window."
+}
+
+function Get-BootstrapRemediation {
+    if ($DeploymentProfile -eq "windows_sandbox") {
+        return (
+            "Start a fresh Windows Sandbox session with it140_wsb.wsb, then " +
+            "rerun config_win.ps1."
+        )
+    }
+    return "Run bootstrap_win.ps1 again, then config_win.ps1."
+}
+
+function Get-SystemSetupRemediation {
+    if ($DeploymentProfile -eq "windows_sandbox") {
+        return "Run setup_wsb.ps1 in the Windows Sandbox PowerShell window."
+    }
+    return "Run setup_win.ps1 from an elevated PowerShell window."
+}
+
+function Get-SystemRepairRemediation {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("package", "command")]
+        [string]$CapabilityType
+    )
+
+    if ($DeploymentProfile -eq "windows_sandbox") {
+        return "Run setup_wsb.ps1 in the Windows Sandbox PowerShell window."
+    }
+    if ($CapabilityType -eq "package") {
+        return (
+            "Run update_win.ps1; if it cannot repair the package, " +
+            "run setup_win.ps1."
+        )
+    }
+    return (
+        "Run update_win.ps1; if it cannot repair the command, " +
+        "run setup_win.ps1."
+    )
+}
+
+function Get-ManagedAssetRemediation {
+    if ($DeploymentProfile -eq "windows_sandbox") {
+        return (
+            "Start a fresh Windows Sandbox session with it140_wsb.wsb. " +
+            "Windows Sandbox does not use update_win.ps1."
+        )
+    }
+    return "Run bootstrap_win.ps1 again, then update_win.ps1."
 }
 
 function Get-NormalizedPathEntry {
@@ -569,6 +625,38 @@ function Read-ControlledManifest {
 }
 
 function Get-OperatingSystemFact {
+    if (
+        $DeploymentProfile -eq "windows_sandbox" -and
+        (Test-IsWindowsSandbox)
+    ) {
+        $CurrentVersion = Get-ItemProperty `
+            -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+        $BuildNumber = [string][Environment]::OSVersion.Version.Build
+        $Caption = [string]$CurrentVersion.ProductName
+        $DisplayVersion = [string]$CurrentVersion.DisplayVersion
+
+        if ([int]$BuildNumber -ge 22000 -and $Caption -notmatch "Windows 11") {
+            $Caption = $Caption -replace "Windows 10", "Windows 11"
+        }
+        if ([string]::IsNullOrWhiteSpace($DisplayVersion)) {
+            $DisplayVersion = [string]$CurrentVersion.ReleaseId
+        }
+
+        $Architecture = if ([Environment]::Is64BitOperatingSystem) {
+            "64-bit"
+        }
+        else {
+            "32-bit"
+        }
+
+        return [pscustomobject]@{
+            Caption = $Caption
+            Architecture = $Architecture
+            DisplayVersion = $DisplayVersion
+            BuildNumber = $BuildNumber
+        }
+    }
+
     $OperatingSystem = Get-CimInstance -ClassName Win32_OperatingSystem
     $CurrentVersion = Get-ItemProperty `
         -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
@@ -812,7 +900,13 @@ function Get-ScriptVersion {
         '(?m)^\$ScriptVersion\s*=\s*"(?<version>[0-9]+(?:\.[0-9]+)+)"'
     )
     if (-not $VersionMatch.Success) {
-        throw "A numeric script version could not be read."
+        $VersionMatch = [regex]::Match(
+            $ScriptText,
+            '(?m)^\$ArtifactVersion\s*=\s*"(?<version>[0-9]+(?:\.[0-9]+)+)"'
+        )
+    }
+    if (-not $VersionMatch.Success) {
+        throw "A numeric script or artifact version could not be read."
     }
     return $VersionMatch.Groups["version"].Value
 }
@@ -1052,7 +1146,7 @@ function Test-SystemLayer {
             -CheckId "verify.package_manager" `
             -Status "FAIL" `
             -Detail "Windows Package Manager is missing" `
-            -Remediation "Run setup_win.ps1 from an elevated PowerShell window."
+            -Remediation (Get-SystemSetupRemediation)
     }
 
     $SystemBindings = Get-SystemPackageBinding -Platform $Platform
@@ -1071,10 +1165,7 @@ function Test-SystemLayer {
                 -CheckId ("verify.package.{0}" -f $Binding.Role) `
                 -Status "FAIL" `
                 -Detail "Missing or not reported: $($Binding.PackageIdentifier)" `
-                -Remediation (
-                    "Run update_win.ps1; if it cannot repair the package, " +
-                    "run setup_win.ps1."
-                )
+                -Remediation (Get-SystemRepairRemediation -CapabilityType "package")
         }
 
         foreach ($ExecutableName in @($Binding.ExecutableNames)) {
@@ -1096,10 +1187,7 @@ function Test-SystemLayer {
                     -CheckId ("verify.capability.{0}" -f $Binding.Role) `
                     -Status "FAIL" `
                     -Detail "Required command is missing: $ExecutableName" `
-                    -Remediation (
-                        "Run update_win.ps1; if it cannot repair the " +
-                        "command, run setup_win.ps1."
-                    )
+                    -Remediation (Get-SystemRepairRemediation -CapabilityType "command")
             }
         }
     }
@@ -1119,7 +1207,7 @@ function Test-SystemLayer {
                 -CheckId "verify.python_version" `
                 -Status "FAIL" `
                 -Detail "Python 3.12 is not the active Windows runtime." `
-                -Remediation "Run setup_win.ps1 from an elevated PowerShell window."
+                -Remediation (Get-SystemSetupRemediation)
         }
     }
 }
@@ -1147,7 +1235,7 @@ function Test-UserLayer {
             -CheckId "verify.course_folders" `
             -Status "FAIL" `
             -Detail "One or more required course directories are missing." `
-            -Remediation "Run bootstrap_win.ps1 again, then config_win.ps1."
+            -Remediation (Get-BootstrapRemediation)
     }
 
     $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -1168,7 +1256,7 @@ function Test-UserLayer {
             -CheckId "verify.user_path" `
             -Status "FAIL" `
             -Detail "The persistent user PATH is incomplete." `
-            -Remediation "Run config_win.ps1 from a normal PowerShell window."
+            -Remediation (Get-ConfigRemediation)
     }
 
     $CurrentPathReady = $true
@@ -1206,7 +1294,7 @@ function Test-UserLayer {
                 -CheckId "verify.virtual_environment" `
                 -Status "FAIL" `
                 -Detail "The course virtual environment does not use Python 3.12." `
-                -Remediation "Run config_win.ps1 from a normal PowerShell window."
+                -Remediation (Get-ConfigRemediation)
         }
     }
     else {
@@ -1214,7 +1302,7 @@ function Test-UserLayer {
             -CheckId "verify.virtual_environment" `
             -Status "FAIL" `
             -Detail "The course virtual environment is missing." `
-            -Remediation "Run config_win.ps1 from a normal PowerShell window."
+            -Remediation (Get-ConfigRemediation)
     }
 
     if (Test-Path -LiteralPath $VenvPython -PathType Leaf) {
@@ -1231,7 +1319,7 @@ function Test-UserLayer {
                     -CheckId ("verify.user_tool.{0}" -f $PackageName) `
                     -Status "FAIL" `
                     -Detail "Missing" `
-                    -Remediation "Run config_win.ps1 from a normal PowerShell window."
+                    -Remediation (Get-ConfigRemediation)
             }
         }
     }
@@ -1253,7 +1341,7 @@ function Test-UserLayer {
                     -CheckId ("verify.extension.{0}" -f $ExtensionId) `
                     -Status "FAIL" `
                     -Detail "Missing" `
-                    -Remediation "Run config_win.ps1 from a normal PowerShell window."
+                    -Remediation (Get-ConfigRemediation)
             }
         }
     }
@@ -1271,7 +1359,7 @@ function Test-UserLayer {
                 -CheckId "verify.github_authentication" `
                 -Status "FAIL" `
                 -Detail "GitHub CLI is not authenticated." `
-                -Remediation "Run config_win.ps1 from a normal PowerShell window."
+                -Remediation (Get-ConfigRemediation)
         }
     }
 
@@ -1282,7 +1370,7 @@ function Test-UserLayer {
                 -CheckId "verify.git_display_name" `
                 -Status "FAIL" `
                 -Detail "The Git display name is missing." `
-                -Remediation "Run config_win.ps1 from a normal PowerShell window."
+                -Remediation (Get-ConfigRemediation)
         }
         else {
             Add-CheckResult `
@@ -1303,7 +1391,7 @@ function Test-UserLayer {
                 -CheckId "verify.git_private_identity" `
                 -Status "FAIL" `
                 -Detail "The privacy-preserving GitHub noreply identity is not configured." `
-                -Remediation "Run config_win.ps1 from a normal PowerShell window."
+                -Remediation (Get-ConfigRemediation)
         }
 
         $GitSettings = Get-PropertyValue `
@@ -1326,7 +1414,7 @@ function Test-UserLayer {
                     -CheckId ("verify.git_setting.{0}" -f $PropertyRecord.Name) `
                     -Status "FAIL" `
                     -Detail "Expected '$ExpectedValue'; observed '$ObservedValue'" `
-                    -Remediation "Run config_win.ps1 from a normal PowerShell window."
+                    -Remediation (Get-ConfigRemediation)
             }
         }
     }
@@ -1347,7 +1435,7 @@ function Test-UserLayer {
                     -CheckId "verify.vscode_settings" `
                     -Status "FAIL" `
                     -Detail "One or more course-managed settings are missing or different." `
-                    -Remediation "Run config_win.ps1 from a normal PowerShell window."
+                    -Remediation (Get-ConfigRemediation)
             }
         }
         catch {
@@ -1366,7 +1454,7 @@ function Test-UserLayer {
             -CheckId "verify.vscode_settings" `
             -Status "FAIL" `
             -Detail "The VS Code settings file is missing." `
-            -Remediation "Run config_win.ps1 from a normal PowerShell window."
+            -Remediation (Get-ConfigRemediation)
     }
 
     if (Test-Path -LiteralPath $CourseShortcutPath -PathType Leaf) {
@@ -1390,7 +1478,7 @@ function Test-UserLayer {
                 -CheckId "verify.desktop_shortcut.course" `
                 -Status "FAIL" `
                 -Detail $_.Exception.Message `
-                -Remediation "Run config_win.ps1 from a normal PowerShell window."
+                -Remediation (Get-ConfigRemediation)
         }
     }
     else {
@@ -1398,7 +1486,7 @@ function Test-UserLayer {
             -CheckId "verify.desktop_shortcut.course" `
             -Status "FAIL" `
             -Detail "Missing" `
-            -Remediation "Run config_win.ps1 from a normal PowerShell window."
+            -Remediation (Get-ConfigRemediation)
     }
 
     if (Test-Path -LiteralPath $VsCodeShortcutPath -PathType Leaf) {
@@ -1422,7 +1510,7 @@ function Test-UserLayer {
                 -CheckId "verify.desktop_shortcut.vscode" `
                 -Status "FAIL" `
                 -Detail $_.Exception.Message `
-                -Remediation "Run config_win.ps1 from a normal PowerShell window."
+                -Remediation (Get-ConfigRemediation)
         }
     }
     else {
@@ -1430,39 +1518,79 @@ function Test-UserLayer {
             -CheckId "verify.desktop_shortcut.vscode" `
             -Status "FAIL" `
             -Detail "Missing" `
-            -Remediation "Run config_win.ps1 from a normal PowerShell window."
+            -Remediation (Get-ConfigRemediation)
     }
 
-    foreach ($ScriptName in @(
-        "setup_win.ps1",
-        "config_win.ps1",
-        "update_win.ps1",
-        "verify_win.ps1"
-    )) {
-        $LifecycleScript = Join-Path $WindowsScriptDirectory $ScriptName
-        if (-not (Test-Path -LiteralPath $LifecycleScript -PathType Leaf)) {
+    if ($DeploymentProfile -eq "windows_sandbox") {
+        $LifecycleScripts = @(
+            [pscustomobject]@{
+                Name = "bootstrap_wsb.ps1"
+                Path = Join-Path $WindowsScriptDirectory "wsb\bootstrap_wsb.ps1"
+            },
+            [pscustomobject]@{
+                Name = "setup_wsb.ps1"
+                Path = Join-Path $WindowsScriptDirectory "wsb\setup_wsb.ps1"
+            },
+            [pscustomobject]@{
+                Name = "config_win.ps1"
+                Path = Join-Path $WindowsScriptDirectory "config_win.ps1"
+            },
+            [pscustomobject]@{
+                Name = "verify_win.ps1"
+                Path = Join-Path $WindowsScriptDirectory "verify_win.ps1"
+            }
+        )
+        $LifecycleRemediation = (
+            "Start a fresh Windows Sandbox session with it140_wsb.wsb. " +
+            "Windows Sandbox does not use update_win.ps1."
+        )
+    }
+    else {
+        $LifecycleScripts = @(
+            [pscustomobject]@{
+                Name = "setup_win.ps1"
+                Path = Join-Path $WindowsScriptDirectory "setup_win.ps1"
+            },
+            [pscustomobject]@{
+                Name = "config_win.ps1"
+                Path = Join-Path $WindowsScriptDirectory "config_win.ps1"
+            },
+            [pscustomobject]@{
+                Name = "update_win.ps1"
+                Path = Join-Path $WindowsScriptDirectory "update_win.ps1"
+            },
+            [pscustomobject]@{
+                Name = "verify_win.ps1"
+                Path = Join-Path $WindowsScriptDirectory "verify_win.ps1"
+            }
+        )
+        $LifecycleRemediation = "Run update_win.ps1 from a normal PowerShell window."
+    }
+
+    foreach ($LifecycleRecord in $LifecycleScripts) {
+        if (-not (Test-Path -LiteralPath $LifecycleRecord.Path -PathType Leaf)) {
             Add-CheckResult `
-                -CheckId ("verify.script.{0}" -f $ScriptName) `
+                -CheckId ("verify.script.{0}" -f $LifecycleRecord.Name) `
                 -Status "FAIL" `
                 -Detail "Missing" `
-                -Remediation "Run update_win.ps1 from a normal PowerShell window."
+                -Remediation $LifecycleRemediation
             continue
         }
 
         try {
-            Test-PowerShellScript -Path $LifecycleScript
-            $LifecycleVersion = Get-ScriptVersion -Path $LifecycleScript
+            Test-PowerShellScript -Path $LifecycleRecord.Path
+            $LifecycleVersion = Get-ScriptVersion -Path $LifecycleRecord.Path
             Add-CheckResult `
-                -CheckId ("verify.script.{0}" -f $ScriptName) `
+                -CheckId ("verify.script.{0}" -f $LifecycleRecord.Name) `
                 -Status "PASS" `
                 -Detail ("Valid; version {0}" -f $LifecycleVersion)
         }
         catch {
             Add-CheckResult `
-                -CheckId ("verify.script.{0}" -f $ScriptName) `
+                -CheckId ("verify.script.{0}" -f $LifecycleRecord.Name) `
                 -Status "FAIL" `
                 -Detail $_.Exception.Message `
-                -Remediation "Run update_win.ps1 from a normal PowerShell window."
+                -Remediation $LifecycleRemediation
         }
     }
 }
@@ -1489,7 +1617,7 @@ function Test-ManagedAsset {
                 -CheckId $AssetRecord.CheckId `
                 -Status "FAIL" `
                 -Detail "Missing" `
-                -Remediation "Run bootstrap_win.ps1 again, then update_win.ps1."
+                -Remediation (Get-ManagedAssetRemediation)
         }
     }
 }
@@ -1641,30 +1769,77 @@ function New-SupportBundle {
             $ManifestReleaseValue = [string]$Controlled.Manifest.automation_release
         }
         $LifecycleVersionSummary = @{}
-        foreach ($ScriptName in @(
-            "setup_win.ps1",
-            "config_win.ps1",
-            "update_win.ps1",
-            "verify_win.ps1"
-        )) {
-            $LifecyclePath = Join-Path $WindowsScriptDirectory $ScriptName
+        if ($DeploymentProfile -eq "windows_sandbox") {
+            $LifecycleRecords = @(
+                [pscustomobject]@{
+                    Name = "bootstrap_wsb.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "wsb\bootstrap_wsb.ps1"
+                },
+                [pscustomobject]@{
+                    Name = "setup_wsb.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "wsb\setup_wsb.ps1"
+                },
+                [pscustomobject]@{
+                    Name = "config_win.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "config_win.ps1"
+                },
+                [pscustomobject]@{
+                    Name = "verify_win.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "verify_win.ps1"
+                }
+            )
+        }
+        else {
+            $LifecycleRecords = @(
+                [pscustomobject]@{
+                    Name = "setup_win.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "setup_win.ps1"
+                },
+                [pscustomobject]@{
+                    Name = "config_win.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "config_win.ps1"
+                },
+                [pscustomobject]@{
+                    Name = "update_win.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "update_win.ps1"
+                },
+                [pscustomobject]@{
+                    Name = "verify_win.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "verify_win.ps1"
+                }
+            )
+        }
+
+        foreach ($LifecycleRecord in $LifecycleRecords) {
             try {
-                $LifecycleVersionSummary[$ScriptName] = [string](
-                    Get-ScriptVersion -Path $LifecyclePath
+                $LifecycleVersionSummary[$LifecycleRecord.Name] = [string](
+                    Get-ScriptVersion -Path $LifecycleRecord.Path
                 )
             }
             catch {
-                $LifecycleVersionSummary[$ScriptName] = "unavailable"
+                $LifecycleVersionSummary[$LifecycleRecord.Name] = "unavailable"
             }
         }
 
-        $ReleaseSummary = [pscustomobject]@{
-            ManifestRelease = $ManifestReleaseValue
-            SetupScriptVersion = $LifecycleVersionSummary["setup_win.ps1"]
-            ConfigScriptVersion = $LifecycleVersionSummary["config_win.ps1"]
-            UpdateScriptVersion = $LifecycleVersionSummary["update_win.ps1"]
-            VerifyScriptVersion = $LifecycleVersionSummary["verify_win.ps1"]
-        } | ConvertTo-Json -Depth 5
+        if ($DeploymentProfile -eq "windows_sandbox") {
+            $ReleaseSummary = [pscustomobject]@{
+                ManifestRelease = $ManifestReleaseValue
+                BootstrapScriptVersion = $LifecycleVersionSummary["bootstrap_wsb.ps1"]
+                SetupScriptVersion = $LifecycleVersionSummary["setup_wsb.ps1"]
+                ConfigScriptVersion = $LifecycleVersionSummary["config_win.ps1"]
+                UpdateScriptVersion = "not applicable"
+                VerifyScriptVersion = $LifecycleVersionSummary["verify_win.ps1"]
+            } | ConvertTo-Json -Depth 5
+        }
+        else {
+            $ReleaseSummary = [pscustomobject]@{
+                ManifestRelease = $ManifestReleaseValue
+                SetupScriptVersion = $LifecycleVersionSummary["setup_win.ps1"]
+                ConfigScriptVersion = $LifecycleVersionSummary["config_win.ps1"]
+                UpdateScriptVersion = $LifecycleVersionSummary["update_win.ps1"]
+                VerifyScriptVersion = $LifecycleVersionSummary["verify_win.ps1"]
+            } | ConvertTo-Json -Depth 5
+        }
         Write-Utf8LfFile `
             -Path (Join-Path $StagingDirectory "release_summary.json") `
             -Content ("$ReleaseSummary`n")
@@ -1798,9 +1973,15 @@ try {
             -CheckId "verify.manifest" `
             -Status "FAIL" `
             -Detail $_.Exception.Message `
-            -Remediation (
-                "Run bootstrap_win.ps1 again; if the problem remains, " +
-                "contact course support."
+            -Remediation $(
+                if ($DeploymentProfile -eq "windows_sandbox") {
+                    "Start a fresh Windows Sandbox session with it140_wsb.wsb; " +
+                    "if the problem remains, contact course support."
+                }
+                else {
+                    "Run bootstrap_win.ps1 again; if the problem remains, " +
+                    "contact course support."
+                }
             )
     }
 

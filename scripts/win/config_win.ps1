@@ -15,7 +15,7 @@ regular Windows computer. Windows Sandbox intentionally uses its administrative
 container account with the windows_sandbox deployment profile.
 
 Artifact version:
-    2026.07.27.2
+    2026.07.28.1
 
 .NOTES
 Exit codes:
@@ -49,7 +49,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "2026.07.27.2"
+$ScriptVersion = "2026.07.28.1"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
@@ -588,6 +588,38 @@ function Read-ControlledManifest {
 }
 
 function Get-OperatingSystemFact {
+    if (
+        $DeploymentProfile -eq "windows_sandbox" -and
+        (Test-IsWindowsSandbox)
+    ) {
+        $CurrentVersion = Get-ItemProperty `
+            -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+        $BuildNumber = [string][Environment]::OSVersion.Version.Build
+        $Caption = [string]$CurrentVersion.ProductName
+        $DisplayVersion = [string]$CurrentVersion.DisplayVersion
+
+        if ([int]$BuildNumber -ge 22000 -and $Caption -notmatch "Windows 11") {
+            $Caption = $Caption -replace "Windows 10", "Windows 11"
+        }
+        if ([string]::IsNullOrWhiteSpace($DisplayVersion)) {
+            $DisplayVersion = [string]$CurrentVersion.ReleaseId
+        }
+
+        $Architecture = if ([Environment]::Is64BitOperatingSystem) {
+            "64-bit"
+        }
+        else {
+            "32-bit"
+        }
+
+        return [pscustomobject]@{
+            Caption = $Caption
+            Architecture = $Architecture
+            DisplayVersion = $DisplayVersion
+            BuildNumber = $BuildNumber
+        }
+    }
+
     $OperatingSystem = Get-CimInstance -ClassName Win32_OperatingSystem
     $CurrentVersion = Get-ItemProperty `
         -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
