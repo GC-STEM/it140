@@ -10,18 +10,19 @@ VS Code extensions and settings, and Windows desktop shortcuts. The script
 preserves unrelated user settings and does not install or update system-level
 software.
 
-Run this script from a normal, non-elevated Windows PowerShell terminal after
-setup_win.ps1 completes.
+Run this script from a normal, non-elevated Windows PowerShell terminal on a
+regular Windows computer. Windows Sandbox intentionally uses its administrative
+container account with the windows_sandbox deployment profile.
 
 Artifact version:
-    2026.07.27.1
+    2026.07.27.2
 
 .NOTES
 Exit codes:
   0 Success
   1 Required operation failed
   2 Unsupported Windows platform or release
-  3 The script was run from an elevated terminal
+  3 Privilege context is invalid for the selected deployment
   4 Required network or package-retrieval operation failed
   5 Controlled manifest or managed asset validation failed
   6 User canceled before managed state changed
@@ -40,15 +41,15 @@ param(
     [switch]$Help,
     [switch]$Version,
     [switch]$NonInteractive,
-    [ValidateSet("windows_bare_metal")]
-    [string]$DeploymentProfile = "windows_bare_metal"
+    [ValidateSet("windows_bare_metal", "windows_sandbox")]
+    [string]$DeploymentProfile
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "2026.07.27.1"
+$ScriptVersion = "2026.07.27.2"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
@@ -126,11 +127,13 @@ Usage:
   powershell.exe -ExecutionPolicy Bypass -File .\config_win.ps1 -Help
   powershell.exe -ExecutionPolicy Bypass -File .\config_win.ps1 -Version
 
-Run from a normal, non-elevated Windows PowerShell terminal after setup.
+Use a normal, non-elevated PowerShell terminal on a regular Windows computer.
+Windows Sandbox uses its expected administrative container context. When the
+profile is omitted, the script selects the profile from the detected environment.
 Noninteractive mode requires an existing GitHub login and uses the current Git
 display name, or the GitHub username when no display name is configured.
 
-Deployment profile: windows_bare_metal
+Deployment profile: $DeploymentProfile
 Log directory: $LogDirectory
 "@ | Write-Host
 }
@@ -154,6 +157,23 @@ function Test-IsAdministrator {
     return $Principal.IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator
     )
+}
+
+function Test-IsWindowsSandbox {
+    return [Environment]::UserName -eq "WDAGUtilityAccount"
+}
+
+function Resolve-DeploymentProfile {
+    if (-not [string]::IsNullOrWhiteSpace($DeploymentProfile)) {
+        return
+    }
+
+    $script:DeploymentProfile = if (Test-IsWindowsSandbox) {
+        "windows_sandbox"
+    }
+    else {
+        "windows_bare_metal"
+    }
 }
 
 function Update-ProcessEnvironment {
@@ -1354,6 +1374,8 @@ function Test-ConfiguredUserLayer {
     Write-Success "User-layer post-validation passed."
 }
 
+Resolve-DeploymentProfile
+
 if ($Help) {
     Show-Usage
     exit 0
@@ -1378,12 +1400,41 @@ try {
     Write-Notice "This script changes only the current user's IT 140 environment."
     Write-Notice "It does not install or update system-wide software."
 
-    if (Test-IsAdministrator) {
+    $IsWindowsSandbox = Test-IsWindowsSandbox
+    $IsAdministrator = Test-IsAdministrator
+
+    if ($DeploymentProfile -eq "windows_sandbox" -and -not $IsWindowsSandbox) {
+        $FailureExitCode = 2
+        throw (
+            "The windows_sandbox deployment profile can be used only inside " +
+            "Windows Sandbox."
+        )
+    }
+    if ($DeploymentProfile -eq "windows_bare_metal" -and $IsWindowsSandbox) {
+        $FailureExitCode = 2
+        throw "Windows Sandbox requires the windows_sandbox deployment profile."
+    }
+
+    if ($DeploymentProfile -eq "windows_bare_metal" -and $IsAdministrator) {
         $FailureExitCode = 3
         throw (
-            "Do not run config_win.ps1 from an elevated terminal. " +
-            "Open a normal Windows PowerShell window under the intended user " +
-            "and rerun it."
+            "Do not run config_win.ps1 from an elevated terminal on a regular " +
+            "Windows computer. Open a normal Windows PowerShell window under " +
+            "the intended user and rerun it."
+        )
+    }
+    if ($DeploymentProfile -eq "windows_sandbox" -and -not $IsAdministrator) {
+        $FailureExitCode = 3
+        throw (
+            "The Windows Sandbox deployment requires its administrative " +
+            "container account."
+        )
+    }
+
+    if ($DeploymentProfile -eq "windows_sandbox") {
+        Write-Notice (
+            "Windows Sandbox uses its administrative container account. This " +
+            "context is expected for the windows_sandbox deployment."
         )
     }
 
@@ -1497,5 +1548,4 @@ finally {
         }
     }
 }
-
 exit $ExitCode

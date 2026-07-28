@@ -9,12 +9,14 @@ manifest assets, required software, course Python environment, VS Code
 extensions and settings, GitHub authentication, privacy-preserving Git
 identity, Windows PATH, desktop shortcuts, and lifecycle scripts.
 
-The script never elevates privilege or repairs failed checks. It creates only
-the required transcript and, when explicitly requested and confirmed, a
-sanitized support bundle under ~/it140/logs.
+The script never elevates privilege or repairs failed checks. It requires a
+normal, non-elevated context on a regular Windows computer and recognizes the
+administrative Windows Sandbox container context as an intentional exception.
+It creates only the required transcript and, when explicitly requested and
+confirmed, a sanitized support bundle under ~/it140/logs.
 
 Artifact version:
-    2026.07.27.1
+    2026.07.27.2
 
 .NOTES
 Exit codes:
@@ -37,8 +39,8 @@ param(
     [switch]$Help,
     [switch]$Version,
     [switch]$NonInteractive,
-    [ValidateSet("windows_bare_metal")]
-    [string]$DeploymentProfile = "windows_bare_metal",
+    [ValidateSet("windows_bare_metal", "windows_sandbox")]
+    [string]$DeploymentProfile,
     [switch]$SupportBundle,
     [Alias("ConfirmSupportBundle")]
     [switch]$Yes,
@@ -49,7 +51,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "2026.07.27.1"
+$ScriptVersion = "2026.07.27.2"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
@@ -119,10 +121,12 @@ Usage:
   powershell.exe -ExecutionPolicy Bypass -File .\verify_win.ps1 -Version
 
 This script does not elevate privilege, install, repair, update, remove, or
-rewrite managed course state. Support-bundle creation requires explicit
-confirmation unless -Yes is supplied.
+rewrite managed course state. Regular Windows requires a non-elevated context;
+Windows Sandbox uses its expected administrative container context. When the
+profile is omitted, the script selects it from the detected environment.
+Support-bundle creation requires explicit confirmation unless -Yes is supplied.
 
-Deployment profile: windows_bare_metal
+Deployment profile: $DeploymentProfile
 Log directory: $LogDirectory
 "@ | Write-Host
 }
@@ -146,6 +150,23 @@ function Test-IsAdministrator {
     return $Principal.IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator
     )
+}
+
+function Test-IsWindowsSandbox {
+    return [Environment]::UserName -eq "WDAGUtilityAccount"
+}
+
+function Resolve-DeploymentProfile {
+    if (-not [string]::IsNullOrWhiteSpace($DeploymentProfile)) {
+        return
+    }
+
+    $script:DeploymentProfile = if (Test-IsWindowsSandbox) {
+        "windows_sandbox"
+    }
+    else {
+        "windows_bare_metal"
+    }
 }
 
 function Get-NormalizedPathEntry {
@@ -247,7 +268,6 @@ namespace It140Automation
             {
                 throw new ArgumentNullException("json");
             }
-
             int index = 0;
             ParseValue(json, ref index, 0);
             SkipWhitespace(json, ref index);
@@ -851,7 +871,51 @@ function Test-PlatformContext {
         [Parameter(Mandatory = $true)]$ObservedWindowsFacts
     )
 
-    if (Test-IsAdministrator) {
+    $IsWindowsSandbox = Test-IsWindowsSandbox
+    $IsAdministrator = Test-IsAdministrator
+
+    if ($DeploymentProfile -eq "windows_sandbox" -and -not $IsWindowsSandbox) {
+        $script:UnsupportedFailure = $true
+        Add-CheckResult `
+            -CheckId "verify.deployment_context" `
+            -Status "FAIL" `
+            -Detail "windows_sandbox was selected outside Windows Sandbox" `
+            -Remediation "Use windows_bare_metal on a regular Windows computer."
+    }
+    elseif ($DeploymentProfile -eq "windows_bare_metal" -and $IsWindowsSandbox) {
+        $script:UnsupportedFailure = $true
+        Add-CheckResult `
+            -CheckId "verify.deployment_context" `
+            -Status "FAIL" `
+            -Detail "Windows Sandbox was assigned the bare-metal profile" `
+            -Remediation "Rerun verify_win.ps1 with windows_sandbox."
+    }
+    else {
+        Add-CheckResult `
+            -CheckId "verify.deployment_context" `
+            -Status "PASS" `
+            -Detail "The selected deployment profile matches the environment"
+    }
+
+    if ($DeploymentProfile -eq "windows_sandbox") {
+        if ($IsWindowsSandbox -and $IsAdministrator) {
+            Add-CheckResult `
+                -CheckId "verify.user_context" `
+                -Status "PASS" `
+                -Detail "Windows Sandbox administrative container context"
+        }
+        else {
+            Add-CheckResult `
+                -CheckId "verify.user_context" `
+                -Status "FAIL" `
+                -Detail "The expected Windows Sandbox administrator context is unavailable" `
+                -Remediation (
+                    "Start a fresh Windows Sandbox session with it140_wsb.wsb " +
+                    "and rerun the lifecycle."
+                )
+        }
+    }
+    elseif ($IsAdministrator) {
         Add-CheckResult `
             -CheckId "verify.user_context" `
             -Status "FAIL" `
@@ -1696,6 +1760,8 @@ function New-SupportBundle {
 
     return $BundlePath
 }
+
+Resolve-DeploymentProfile
 
 if ($Help) {
     Show-Usage
