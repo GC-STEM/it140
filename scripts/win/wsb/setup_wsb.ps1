@@ -10,8 +10,8 @@ provide it, and installs the manifest-required Windows software. The script
 does not run Windows Update and does not configure personal GitHub, Git,
 Python-environment, or VS Code settings.
 
-After successful setup, the sandbox is ready for config_win.ps1 and
-verify_win.ps1. A normal PowerShell continuation shortcut is created on the
+After successful setup, the sandbox is ready for config_wsb.ps1 and
+verify_wsb.ps1. A normal PowerShell continuation shortcut is created on the
 desktop and opened automatically for interactive runs.
 
 .NOTES
@@ -744,8 +744,8 @@ function New-ContinuationShortcut {
         "Set-Location -LiteralPath '$CourseRoot'; " +
         "Write-Host ''; " +
         "Write-Host 'IT 140 Windows Sandbox is ready.' -ForegroundColor Green; " +
-        "Write-Host 'Run config_win.ps1 to configure the current user.' -ForegroundColor Cyan; " +
-        "Write-Host 'After configuration, open a new PowerShell window and run verify_win.ps1.' -ForegroundColor Cyan"
+        "Write-Host 'Run config_wsb.ps1 to configure the current user.' -ForegroundColor Cyan; " +
+        "Write-Host 'After configuration, open a new PowerShell window and run verify_wsb.ps1.' -ForegroundColor Cyan"
     )
 
     $ShellApplication = New-Object -ComObject WScript.Shell
@@ -854,7 +854,7 @@ try {
 
     $Elapsed = (Get-Date) - $StartTime
     Write-Header "SETUP SUMMARY"
-    Write-Success "Windows Sandbox is ready for config_win.ps1 and verify_win.ps1."
+    Write-Success "Windows Sandbox is ready for config_wsb.ps1 and verify_wsb.ps1."
     Write-Info "Result           : PASS"
     Write-Info "Deployment       : $DeploymentProfile"
     Write-Info "Git              : $(Get-CommandVersionLine -CommandName 'git.exe')"
@@ -865,7 +865,7 @@ try {
     Write-Info "Failures         : 0"
     Write-Info ("Elapsed time     : {0:hh\:mm\:ss}" -f $Elapsed)
     Write-Info "Log file         : $LogPath"
-    Write-Notice "Next step: run config_win.ps1 from a normal PowerShell window."
+    Write-Notice "Next step: run config_wsb.ps1 from a new PowerShell window."
     Write-Info "Exit code        : 0"
 
     if (-not $NonInteractive) {

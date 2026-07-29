@@ -10,10 +10,6 @@ Windows Sandbox is a lightweight desktop environment that allows you to safely r
 
 {{SME TODO: Add link to official Microsoft documentation for enabling Windows Hyper-V and Windows Sandbox.}}
 
-## Prerequisites
-
-1. {{SME TODO: Determine prereqs, such as running the Windows bootstrap commands following instructions at <link>}}.
-
 ## Launch the IT 140 Windows Sandbox
 
 1. Navigate to the `it140\scripts\win\wsb` directory in **File Explorer**.
