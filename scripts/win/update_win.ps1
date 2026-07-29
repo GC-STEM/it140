@@ -17,7 +17,7 @@ user settings.
 Run this script from a normal, non-elevated Windows PowerShell terminal.
 
 Artifact version:
-    0.2.1
+    0.2.2
 
 Version date:
     2026-07-29
@@ -30,6 +30,8 @@ Version basis:
     Version 0.2.0 adopts SemVer and manifest schema 2.0, and limits periodic
     maintenance to course IDE components.
     Version 0.2.1 removes an unsupported WinGet source-update option.
+    Version 0.2.2 prevents expected native-command probe failures from
+    terminating Windows PowerShell 5.1.
 
 
 .NOTES
@@ -68,7 +70,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.2.1"
+$ScriptVersion = "0.2.2"
 $VersionDate = "2026-07-29"
 $DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
@@ -155,6 +157,23 @@ function Write-RequiredFailure {
 function Write-ErrorMessage {
     param([Parameter(Mandatory = $true)][string]$Message)
     Write-Host "[ERROR] $Message" -ForegroundColor Red
+}
+
+function Test-NativeCommandExitSuccess {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [string[]]$ArgumentList = @()
+    )
+
+    $PreviousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        & $FilePath @ArgumentList *> $null
+        return $LASTEXITCODE -eq 0
+    }
+    finally {
+        $ErrorActionPreference = $PreviousErrorActionPreference
+    }
 }
 
 function Show-Usage {
@@ -989,13 +1008,18 @@ function Get-SystemPackageBinding {
 function Test-WinGetPackageInstalled {
     param([Parameter(Mandatory = $true)][string]$PackageIdentifier)
 
-    & winget.exe list `
-        --id $PackageIdentifier `
-        --exact `
-        --source winget `
-        --accept-source-agreements `
-        --disable-interactivity *> $null
-    return $LASTEXITCODE -eq 0
+    return Test-NativeCommandExitSuccess `
+        -FilePath "winget.exe" `
+        -ArgumentList @(
+            "list",
+            "--id",
+            $PackageIdentifier,
+            "--exact",
+            "--source",
+            "winget",
+            "--accept-source-agreements",
+            "--disable-interactivity"
+        )
 }
 
 function Invoke-WinGetPackageMaintenance {
@@ -1504,8 +1528,10 @@ function Test-ConfigurationState {
         return $false
     }
 
-    & gh.exe auth status --hostname github.com *> $null
-    if ($LASTEXITCODE -ne 0) {
+    $GitHubIsAuthenticated = Test-NativeCommandExitSuccess `
+        -FilePath "gh.exe" `
+        -ArgumentList @("auth", "status", "--hostname", "github.com")
+    if (-not $GitHubIsAuthenticated) {
         return $false
     }
     if ([string]::IsNullOrWhiteSpace((Get-GitConfigValue -Key "user.name"))) {
@@ -1622,8 +1648,10 @@ function Test-PostUpdateState {
     }
     else {
         foreach ($PackageName in (Get-RequiredPythonPackage -Platform $Platform)) {
-            & $VenvPython -m pip show $PackageName *> $null
-            if ($LASTEXITCODE -ne 0) {
+            $PackageIsInstalled = Test-NativeCommandExitSuccess `
+                -FilePath $VenvPython `
+                -ArgumentList @("-m", "pip", "show", $PackageName)
+            if (-not $PackageIsInstalled) {
                 Write-RequiredFailure "Required course Python package is missing: $PackageName"
             }
         }

@@ -16,7 +16,7 @@ It creates only the required transcript and, when explicitly requested and
 confirmed, a sanitized support bundle under ~/it140/logs.
 
 Artifact version:
-    0.2.0
+    0.2.1
 
 Version date:
     2026-07-29
@@ -27,6 +27,8 @@ Development status:
 Version basis:
     Version 0.1.0 represents the initial Windows verification baseline.
     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
+    Version 0.2.1 prevents expected native-command probe failures from
+    terminating Windows PowerShell 5.1.
 
 
 .NOTES
@@ -62,7 +64,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.2.0"
+$ScriptVersion = "0.2.1"
 $VersionDate = "2026-07-29"
 $DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
@@ -119,6 +121,23 @@ function Write-Notice {
 function Write-ErrorMessage {
     param([Parameter(Mandatory = $true)][string]$Message)
     Write-Host "[ERROR] $Message" -ForegroundColor Red
+}
+
+function Test-NativeCommandExitSuccess {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [string[]]$ArgumentList = @()
+    )
+
+    $PreviousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        & $FilePath @ArgumentList *> $null
+        return $LASTEXITCODE -eq 0
+    }
+    finally {
+        $ErrorActionPreference = $PreviousErrorActionPreference
+    }
 }
 
 function Show-Usage {
@@ -1004,13 +1023,18 @@ function Test-PendingRestart {
 function Test-WinGetPackageInstalled {
     param([Parameter(Mandatory = $true)][string]$PackageIdentifier)
 
-    & winget.exe list `
-        --id $PackageIdentifier `
-        --exact `
-        --source winget `
-        --accept-source-agreements `
-        --disable-interactivity *> $null
-    return $LASTEXITCODE -eq 0
+    return Test-NativeCommandExitSuccess `
+        -FilePath "winget.exe" `
+        -ArgumentList @(
+            "list",
+            "--id",
+            $PackageIdentifier,
+            "--exact",
+            "--source",
+            "winget",
+            "--accept-source-agreements",
+            "--disable-interactivity"
+        )
 }
 
 function Test-PlatformContext {
@@ -1361,8 +1385,10 @@ function Test-UserLayer {
 
     if (Test-Path -LiteralPath $VenvPython -PathType Leaf) {
         foreach ($PackageName in (Get-RequiredPythonPackage -Platform $Platform)) {
-            & $VenvPython -m pip show $PackageName *> $null
-            if ($LASTEXITCODE -eq 0) {
+            $PackageIsInstalled = Test-NativeCommandExitSuccess `
+                -FilePath $VenvPython `
+                -ArgumentList @("-m", "pip", "show", $PackageName)
+            if ($PackageIsInstalled) {
                 Add-CheckResult `
                     -CheckId ("verify.user_tool.{0}" -f $PackageName) `
                     -Status "PASS" `
@@ -1401,8 +1427,10 @@ function Test-UserLayer {
     }
 
     if (Test-CommandAvailable "gh.exe") {
-        & gh.exe auth status --hostname github.com *> $null
-        if ($LASTEXITCODE -eq 0) {
+        $GitHubIsAuthenticated = Test-NativeCommandExitSuccess `
+            -FilePath "gh.exe" `
+            -ArgumentList @("auth", "status", "--hostname", "github.com")
+        if ($GitHubIsAuthenticated) {
             Add-CheckResult `
                 -CheckId "verify.github_authentication" `
                 -Status "PASS" `

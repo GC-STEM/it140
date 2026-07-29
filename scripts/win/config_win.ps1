@@ -15,7 +15,7 @@ regular Windows computer. Windows Sandbox intentionally uses its administrative
 container account with the windows_sandbox deployment profile.
 
 Artifact version:
-    0.2.0
+    0.2.1
 
 Version date:
     2026-07-29
@@ -26,6 +26,8 @@ Development status:
 Version basis:
     Version 0.1.0 represents the initial Windows configuration baseline.
     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
+    Version 0.2.1 prevents expected native-command probe failures from
+    terminating Windows PowerShell 5.1.
 
 
 .NOTES
@@ -60,7 +62,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.2.0"
+$ScriptVersion = "0.2.1"
 $VersionDate = "2026-07-29"
 $DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
@@ -128,6 +130,23 @@ function Write-WarningMessage {
 function Write-ErrorMessage {
     param([Parameter(Mandatory = $true)][string]$Message)
     Write-Host "[ERROR] $Message" -ForegroundColor Red
+}
+
+function Test-NativeCommandExitSuccess {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [string[]]$ArgumentList = @()
+    )
+
+    $PreviousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        & $FilePath @ArgumentList *> $null
+        return $LASTEXITCODE -eq 0
+    }
+    finally {
+        $ErrorActionPreference = $PreviousErrorActionPreference
+    }
 }
 
 function Show-Usage {
@@ -848,8 +867,10 @@ function Install-CoursePythonEnvironment {
         $script:Changed = $true
     }
 
-    & $VenvPython -m pip --version *> $null
-    if ($LASTEXITCODE -ne 0) {
+    if (-not (Test-NativeCommandExitSuccess `
+        -FilePath $VenvPython `
+        -ArgumentList @("-m", "pip", "--version")
+    )) {
         Write-Info "Repairing pip in the course Python environment."
         & $VenvPython -m ensurepip --upgrade
         if ($LASTEXITCODE -ne 0) {
@@ -860,8 +881,10 @@ function Install-CoursePythonEnvironment {
 
     $MissingPackages = @()
     foreach ($PackageName in $RequiredPackages) {
-        & $VenvPython -m pip show $PackageName *> $null
-        if ($LASTEXITCODE -ne 0) {
+        $PackageIsInstalled = Test-NativeCommandExitSuccess `
+            -FilePath $VenvPython `
+            -ArgumentList @("-m", "pip", "show", $PackageName)
+        if (-not $PackageIsInstalled) {
             $MissingPackages += $PackageName
         }
     }
@@ -897,8 +920,10 @@ function Get-GitConfigValue {
 function Set-GitHubIdentity {
     param([Parameter(Mandatory = $true)]$Manifest)
 
-    & gh.exe auth status --hostname github.com *> $null
-    if ($LASTEXITCODE -ne 0) {
+    $GitHubIsAuthenticated = Test-NativeCommandExitSuccess `
+        -FilePath "gh.exe" `
+        -ArgumentList @("auth", "status", "--hostname", "github.com")
+    if (-not $GitHubIsAuthenticated) {
         if ($NonInteractive) {
             throw "GitHub authentication requires an existing login in noninteractive mode."
         }
@@ -922,8 +947,10 @@ function Set-GitHubIdentity {
         $script:Changed = $true
     }
 
-    & gh.exe auth status --hostname github.com *> $null
-    if ($LASTEXITCODE -ne 0) {
+    $GitHubIsAuthenticated = Test-NativeCommandExitSuccess `
+        -FilePath "gh.exe" `
+        -ArgumentList @("auth", "status", "--hostname", "github.com")
+    if (-not $GitHubIsAuthenticated) {
         throw "GitHub authentication could not be verified."
     }
 
@@ -1375,8 +1402,10 @@ function Test-ConfiguredUserLayer {
     }
 
     foreach ($PackageName in $RequiredPackages) {
-        & $VenvPython -m pip show $PackageName *> $null
-        if ($LASTEXITCODE -ne 0) {
+        $PackageIsInstalled = Test-NativeCommandExitSuccess `
+            -FilePath $VenvPython `
+            -ArgumentList @("-m", "pip", "show", $PackageName)
+        if (-not $PackageIsInstalled) {
             throw "Required course Python package is missing: $PackageName"
         }
     }
@@ -1391,8 +1420,10 @@ function Test-ConfiguredUserLayer {
         }
     }
 
-    & gh.exe auth status --hostname github.com *> $null
-    if ($LASTEXITCODE -ne 0) {
+    $GitHubIsAuthenticated = Test-NativeCommandExitSuccess `
+        -FilePath "gh.exe" `
+        -ArgumentList @("auth", "status", "--hostname", "github.com")
+    if (-not $GitHubIsAuthenticated) {
         throw "GitHub authentication is not valid."
     }
     if ([string]::IsNullOrWhiteSpace((Get-GitConfigValue -Key "user.name"))) {
