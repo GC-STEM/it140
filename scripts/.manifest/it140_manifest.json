@@ -1,6 +1,7 @@
 {
-  "schema_version": "1.0",
-  "automation_release": "2026.07.25.3",
+  "schema_version": "2.0",
+  "automation_release": "0.1.0",
+  "automation_release_date": "2026-07-29",
   "course": {
     "course_id": "IT 140",
     "course_title": "Introduction to Scripting",
@@ -10,7 +11,7 @@
     "status": "draft",
     "source_repository": "https://github.com/GC-STEM/it140",
     "source_revision": "dfcfe0bc1c0e8d0dc9ad47faf2b855a18bdf227e",
-    "change_summary": "Designate the Codio Virtual Desktop on Ubuntu 24.04 LTS with APT and Xfce as the reference deployment; add deployment profiles for supported hosted and bare-metal environments; and limit initially enabled architectures to available conformance-test hardware."
+    "change_summary": "Adopt Semantic Versioning for automation releases, separate the release date from the version number, and update the manifest schema compatibility version to 2.0."
   },
   "policy": {
     "course_root": "${HOME}/it140",
