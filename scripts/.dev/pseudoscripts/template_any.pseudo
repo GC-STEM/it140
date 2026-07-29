@@ -1,31 +1,41 @@
 # ==============================================================================
-# IT 140 COURSE AUTOMATION PSEUDOSCRIPT TEMPLATE
+# IT 140 AUTOMATION PSEUDOSCRIPT TEMPLATE
 # ==============================================================================
 #
 # Repository path:
-#     scripts/.dev/pseudoscripts/template_any.pseudo
+#  scripts/.dev/pseudoscripts/template_any.pseudo
 #
 # Purpose:
-#     Define the common structure and writing style for the platform-agnostic
-#     IT 140 automation pseudoscripts.
+#  Define the common structure and writing style for the platform-agnostic
+#  IT 140 automation pseudoscripts.
 #
 # Covered artifacts:
-#     bootstrap_any.pseudo
-#     setup_any.pseudo
-#     config_any.pseudo
-#     update_any.pseudo
-#     verify_any.pseudo
+#  bootstrap_any.pseudo
+#  setup_any.pseudo
+#  config_any.pseudo
+#  update_any.pseudo
+#  verify_any.pseudo
 #
 # Artifact version:
-#     2026.07.27.1
+#  0.2.0
+#
+# Version date:
+#  2026-07-29
+#
+# Development status:
+#  Alpha Testing
+#
+# Version basis:
+#  Version 0.1.0 represents the initial template baseline. Version 0.2.0 adds
+#  the artifact version, version date, and development-status standard.
 #
 # Repository baseline:
-#     GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
+#  GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
 #
 # Authority:
-#     The current SRS, SDD, controlled manifest, manifest schema, and tested
-#     platform implementations remain authoritative. A pseudoscript records
-#     platform-agnostic logic; it does not replace those controlled artifacts.
+#  The current SRS, SDD, controlled manifest, manifest schema, and tested
+#  platform implementations remain authoritative. A pseudoscript records
+#  platform-agnostic logic; it does not replace those controlled artifacts.
 #
 # ==============================================================================
 
@@ -41,18 +51,18 @@
 # pastes before the controlled manifest and lifecycle scripts are available.
 #
 # Bootstrap:
-#     - does not use the lifecycle-script main procedure;
-#     - does not require the manifest or schema;
-#     - does not create a lifecycle transcript;
-#     - does not acquire a lifecycle mutation lock;
-#     - does not install or update the course IDE;
-#     - retrieves a clean snapshot of the course repository;
-#     - overlays repository files into the course root without deleting
-#       unrelated existing course content;
-#     - removes repository metadata from the downloaded snapshot and course root;
-#     - makes the matching student lifecycle scripts executable;
-#     - adds the matching script directory to the shell PATH persistently and
-#       to the current shell session.
+#  - does not use the lifecycle-script main procedure;
+#  - does not require the manifest or schema;
+#  - does not acquire a lifecycle mutation lock;
+#  - does not install or update the course IDE;
+#  - creates a lifecycle transcript;
+#  - retrieves a clean snapshot of the course repository;
+#  - overlays repository files into the course root without deleting
+#    unrelated existing course content;
+#  - removes repository metadata from the downloaded snapshot and course root;
+#  - makes the matching student lifecycle scripts executable;
+#  - adds the matching script directory to the shell PATH persistently and
+#    to the current shell session.
 #
 # MANAGED LIFECYCLE SCRIPTS
 # -------------------------
@@ -61,97 +71,168 @@
 # use the managed lifecycle-script pattern below.
 #
 # setup:
-#     state_scope       = system
-#     may_change_state  = TRUE
-#     lock_required     = TRUE
-#     privilege_model   = standard user with approved operation-level elevation
-#     normal_next_step  = configure
+#  state_scope       = system
+#  may_change_state  = TRUE
+#  lock_required     = TRUE
+#  privilege_model   = standard user with approved operation-level elevation
+#  normal_next_step  = configure
 #
 # configure:
-#     state_scope       = current_user
-#     may_change_state  = TRUE
-#     lock_required     = TRUE
-#     privilege_model   = standard user; reject elevated execution
-#     normal_next_step  = verify
+#  state_scope       = current_user
+#  may_change_state  = TRUE
+#  lock_required     = TRUE
+#  privilege_model   = standard user; reject elevated execution
+#  normal_next_step  = verify
 #
 # update:
-#     state_scope       = system_and_course_managed_user_state
-#     may_change_state  = TRUE
-#     lock_required     = TRUE
-#     privilege_model   = standard user with approved operation-level elevation
-#     normal_next_step  = configure for first use; otherwise verify
+#  state_scope       = system_and_course_managed_user_state
+#  may_change_state  = TRUE
+#  lock_required     = TRUE
+#  privilege_model   = standard user with approved operation-level elevation
+#  normal_next_step  = configure for first use; otherwise verify
 #
 # verify:
-#     state_scope       = read_only_observation
-#     may_change_state  = FALSE
-#     lock_required     = FALSE
-#     privilege_model   = standard user; never elevate
-#     normal_next_step  = no action or the reported remediation
+#  state_scope       = read_only_observation
+#  may_change_state  = FALSE
+#  lock_required     = FALSE
+#  privilege_model   = standard user; never elevate
+#  normal_next_step  = no action or the reported remediation
 #
 # ==============================================================================
 
 
 # ==============================================================================
-# 2. STYLE STANDARD
+# 2. ARTIFACT VERSION STANDARD
+# ==============================================================================
+#
+# Apply Semantic Versioning (SemVer) 2.0.0 to every distributed or testable
+# artifact.
+#
+# Required artifact metadata:
+#  artifact_version   = MAJOR.MINOR.PATCH
+#  version_date       = YYYY-MM-DD
+#  development_status = approved development-status label
+#
+# Version date:
+#  - records when that exact artifact version was created;
+#  - changes whenever the artifact version changes;
+#  - remains separate from the artifact version;
+#  - does not affect version precedence.
+#
+# Development status:
+#  - records the artifact's current lifecycle stage separately from SemVer;
+#  - uses an approved repository status such as Construction, Alpha Testing,
+#    Beta Testing, Release Review, or Ready for Production;
+#  - does not determine whether MINOR or PATCH changes;
+#  - requires a new PATCH version if an embedded status value is changed in an
+#    artifact that has already been distributed or identified for testing.
+#
+# Artifact contract:
+#  Treat filenames, commands, options, supported platforms, lifecycle workflow,
+#  exit codes, managed files and directories, required prompts, stable log fields,
+#  and documented behavior as the public interface for versioning decisions.
+#
+# Initial development:
+#  - Use major version 0 while the artifact contract is unstable.
+#  - Begin a new artifact at 0.1.0.
+#  - Increment MINOR and reset PATCH to 0 when adding functionality or making a
+#    meaningful backward-compatible change to behavior or the artifact contract.
+#  - Increment PATCH when correcting or clarifying the existing functional
+#    baseline without adding functionality or changing the artifact contract.
+#  - A breaking change may increment MINOR while the artifact remains below 1.0.0;
+#    document the changed contract clearly because 0.y.z is not stable.
+#
+# Stable releases:
+#  - Version 1.0.0 establishes the stable artifact contract.
+#  - Increment PATCH for backward-compatible corrections.
+#  - Increment MINOR and reset PATCH to 0 for backward-compatible functionality
+#    or deprecations.
+#  - Increment MAJOR and reset MINOR and PATCH to 0 for incompatible changes.
+#
+# Small changes:
+#  - Do not change the version for comments, spelling, punctuation, or formatting
+#    edits made only in an unreleased working copy.
+#  - Increment PATCH when redistributing an identified artifact after correcting
+#    code, comments, user-facing text, or embedded metadata.
+#  - Cosmetic corrections may be bundled into the next planned release instead
+#    of creating a standalone release.
+#
+# Release immutability:
+#  - Never modify the contents of an already distributed version in place.
+#  - Any changed artifact redistributed for testing or use requires a new version.
+#  - Git commits record development activity; they do not automatically require
+#    version changes unless they create a new distributed or testable artifact.
+#
+# Version format:
+#  - Use only MAJOR.MINOR.PATCH for routine artifact versions.
+#  - Do not encode a calendar date in the artifact version.
+#  - Do not use prerelease or build identifiers unless the repository later
+#    adopts and documents a specific need for them.
+#
+# ==============================================================================
+
+
+# ==============================================================================
+# 3. STYLE STANDARD
 # ==============================================================================
 #
 # Use uppercase control words:
 #
-#     BEGIN
-#     END
-#     PROCEDURE
-#     RETURN
-#     IF
-#     ELSE IF
-#     ELSE
-#     ENDIF
-#     FOR EACH
-#     ENDFOR
-#     TRY
-#     CATCH
-#     FINALLY
-#     END TRY
+#  BEGIN
+#  END
+#  PROCEDURE
+#  RETURN
+#  IF
+#  ELSE IF
+#  ELSE
+#  ENDIF
+#  FOR EACH
+#  ENDFOR
+#  TRY
+#  CATCH
+#  FINALLY
+#  ENDTRY
 #
 # Use descriptive lower_snake_case identifiers.
 #
 # Use dotted identifiers for stages and checks:
 #
-#     run.initialize
-#     platform.validate
-#     manifest.validate
-#     setup.system_software
-#     configure.provider_identity
-#     update.course_assets
-#     verify.user_path
-#     run.summary
+#  run.initialize
+#  platform.validate
+#  manifest.validate
+#  setup.system_software
+#  configure.provider_identity
+#  update.course_assets
+#  verify.user_path
+#  run.summary
 #
 # Layout:
-#     - Indent nested blocks by four spaces.
-#     - Put one logical operation or decision on each line.
-#     - Use LF line endings and no tabs.
-#     - Keep lines at 100 characters or fewer when practical.
-#     - Move repeated or complex logic into a named procedure.
+#  - Indent nested blocks by four spaces.
+#  - Put one logical operation or decision on each line.
+#  - Use LF line endings and no tabs.
+#  - Keep lines at 100 characters or fewer when practical.
+#  - Move repeated or complex logic into a named procedure.
 #
 # Platform independence:
-#     - Express intent through logical operations and platform adapters.
-#     - Do not embed package-manager, shell, desktop, or provider commands.
-#     - Obtain required products, packages, settings, assets, and policy values
-#       from the validated manifest whenever the manifest is available.
-#     - Bootstrap-only values come from controlled implementation constants
-#       because bootstrap runs before the manifest is installed locally.
+#  - Express intent through logical operations and platform adapters.
+#  - Do not embed package-manager, shell, desktop, or provider commands.
+#  - Obtain required products, packages, settings, assets, and policy values
+#    from the validated manifest whenever the manifest is available.
+#  - Bootstrap-only values come from controlled implementation constants
+#    because bootstrap runs before the manifest is installed locally.
 #
 # Communication:
-#     - Use INFO, SUCCESS, NOTICE, WARNING, and ERROR labels.
-#     - Do not rely on color.
-#     - Use clear adult-learner language.
-#     - State the current stage, result, and next required user action.
-#     - Do not expose secrets or unnecessary personal information.
+#  - Use INFO, SUCCESS, NOTICE, WARNING, and ERROR labels.
+#  - Do not rely on color.
+#  - Use clear adult-learner language.
+#  - State the current stage, result, and next required user action.
+#  - Do not expose secrets or unnecessary personal information.
 #
 # ==============================================================================
 
 
 # ==============================================================================
-# 3. COMMON LIFECYCLE-SCRIPT INITIALIZATION
+# 4. COMMON LIFECYCLE-SCRIPT INITIALIZATION
 # ==============================================================================
 
 PROCEDURE initialize_managed_lifecycle_run(action_id, arguments)
@@ -167,7 +248,11 @@ PROCEDURE initialize_managed_lifecycle_run(action_id, arguments)
     ENDIF
 
     IF options.version_requested = TRUE
-        display_version_without_creating_log()
+        display_version_without_creating_log(
+            script_version = implementation_script_version(),
+            version_date = implementation_version_date(),
+            development_status = implementation_development_status()
+        )
         RETURN exit_code_0
     ENDIF
 
@@ -193,6 +278,8 @@ PROCEDURE initialize_managed_lifecycle_run(action_id, arguments)
     display_opening_information(
         action_id,
         script_version = implementation_script_version(),
+        version_date = implementation_version_date(),
+        development_status = implementation_development_status(),
         current_user = sanitized_current_user_id(),
         purpose = action_purpose(),
         log_path = run_context.log_path
@@ -204,7 +291,7 @@ ENDPROCEDURE
 
 
 # ==============================================================================
-# 4. COMMON MANIFEST VALIDATION
+# 5. COMMON MANIFEST VALIDATION
 # ==============================================================================
 
 PROCEDURE validate_controlled_manifest_pair(
@@ -235,7 +322,7 @@ ENDPROCEDURE
 
 
 # ==============================================================================
-# 5. COMMON MUTATION SAFETY
+# 6. COMMON MUTATION SAFETY
 # ==============================================================================
 
 PROCEDURE acquire_shared_mutation_lock(action_id, platform_id)
@@ -288,6 +375,8 @@ PROCEDURE finish_mutating_action(result, run_context, changed, warnings, failure
     DISPLAY summary with:
         result
         script version
+        version date
+        development status
         manifest release when available
         warnings
         failures
@@ -307,7 +396,7 @@ ENDPROCEDURE
 
 
 # ==============================================================================
-# 6. VERIFY RESULT STANDARD
+# 7. VERIFY RESULT STANDARD
 # ==============================================================================
 
 PROCEDURE record_verification_result(status, check_id, message, remediation = NONE)
@@ -329,20 +418,20 @@ ENDPROCEDURE
 
 
 # ==============================================================================
-# 7. CURRENT CVD ALIGNMENT CHECKLIST
+# 8. CURRENT CVD ALIGNMENT CHECKLIST
 # ==============================================================================
 #
-# A platform implementation aligned with the tested CVD baseline must preserve
-# these lifecycle boundaries:
+# A platform implementation aligned with the tested Codio Virtual Desktop (CVD)
+# baseline must preserve these lifecycle boundaries:
 #
-#     - bootstrap retrieves the repository but performs no IDE maintenance;
-#     - setup is administrator/SME-facing and remains outside student updates;
-#     - update synchronizes only the student config, update, and verify scripts;
-#     - configure owns provider identity and current-user personalization;
-#     - verify is read-only except for its transcript and an explicitly approved
-#       sanitized support bundle;
-#     - update never performs an operating-system release upgrade;
-#     - optional Num Lock convenience failures never block course readiness;
-#     - every managed lifecycle script ends with log and fresh-terminal notices.
+#  - bootstrap retrieves the repository but performs no IDE maintenance;
+#  - setup_cvd.sh is admin/SME-facing and remains outside student updates;
+#  - update synchronizes only the student config, update, and verify scripts;
+#  - configure owns provider identity and current-user personalization;
+#  - verify is read-only except for its transcript and an explicitly approved
+#    sanitized support bundle;
+#  - update never performs an operating-system release upgrade;
+#  - optional Num Lock convenience failures never block course readiness;
+#  - every managed lifecycle script ends with log and fresh-terminal notices.
 #
 # ==============================================================================
