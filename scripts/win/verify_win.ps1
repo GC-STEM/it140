@@ -16,7 +16,7 @@ It creates only the required transcript and, when explicitly requested and
 confirmed, a sanitized support bundle under ~/it140/logs.
 
 Artifact version:
-    0.2.1
+    0.3.0
 
 Version date:
     2026-07-29
@@ -29,6 +29,9 @@ Version basis:
     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
     Version 0.2.1 prevents expected native-command probe failures from
     terminating Windows PowerShell 5.1.
+
+    Version 0.3.0 adds support for Windows 10, version 22H2, while preserving
+    manifest-controlled Windows 11 release validation.
 
 
 .NOTES
@@ -64,7 +67,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.2.1"
+$ScriptVersion = "0.3.0"
 $VersionDate = "2026-07-29"
 $DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
@@ -715,11 +718,15 @@ function Get-OperatingSystemFact {
     $OperatingSystem = Get-CimInstance -ClassName Win32_OperatingSystem
     $CurrentVersion = Get-ItemProperty `
         -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+    $DisplayVersion = [string]$CurrentVersion.DisplayVersion
+    if ([string]::IsNullOrWhiteSpace($DisplayVersion)) {
+        $DisplayVersion = [string]$CurrentVersion.ReleaseId
+    }
 
     return [pscustomobject]@{
         Caption = [string]$OperatingSystem.Caption
         Architecture = [string]$OperatingSystem.OSArchitecture
-        DisplayVersion = [string]$CurrentVersion.DisplayVersion
+        DisplayVersion = $DisplayVersion
         BuildNumber = [string]$OperatingSystem.BuildNumber
     }
 }
@@ -1104,7 +1111,10 @@ function Test-PlatformContext {
             -Detail "Normal, non-elevated user context"
     }
 
-    if ($ObservedWindowsFacts.Caption -match "Windows 11") {
+    $IsWindows10 = $ObservedWindowsFacts.Caption -match "Windows 10"
+    $IsWindows11 = $ObservedWindowsFacts.Caption -match "Windows 11"
+
+    if ($IsWindows10 -or $IsWindows11) {
         Add-CheckResult `
             -CheckId "verify.operating_system" `
             -Status "PASS" `
@@ -1116,13 +1126,24 @@ function Test-PlatformContext {
             -CheckId "verify.operating_system" `
             -Status "FAIL" `
             -Detail $ObservedWindowsFacts.Caption `
-            -Remediation "Use a supported Windows 11 computer or contact technical support."
+            -Remediation (
+                "Use Windows 10, version 22H2, or a supported Windows 11 " +
+                "computer."
+            )
     }
 
-    $SupportedReleases = @(
+    $SupportedWindows11Releases = @(
         $Platform.os.releases | ForEach-Object { [string]$_.release_id }
     )
-    if ($ObservedWindowsFacts.DisplayVersion -in $SupportedReleases) {
+    $ReleaseIsSupported = (
+        ($IsWindows10 -and $ObservedWindowsFacts.DisplayVersion -eq "22H2") -or
+        (
+            $IsWindows11 -and
+            $ObservedWindowsFacts.DisplayVersion -in $SupportedWindows11Releases
+        )
+    )
+
+    if ($ReleaseIsSupported) {
         Add-CheckResult `
             -CheckId "verify.os_release" `
             -Status "PASS" `
@@ -1135,8 +1156,8 @@ function Test-PlatformContext {
             -Status "FAIL" `
             -Detail "Unsupported Windows release: $($ObservedWindowsFacts.DisplayVersion)" `
             -Remediation (
-                "Update Windows to a course-supported release or contact " +
-                "technical support."
+                "Use Windows 10, version 22H2, or a manifest-supported " +
+                "Windows 11 release."
             )
     }
 

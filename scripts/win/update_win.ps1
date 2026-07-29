@@ -17,7 +17,7 @@ user settings.
 Run this script from a normal, non-elevated Windows PowerShell terminal.
 
 Artifact version:
-    0.2.2
+    0.3.0
 
 Version date:
     2026-07-29
@@ -32,6 +32,9 @@ Version basis:
     Version 0.2.1 removes an unsupported WinGet source-update option.
     Version 0.2.2 prevents expected native-command probe failures from
     terminating Windows PowerShell 5.1.
+
+    Version 0.3.0 adds support for Windows 10, version 22H2, while preserving
+    manifest-controlled Windows 11 release validation.
 
 
 .NOTES
@@ -70,7 +73,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.2.2"
+$ScriptVersion = "0.3.0"
 $VersionDate = "2026-07-29"
 $DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
@@ -628,11 +631,15 @@ function Get-OperatingSystemFact {
     $OperatingSystem = Get-CimInstance -ClassName Win32_OperatingSystem
     $CurrentVersion = Get-ItemProperty `
         -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+    $DisplayVersion = [string]$CurrentVersion.DisplayVersion
+    if ([string]::IsNullOrWhiteSpace($DisplayVersion)) {
+        $DisplayVersion = [string]$CurrentVersion.ReleaseId
+    }
 
     return [pscustomobject]@{
         Caption = [string]$OperatingSystem.Caption
         Architecture = [string]$OperatingSystem.OSArchitecture
-        DisplayVersion = [string]$CurrentVersion.DisplayVersion
+        DisplayVersion = $DisplayVersion
         BuildNumber = [string]$OperatingSystem.BuildNumber
     }
 }
@@ -643,21 +650,38 @@ function Test-SupportedOperatingSystem {
         [Parameter(Mandatory = $true)]$Platform
     )
 
-    if ($WindowsFacts.Caption -notmatch "Windows 11") {
-        throw "This script supports only Microsoft Windows 11. Detected: $($WindowsFacts.Caption)"
+    $IsWindows10 = $WindowsFacts.Caption -match "Windows 10"
+    $IsWindows11 = $WindowsFacts.Caption -match "Windows 11"
+
+    if (-not ($IsWindows10 -or $IsWindows11)) {
+        throw (
+            "This script supports Microsoft Windows 10 or Windows 11. " +
+            "Detected: $($WindowsFacts.Caption)"
+        )
     }
     if ($WindowsFacts.Architecture -notmatch "64-bit") {
         throw "This release supports only x64 Windows. Detected: $($WindowsFacts.Architecture)"
     }
 
-    $SupportedReleases = @(
+    if ($IsWindows10) {
+        if ($WindowsFacts.DisplayVersion -ne "22H2") {
+            throw (
+                "Windows 10 release {0} is not enabled. Supported Windows 10 " +
+                "release: 22H2." -f $WindowsFacts.DisplayVersion
+            )
+        }
+        return
+    }
+
+    $SupportedWindows11Releases = @(
         $Platform.os.releases | ForEach-Object { [string]$_.release_id }
     )
-    if ($WindowsFacts.DisplayVersion -notin $SupportedReleases) {
+    if ($WindowsFacts.DisplayVersion -notin $SupportedWindows11Releases) {
         throw (
-            "Windows release {0} is not enabled. Supported releases: {1}" -f
+            "Windows 11 release {0} is not enabled. Supported Windows 11 " +
+            "releases: {1}" -f
             $WindowsFacts.DisplayVersion,
-            ($SupportedReleases -join ", ")
+            ($SupportedWindows11Releases -join ", ")
         )
     }
 }
