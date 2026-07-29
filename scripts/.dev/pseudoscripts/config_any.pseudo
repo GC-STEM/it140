@@ -10,13 +10,27 @@
 #     identity, user tools, IDE settings, and desktop integrations.
 #
 # Artifact version:
-#     2026.07.27.1
+#     0.2.0
+#
+# Version date:
+#     2026-07-29
+#
+# Development status:
+#     Alpha Testing
+#
+# Version basis:
+#     Version 0.1.0 represents the initial pseudoscript baseline.
+#     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
 #
 # CVD implementation target:
-#     config_cvd.sh version 2026.07.26.5
+#     config_cvd.sh version 2026.07.26.5 (legacy calendar version)
 #
 # Repository baseline:
 #     GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
+#
+# Manifest compatibility:
+#     Requires schema_version 2.0, a strict SemVer automation_release,
+#     and automation_release_date in YYYY-MM-DD format.
 #
 # SRS traceability:
 #     CFG-FR-001 through CFG-FR-016
@@ -43,6 +57,9 @@
 # ==============================================================================
 
 
+artifact_version = "0.2.0"
+version_date = "2026-07-29"
+development_status = "Alpha Testing"
 action_id = "configure"
 may_change_state = TRUE
 lock_required = TRUE
@@ -68,7 +85,11 @@ PROCEDURE main(arguments)
     ENDIF
 
     IF options.version_requested
-        display_configure_version()
+        display_configure_version(
+            artifact_version,
+            version_date,
+            development_status
+        )
         RETURN 0
     ENDIF
 
@@ -90,7 +111,13 @@ PROCEDURE main(arguments)
         - instruct the user to rerun configure;
         - return 7 when managed user state changed, otherwise 6.
 
-    DISPLAY opening information
+    DISPLAY opening information:
+        script version
+        version date
+        development status
+        current user
+        purpose
+        log path
     DISPLAY NOTICE that system-wide software will not be changed
 
     validate_platform_and_user_context(run_context)
@@ -110,6 +137,10 @@ PROCEDURE main(arguments)
 
     DISPLAY configuration summary:
         result = PASS
+        script version
+        version date
+        development status
+        manifest release
         provider login = valid
         course folder
         course interpreter
@@ -150,6 +181,7 @@ PROCEDURE validate_configure_manifest(run_context)
         required_top_level_keys = [
             "schema_version",
             "automation_release",
+            "automation_release_date",
             "policy",
             "platforms",
             "deployment_profiles",

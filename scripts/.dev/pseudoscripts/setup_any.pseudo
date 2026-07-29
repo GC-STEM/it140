@@ -10,13 +10,27 @@
 #     system-level course integrations.
 #
 # Artifact version:
-#     2026.07.27.1
+#     0.2.0
+#
+# Version date:
+#     2026-07-29
+#
+# Development status:
+#     Alpha Testing
+#
+# Version basis:
+#     Version 0.1.0 represents the initial pseudoscript baseline.
+#     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
 #
 # CVD implementation target:
-#     setup_cvd.sh version 2026.07.27.1
+#     setup_cvd.sh version 2026.07.27.1 (legacy calendar version)
 #
 # Repository baseline:
 #     GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
+#
+# Manifest compatibility:
+#     Requires schema_version 2.0, a strict SemVer automation_release,
+#     and automation_release_date in YYYY-MM-DD format.
 #
 # SRS traceability:
 #     SET-FR-001 through SET-FR-012
@@ -44,6 +58,9 @@
 # ==============================================================================
 
 
+artifact_version = "0.2.0"
+version_date = "2026-07-29"
+development_status = "Alpha Testing"
 action_id = "setup"
 may_change_state = TRUE
 lock_required = TRUE
@@ -69,7 +86,11 @@ PROCEDURE main(arguments)
     ENDIF
 
     IF options.version_requested
-        display_setup_version()
+        display_setup_version(
+            artifact_version,
+            version_date,
+            development_status
+        )
         RETURN 0
     ENDIF
 
@@ -94,7 +115,13 @@ PROCEDURE main(arguments)
         - clean temporary files;
         - return 7 when managed state changed, otherwise 6.
 
-    DISPLAY opening information
+    DISPLAY opening information:
+        script version
+        version date
+        development status
+        current user
+        purpose
+        log path
     DISPLAY NOTICE that system software may change but personal settings will not
 
     validate_platform_and_privilege(run_context)
@@ -110,6 +137,10 @@ PROCEDURE main(arguments)
 
     DISPLAY setup summary:
         result = PASS
+        script version
+        version date
+        development status
+        manifest release
         warnings
         failures = 0
         elapsed time
@@ -156,6 +187,7 @@ PROCEDURE validate_setup_manifest(run_context)
         required_top_level_keys = [
             "schema_version",
             "automation_release",
+            "automation_release_date",
             "policy",
             "platforms",
             "deployment_profiles",

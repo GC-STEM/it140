@@ -4,17 +4,29 @@
 Installs or repairs the system-level IT 140 Course IDE on Windows.
 
 .DESCRIPTION
-Applies current-release Windows quality and security updates, installs or
-repairs Windows Package Manager when required, and installs or repairs the
-manifest-declared system software for IT 140. The script never performs a
-Windows feature-release upgrade and does not configure personal GitHub, Git,
+Installs or repairs Windows Package Manager when required and installs or
+repairs the manifest-declared system software for IT 140. Windows updates are
+completed manually before the course automation lifecycle; this script does
+not run Windows Update. It does not configure personal GitHub, Git,
 Python-environment, VS Code-extension, or editor settings.
 
 Run this script from an elevated Windows PowerShell terminal opened by the
 intended student or faculty user.
 
 Artifact version:
-    2026.07.27.1
+    0.2.0
+
+Version date:
+    2026-07-29
+
+Development status:
+    Alpha Testing
+
+Version basis:
+    Version 0.1.0 represents the initial Windows setup baseline.
+    Version 0.2.0 adopts SemVer and manifest schema 2.0, and removes
+    operating-system update automation from the course lifecycle.
+
 
 .NOTES
 Exit codes:
@@ -48,7 +60,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "2026.07.27.4"
+$ScriptVersion = "0.2.0"
+$VersionDate = "2026-07-29"
+$DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
@@ -116,8 +130,8 @@ Usage:
   powershell.exe -ExecutionPolicy Bypass -File .\setup_win.ps1 -Version
 
 Run from an elevated Windows PowerShell terminal opened by the intended user.
-The script applies only current-release Windows updates; it never performs a
-Windows feature-release upgrade.
+Update Windows manually before starting the course automation lifecycle. This
+script installs or repairs only manifest-declared course IDE components.
 
 Deployment profile: windows_bare_metal
 Log directory: $LogDirectory
@@ -444,6 +458,7 @@ function Read-ControlledManifest {
     $RequiredKeys = @(
         "schema_version",
         "automation_release",
+        "automation_release_date",
         "policy",
         "platforms",
         "deployment_profiles",
@@ -456,9 +471,31 @@ function Read-ControlledManifest {
             throw "The controlled manifest is missing required key: $RequiredKey"
         }
     }
-    if ([string]$Manifest.schema_version -ne "1.0") {
+    if ([string]$Manifest.schema_version -ne "2.0") {
         throw "Unsupported manifest schema version: $($Manifest.schema_version)"
     }
+
+    $AutomationRelease = [string]$Manifest.automation_release
+    $SemVerPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    if ($AutomationRelease -notmatch $SemVerPattern) {
+        throw "The manifest automation release is not strict SemVer: $AutomationRelease"
+    }
+
+    $ParsedReleaseDate = [datetime]::MinValue
+    $ReleaseDateIsValid = [datetime]::TryParseExact(
+        [string]$Manifest.automation_release_date,
+        "yyyy-MM-dd",
+        [Globalization.CultureInfo]::InvariantCulture,
+        [Globalization.DateTimeStyles]::None,
+        [ref]$ParsedReleaseDate
+    )
+    if (-not $ReleaseDateIsValid) {
+        throw (
+            "The manifest automation release date is not valid YYYY-MM-DD: " +
+            [string]$Manifest.automation_release_date
+        )
+    }
+
     if ([string]$Schema.'$schema' -ne "https://json-schema.org/draft/2020-12/schema") {
         throw "The manifest schema is not the approved Draft 2020-12 format."
     }
@@ -761,101 +798,6 @@ function Install-WinGet {
     Write-Success "Windows Package Manager was installed successfully."
 }
 
-function Invoke-CurrentReleaseWindowsUpdate {
-    Write-Info "Searching for current-release Windows quality and security updates."
-
-    $UpdateSession = New-Object -ComObject Microsoft.Update.Session
-    $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
-    $SearchCriteria = "IsInstalled=0 and IsHidden=0 and Type='Software'"
-
-    try {
-        $SearchResult = $UpdateSearcher.Search($SearchCriteria)
-    }
-    catch {
-        $HResultCode = "{0:X8}" -f $_.Exception.HResult
-        $IsWindowsSandbox = (
-            [Environment]::UserName -eq "WDAGUtilityAccount"
-        )
-
-        if (-not ($IsWindowsSandbox -and $HResultCode -eq "80072EE6")) {
-            throw
-        }
-
-        Write-Notice (
-            "The managed Windows Update service is unavailable in " +
-            "Windows Sandbox."
-        )
-        Write-Notice "Retrying with the public Windows Update service."
-
-        $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
-        $UpdateSearcher.ServerSelection = 2
-        $UpdateSearcher.Online = $true
-        $SearchResult = $UpdateSearcher.Search($SearchCriteria)
-    }
-
-    $ApprovedUpdates = New-Object -ComObject Microsoft.Update.UpdateColl
-    foreach ($UpdateRecord in $SearchResult.Updates) {
-        $Title = [string]$UpdateRecord.Title
-        $IsReleaseUpgrade = (
-            $Title -match "Feature update to Windows" -or
-            $Title -match "Upgrade to Windows" -or
-            $Title -match "Windows 11, version [0-9]+H[0-9]+"
-        )
-        if ($IsReleaseUpgrade) {
-            Write-Notice "Skipping Windows feature-release upgrade: $Title"
-            continue
-        }
-        if ($Title -match "(?i)preview") {
-            Write-Notice "Skipping optional preview update: $Title"
-            continue
-        }
-
-        if (-not $UpdateRecord.EulaAccepted) {
-            $UpdateRecord.AcceptEula()
-        }
-        $null = $ApprovedUpdates.Add($UpdateRecord)
-    }
-
-    if ($ApprovedUpdates.Count -eq 0) {
-        Write-Success "No applicable current-release Windows updates were found."
-        return
-    }
-
-    Write-Info ("Downloading {0} Windows update(s)." -f $ApprovedUpdates.Count)
-    $Downloader = $UpdateSession.CreateUpdateDownloader()
-    $Downloader.Updates = $ApprovedUpdates
-    $DownloadResult = $Downloader.Download()
-    if ([int]$DownloadResult.ResultCode -notin @(2, 3)) {
-        throw (
-            "Windows Update download returned result code {0}." -f
-            $DownloadResult.ResultCode
-        )
-    }
-    if ([int]$DownloadResult.ResultCode -eq 3) {
-        Write-WarningMessage "One or more Windows updates did not download completely."
-    }
-
-    Write-Info "Installing current-release Windows updates."
-    $Installer = $UpdateSession.CreateUpdateInstaller()
-    $Installer.Updates = $ApprovedUpdates
-    $InstallResult = $Installer.Install()
-    if ([int]$InstallResult.ResultCode -notin @(2, 3)) {
-        throw (
-            "Windows Update installation returned result code {0}." -f
-            $InstallResult.ResultCode
-        )
-    }
-    if ([int]$InstallResult.ResultCode -eq 3) {
-        Write-WarningMessage "One or more Windows updates were not installed completely."
-    }
-
-    $script:Changed = $true
-    if ([bool]$InstallResult.RebootRequired) {
-        $script:RestartRequired = $true
-    }
-    Write-Success "Current-release Windows maintenance completed."
-}
-
 function Get-SystemPackageBinding {
     param([Parameter(Mandatory = $true)]$Platform)
 
@@ -999,31 +941,6 @@ function Test-SystemLayer {
     Write-Success "System-layer post-validation passed."
 }
 
-function Test-PendingRestart {
-    $RestartRegistryPaths = @(
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending",
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
-    )
-    foreach ($RegistryPath in $RestartRegistryPaths) {
-        if (Test-Path -LiteralPath $RegistryPath) {
-            return $true
-        }
-    }
-
-    try {
-        $SessionManager = Get-ItemProperty `
-            -LiteralPath "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager"
-        if ($null -ne $SessionManager.PendingFileRenameOperations) {
-            return $true
-        }
-    }
-    catch {
-        # Best-effort operation; preserve the primary result.
-    }
-
-    return $false
-}
-
 function Get-CommandVersionLine {
     param([Parameter(Mandatory = $true)][string]$CommandName)
 
@@ -1044,7 +961,9 @@ if ($Help) {
     exit 0
 }
 if ($Version) {
-    Write-Host $ScriptVersion
+    Write-Host "Artifact version   : $ScriptVersion"
+    Write-Host "Version date       : $VersionDate"
+    Write-Host "Development status : $DevelopmentStatus"
     exit 0
 }
 
@@ -1056,13 +975,15 @@ try {
 
     Write-Header "IT 140 WINDOWS SETUP"
     Write-Info "Script version   : $ScriptVersion"
+    Write-Info "Version date     : $VersionDate"
+    Write-Info "Status           : $DevelopmentStatus"
     Write-Info "Deployment       : $DeploymentProfile"
     Write-Info "Current user     : $([Environment]::UserName)"
     Write-Info "Course root      : $CourseRoot"
     Write-Info "Log file         : $LogPath"
-    Write-Notice "This script may change Windows and required system software."
+    Write-Notice "This script installs or repairs required course IDE software."
+    Write-Notice "Windows updates are not installed by this script."
     Write-Notice "It does not configure personal GitHub, Git, Python, or VS Code settings."
-    Write-Notice "Windows will remain on its current supported feature release."
 
     if (-not (Test-IsAdministrator)) {
         $FailureExitCode = 3
@@ -1089,6 +1010,7 @@ try {
     Write-Info "Build            : $($WindowsFacts.BuildNumber)"
     Write-Info "Architecture     : $($WindowsFacts.Architecture)"
     Write-Info "Manifest release : $($Controlled.Manifest.automation_release)"
+    Write-Info "Manifest date    : $($Controlled.Manifest.automation_release_date)"
 
     $SystemDriveRoot = [IO.Path]::GetPathRoot($env:SystemRoot)
     $SystemDriveInfo = [IO.DriveInfo]::new($SystemDriveRoot)
@@ -1112,20 +1034,19 @@ try {
     Install-WinGet
 
     $FailureExitCode = 1
-    Invoke-CurrentReleaseWindowsUpdate
-
     $Bindings = Get-SystemPackageBinding -Platform $Controlled.Platform
     Install-SystemPackage -Bindings $Bindings
     Test-SystemLayer -Bindings $Bindings -Platform $Controlled.Platform
-
-    if (Test-PendingRestart) {
-        $RestartRequired = $true
-    }
 
     $Elapsed = (Get-Date) - $StartTime
     Write-Header "SETUP SUMMARY"
     Write-Success "The system-level IT 140 Course IDE is installed."
     Write-Info "Result           : PASS"
+    Write-Info "Script version   : $ScriptVersion"
+    Write-Info "Version date     : $VersionDate"
+    Write-Info "Status           : $DevelopmentStatus"
+    Write-Info "Manifest release : $($Controlled.Manifest.automation_release)"
+    Write-Info "Manifest date    : $($Controlled.Manifest.automation_release_date)"
     Write-Info "Git              : $(Get-CommandVersionLine -CommandName 'git.exe')"
     Write-Info "GitHub CLI       : $(Get-CommandVersionLine -CommandName 'gh.exe')"
     Write-Info "Python           : $(Get-CommandVersionLine -CommandName 'python.exe')"

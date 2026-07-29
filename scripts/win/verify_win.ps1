@@ -16,7 +16,18 @@ It creates only the required transcript and, when explicitly requested and
 confirmed, a sanitized support bundle under ~/it140/logs.
 
 Artifact version:
-    2026.07.28.1
+    0.2.0
+
+Version date:
+    2026-07-29
+
+Development status:
+    Alpha Testing
+
+Version basis:
+    Version 0.1.0 represents the initial Windows verification baseline.
+    Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
+
 
 .NOTES
 Exit codes:
@@ -51,7 +62,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "2026.07.28.1"
+$ScriptVersion = "0.2.0"
+$VersionDate = "2026-07-29"
+$DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
@@ -580,6 +593,7 @@ function Read-ControlledManifest {
     $RequiredKeys = @(
         "schema_version",
         "automation_release",
+        "automation_release_date",
         "policy",
         "platforms",
         "deployment_profiles",
@@ -593,9 +607,31 @@ function Read-ControlledManifest {
             throw "The controlled manifest is missing required key: $RequiredKey"
         }
     }
-    if ([string]$Manifest.schema_version -ne "1.0") {
+    if ([string]$Manifest.schema_version -ne "2.0") {
         throw "Unsupported manifest schema version: $($Manifest.schema_version)"
     }
+
+    $AutomationRelease = [string]$Manifest.automation_release
+    $SemVerPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    if ($AutomationRelease -notmatch $SemVerPattern) {
+        throw "The manifest automation release is not strict SemVer: $AutomationRelease"
+    }
+
+    $ParsedReleaseDate = [datetime]::MinValue
+    $ReleaseDateIsValid = [datetime]::TryParseExact(
+        [string]$Manifest.automation_release_date,
+        "yyyy-MM-dd",
+        [Globalization.CultureInfo]::InvariantCulture,
+        [Globalization.DateTimeStyles]::None,
+        [ref]$ParsedReleaseDate
+    )
+    if (-not $ReleaseDateIsValid) {
+        throw (
+            "The manifest automation release date is not valid YYYY-MM-DD: " +
+            [string]$Manifest.automation_release_date
+        )
+    }
+
     if ([string]$Schema.'$schema' -ne "https://json-schema.org/draft/2020-12/schema") {
         throw "The manifest schema is not the approved Draft 2020-12 format."
     }
@@ -892,23 +928,41 @@ function Test-PowerShellScript {
 }
 
 function Get-ScriptVersion {
-    param([Parameter(Mandatory = $true)][string]$Path)
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [switch]$AllowLegacyCalendarVersion
+    )
 
     $ScriptText = Get-Content -LiteralPath $Path -Raw
-    $VersionMatch = [regex]::Match(
-        $ScriptText,
-        '(?m)^\$ScriptVersion\s*=\s*"(?<version>[0-9]+(?:\.[0-9]+)+)"'
+    $StrictSemVer = (
+        '(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
     )
-    if (-not $VersionMatch.Success) {
+    foreach ($VariableName in @("ScriptVersion", "ArtifactVersion")) {
         $VersionMatch = [regex]::Match(
             $ScriptText,
-            '(?m)^\$ArtifactVersion\s*=\s*"(?<version>[0-9]+(?:\.[0-9]+)+)"'
+            '(?m)^\$' + $VariableName + '\s*=\s*"(?<version>' +
+            $StrictSemVer + ')"\s*$'
         )
+        if ($VersionMatch.Success) {
+            return $VersionMatch.Groups["version"].Value
+        }
     }
-    if (-not $VersionMatch.Success) {
-        throw "A numeric script or artifact version could not be read."
+
+    if ($AllowLegacyCalendarVersion) {
+        $LegacyCalendarVersion = '20[0-9]{2}\.[0-9]{2}\.[0-9]{2}\.[1-9][0-9]*'
+        foreach ($VariableName in @("ScriptVersion", "ArtifactVersion")) {
+            $VersionMatch = [regex]::Match(
+                $ScriptText,
+                '(?m)^\$' + $VariableName + '\s*=\s*"(?<version>' +
+                $LegacyCalendarVersion + ')"\s*$'
+            )
+            if ($VersionMatch.Success) {
+                return $VersionMatch.Groups["version"].Value
+            }
+        }
     }
-    return $VersionMatch.Groups["version"].Value
+
+    throw "A recognized script or artifact version could not be read."
 }
 
 function Get-ShortcutDefinition {
@@ -1579,7 +1633,13 @@ function Test-UserLayer {
 
         try {
             Test-PowerShellScript -Path $LifecycleRecord.Path
-            $LifecycleVersion = Get-ScriptVersion -Path $LifecycleRecord.Path
+            $AllowLegacyVersion = (
+                $DeploymentProfile -eq "windows_sandbox" -and
+                $LifecycleRecord.Name -in @("bootstrap_wsb.ps1", "setup_wsb.ps1")
+            )
+            $LifecycleVersion = Get-ScriptVersion `
+                -Path $LifecycleRecord.Path `
+                -AllowLegacyCalendarVersion:$AllowLegacyVersion
             Add-CheckResult `
                 -CheckId ("verify.script.{0}" -f $LifecycleRecord.Name) `
                 -Status "PASS" `
@@ -1647,6 +1707,13 @@ function Write-VerificationSummary {
     $Elapsed = (Get-Date) - $StartTime
 
     Write-Header "VERIFICATION SUMMARY"
+    Write-Info "Script version   : $ScriptVersion"
+    Write-Info "Version date     : $VersionDate"
+    Write-Info "Status           : $DevelopmentStatus"
+    if ($null -ne $Controlled) {
+        Write-Info "Manifest release : $($Controlled.Manifest.automation_release)"
+        Write-Info "Manifest date    : $($Controlled.Manifest.automation_release_date)"
+    }
     Write-Info "Passed           : $PassCount"
     Write-Info "Warnings         : $WarningCount"
     Write-Info "Failed           : $FailCount"
@@ -1765,8 +1832,12 @@ function New-SupportBundle {
             -Content ("$ResultsJson`n")
 
         $ManifestReleaseValue = "unavailable"
+        $ManifestReleaseDateValue = "unavailable"
         if ($null -ne $Controlled) {
             $ManifestReleaseValue = [string]$Controlled.Manifest.automation_release
+            $ManifestReleaseDateValue = [string](
+                $Controlled.Manifest.automation_release_date
+            )
         }
         $LifecycleVersionSummary = @{}
         if ($DeploymentProfile -eq "windows_sandbox") {
@@ -1812,8 +1883,17 @@ function New-SupportBundle {
 
         foreach ($LifecycleRecord in $LifecycleRecords) {
             try {
+                $AllowLegacyVersion = (
+                    $DeploymentProfile -eq "windows_sandbox" -and
+                    $LifecycleRecord.Name -in @(
+                        "bootstrap_wsb.ps1",
+                        "setup_wsb.ps1"
+                    )
+                )
                 $LifecycleVersionSummary[$LifecycleRecord.Name] = [string](
-                    Get-ScriptVersion -Path $LifecycleRecord.Path
+                    Get-ScriptVersion `
+                        -Path $LifecycleRecord.Path `
+                        -AllowLegacyCalendarVersion:$AllowLegacyVersion
                 )
             }
             catch {
@@ -1824,6 +1904,10 @@ function New-SupportBundle {
         if ($DeploymentProfile -eq "windows_sandbox") {
             $ReleaseSummary = [pscustomobject]@{
                 ManifestRelease = $ManifestReleaseValue
+                ManifestReleaseDate = $ManifestReleaseDateValue
+                VerificationArtifactVersion = $ScriptVersion
+                VerificationArtifactVersionDate = $VersionDate
+                VerificationArtifactDevelopmentStatus = $DevelopmentStatus
                 BootstrapScriptVersion = $LifecycleVersionSummary["bootstrap_wsb.ps1"]
                 SetupScriptVersion = $LifecycleVersionSummary["setup_wsb.ps1"]
                 ConfigScriptVersion = $LifecycleVersionSummary["config_win.ps1"]
@@ -1834,6 +1918,10 @@ function New-SupportBundle {
         else {
             $ReleaseSummary = [pscustomobject]@{
                 ManifestRelease = $ManifestReleaseValue
+                ManifestReleaseDate = $ManifestReleaseDateValue
+                VerificationArtifactVersion = $ScriptVersion
+                VerificationArtifactVersionDate = $VersionDate
+                VerificationArtifactDevelopmentStatus = $DevelopmentStatus
                 SetupScriptVersion = $LifecycleVersionSummary["setup_win.ps1"]
                 ConfigScriptVersion = $LifecycleVersionSummary["config_win.ps1"]
                 UpdateScriptVersion = $LifecycleVersionSummary["update_win.ps1"]
@@ -1943,7 +2031,9 @@ if ($Help) {
     exit 0
 }
 if ($Version) {
-    Write-Host $ScriptVersion
+    Write-Host "Artifact version   : $ScriptVersion"
+    Write-Host "Version date       : $VersionDate"
+    Write-Host "Development status : $DevelopmentStatus"
     exit 0
 }
 
@@ -1954,6 +2044,8 @@ try {
 
     Write-Header "IT 140 WINDOWS VERIFICATION"
     Write-Info "Script version   : $ScriptVersion"
+    Write-Info "Version date     : $VersionDate"
+    Write-Info "Status           : $DevelopmentStatus"
     Write-Info "Deployment       : $DeploymentProfile"
     Write-Info "Current user     : $([Environment]::UserName)"
     Write-Info "Course root      : $CourseRoot"

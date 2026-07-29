@@ -10,7 +10,17 @@
 #     lifecycle scripts immediately available from the current terminal.
 #
 # Artifact version:
-#     2026.07.27.1
+#     0.2.0
+#
+# Version date:
+#     2026-07-29
+#
+# Development status:
+#     Alpha Testing
+#
+# Version basis:
+#     Version 0.1.0 represents the initial pseudoscript baseline.
+#     Version 0.2.0 adopts SemVer metadata and a lifecycle transcript.
 #
 # CVD implementation baseline:
 #     scripts/cvd/bootstrap_cvd.sh at GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
@@ -23,8 +33,8 @@
 #
 # Important classification:
 #     This artifact models a manually copied command set, not a managed
-#     lifecycle script. It therefore has no command-line options, transcript,
-#     manifest dependency, lifecycle lock, summary, or exit-code catalog.
+#     lifecycle script. It therefore has no command-line options, manifest
+#     dependency, lifecycle lock, managed summary, or exit-code catalog.
 #
 # Explicit exclusions:
 #     - Installing, updating, or repairing the operating system or course IDE
@@ -43,9 +53,14 @@
 # 1. CONTROLLED IMPLEMENTATION VALUES
 # ==============================================================================
 
+artifact_version = "0.2.0"
+version_date = "2026-07-29"
+development_status = "Alpha Testing"
 platform_id = implementation_platform_id()
 course_repository_url = controlled_course_repository_url()
 course_root = "${HOME}/it140"
+log_directory = course_root + "/logs"
+log_path = log_directory + "/bootstrap_<platform>_<YYYYMMDD>_<HHMMSS>.log"
 temporary_root = create_unique_temporary_directory()
 temporary_clone = temporary_root + "/it140"
 student_script_directory = course_root + "/scripts/" + platform_id
@@ -60,6 +75,15 @@ persistent_path_entry = student_script_directory
 BEGIN BOOTSTRAP
 
     CREATE course_root if it does not exist
+    CREATE log_directory with current-user-only permissions
+    START timestamped lifecycle transcript at log_path
+    DISPLAY opening information:
+        script version
+        version date
+        development status
+        current user
+        purpose
+        log path
 
     CREATE temporary_root
 
@@ -92,6 +116,10 @@ BEGIN BOOTSTRAP
 
     REFRESH the current shell command lookup cache
 
+    DISPLAY SUCCESS that the course automation package is ready
+    DISPLAY NOTICE with the log path
+    STOP the lifecycle transcript
+
 END BOOTSTRAP
 
 
@@ -99,6 +127,7 @@ END BOOTSTRAP
 # 3. SUCCESSFUL POSTCONDITIONS
 # ==============================================================================
 #
+#     - A private timestamped lifecycle transcript is stored in ${HOME}/it140/logs.
 #     - The current repository snapshot is overlaid under ${HOME}/it140.
 #     - Neither the downloaded snapshot nor course root is a Git working tree.
 #     - Matching student lifecycle scripts are executable.

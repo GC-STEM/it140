@@ -9,17 +9,35 @@
 #     PowerShell sessions.
 #
 # Artifact version:
-#     2026.07.27.1
+#     0.2.0
+#
+# Version date:
+#     2026-07-29
+#
+# Development status:
+#     Alpha Testing
+#
+# Version basis:
+#     Version 0.1.0 represents the initial Windows bootstrap baseline.
+#     Version 0.2.0 adopts SemVer metadata and transcript reporting.
 #
 # This file models the commands students copy and run before setup. It is not a
-# managed lifecycle script and therefore does not create a transcript or accept
-# command-line options.
+# managed lifecycle script and therefore does not accept command-line options,
+# use the manifest, acquire a lifecycle lock, or display a managed summary.
 
-$LogDirectory = Join-Path ([Environment]::GetFolderPath("UserProfile")) "it140\logs"; New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null; Start-Transcript -Path (Join-Path $LogDirectory "bootstrap_win_$(Get-Date -Format 'yyyyMMdd_HHmmss').log") -Force
+$LogDirectory = Join-Path ([Environment]::GetFolderPath("UserProfile")) "it140\logs"
+$LogPath = Join-Path $LogDirectory (
+    "bootstrap_win_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+)
+New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null
+Start-Transcript -Path $LogPath -Force | Out-Null
 
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
+$ArtifactVersion = "0.2.0"
+$VersionDate = "2026-07-29"
+$DevelopmentStatus = "Alpha Testing"
 $PlatformAbbreviation = "win"
 $RepositoryArchive = "https://github.com/GC-STEM/it140/archive/refs/heads/main.zip"
 $CourseRoot = Join-Path ([Environment]::GetFolderPath("UserProfile")) "it140"
@@ -29,6 +47,17 @@ $TemporaryRoot = Join-Path (
 $ArchivePath = Join-Path $TemporaryRoot "it140-main.zip"
 $ExtractRoot = Join-Path $TemporaryRoot "extract"
 $PlatformScriptDirectory = Join-Path $CourseRoot "scripts\$PlatformAbbreviation"
+
+Write-Host ""
+Write-Host "============================================================"
+Write-Host "IT 140 WINDOWS BOOTSTRAP"
+Write-Host "============================================================"
+Write-Host "[INFO] Artifact version : $ArtifactVersion"
+Write-Host "[INFO] Version date     : $VersionDate"
+Write-Host "[INFO] Status           : $DevelopmentStatus"
+Write-Host "[INFO] Current user     : $([Environment]::UserName)"
+Write-Host "[INFO] Purpose          : Retrieve the IT 140 automation package"
+Write-Host "[INFO] Log file         : $LogPath"
 
 function Get-NormalizedPathEntry {
     param([Parameter(Mandatory = $true)][string]$PathEntry)
@@ -133,6 +162,7 @@ try {
         "[NOTICE] Next step: open an elevated Windows PowerShell terminal " +
         "and run setup_win.ps1."
     )
+    Write-Host "[NOTICE] Bootstrap log: $LogPath"
 }
 finally {
     Remove-Item -LiteralPath $TemporaryRoot -Recurse -Force `

@@ -4,20 +4,32 @@
 Updates the Windows IT 140 Course IDE within the current Windows release.
 
 .DESCRIPTION
-Synchronizes validated student-facing Windows lifecycle assets, applies
-current-release Windows quality and security updates through a separate UAC
-elevated phase, updates or repairs manifest-required WinGet packages, upgrades
-the course Python environment and VS Code extensions, refreshes managed user
-settings and shortcuts, and reports restart guidance.
+Synchronizes validated student-facing Windows lifecycle assets, updates or
+repairs manifest-required WinGet packages through a separate UAC-elevated
+phase, upgrades the course Python environment and VS Code extensions, and
+refreshes managed user settings and shortcuts.
 
-The script never performs a Windows feature-release upgrade and never removes
-student source files, assignment repositories, Git history, optional VS Code
-extensions, or unrelated user settings.
+Windows updates are completed manually outside the course automation lifecycle;
+this script does not run Windows Update. It never removes student source files,
+assignment repositories, Git history, optional VS Code extensions, or unrelated
+user settings.
 
 Run this script from a normal, non-elevated Windows PowerShell terminal.
 
 Artifact version:
-    2026.07.27.1
+    0.2.0
+
+Version date:
+    2026-07-29
+
+Development status:
+    Alpha Testing
+
+Version basis:
+    Version 0.1.0 represents the initial Windows update baseline.
+    Version 0.2.0 adopts SemVer and manifest schema 2.0, and limits periodic
+    maintenance to course IDE components.
+
 
 .NOTES
 Exit codes:
@@ -30,8 +42,8 @@ Exit codes:
   6 User canceled before managed state changed
   7 Update completed partially or managed state changed before failure
 
-Logs are written under ~/it140/logs/. The elevated system phase writes a
-separate update_win_system log in the same directory.
+Logs are written under ~/it140/logs/. The elevated course-component phase
+writes a separate update_win_system log in the same directory.
 
 .USAGE
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
@@ -55,7 +67,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "2026.07.27.1"
+$ScriptVersion = "0.2.0"
+$VersionDate = "2026-07-29"
+$DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 if (-not [string]::IsNullOrWhiteSpace($CourseRootOverride)) {
@@ -91,7 +105,6 @@ $MutationMutex = $null
 $Transaction = $null
 $Changed = $false
 $Partial = $false
-$RestartRequired = $false
 $WarningCount = 0
 $FailureCount = 0
 $ExitCode = 0
@@ -154,8 +167,8 @@ Usage:
   powershell.exe -ExecutionPolicy Bypass -File .\update_win.ps1 -Version
 
 Run from a normal, non-elevated Windows PowerShell terminal. A UAC prompt
-appears only for Windows and machine-package maintenance. The script never
-performs a Windows feature-release upgrade.
+appears only for targeted maintenance of machine-wide course IDE packages.
+Windows Update is not run by this script.
 
 Deployment profile: windows_bare_metal
 Log directory: $LogDirectory
@@ -522,6 +535,7 @@ function Read-ManifestAtPath {
     $RequiredKeys = @(
         "schema_version",
         "automation_release",
+        "automation_release_date",
         "policy",
         "platforms",
         "deployment_profiles",
@@ -534,9 +548,31 @@ function Read-ManifestAtPath {
             throw "The controlled manifest is missing required key: $RequiredKey"
         }
     }
-    if ([string]$Manifest.schema_version -ne "1.0") {
+    if ([string]$Manifest.schema_version -ne "2.0") {
         throw "Unsupported manifest schema version: $($Manifest.schema_version)"
     }
+
+    $AutomationRelease = [string]$Manifest.automation_release
+    $SemVerPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    if ($AutomationRelease -notmatch $SemVerPattern) {
+        throw "The manifest automation release is not strict SemVer: $AutomationRelease"
+    }
+
+    $ParsedReleaseDate = [datetime]::MinValue
+    $ReleaseDateIsValid = [datetime]::TryParseExact(
+        [string]$Manifest.automation_release_date,
+        "yyyy-MM-dd",
+        [Globalization.CultureInfo]::InvariantCulture,
+        [Globalization.DateTimeStyles]::None,
+        [ref]$ParsedReleaseDate
+    )
+    if (-not $ReleaseDateIsValid) {
+        throw (
+            "The manifest automation release date is not valid YYYY-MM-DD: " +
+            [string]$Manifest.automation_release_date
+        )
+    }
+
     if ([string]$Schema.'$schema' -ne "https://json-schema.org/draft/2020-12/schema") {
         throw "The manifest schema is not the approved Draft 2020-12 format."
     }
@@ -668,18 +704,14 @@ function Get-ScriptVersion {
     $ScriptText = Get-Content -LiteralPath $Path -Raw
     $VersionMatch = [regex]::Match(
         $ScriptText,
-        '(?m)^\$ScriptVersion\s*=\s*"(?<version>[0-9]+(?:\.[0-9]+)+)"'
+        '(?m)^\$ScriptVersion\s*=\s*"(?<version>' +
+        '(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))"\s*$'
     )
     if (-not $VersionMatch.Success) {
-        throw "A numeric script version could not be read from $Path"
+        throw "A strict SemVer script version could not be read from $Path"
     }
 
-    try {
-        return [version]$VersionMatch.Groups["version"].Value
-    }
-    catch {
-        throw "The script version is not valid in $Path"
-    }
+    return [version]$VersionMatch.Groups["version"].Value
 }
 
 function Copy-FileAtomically {
@@ -965,80 +997,6 @@ function Test-WinGetPackageInstalled {
     return $LASTEXITCODE -eq 0
 }
 
-function Invoke-CurrentReleaseWindowsUpdate {
-    Write-Info "Searching for current-release Windows quality and security updates."
-
-    $UpdateSession = New-Object -ComObject Microsoft.Update.Session
-    $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
-    $SearchResult = $UpdateSearcher.Search(
-        "IsInstalled=0 and IsHidden=0 and Type='Software'"
-    )
-
-    $ApprovedUpdates = New-Object -ComObject Microsoft.Update.UpdateColl
-    foreach ($UpdateRecord in $SearchResult.Updates) {
-        $Title = [string]$UpdateRecord.Title
-        $IsReleaseUpgrade = (
-            $Title -match "Feature update to Windows" -or
-            $Title -match "Upgrade to Windows" -or
-            $Title -match "Windows 11, version [0-9]+H[0-9]+"
-        )
-        if ($IsReleaseUpgrade) {
-            Write-Notice "Skipping Windows feature-release upgrade: $Title"
-            continue
-        }
-        if ($Title -match "(?i)preview") {
-            Write-Notice "Skipping optional preview update: $Title"
-            continue
-        }
-
-        if (-not $UpdateRecord.EulaAccepted) {
-            $UpdateRecord.AcceptEula()
-        }
-        $null = $ApprovedUpdates.Add($UpdateRecord)
-    }
-
-    if ($ApprovedUpdates.Count -eq 0) {
-        Write-Success "No applicable current-release Windows updates were found."
-        return
-    }
-
-    Write-Info ("Downloading {0} Windows update(s)." -f $ApprovedUpdates.Count)
-    $Downloader = $UpdateSession.CreateUpdateDownloader()
-    $Downloader.Updates = $ApprovedUpdates
-    $DownloadResult = $Downloader.Download()
-    if ([int]$DownloadResult.ResultCode -notin @(2, 3)) {
-        throw (
-            "Windows Update download returned result code {0}." -f
-            $DownloadResult.ResultCode
-        )
-    }
-    if ([int]$DownloadResult.ResultCode -eq 3) {
-        Write-WarningMessage "One or more Windows updates did not download completely."
-    }
-
-    Write-Info "Installing current-release Windows updates."
-    $Installer = $UpdateSession.CreateUpdateInstaller()
-    $Installer.Updates = $ApprovedUpdates
-    $InstallResult = $Installer.Install()
-    if ([int]$InstallResult.ResultCode -notin @(2, 3)) {
-        throw (
-            "Windows Update installation returned result code {0}." -f
-            $InstallResult.ResultCode
-        )
-    }
-    if ([int]$InstallResult.ResultCode -eq 3) {
-        Write-WarningMessage "One or more Windows updates were not installed completely."
-    }
-    if ([bool]$InstallResult.RebootRequired) {
-        Set-Content `
-            -LiteralPath (Join-Path $TransactionRoot "reboot-required") `
-            -Value "true" `
-            -Encoding ASCII
-    }
-
-    Write-Success "Current-release Windows maintenance completed."
-}
-
 function Invoke-WinGetPackageMaintenance {
     param([Parameter(Mandatory = $true)]$Bindings)
 
@@ -1145,10 +1103,13 @@ function Invoke-SystemPhase {
 
     $SystemExitCode = 0
     try {
-        Write-Header "IT 140 WINDOWS UPDATE - ELEVATED SYSTEM PHASE"
+        Write-Header "IT 140 WINDOWS UPDATE - ELEVATED COURSE COMPONENTS"
+        Write-Info "Script version   : $ScriptVersion"
+        Write-Info "Version date     : $VersionDate"
+        Write-Info "Status           : $DevelopmentStatus"
         Write-Info "Course root      : $CourseRoot"
         Write-Info "System log       : $SystemLog"
-        Write-Notice "Windows will remain on its current supported feature release."
+        Write-Notice "Windows updates are not installed by this phase."
 
         $Controlled = Read-ControlledManifest
         $WindowsFacts = Get-OperatingSystemFact
@@ -1156,12 +1117,11 @@ function Invoke-SystemPhase {
             -WindowsFacts $WindowsFacts `
             -Platform $Controlled.Platform
 
-        Invoke-CurrentReleaseWindowsUpdate
         $Bindings = Get-SystemPackageBinding -Platform $Controlled.Platform
         Invoke-WinGetPackageMaintenance -Bindings $Bindings
         Test-SystemCommand -Bindings $Bindings
 
-        Write-Success "The elevated Windows and machine-package update phase completed."
+        Write-Success "The elevated course IDE package phase completed."
         Write-Info "System log: $SystemLog"
         $SystemExitCode = 0
     }
@@ -1680,30 +1640,6 @@ function Test-PostUpdateState {
     }
 }
 
-function Test-PendingRestart {
-    $RestartRegistryPaths = @(
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending",
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
-    )
-    foreach ($RegistryPath in $RestartRegistryPaths) {
-        if (Test-Path -LiteralPath $RegistryPath) {
-            return $true
-        }
-    }
-
-    try {
-        $SessionManager = Get-ItemProperty `
-            -LiteralPath "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager"
-        if ($null -ne $SessionManager.PendingFileRenameOperations) {
-            return $true
-        }
-    }
-    catch {
-        # Best-effort operation; preserve the primary result.
-    }
-    return $false
-}
-
 function Get-CommandVersionLine {
     param([Parameter(Mandatory = $true)][string]$CommandName)
 
@@ -1728,7 +1664,9 @@ if ($Help) {
     exit 0
 }
 if ($Version) {
-    Write-Host $ScriptVersion
+    Write-Host "Artifact version   : $ScriptVersion"
+    Write-Host "Version date       : $VersionDate"
+    Write-Host "Development status : $DevelopmentStatus"
     exit 0
 }
 
@@ -1740,12 +1678,14 @@ try {
 
     Write-Header "IT 140 WINDOWS UPDATE"
     Write-Info "Script version   : $ScriptVersion"
+    Write-Info "Version date     : $VersionDate"
+    Write-Info "Status           : $DevelopmentStatus"
     Write-Info "Deployment       : $DeploymentProfile"
     Write-Info "Current user     : $([Environment]::UserName)"
     Write-Info "Course root      : $CourseRoot"
     Write-Info "Log file         : $LogPath"
     Write-Notice "Keep this PowerShell window open until the update completes."
-    Write-Notice "Windows will remain on its current supported feature release."
+    Write-Notice "Windows updates are not installed by this script."
     Write-Notice (
         "Student files, repositories, Git history, optional extensions, " +
         "and unrelated settings will be preserved."
@@ -1755,7 +1695,8 @@ try {
         $FailureExitCode = 3
         throw (
             "Run update_win.ps1 from a normal, non-elevated PowerShell window. " +
-            "The script will request UAC elevation only for its system-maintenance phase."
+            "The script will request UAC elevation only for machine-wide " +
+            "course IDE package maintenance."
         )
     }
 
@@ -1811,7 +1752,7 @@ try {
     $FailureExitCode = 4
     $Transaction = Invoke-AssetTransaction
 
-    Write-Info "Starting the elevated Windows and machine-package maintenance phase."
+    Write-Info "Starting elevated maintenance of machine-wide course IDE packages."
     $SystemArguments = @(
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
@@ -1857,22 +1798,16 @@ try {
     $ActiveControlled = Read-ControlledManifest
     Test-PostUpdateState -Platform $ActiveControlled.Platform
 
-    $TransactionRestart = $false
-    if ($null -ne $Transaction) {
-        $TransactionRestart = Test-Path -LiteralPath (
-            Join-Path $Transaction.TemporaryRoot "reboot-required"
-        )
-    }
-    if ($TransactionRestart -or (Test-PendingRestart)) {
-        $RestartRequired = $true
-    }
-
     $Elapsed = (Get-Date) - $StartTime
     Write-Header "UPDATE SUMMARY"
     Write-Info "Workflow          : $WorkflowName"
+    Write-Info "Script version    : $ScriptVersion"
+    Write-Info "Version date      : $VersionDate"
+    Write-Info "Status            : $DevelopmentStatus"
     Write-Info "Windows           : $($WindowsFacts.Caption)"
     Write-Info "Release           : $($WindowsFacts.DisplayVersion)"
     Write-Info "Manifest release  : $($ActiveControlled.Manifest.automation_release)"
+    Write-Info "Manifest date     : $($ActiveControlled.Manifest.automation_release_date)"
     Write-Info "Git               : $(Get-CommandVersionLine -CommandName 'git.exe')"
     Write-Info "GitHub CLI        : $(Get-CommandVersionLine -CommandName 'gh.exe')"
     Write-Info "Python            : $(Get-CommandVersionLine -CommandName 'python.exe')"
@@ -1882,27 +1817,19 @@ try {
     Write-Info ("Elapsed time      : {0:hh\:mm\:ss}" -f $Elapsed)
     Write-Info "Log file          : $LogPath"
 
-    if ($RestartRequired) {
-        Write-Notice "Windows reports that a restart is required to finish applying updates."
-        Write-Notice "Save your work, close applications, and restart Windows before continuing."
-    }
-    else {
-        Write-Notice "Windows does not currently report a required restart."
-        Write-Notice "Close and reopen Visual Studio Code before continuing coursework."
-    }
+    Write-Notice "Close and reopen Visual Studio Code before continuing coursework."
 
     if ($Partial -or $FailureCount -gt 0) {
         Write-ErrorMessage "The update completed partially."
         if ($ConfigurationComplete) {
             Write-Notice (
-                "Next step: after any required restart, run verify_win.ps1 " +
-                "and follow its remediation guidance."
+                "Next step: run verify_win.ps1 and follow its " +
+                "remediation guidance."
             )
         }
         else {
             Write-Notice (
-                "Next step: after any required restart, run config_win.ps1, " +
-                "then verify_win.ps1."
+                "Next step: run config_win.ps1, then verify_win.ps1."
             )
         }
         Write-Info "Exit code         : 7"
@@ -1912,10 +1839,10 @@ try {
     else {
         Write-Success "The IT 140 Windows update completed successfully."
         if ($ConfigurationComplete) {
-            Write-Notice "Next step: after any required restart, run verify_win.ps1."
+            Write-Notice "Next step: run verify_win.ps1."
         }
         else {
-            Write-Notice "Next step: after any required restart, run config_win.ps1."
+            Write-Notice "Next step: run config_win.ps1."
         }
         Write-Info "Exit code         : 0"
         Write-ClosingNotice
