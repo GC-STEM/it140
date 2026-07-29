@@ -17,7 +17,7 @@ user settings.
 Run this script from a normal, non-elevated Windows PowerShell terminal.
 
 Artifact version:
-    0.2.0
+    0.2.1
 
 Version date:
     2026-07-29
@@ -29,6 +29,7 @@ Version basis:
     Version 0.1.0 represents the initial Windows update baseline.
     Version 0.2.0 adopts SemVer and manifest schema 2.0, and limits periodic
     maintenance to course IDE components.
+    Version 0.2.1 removes an unsupported WinGet source-update option.
 
 
 .NOTES
@@ -67,7 +68,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.2.0"
+$ScriptVersion = "0.2.1"
 $VersionDate = "2026-07-29"
 $DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
@@ -1001,7 +1002,6 @@ function Invoke-WinGetPackageMaintenance {
     param([Parameter(Mandatory = $true)]$Bindings)
 
     & winget.exe source update `
-        --accept-source-agreements `
         --disable-interactivity
     if ($LASTEXITCODE -ne 0) {
         throw "WinGet package sources could not be updated."

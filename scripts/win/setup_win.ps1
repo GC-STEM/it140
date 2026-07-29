@@ -14,7 +14,7 @@ Run this script from an elevated Windows PowerShell terminal opened by the
 intended student or faculty user.
 
 Artifact version:
-    0.2.0
+    0.2.1
 
 Version date:
     2026-07-29
@@ -26,6 +26,7 @@ Version basis:
     Version 0.1.0 represents the initial Windows setup baseline.
     Version 0.2.0 adopts SemVer and manifest schema 2.0, and removes
     operating-system update automation from the course lifecycle.
+    Version 0.2.1 removes an unsupported WinGet source-update option.
 
 
 .NOTES
@@ -60,7 +61,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.2.0"
+$ScriptVersion = "0.2.1"
 $VersionDate = "2026-07-29"
 $DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
@@ -843,7 +844,6 @@ function Install-SystemPackage {
         -ArgumentList @(
             "source",
             "update",
-            "--accept-source-agreements",
             "--disable-interactivity"
         ) `
         -Operation "Updating WinGet package sources."
