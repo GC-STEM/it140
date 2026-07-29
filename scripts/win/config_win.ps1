@@ -15,7 +15,7 @@ regular Windows computer. Windows Sandbox intentionally uses its administrative
 container account with the windows_sandbox deployment profile.
 
 Artifact version:
-    0.2.1
+    0.3.0
 
 Version date:
     2026-07-29
@@ -28,6 +28,7 @@ Version basis:
     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
     Version 0.2.1 prevents expected native-command probe failures from
     terminating Windows PowerShell 5.1.
+    Version 0.3.0 adds clipboard-assisted GitHub web authentication.
 
 
 .NOTES
@@ -62,7 +63,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.2.1"
+$ScriptVersion = "0.3.0"
 $VersionDate = "2026-07-29"
 $DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
@@ -929,7 +930,11 @@ function Set-GitHubIdentity {
         }
 
         Write-Notice "GitHub authentication is required."
-        Write-Notice "A browser window will open for GitHub's secure web sign-in flow."
+        Write-Notice (
+            "GitHub CLI will copy a one-time code to the clipboard and open " +
+            "GitHub's secure web sign-in flow."
+        )
+        Write-Notice "Paste the one-time code into the browser when prompted."
         $Confirmation = Read-Host "Press ENTER to continue, or type CANCEL"
         if ($Confirmation -match "^(?i:cancel)$") {
             throw [OperationCanceledException]::new(
@@ -940,7 +945,8 @@ function Set-GitHubIdentity {
         & gh.exe auth login `
             --hostname github.com `
             --git-protocol https `
-            --web
+            --web `
+            --clipboard
         if ($LASTEXITCODE -ne 0) {
             throw "GitHub authentication did not complete."
         }
