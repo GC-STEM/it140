@@ -16,7 +16,7 @@ Click the links below to access the automation scripts for Codio, Windows, MacOS
 | ------------ | :-------: | :-----------: | :-------: | :--------: | :--------: | :--------: | :----------: |
 | [Codio](scripts/cvd) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 7/26/2026 |
 | [Windows](scripts/win) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 7/29/2026 |
-| [MacOS](scripts/mac) | 🅰️ | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 7/30/2026 |
+| [MacOS](scripts/mac) | 🅰️ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 7/30/2026 |
 
 🅰️ = Alpha Testing.
 🅱️ = Beta Testing (Staff & Faculty). Please report any issues using GitHub Issues.
