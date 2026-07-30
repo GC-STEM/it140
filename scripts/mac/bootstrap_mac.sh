@@ -1,5 +1,5 @@
 set -euo pipefail
-readonly ARTIFACT_VERSION="0.5.1"
+readonly ARTIFACT_VERSION="0.5.2"
 readonly VERSION_DATE="2026-07-30"
 readonly COURSE_ROOT="${HOME}/it140"
 readonly SCRIPT_DIR="${COURSE_ROOT}/scripts/mac"
@@ -44,8 +44,15 @@ done
 }
 /usr/bin/ditto "$SOURCE_ROOT" "$COURSE_ROOT"
 rm -rf -- "$COURSE_ROOT/.git"
-rm -f -- "$SCRIPT_DIR/_mac_common.sh"
 chmod 0755 -- "$SCRIPT_DIR"/*.sh
+readonly SHELL_STARTUP_FILE="$HOME/.zshrc"
+readonly PATH_LINE="export PATH=\"\$HOME/it140/scripts/mac:\$PATH\""
+grep -qxF "$PATH_LINE" "$SHELL_STARTUP_FILE" 2>/dev/null || printf '\n%s\n' "$PATH_LINE" >> "$SHELL_STARTUP_FILE"
+case ":$PATH:" in
+    *":$SCRIPT_DIR:"*) ;;
+    *) export PATH="$SCRIPT_DIR:$PATH" ;;
+esac
+hash -r
 printf '[SUCCESS] The current IT 140 course package is available at:\n'
 printf '[SUCCESS] %s\n' "$COURSE_ROOT"
 printf '[NOTICE] Next step: cd ~/it140/scripts/mac && ./setup_mac.sh\n'
