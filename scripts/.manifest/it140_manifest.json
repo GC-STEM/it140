@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "automation_release": "0.1.0",
+  "automation_release": "0.2.0",
   "automation_release_date": "2026-07-29",
   "course": {
     "course_id": "IT 140",
@@ -11,7 +11,7 @@
     "status": "draft",
     "source_repository": "https://github.com/GC-STEM/it140",
     "source_revision": "dfcfe0bc1c0e8d0dc9ad47faf2b855a18bdf227e",
-    "change_summary": "Adopt Semantic Versioning for automation releases, separate the release date from the version number, and update the manifest schema compatibility version to 2.0."
+    "change_summary": "Add Windows 10, version 22H2, as a supported x86_64 Windows client release while retaining manifest-controlled support for Windows 11 releases 24H2, 25H2, and 26H1."
   },
   "policy": {
     "course_root": "${HOME}/it140",
@@ -519,14 +519,14 @@
   },
   "platforms": {
     "windows": {
-      "display_name": "Microsoft Windows 11",
+      "display_name": "Microsoft Windows",
       "abbreviation": "win",
       "enabled": true,
       "reference_platform": false,
-      "platform_adapter_id": "windows_11",
+      "platform_adapter_id": "windows_client",
       "os": {
         "family": "windows",
-        "name": "Microsoft Windows 11",
+        "name": "Microsoft Windows",
         "releases": [
           {
             "release_id": "26H1",
@@ -545,6 +545,13 @@
             "display_name": "Windows 11, version 24H2",
             "security_updates_required": true,
             "support_end_date": "2026-10-13"
+          },
+          {
+            "release_id": "22H2",
+            "display_name": "Windows 10, version 22H2",
+            "security_updates_required": true,
+            "minimum_build": "19045",
+            "support_end_date": "2025-10-14"
           }
         ],
         "architectures": [
@@ -801,7 +808,7 @@
           ]
         }
       },
-      "notes": "Initial qualification target is Windows 11 on x86_64 bare metal. Windows on ARM64 may be enabled after the full platform conformance suite passes on representative hardware."
+      "notes": "Initial qualification targets are Windows 10, version 22H2, and manifest-listed Windows 11 releases on x86_64 bare metal. Windows 10 22H2 remains course-compatible after Microsoft standard support ended. Students should apply security updates available to their device; paid Extended Security Updates are not required by the course. Windows on ARM64 may be enabled after the full platform conformance suite passes on representative hardware."
     },
     "macos": {
       "display_name": "Apple macOS",
@@ -1977,7 +1984,7 @@
       "session_type": "local_desktop",
       "architecture": "x86_64",
       "reset_method": "fresh_os_install",
-      "notes": "Clean supported Windows 11 installation used for platform conformance testing."
+      "notes": "Clean supported Windows 10, version 22H2, or manifest-listed Windows 11 installation used for platform conformance testing."
     },
     "windows_sandbox": {
       "display_name": "Windows Sandbox",
@@ -1990,7 +1997,7 @@
       "architecture": "x86_64",
       "profile_adapter_id": "windows_sandbox",
       "reset_method": "image_reset",
-      "notes": "Ephemeral Windows Sandbox environment used for clean setup, verification, faculty testing, and technical-support reproduction. Closing the sandbox discards installed software and configuration."
+      "notes": "Ephemeral Windows Sandbox environment on a supported Windows 11 host used for clean setup, verification, faculty testing, and technical-support reproduction. Closing the sandbox discards installed software and configuration."
     },
     "macos_bare_metal": {
       "display_name": "macOS Bare-Metal Computer",
