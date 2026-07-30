@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 
-readonly IT140_SCRIPT_VERSION="0.4.0"
+readonly IT140_SCRIPT_VERSION="0.4.1"
 readonly IT140_VERSION_DATE="2026-07-30"
 readonly IT140_DEVELOPMENT_STATUS="Alpha Testing"
 readonly IT140_ACTION_ID="config"
@@ -157,7 +157,7 @@ PLIST
 
 it140_check_platform_and_user
 it140_initialize_log
-trap 'status=$?; it140_cleanup_common; exit $status' EXIT INT TERM
+it140_install_cleanup_traps
 
 it140_header "IT 140 macOS CONFIGURATION"
 it140_print_version | sed 's/^/[INFO] /'

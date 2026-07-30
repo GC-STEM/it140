@@ -61,6 +61,12 @@ it140_initialize_log() {
     exec > >(tee -a "$IT140_LOG_FILE") 2>&1
 }
 
+it140_install_cleanup_traps() {
+    trap 'it140_exit_code=$?; trap - EXIT INT TERM; it140_cleanup_common; exit "$it140_exit_code"' EXIT
+    trap 'trap - EXIT INT TERM; it140_cleanup_common; exit 130' INT
+    trap 'trap - EXIT INT TERM; it140_cleanup_common; exit 143' TERM
+}
+
 it140_closing_notices() {
     it140_notice "Log file: $IT140_LOG_FILE"
     it140_notice "After reviewing the summary, type 'exit' and press Enter to close this Terminal."
@@ -156,8 +162,97 @@ it140_plist_raw() {
     /usr/bin/plutil -extract "$2" raw -o - "$1" 2>/dev/null
 }
 
-it140_plist_json() {
-    /usr/bin/plutil -extract "$2" json -o - "$1" 2>/dev/null
+it140_json_query() {
+    local json_file="$1"
+    local key_path="${2:-}"
+    local output_mode="${3:-raw}"
+
+    IT140_JSON_FILE="$json_file" \
+    IT140_JSON_KEY_PATH="$key_path" \
+    IT140_JSON_OUTPUT_MODE="$output_mode" \
+    /usr/bin/osascript -l JavaScript <<'JXA'
+ObjC.import('Foundation');
+
+function environmentValue(name) {
+    var value = $.NSProcessInfo.processInfo.environment.objectForKey(name);
+    if (!value) {
+        throw new Error('Missing environment value: ' + name);
+    }
+    return ObjC.unwrap(value);
+}
+
+function readUtf8(path) {
+    var standardizedPath = $(path).stringByStandardizingPath;
+    var data = $.NSData.dataWithContentsOfFile(standardizedPath);
+    if (!data) {
+        throw new Error('Unable to read JSON file: ' + path);
+    }
+    var text = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding);
+    if (!text) {
+        throw new Error('JSON file is not valid UTF-8: ' + path);
+    }
+    return ObjC.unwrap(text);
+}
+
+function valueAtKeyPath(root, keyPath) {
+    if (!keyPath) {
+        return root;
+    }
+    var current = root;
+    var parts = keyPath.split('.');
+    for (var index = 0; index < parts.length; index += 1) {
+        var part = parts[index];
+        if (Array.isArray(current)) {
+            if (!/^(0|[1-9][0-9]*)$/.test(part)) {
+                throw new Error('Invalid array index in JSON key path: ' + part);
+            }
+            var arrayIndex = Number(part);
+            if (arrayIndex >= current.length) {
+                throw new Error('JSON array index is out of range: ' + part);
+            }
+            current = current[arrayIndex];
+        } else if (
+            current !== null &&
+            typeof current === 'object' &&
+            Object.prototype.hasOwnProperty.call(current, part)
+        ) {
+            current = current[part];
+        } else {
+            throw new Error('JSON key path was not found: ' + keyPath);
+        }
+    }
+    return current;
+}
+
+var jsonFile = environmentValue('IT140_JSON_FILE');
+var keyPath = environmentValue('IT140_JSON_KEY_PATH');
+var outputMode = environmentValue('IT140_JSON_OUTPUT_MODE');
+var root = JSON.parse(readUtf8(jsonFile));
+var value = valueAtKeyPath(root, keyPath);
+var output;
+
+if (outputMode === 'json') {
+    output = JSON.stringify(value);
+} else if (value === null) {
+    output = 'null';
+} else if (typeof value === 'boolean') {
+    output = value ? 'true' : 'false';
+} else if (typeof value === 'object') {
+    output = JSON.stringify(value);
+} else {
+    output = String(value);
+}
+
+output;
+JXA
+}
+
+it140_json_raw() {
+    it140_json_query "$1" "$2" raw
+}
+
+it140_json_compact() {
+    it140_json_query "$1" "$2" json
 }
 
 it140_is_managed_vscode_launcher() {
@@ -191,19 +286,22 @@ it140_validate_manifest_basic() {
         it140_error "The controlled manifest or schema is missing or unreadable."
         return 5
     }
-    /usr/bin/plutil -lint "$manifest_file" >/dev/null 2>&1 || {
+    local manifest_error schema_error
+    manifest_error="$(it140_json_query "$manifest_file" "" json 2>&1 >/dev/null)" || {
         it140_error "The controlled manifest is not valid JSON."
+        [ -z "$manifest_error" ] || it140_error "JSON parser detail: $manifest_error"
         return 5
     }
-    /usr/bin/plutil -lint "$schema_file" >/dev/null 2>&1 || {
+    schema_error="$(it140_json_query "$schema_file" "" json 2>&1 >/dev/null)" || {
         it140_error "The manifest schema is not valid JSON."
+        [ -z "$schema_error" ] || it140_error "JSON parser detail: $schema_error"
         return 5
     }
 
-    schema_version="$(it140_plist_raw "$manifest_file" schema_version)" || return 5
-    release="$(it140_plist_raw "$manifest_file" automation_release)" || return 5
-    release_date="$(it140_plist_raw "$manifest_file" automation_release_date)" || return 5
-    allow_upgrade="$(it140_plist_raw "$manifest_file" policy.allow_os_release_upgrade)" || return 5
+    schema_version="$(it140_json_raw "$manifest_file" schema_version)" || return 5
+    release="$(it140_json_raw "$manifest_file" automation_release)" || return 5
+    release_date="$(it140_json_raw "$manifest_file" automation_release_date)" || return 5
+    allow_upgrade="$(it140_json_raw "$manifest_file" policy.allow_os_release_upgrade)" || return 5
 
     [ "$schema_version" = "2.0" ] || {
         it140_error "Unsupported manifest schema version: ${schema_version:-missing}. Expected 2.0."
@@ -225,12 +323,12 @@ it140_validate_manifest_basic() {
     architecture="$(it140_detect_architecture)"
     product_version="$(/usr/bin/sw_vers -productVersion)"
     major="${product_version%%.*}"
-    platform_enabled="$(it140_plist_raw "$manifest_file" platforms.${IT140_PLATFORM_ID}.enabled)" || return 5
-    profile_enabled="$(it140_plist_raw "$manifest_file" deployment_profiles.${IT140_REQUESTED_PROFILE}.enabled)" || return 5
-    profile_platform="$(it140_plist_raw "$manifest_file" deployment_profiles.${IT140_REQUESTED_PROFILE}.platform_id)" || return 5
-    profile_architecture="$(it140_plist_raw "$manifest_file" deployment_profiles.${IT140_REQUESTED_PROFILE}.architecture)" || return 5
-    architectures_json="$(it140_plist_json "$manifest_file" platforms.${IT140_PLATFORM_ID}.os.architectures)" || return 5
-    releases_json="$(it140_plist_json "$manifest_file" platforms.${IT140_PLATFORM_ID}.os.releases)" || return 5
+    platform_enabled="$(it140_json_raw "$manifest_file" platforms.${IT140_PLATFORM_ID}.enabled)" || return 5
+    profile_enabled="$(it140_json_raw "$manifest_file" deployment_profiles.${IT140_REQUESTED_PROFILE}.enabled)" || return 5
+    profile_platform="$(it140_json_raw "$manifest_file" deployment_profiles.${IT140_REQUESTED_PROFILE}.platform_id)" || return 5
+    profile_architecture="$(it140_json_raw "$manifest_file" deployment_profiles.${IT140_REQUESTED_PROFILE}.architecture)" || return 5
+    architectures_json="$(it140_json_compact "$manifest_file" platforms.${IT140_PLATFORM_ID}.os.architectures)" || return 5
+    releases_json="$(it140_json_compact "$manifest_file" platforms.${IT140_PLATFORM_ID}.os.releases)" || return 5
 
     [ "$platform_enabled" = "true" ] || {
         it140_error "The macOS platform is disabled in the controlled manifest."
@@ -421,7 +519,7 @@ PY
 
 it140_check_free_space() {
     local required available
-    required="$(it140_plist_raw "$IT140_MANIFEST_PATH" policy.minimum_free_space_bytes 2>/dev/null || printf '%s' 5368709120)"
+    required="$(it140_json_raw "$IT140_MANIFEST_PATH" policy.minimum_free_space_bytes 2>/dev/null || printf '%s' 5368709120)"
     available="$(/bin/df -Pk "$HOME" | /usr/bin/awk 'NR==2 {print $4 * 1024}')"
     if [ -z "$available" ] || [ "$available" -lt "$required" ]; then
         it140_error "At least $required bytes of free space are required."

@@ -2,7 +2,7 @@
 set -u
 set -o pipefail
 
-readonly IT140_SCRIPT_VERSION="0.4.0"
+readonly IT140_SCRIPT_VERSION="0.4.1"
 readonly IT140_VERSION_DATE="2026-07-30"
 readonly IT140_DEVELOPMENT_STATUS="Alpha Testing"
 readonly IT140_ACTION_ID="verify"

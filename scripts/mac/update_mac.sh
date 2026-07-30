@@ -1,8 +1,8 @@
 #!/bin/zsh
 set -euo pipefail
 
-readonly IT140_SCRIPT_VERSION="0.3.0"
-readonly IT140_VERSION_DATE="2026-07-29"
+readonly IT140_SCRIPT_VERSION="0.3.1"
+readonly IT140_VERSION_DATE="2026-07-30"
 readonly IT140_DEVELOPMENT_STATUS="Alpha Testing"
 readonly IT140_ACTION_ID="update"
 readonly IT140_USAGE="Usage: update_mac.sh [--help] [--version] [--noninteractive] [--profile PROFILE_ID]"
@@ -91,7 +91,7 @@ done
 
 it140_check_platform_and_user
 it140_initialize_log
-trap 'status=$?; it140_cleanup_common; exit $status' EXIT INT TERM
+it140_install_cleanup_traps
 
 it140_header "IT 140 macOS UPDATE"
 it140_print_version | sed 's/^/[INFO] /'
