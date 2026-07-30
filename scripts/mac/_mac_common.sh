@@ -469,86 +469,186 @@ PY
 }
 
 it140_manifest_query() {
-    local query="$1"
+    local query="${1:-}"
     local manifest_file="${2:-$IT140_MANIFEST_PATH}"
-    local python_path
-    python_path="$(it140_resolve_python)" || return 1
-    "$python_path" - "$manifest_file" "$IT140_PLATFORM_ID" "$query" <<'PY'
-import json
-import sys
 
-path, platform_id, query = sys.argv[1:]
-with open(path, encoding="utf-8") as handle:
-    manifest = json.load(handle)
-platform = manifest["platforms"][platform_id]
-bindings = platform["course_ide_bindings"]
-if query == "system_formulae":
-    values = {
-        binding["package_identifier"]
-        for binding in bindings.values()
-        if binding.get("required")
-        and binding.get("installation_scope") == "system"
-        and binding.get("installer_adapter_id") == "homebrew_formula"
+    [ -n "$query" ] || {
+        it140_error "A manifest query name is required."
+        return 64
     }
-    print(*sorted(values), sep="\n")
-elif query == "system_casks":
-    values = {
-        binding["package_identifier"]
-        for binding in bindings.values()
-        if binding.get("required")
-        and binding.get("installation_scope") == "system"
-        and binding.get("installer_adapter_id") == "homebrew_cask"
+    [ -r "$manifest_file" ] || {
+        it140_error "The controlled manifest is missing or unreadable: $manifest_file"
+        return 5
     }
-    print(*sorted(values), sep="\n")
-elif query == "system_commands":
-    values = set()
-    for binding in bindings.values():
-        if binding.get("required") and binding.get("installation_scope") == "system":
-            values.update(binding.get("verification", {}).get("executable_names", []))
-    print(*sorted(values), sep="\n")
-elif query == "venv_packages":
-    values = {
-        binding["package_identifier"]
-        for binding in bindings.values()
-        if binding.get("required")
-        and binding.get("installation_scope") == "user"
-        and binding.get("installer_adapter_id") == "python_venv_package"
+
+    IT140_JSON_FILE="$manifest_file" \
+    IT140_PLATFORM_ID="$IT140_PLATFORM_ID" \
+    IT140_MANIFEST_QUERY="$query" \
+    /usr/bin/osascript -l JavaScript <<'JXA'
+ObjC.import('Foundation');
+
+function environmentValue(name) {
+    var value = $.NSProcessInfo.processInfo.environment.objectForKey(name);
+    if (!value) {
+        throw new Error('Missing environment value: ' + name);
     }
-    if bindings.get("code_quality_tool", {}).get("required"):
-        values.add("ruff")
-    print(*sorted(values), sep="\n")
-elif query == "extensions":
-    values = {
-        binding["package_identifier"]
-        for binding in bindings.values()
-        if binding.get("required")
-        and binding.get("installation_scope") == "user"
-        and binding.get("installer_adapter_id") == "vscode_extension"
+    return ObjC.unwrap(value);
+}
+
+function readUtf8(path) {
+    var standardizedPath = $(path).stringByStandardizingPath;
+    var data = $.NSData.dataWithContentsOfFile(standardizedPath);
+    if (!data) {
+        throw new Error('Unable to read JSON file: ' + path);
     }
-    print(*sorted(values), sep="\n")
-elif query == "git_settings":
-    for profile_id in bindings["version_control_system"].get("settings_profile_ids", []):
-        profile = manifest["managed_settings"][profile_id]
-        if platform_id not in profile.get("platform_ids", []):
-            continue
-        for key, value in profile["values"].items():
-            if isinstance(value, bool):
-                value = "true" if value else "false"
-            print(f"{key}\t{value}")
-elif query == "vscode_settings":
-    result = {}
-    for profile_id in bindings["source_code_ide"].get("settings_profile_ids", []):
-        profile = manifest["managed_settings"][profile_id]
-        if platform_id in profile.get("platform_ids", []):
-            result.update(profile["values"])
-    print(json.dumps(result, sort_keys=True))
-elif query == "minimum_space":
-    print(manifest["policy"]["minimum_free_space_bytes"])
-elif query == "source_repository":
-    print(manifest["control"]["source_repository"])
-else:
-    raise SystemExit(f"unsupported manifest query: {query}")
-PY
+    var text = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding);
+    if (!text) {
+        throw new Error('JSON file is not valid UTF-8: ' + path);
+    }
+    return ObjC.unwrap(text);
+}
+
+function objectValues(object) {
+    return Object.keys(object || {}).map(function (key) {
+        return object[key];
+    });
+}
+
+function sortedUnique(values) {
+    return Array.from(new Set(values)).sort();
+}
+
+function scalarText(value) {
+    if (typeof value === 'boolean') {
+        return value ? 'true' : 'false';
+    }
+    if (value === null) {
+        return 'null';
+    }
+    if (typeof value === 'object') {
+        return JSON.stringify(value);
+    }
+    return String(value);
+}
+
+var manifestPath = environmentValue('IT140_JSON_FILE');
+var platformId = environmentValue('IT140_PLATFORM_ID');
+var query = environmentValue('IT140_MANIFEST_QUERY');
+var manifest = JSON.parse(readUtf8(manifestPath));
+var platform = (manifest.platforms || {})[platformId];
+if (!platform) {
+    throw new Error('Manifest platform was not found: ' + platformId);
+}
+var bindings = platform.course_ide_bindings || {};
+var bindingValues = objectValues(bindings);
+var output = '';
+var values;
+
+switch (query) {
+case 'system_formulae':
+    values = bindingValues.filter(function (binding) {
+        return binding.required === true &&
+            binding.installation_scope === 'system' &&
+            binding.installer_adapter_id === 'homebrew_formula';
+    }).map(function (binding) {
+        return binding.package_identifier;
+    });
+    output = sortedUnique(values).join('\n');
+    break;
+
+case 'system_casks':
+    values = bindingValues.filter(function (binding) {
+        return binding.required === true &&
+            binding.installation_scope === 'system' &&
+            binding.installer_adapter_id === 'homebrew_cask';
+    }).map(function (binding) {
+        return binding.package_identifier;
+    });
+    output = sortedUnique(values).join('\n');
+    break;
+
+case 'system_commands':
+    values = [];
+    bindingValues.forEach(function (binding) {
+        if (binding.required === true && binding.installation_scope === 'system') {
+            var executableNames = ((binding.verification || {}).executable_names || []);
+            values = values.concat(executableNames);
+        }
+    });
+    output = sortedUnique(values).join('\n');
+    break;
+
+case 'venv_packages':
+    values = bindingValues.filter(function (binding) {
+        return binding.required === true &&
+            binding.installation_scope === 'user' &&
+            binding.installer_adapter_id === 'python_venv_package';
+    }).map(function (binding) {
+        return binding.package_identifier;
+    });
+    if ((bindings.code_quality_tool || {}).required === true) {
+        values.push('ruff');
+    }
+    output = sortedUnique(values).join('\n');
+    break;
+
+case 'extensions':
+    values = bindingValues.filter(function (binding) {
+        return binding.required === true &&
+            binding.installation_scope === 'user' &&
+            binding.installer_adapter_id === 'vscode_extension';
+    }).map(function (binding) {
+        return binding.package_identifier;
+    });
+    output = sortedUnique(values).join('\n');
+    break;
+
+case 'git_settings':
+    values = [];
+    (((bindings.version_control_system || {}).settings_profile_ids) || []).forEach(function (profileId) {
+        var profile = (manifest.managed_settings || {})[profileId];
+        if (!profile || (profile.platform_ids || []).indexOf(platformId) === -1) {
+            return;
+        }
+        Object.keys(profile.values || {}).forEach(function (key) {
+            values.push(key + '\t' + scalarText(profile.values[key]));
+        });
+    });
+    output = values.join('\n');
+    break;
+
+case 'vscode_settings':
+    var merged = {};
+    (((bindings.source_code_ide || {}).settings_profile_ids) || []).forEach(function (profileId) {
+        var profile = (manifest.managed_settings || {})[profileId];
+        if (!profile || (profile.platform_ids || []).indexOf(platformId) === -1) {
+            return;
+        }
+        Object.keys(profile.values || {}).forEach(function (key) {
+            merged[key] = profile.values[key];
+        });
+    });
+    var ordered = {};
+    Object.keys(merged).sort().forEach(function (key) {
+        ordered[key] = merged[key];
+    });
+    output = JSON.stringify(ordered);
+    break;
+
+case 'minimum_space':
+    output = scalarText((manifest.policy || {}).minimum_free_space_bytes);
+    break;
+
+case 'source_repository':
+    output = scalarText((manifest.control || {}).source_repository);
+    break;
+
+default:
+    throw new Error('Unsupported manifest query: ' + query);
+}
+
+output;
+JXA
 }
 
 it140_check_free_space() {

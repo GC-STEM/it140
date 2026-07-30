@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 
-readonly IT140_SCRIPT_VERSION="0.3.3"
+readonly IT140_SCRIPT_VERSION="0.3.4"
 readonly IT140_VERSION_DATE="2026-07-30"
 readonly IT140_DEVELOPMENT_STATUS="Alpha Testing"
 readonly IT140_ACTION_ID="setup"
@@ -104,10 +104,24 @@ else
 fi
 
 it140_header "Step 3: Install Required Course IDE Software"
-FORMULA_FILE="$(mktemp "${TMPDIR:-/tmp}/it140-formulae.XXXXXX")"
-CASK_FILE="$(mktemp "${TMPDIR:-/tmp}/it140-casks.XXXXXX")"
-it140_manifest_query system_formulae > "$FORMULA_FILE"
-it140_manifest_query system_casks > "$CASK_FILE"
+IT140_TEMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/it140-setup.XXXXXX")" || {
+    it140_error "Unable to create the temporary setup workspace."
+    exit 1
+}
+FORMULA_FILE="${IT140_TEMP_ROOT}/formulae.txt"
+CASK_FILE="${IT140_TEMP_ROOT}/casks.txt"
+if ! it140_manifest_query system_formulae > "$FORMULA_FILE"; then
+    it140_error "Unable to read the required Homebrew formulae from the controlled manifest."
+    exit 5
+fi
+if ! it140_manifest_query system_casks > "$CASK_FILE"; then
+    it140_error "Unable to read the required Homebrew casks from the controlled manifest."
+    exit 5
+fi
+FORMULA_COUNT="$(/usr/bin/grep -cve '^[[:space:]]*$' "$FORMULA_FILE" || true)"
+CASK_COUNT="$(/usr/bin/grep -cve '^[[:space:]]*$' "$CASK_FILE" || true)"
+it140_info "Required Homebrew formulae: $FORMULA_COUNT"
+it140_info "Required Homebrew casks   : $CASK_COUNT"
 
 brew update
 while IFS= read -r formula; do
@@ -133,7 +147,8 @@ while IFS= read -r cask; do
     fi
     IT140_CHANGED=true
 done < "$CASK_FILE"
-rm -f "$FORMULA_FILE" "$CASK_FILE"
+rm -rf "$IT140_TEMP_ROOT"
+IT140_TEMP_ROOT=""
 
 it140_header "Step 4: Validate the Installed System Layer"
 it140_initialize_homebrew
