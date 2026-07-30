@@ -5,14 +5,29 @@ Prepares Windows Sandbox for the IT 140 Windows user configuration workflow.
 
 .DESCRIPTION
 Validates the controlled IT 140 manifest and its windows_sandbox deployment
-profile, installs Windows Package Manager when the sandbox image does not
-provide it, and installs the manifest-required Windows software. The script
-does not run Windows Update and does not configure personal GitHub, Git,
+profile, installs Windows Package Manager when the bare Windows Sandbox image
+does not provide it, and installs the manifest-required Windows software. The
+script does not run Windows Update and does not configure personal GitHub, Git,
 Python-environment, or VS Code settings.
 
-After successful setup, the sandbox is ready for config_wsb.ps1 and
-verify_wsb.ps1. A normal PowerShell continuation shortcut is created on the
-desktop and opened automatically for interactive runs.
+After successful setup, the sandbox is ready for the tested config_win.ps1 and
+verify_win.ps1 scripts. A normal PowerShell continuation shortcut is created on
+the desktop and opened automatically for interactive runs.
+
+Artifact version:
+    0.2.0
+
+Version date:
+    2026-07-29
+
+Development status:
+    Alpha Testing
+
+Version basis:
+    Version 0.1.0 represents the initial Windows Sandbox setup baseline.
+    Version 0.2.0 adopts SemVer and manifest schema 2.0, aligns the lifecycle
+    handoff with the tested Windows configuration and verification scripts, and
+    preserves the WSB-only WinGet prerequisite installation path.
 
 .NOTES
 Exit codes:
@@ -40,7 +55,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "2026.07.27.3"
+$ScriptVersion = "0.2.0"
+$VersionDate = "2026-07-29"
+$DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "wsb"
 $ScriptDirectory = $PSScriptRoot
@@ -113,11 +130,20 @@ Usage:
 
 This script installs WinGet when needed and then installs missing
 manifest-required Windows software. It does not run Windows Update or configure
-personal user settings.
+personal user settings. After setup, use config_win.ps1 and verify_win.ps1.
 
 Deployment profile: $DeploymentProfile
 Log directory: $LogDirectory
 "@ | Write-Host
+}
+
+function Write-ClosingNotice {
+    Write-Notice "A log containing all output displayed while this script ran is available here:"
+    Write-Notice $LogPath
+    Write-Notice (
+        "Continue in the normal PowerShell window opened by this script. " +
+        "After reviewing this summary, close the bootstrap and setup windows."
+    )
 }
 
 function Test-IsAdministrator {
@@ -238,6 +264,261 @@ function Update-ProcessEnvironment {
     }
 }
 
+function Test-JsonDuplicateKey {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if ($null -eq ("It140Automation.JsonDuplicateKeyValidator" -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
+
+namespace It140Automation
+{
+    public static class JsonDuplicateKeyValidator
+    {
+        public static void Validate(string json)
+        {
+            if (json == null)
+            {
+                throw new ArgumentNullException("json");
+            }
+
+            int index = 0;
+            ParseValue(json, ref index, 0);
+            SkipWhitespace(json, ref index);
+            if (index != json.Length)
+            {
+                throw new FormatException("Unexpected content after the JSON value.");
+            }
+        }
+
+        private static void ParseValue(string json, ref int index, int depth)
+        {
+            if (depth > 256)
+            {
+                throw new FormatException("JSON nesting exceeds the supported depth.");
+            }
+
+            SkipWhitespace(json, ref index);
+            if (index >= json.Length)
+            {
+                throw new FormatException("Unexpected end of JSON input.");
+            }
+
+            char current = json[index];
+            if (current == '{')
+            {
+                ParseObject(json, ref index, depth + 1);
+            }
+            else if (current == '[')
+            {
+                ParseArray(json, ref index, depth + 1);
+            }
+            else if (current == '"')
+            {
+                ParseString(json, ref index);
+            }
+            else
+            {
+                ParsePrimitive(json, ref index);
+            }
+        }
+
+        private static void ParseObject(string json, ref int index, int depth)
+        {
+            index++;
+            SkipWhitespace(json, ref index);
+            HashSet<string> keys = new HashSet<string>(StringComparer.Ordinal);
+
+            if (index < json.Length && json[index] == '}')
+            {
+                index++;
+                return;
+            }
+
+            while (true)
+            {
+                SkipWhitespace(json, ref index);
+                if (index >= json.Length || json[index] != '"')
+                {
+                    throw new FormatException("Expected a JSON object key.");
+                }
+
+                string key = ParseString(json, ref index);
+                if (!keys.Add(key))
+                {
+                    throw new FormatException("duplicate key: " + key);
+                }
+
+                SkipWhitespace(json, ref index);
+                if (index >= json.Length || json[index] != ':')
+                {
+                    throw new FormatException("Expected ':' after a JSON object key.");
+                }
+                index++;
+
+                ParseValue(json, ref index, depth);
+                SkipWhitespace(json, ref index);
+                if (index >= json.Length)
+                {
+                    throw new FormatException("Unexpected end of JSON object.");
+                }
+                if (json[index] == '}')
+                {
+                    index++;
+                    return;
+                }
+                if (json[index] != ',')
+                {
+                    throw new FormatException("Expected ',' or '}' in a JSON object.");
+                }
+                index++;
+            }
+        }
+
+        private static void ParseArray(string json, ref int index, int depth)
+        {
+            index++;
+            SkipWhitespace(json, ref index);
+            if (index < json.Length && json[index] == ']')
+            {
+                index++;
+                return;
+            }
+
+            while (true)
+            {
+                ParseValue(json, ref index, depth);
+                SkipWhitespace(json, ref index);
+                if (index >= json.Length)
+                {
+                    throw new FormatException("Unexpected end of JSON array.");
+                }
+                if (json[index] == ']')
+                {
+                    index++;
+                    return;
+                }
+                if (json[index] != ',')
+                {
+                    throw new FormatException("Expected ',' or ']' in a JSON array.");
+                }
+                index++;
+            }
+        }
+
+        private static string ParseString(string json, ref int index)
+        {
+            if (index >= json.Length || json[index] != '"')
+            {
+                throw new FormatException("Expected a JSON string.");
+            }
+            index++;
+            StringBuilder value = new StringBuilder();
+
+            while (index < json.Length)
+            {
+                char current = json[index++];
+                if (current == '"')
+                {
+                    return value.ToString();
+                }
+                if (current == '\\')
+                {
+                    if (index >= json.Length)
+                    {
+                        throw new FormatException("Incomplete JSON escape sequence.");
+                    }
+                    char escaped = json[index++];
+                    switch (escaped)
+                    {
+                        case '"': value.Append('"'); break;
+                        case '\\': value.Append('\\'); break;
+                        case '/': value.Append('/'); break;
+                        case 'b': value.Append('\b'); break;
+                        case 'f': value.Append('\f'); break;
+                        case 'n': value.Append('\n'); break;
+                        case 'r': value.Append('\r'); break;
+                        case 't': value.Append('\t'); break;
+                        case 'u':
+                            if (index + 4 > json.Length)
+                            {
+                                throw new FormatException("Incomplete JSON Unicode escape.");
+                            }
+                            int codePoint;
+                            if (!Int32.TryParse(
+                                json.Substring(index, 4),
+                                NumberStyles.HexNumber,
+                                CultureInfo.InvariantCulture,
+                                out codePoint))
+                            {
+                                throw new FormatException("Invalid JSON Unicode escape.");
+                            }
+                            value.Append((char)codePoint);
+                            index += 4;
+                            break;
+                        default:
+                            throw new FormatException("Invalid JSON escape sequence.");
+                    }
+                }
+                else
+                {
+                    if (current < 0x20)
+                    {
+                        throw new FormatException("Unescaped control character in JSON string.");
+                    }
+                    value.Append(current);
+                }
+            }
+
+            throw new FormatException("Unterminated JSON string.");
+        }
+
+        private static void ParsePrimitive(string json, ref int index)
+        {
+            int start = index;
+            while (index < json.Length)
+            {
+                char current = json[index];
+                if (
+                    Char.IsWhiteSpace(current) ||
+                    current == ',' ||
+                    current == ']' ||
+                    current == '}')
+                {
+                    break;
+                }
+                index++;
+            }
+            if (index == start)
+            {
+                throw new FormatException("Invalid JSON primitive value.");
+            }
+        }
+
+        private static void SkipWhitespace(string json, ref int index)
+        {
+            while (index < json.Length && Char.IsWhiteSpace(json[index]))
+            {
+                index++;
+            }
+        }
+    }
+}
+'@
+    }
+
+    try {
+        $JsonText = Get-Content -LiteralPath $Path -Raw
+        [It140Automation.JsonDuplicateKeyValidator]::Validate($JsonText)
+    }
+    catch {
+        throw "JSON duplicate-key validation failed for $Path. $($_.Exception.Message)"
+    }
+}
+
 function Read-ControlledManifest {
     if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
         throw "The controlled manifest is missing: $ManifestPath"
@@ -245,6 +526,9 @@ function Read-ControlledManifest {
     if (-not (Test-Path -LiteralPath $SchemaPath -PathType Leaf)) {
         throw "The controlled manifest schema is missing: $SchemaPath"
     }
+
+    Test-JsonDuplicateKey -Path $ManifestPath
+    Test-JsonDuplicateKey -Path $SchemaPath
 
     try {
         $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
@@ -257,10 +541,13 @@ function Read-ControlledManifest {
     $RequiredKeys = @(
         "schema_version",
         "automation_release",
+        "automation_release_date",
         "policy",
         "software_sources",
         "platforms",
         "deployment_profiles",
+        "managed_settings",
+        "managed_assets",
         "logging"
     )
     foreach ($RequiredKey in $RequiredKeys) {
@@ -268,39 +555,60 @@ function Read-ControlledManifest {
             throw "The controlled manifest is missing required key: $RequiredKey"
         }
     }
-
-    if ([string]$Manifest.schema_version -ne "1.0") {
+    if ([string]$Manifest.schema_version -ne "2.0") {
         throw "Unsupported manifest schema version: $($Manifest.schema_version)"
     }
+
+    $AutomationRelease = [string]$Manifest.automation_release
+    $SemVerPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    if ($AutomationRelease -notmatch $SemVerPattern) {
+        throw "The manifest automation release is not strict SemVer: $AutomationRelease"
+    }
+
+    $ParsedReleaseDate = [datetime]::MinValue
+    $ReleaseDateIsValid = [datetime]::TryParseExact(
+        [string]$Manifest.automation_release_date,
+        "yyyy-MM-dd",
+        [Globalization.CultureInfo]::InvariantCulture,
+        [Globalization.DateTimeStyles]::None,
+        [ref]$ParsedReleaseDate
+    )
+    if (-not $ReleaseDateIsValid) {
+        throw (
+            "The manifest automation release date is not valid YYYY-MM-DD: " +
+            [string]$Manifest.automation_release_date
+        )
+    }
+
     if ([string]$Schema.'$schema' -ne "https://json-schema.org/draft/2020-12/schema") {
         throw "The manifest schema is not the approved Draft 2020-12 format."
     }
 
     $Platform = Get-PropertyValue -Object $Manifest.platforms -Name $PlatformId
-    $Profile = Get-PropertyValue `
+    $ProfileRecord = Get-PropertyValue `
         -Object $Manifest.deployment_profiles `
         -Name $DeploymentProfile
 
     if ($null -eq $Platform -or -not [bool]$Platform.enabled) {
         throw "The Windows platform is not enabled in the controlled manifest."
     }
-    if ($null -eq $Profile -or -not [bool]$Profile.enabled) {
+    if ($null -eq $ProfileRecord -or -not [bool]$ProfileRecord.enabled) {
         throw "The deployment profile is not enabled: $DeploymentProfile"
     }
-    if ([string]$Profile.platform_id -ne $PlatformId) {
+    if ([string]$ProfileRecord.platform_id -ne $PlatformId) {
         throw "The Windows Sandbox deployment profile does not select the Windows platform."
     }
-    if ([string]$Profile.profile_adapter_id -ne "windows_sandbox") {
+    if ([string]$ProfileRecord.profile_adapter_id -ne "windows_sandbox") {
         throw "The deployment profile does not select the windows_sandbox adapter."
     }
-    if ([string]$Profile.architecture -ne "x86_64") {
+    if ([string]$ProfileRecord.architecture -ne "x86_64") {
         throw "The Windows Sandbox deployment profile is not enabled for x86_64."
     }
 
     return [pscustomobject]@{
         Manifest = $Manifest
         Platform = $Platform
-        Profile = $Profile
+        Profile = $ProfileRecord
     }
 }
 
@@ -622,20 +930,21 @@ function Get-SystemPackageBinding {
 function Test-WinGetPackageInstalled {
     param([Parameter(Mandatory = $true)][string]$PackageIdentifier)
 
-    $Output = @(
+    $PreviousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
         & $script:WinGetExecutable `
             list `
             --id $PackageIdentifier `
             --exact `
             --source winget `
             --accept-source-agreements `
-            --disable-interactivity 2>&1
-    )
-    if ($LASTEXITCODE -ne 0) {
-        return $false
+            --disable-interactivity *> $null
+        return $LASTEXITCODE -eq 0
     }
-
-    return (($Output -join "`n") -match [regex]::Escape($PackageIdentifier))
+    finally {
+        $ErrorActionPreference = $PreviousErrorActionPreference
+    }
 }
 
 function Install-SystemPackage {
@@ -740,12 +1049,17 @@ function New-ContinuationShortcut {
     $PowerShellPath = Join-Path `
         $env:SystemRoot `
         "System32\WindowsPowerShell\v1.0\powershell.exe"
+    $VerificationMessage = (
+        "After configuration, close this window, open the desktop shortcut " +
+        "again, and run verify_win.ps1."
+    )
     $CommandText = (
         "Set-Location -LiteralPath '$CourseRoot'; " +
+        "`$env:Path = '$WindowsScriptDirectory;' + `$env:Path; " +
         "Write-Host ''; " +
         "Write-Host 'IT 140 Windows Sandbox is ready.' -ForegroundColor Green; " +
-        "Write-Host 'Run config_wsb.ps1 to configure the current user.' -ForegroundColor Cyan; " +
-        "Write-Host 'After configuration, open a new PowerShell window and run verify_wsb.ps1.' -ForegroundColor Cyan"
+        "Write-Host 'Run config_win.ps1 to configure the current user.' -ForegroundColor Cyan; " +
+        "Write-Host '$VerificationMessage' -ForegroundColor Cyan"
     )
 
     $ShellApplication = New-Object -ComObject WScript.Shell
@@ -781,7 +1095,9 @@ if ($Help) {
     exit 0
 }
 if ($Version) {
-    Write-Host $ScriptVersion
+    Write-Host "Artifact version   : $ScriptVersion"
+    Write-Host "Version date       : $VersionDate"
+    Write-Host "Development status : $DevelopmentStatus"
     exit 0
 }
 if (-not (Test-IsWindowsSandbox)) {
@@ -800,6 +1116,8 @@ try {
 
     Write-Header "IT 140 WINDOWS SANDBOX SETUP"
     Write-Info "Script version   : $ScriptVersion"
+    Write-Info "Version date     : $VersionDate"
+    Write-Info "Status           : $DevelopmentStatus"
     Write-Info "Deployment       : $DeploymentProfile"
     Write-Info "Current user     : $([Environment]::UserName)"
     Write-Info "Course root      : $CourseRoot"
@@ -823,6 +1141,7 @@ try {
     Write-Info "Build            : $($WindowsFacts.BuildNumber)"
     Write-Info "Architecture     : $($WindowsFacts.Architecture)"
     Write-Info "Manifest release : $($Controlled.Manifest.automation_release)"
+    Write-Info "Manifest date    : $($Controlled.Manifest.automation_release_date)"
 
     $SystemDriveRoot = [IO.Path]::GetPathRoot($env:SystemRoot)
     $SystemDriveInfo = [IO.DriveInfo]::new($SystemDriveRoot)
@@ -854,9 +1173,14 @@ try {
 
     $Elapsed = (Get-Date) - $StartTime
     Write-Header "SETUP SUMMARY"
-    Write-Success "Windows Sandbox is ready for config_wsb.ps1 and verify_wsb.ps1."
+    Write-Success "Windows Sandbox is ready for Windows user configuration and verification."
     Write-Info "Result           : PASS"
+    Write-Info "Script version   : $ScriptVersion"
+    Write-Info "Version date     : $VersionDate"
+    Write-Info "Status           : $DevelopmentStatus"
     Write-Info "Deployment       : $DeploymentProfile"
+    Write-Info "Manifest release : $($Controlled.Manifest.automation_release)"
+    Write-Info "Manifest date    : $($Controlled.Manifest.automation_release_date)"
     Write-Info "Git              : $(Get-CommandVersionLine -CommandName 'git.exe')"
     Write-Info "GitHub CLI       : $(Get-CommandVersionLine -CommandName 'gh.exe')"
     Write-Info "Python           : $(Get-CommandVersionLine -CommandName 'python.exe')"
@@ -865,12 +1189,13 @@ try {
     Write-Info "Failures         : 0"
     Write-Info ("Elapsed time     : {0:hh\:mm\:ss}" -f $Elapsed)
     Write-Info "Log file         : $LogPath"
-    Write-Notice "Next step: run config_wsb.ps1 from a new PowerShell window."
+    Write-Notice "Next step: run config_win.ps1 in the continuation PowerShell window."
     Write-Info "Exit code        : 0"
 
     if (-not $NonInteractive) {
         Start-ContinuationShell
     }
+    Write-ClosingNotice
 
     $ExitCode = 0
 }

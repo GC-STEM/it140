@@ -6,14 +6,26 @@ Retrieves the current IT 140 automation package and starts Windows Sandbox setup
 .DESCRIPTION
 Performs only the bootstrap work required in a fresh Windows Sandbox session:
 creates the course and log folders, downloads the current repository archive,
-extracts it under ~/it140, and starts setup_wsb.ps1 in a separate PowerShell
-process. WinGet and course software are installed by setup_wsb.ps1.
+extracts it under ~/it140, and starts setup_wsb.ps1 in a separate Windows
+PowerShell process. WinGet and course software are installed by setup_wsb.ps1.
 
-This script is suitable for direct use or automatic execution from an IT 140
+This script is suitable for direct use or automatic execution from the IT 140
 Windows Sandbox configuration file.
 
+Artifact version:
+    0.2.0
+
+Version date:
+    2026-07-29
+
+Development status:
+    Alpha Testing
+
+Version basis:
+    Version 0.1.0 represents the initial Windows Sandbox bootstrap baseline.
+    Version 0.2.0 adopts SemVer metadata and current transcript reporting.
+
 .NOTES
-Artifact version: 2026.07.27.3
 Logs are written under ~/it140/logs/.
 #>
 
@@ -24,7 +36,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ArtifactVersion = "2026.07.27.3"
+$ArtifactVersion = "0.2.0"
+$VersionDate = "2026-07-29"
+$DevelopmentStatus = "Alpha Testing"
 $RepositoryArchive = "https://github.com/GC-STEM/it140/archive/refs/heads/main.zip"
 $CourseRoot = Join-Path ([Environment]::GetFolderPath("UserProfile")) "it140"
 $LogDirectory = Join-Path $CourseRoot "logs"
@@ -51,6 +65,10 @@ try {
     Write-Host "IT 140 WINDOWS SANDBOX BOOTSTRAP"
     Write-Host "============================================================"
     Write-Host "[INFO] Artifact version : $ArtifactVersion"
+    Write-Host "[INFO] Version date     : $VersionDate"
+    Write-Host "[INFO] Status           : $DevelopmentStatus"
+    Write-Host "[INFO] Current user     : $([Environment]::UserName)"
+    Write-Host "[INFO] Purpose          : Retrieve and start the WSB automation package"
     Write-Host "[INFO] Course root      : $CourseRoot"
     Write-Host "[INFO] Log file         : $LogPath"
 
@@ -119,10 +137,16 @@ try {
     }
 
     Write-Host "[SUCCESS] Windows Sandbox bootstrap and setup completed."
+    Write-Host "[NOTICE] Continue in the normal PowerShell window opened by setup_wsb.ps1."
+    Write-Host "[NOTICE] Bootstrap log: $LogPath"
     $ExitCode = 0
 }
 catch {
+    $LineNumber = $_.InvocationInfo.ScriptLineNumber
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
+    if ($LineNumber) {
+        Write-Host "[ERROR] Bootstrap stopped near line $LineNumber." -ForegroundColor Red
+    }
     Write-Host "[INFO] Bootstrap log: $LogPath"
     $ExitCode = 1
 }
