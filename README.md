@@ -12,15 +12,14 @@
 
 Click the links below to access the automation scripts for Codio, Windows, MacOS, and Linux environments.
 
-| **Platform** | **Bootstrap** | **Setup** | **Config** | **Update** | **Verify** | **Live ETA** |
-| ------------ | :-----------: | :--------: | :--------: | :--------: | :--------: | -----------: |
-| [Codio](scripts/cvd) | ✅ | ✅ | ✅ | ✅ | ✅ | 7/26/2026 |
-| [Windows](scripts/win) | ✅ | ✅ | ✅ | ✅ | ✅ | 7/29/2026 |
-| [MacOS](scripts/mac) | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 7/30/2026 |
-| [Ubuntu](scripts/nix/ubg/) | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 7/31/2026 |
+| **Platform** | **Status**  | **Bootstrap** | **Setup** | **Config** | **Update** | **Verify** | **Live ETA** |
+| ------------ | :---------: | :-------: | :--------: | :--------: | :--------: | :--------: | :----------: |
+| [Codio](scripts/cvd)   | 🟢 | 🅱️ | 🅱️ | 🅱️ | 🅱️ | 🅱️ | 7/26/2026 |
+| [Windows](scripts/win) | 🟢 | 🅱️ | 🅱️ | 🅱️ | 🅱️ | 🅱️  | 7/29/2026 |
+| [MacOS](scripts/mac)   | 🔴 | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 7/30/2026 |
 
-✅ = Ready for Production.
-🅰️ = Alpha Testing. Please report any issues using GitHub Issues.
+🅰️ = Alpha Testing.
+🅱️ = Beta Testing (Staff & Faculty). Please report any issues using GitHub Issues.
 
 ## Course Activity Repositories
 
@@ -43,16 +42,15 @@ Click the links below to access the repositories for each module's activity. Eac
 
 ### Development Status
 
-🗺️ Planned
-🗓️ Requirements
-📝 Design
-🚧 Construction
-👥 Internal Validation (Staff & Faculty)
-🔍 Release Review
-🎓 Pilot Release (Pilot term)
-✅ Ready for Production
-🔧 Maintenance
-📦 Archived
+- 🗺️ Planned
+- 🗓️ Requirements
+- 📝 Design
+- 🚧 Construction
+- 🅰️ Alpha Testing
+- 🅱️ Beta Testing (Staff & Faculty)
+- ✅ Ready for Pilot
+- 🔧 Maintenance
+- 📦 Archived
 
 ### Operational Status
 
