@@ -21,8 +21,8 @@ Click the links below to access the automation scripts for Codio, Windows, MacOS
 
 - 🅰️ = Alpha Testing
 - 🅱️ = Beta Testing (Staff & Faculty)
-- Please report any issues using [GitHub Issues](https://github.com/GC-STEM/it140/issues).
-- Post any questions or concerns in [GitHub Discussions](https://github.com/GC-STEM/it140/discussions).
+- Please report any issues or requests using [GitHub Issues](https://github.com/GC-STEM/it140/issues).
+- Post any questions or feedback in [GitHub Discussions](https://github.com/GC-STEM/it140/discussions).
 
 ## Course Activity Repositories
 
