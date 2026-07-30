@@ -19,11 +19,12 @@ Click the links below to access the automation scripts for Codio, Windows, MacOS
 | [MacOS](scripts/mac) | 🅰️ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 7/30/2026 |
 | [Linux](scripts/linux) | 🚧 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | T.B.D. |
 
-- 🅰️ = Alpha Testing
 - 🅱️ = Beta Testing (Staff & Faculty)
-- Please report any issues or requests using [GitHub Issues](https://github.com/GC-STEM/it140/issues).
-- Post any questions or feedback in [GitHub Discussions](https://github.com/GC-STEM/it140/discussions).
-
+  - Please report any issues or requests using [GitHub Issues](https://github.com/GC-STEM/it140/issues).
+  - Post any questions or feedback in [GitHub Discussions](https://github.com/GC-STEM/it140/discussions).
+- 🅰️ = Alpha Testing
+- 🚧 = Under construction
+  
 ## Course Activity Repositories
 
 Click the links below to access the repositories for each module's activity. Each repository contains the necessary files and instructions for completing the corresponding activity.
