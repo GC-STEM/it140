@@ -191,15 +191,15 @@ export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/mac:/opt/homebrew/bin:/op
 # <<< IT 140 managed environment <<<
 ENV
     mv -- "$temp" "$target"
-    chmod 0600 -- "$target"
+    chmod -- 0600 "$target"
 }
 
 it140_initialize_log() {
     mkdir -p -- "$IT140_LOG_DIR"
-    chmod 0700 -- "$IT140_LOG_DIR"
+    chmod -- 0700 "$IT140_LOG_DIR"
     IT140_LOG_FILE="${IT140_LOG_DIR}/${IT140_ACTION_ID}_mac_$(date +%Y%m%d_%H%M%S).log"
     : > "$IT140_LOG_FILE"
-    chmod 0600 -- "$IT140_LOG_FILE"
+    chmod -- 0600 "$IT140_LOG_FILE"
     exec > >(tee -a "$IT140_LOG_FILE") 2>&1
 }
 
@@ -229,7 +229,7 @@ it140_check_platform_user() {
 
 it140_acquire_lock() {
     mkdir -p -- "$IT140_LOCK_PARENT"
-    chmod 0700 -- "$IT140_LOCK_PARENT" 2>/dev/null || true
+    chmod -- 0700 "$IT140_LOCK_PARENT" 2>/dev/null || true
     if [ -L "$IT140_LOCK_DIR" ]; then
         it140_fail 5 "The mutation lock path is a symbolic link and was not trusted: $IT140_LOCK_DIR"
     fi
@@ -251,7 +251,7 @@ it140_acquire_lock() {
     printf '%s\n' "$$" > "$IT140_LOCK_DIR/pid"
     printf '%s\n' "$IT140_ACTION_ID" > "$IT140_LOCK_DIR/action"
     printf '%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$IT140_LOCK_DIR/started_utc"
-    chmod 0700 -- "$IT140_LOCK_DIR"
+    chmod -- 0700 "$IT140_LOCK_DIR"
     IT140_LOCK_HELD=1
 }
 
