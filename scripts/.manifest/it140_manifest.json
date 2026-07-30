@@ -1,7 +1,7 @@
 {
   "schema_version": "2.0",
-  "automation_release": "0.2.0",
-  "automation_release_date": "2026-07-29",
+  "automation_release": "0.5.0",
+  "automation_release_date": "2026-07-30",
   "course": {
     "course_id": "IT 140",
     "course_title": "Introduction to Scripting",
@@ -10,8 +10,8 @@
   "control": {
     "status": "draft",
     "source_repository": "https://github.com/GC-STEM/it140",
-    "source_revision": "dfcfe0bc1c0e8d0dc9ad47faf2b855a18bdf227e",
-    "change_summary": "Add Windows 10, version 22H2, as a supported x86_64 Windows client release while retaining manifest-controlled support for Windows 11 releases 24H2, 25H2, and 26H1."
+    "source_revision": "2ad2ff23346896c3e27d3a8b64a9d40d652196e4",
+    "change_summary": "Rebuild the complete macOS lifecycle as five self-contained Apple-silicon scripts, remove the distributed shared runtime helper, add stale-lock recovery and line-level error diagnostics, and retain macOS operating-system updates outside the course automation lifecycle."
   },
   "policy": {
     "course_root": "${HOME}/it140",
@@ -808,31 +808,31 @@
           ]
         }
       },
-      "notes": "Initial qualification targets are Windows 10, version 22H2, and manifest-listed Windows 11 releases on x86_64 bare metal. Windows 10 22H2 remains course-compatible after Microsoft standard support ended. Students should apply security updates available to their device; paid Extended Security Updates are not required by the course. Windows on ARM64 may be enabled after the full platform conformance suite passes on representative hardware."
+      "notes": "Supported local Windows targets are Windows 10 version 22H2 and manifest-listed Windows 11 releases on x86_64 hardware."
     },
     "macos": {
       "display_name": "Apple macOS",
       "abbreviation": "mac",
       "enabled": true,
       "reference_platform": false,
-      "platform_adapter_id": "macos",
+      "platform_adapter_id": "macos_homebrew_apple_silicon",
       "os": {
         "family": "macos",
-        "name": "Apple macOS",
+        "name": "macOS",
         "releases": [
           {
             "release_id": "26",
-            "display_name": "macOS Tahoe 26",
+            "display_name": "macOS 26 Tahoe",
             "security_updates_required": true
           },
           {
             "release_id": "15",
-            "display_name": "macOS Sequoia 15",
+            "display_name": "macOS 15 Sequoia",
             "security_updates_required": true
           },
           {
             "release_id": "14",
-            "display_name": "macOS Sonoma 14",
+            "display_name": "macOS 14 Sonoma",
             "security_updates_required": true
           }
         ],
@@ -853,27 +853,26 @@
           "homebrew_core",
           "homebrew_cask"
         ],
-        "lock_scope": "system_package_manager"
+        "lock_scope": "user_package_manager"
       },
       "os_packages": {
-        "xcode_command_line_tools": {
-          "display_name": "Xcode Command Line Tools",
-          "purpose": "Provide native compiler, Git bootstrap, and command-line support required by Homebrew and course setup.",
+        "apple_command_line_tools": {
+          "display_name": "Apple Command Line Tools",
+          "purpose": "Provide the compiler, Git prerequisites, and system headers required by Homebrew and course tooling.",
           "category": "bootstrap_prerequisite",
-          "package_identifier": "com.apple.pkg.CLTools_Executables",
+          "package_identifier": "Command Line Tools for Xcode",
           "required": true,
           "source_id": "apple_software_update",
           "version_rule": {
-            "comparison": "presence_only"
+            "comparison": "managed_latest"
           },
           "architectures": [
-            "arm64",
-            "x86_64"
+            "arm64"
           ],
           "verification": {
             "adapter_id": "executable_version",
             "executable_names": [
-              "xcode-select"
+              "xcrun"
             ]
           }
         }
@@ -1090,7 +1089,7 @@
           ]
         }
       },
-      "notes": "Initial qualification target is a currently supported macOS release on Apple Silicon. Intel macOS may be enabled after the full platform conformance suite passes on a supported Intel Mac."
+      "notes": "This rebuilt baseline is enabled only for Apple silicon. Intel support remains disabled until a separate Intel baseline passes the complete conformance suite."
     },
     "cvd": {
       "display_name": "Codio Virtual Desktop",
@@ -1133,222 +1132,202 @@
         "ca_certificates": {
           "display_name": "CA Certificates",
           "purpose": "Provide trusted certificate authorities for encrypted package and file downloads.",
-          "category": "security_support",
           "package_identifier": "ca-certificates",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "ca-certificates"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "security_support"
         },
         "curl": {
           "display_name": "curl",
           "purpose": "Provide reliable encrypted downloads and network diagnostics for setup and update operations.",
-          "category": "diagnostic_utility",
           "package_identifier": "curl",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "curl"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "diagnostic_utility"
         },
         "gpg": {
           "display_name": "GNU Privacy Guard",
           "purpose": "Verify signed package repositories and imported signing keys.",
-          "category": "security_support",
           "package_identifier": "gpg",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "gpg"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "security_support"
         },
         "python_venv_support": {
           "display_name": "Python 3.12 Virtual Environment Support",
           "purpose": "Provide the operating-system module required to create the course Python virtual environment.",
-          "category": "runtime_support",
           "package_identifier": "python3.12-venv",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "python3.12-venv"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "runtime_support"
         },
         "xdg_utils": {
           "display_name": "XDG Utilities",
           "purpose": "Provide standards-based desktop integration helpers for launchers and default applications.",
-          "category": "desktop_integration",
           "package_identifier": "xdg-utils",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "xdg-utils"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "desktop_integration"
         },
         "desktop_file_utils": {
           "display_name": "Desktop File Utilities",
-          "purpose": "Validate and refresh course-managed Xfce desktop launcher definitions.",
-          "category": "desktop_integration",
+          "purpose": "Validate and refresh Linux desktop launcher definitions.",
           "package_identifier": "desktop-file-utils",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "desktop-file-utils"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "desktop_integration"
         },
         "libsecret": {
           "display_name": "Secret Service Library",
           "purpose": "Allow approved clients to use the desktop credential store without placing secrets in the manifest or logs.",
-          "category": "runtime_support",
           "package_identifier": "libsecret-1-0",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "libsecret-1-0"
             ]
-          }
-        },
-        "direnv": {
-          "display_name": "direnv",
-          "purpose": "Apply approved project-specific environment settings when a course project declares them.",
-          "category": "runtime_support",
-          "package_identifier": "direnv",
-          "required": true,
-          "source_id": "ubuntu_archive",
-          "version_rule": {
-            "comparison": "managed_latest"
           },
           "architectures": [
             "x86_64"
           ],
-          "verification": {
-            "adapter_id": "apt_package",
-            "package_identifiers": [
-              "direnv"
-            ]
-          }
+          "category": "runtime_support"
         },
         "tree": {
           "display_name": "tree",
-          "purpose": "Display folder structures in a readable form for course instructions and support diagnostics.",
-          "category": "diagnostic_utility",
+          "purpose": "Provide a simple directory-tree display for course support and diagnostics.",
           "package_identifier": "tree",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "tree"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "diagnostic_utility"
         },
         "xclip": {
           "display_name": "xclip",
-          "purpose": "Support approved clipboard operations in the Xfce graphical desktop.",
-          "category": "desktop_integration",
+          "purpose": "Provide clipboard support for browser-based GitHub authentication.",
           "package_identifier": "xclip",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "xclip"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "desktop_integration"
         },
         "numlockx": {
           "display_name": "numlockx",
           "purpose": "Apply the approved Num Lock behavior when the Xfce desktop session starts.",
-          "category": "desktop_integration",
           "package_identifier": "numlockx",
           "required": false,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "numlockx"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "desktop_integration"
         }
       },
       "course_ide_bindings": {
@@ -1563,7 +1542,7 @@
           ]
         }
       },
-      "notes": "Reference platform implementation for the Codio Virtual Desktop using Ubuntu 24.04 LTS, APT, Xfce, a remote graphical session, and the Codio-controlled privilege and restart model."
+      "notes": "Codio Ubuntu 24.04 LTS with Xfce remains the reference course environment."
     },
     "ubuntu_gnome": {
       "display_name": "Ubuntu Desktop with GNOME",
@@ -1573,7 +1552,7 @@
       "platform_adapter_id": "ubuntu_apt_gnome",
       "os": {
         "family": "linux",
-        "name": "Ubuntu Desktop",
+        "name": "Ubuntu",
         "desktop_environment": "GNOME",
         "releases": [
           {
@@ -1606,142 +1585,182 @@
         "ca_certificates": {
           "display_name": "CA Certificates",
           "purpose": "Provide trusted certificate authorities for encrypted package and file downloads.",
-          "category": "security_support",
           "package_identifier": "ca-certificates",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "ca-certificates"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "security_support"
         },
         "curl": {
           "display_name": "curl",
           "purpose": "Provide reliable encrypted downloads and network diagnostics for setup and update operations.",
-          "category": "diagnostic_utility",
           "package_identifier": "curl",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "curl"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "diagnostic_utility"
         },
         "gpg": {
           "display_name": "GNU Privacy Guard",
           "purpose": "Verify signed package repositories and imported signing keys.",
-          "category": "security_support",
           "package_identifier": "gpg",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "gpg"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "security_support"
         },
         "python_venv_support": {
           "display_name": "Python 3.12 Virtual Environment Support",
           "purpose": "Provide the operating-system module required to create the course Python virtual environment.",
-          "category": "runtime_support",
           "package_identifier": "python3.12-venv",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "python3.12-venv"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "runtime_support"
         },
         "xdg_utils": {
           "display_name": "XDG Utilities",
           "purpose": "Provide standards-based desktop integration helpers for launchers and default applications.",
-          "category": "desktop_integration",
           "package_identifier": "xdg-utils",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "xdg-utils"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "desktop_integration"
         },
         "desktop_file_utils": {
           "display_name": "Desktop File Utilities",
-          "purpose": "Validate and refresh GNOME desktop launcher definitions.",
-          "category": "desktop_integration",
+          "purpose": "Validate and refresh Linux desktop launcher definitions.",
           "package_identifier": "desktop-file-utils",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "desktop-file-utils"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "desktop_integration"
         },
         "libsecret": {
           "display_name": "Secret Service Library",
           "purpose": "Allow approved clients to use the desktop credential store without placing secrets in the manifest or logs.",
-          "category": "runtime_support",
           "package_identifier": "libsecret-1-0",
           "required": true,
           "source_id": "ubuntu_archive",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "x86_64"
-          ],
           "verification": {
             "adapter_id": "apt_package",
             "package_identifiers": [
               "libsecret-1-0"
             ]
-          }
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "runtime_support"
+        },
+        "tree": {
+          "display_name": "tree",
+          "purpose": "Provide a simple directory-tree display for course support and diagnostics.",
+          "package_identifier": "tree",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "tree"
+            ]
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "diagnostic_utility"
+        },
+        "xclip": {
+          "display_name": "xclip",
+          "purpose": "Provide clipboard support for browser-based GitHub authentication.",
+          "package_identifier": "xclip",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "xclip"
+            ]
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "desktop_integration"
         }
       },
       "course_ide_bindings": {
@@ -1956,7 +1975,7 @@
           ]
         }
       },
-      "notes": "Ubuntu 24.04 LTS with APT and GNOME is the supported local Linux desktop profile. Initial qualification targets x86_64 bare metal. Raspberry Pi 4B and 5 may be used for exploratory ARM64 testing, but ARM64 is not enabled until the complete conformance suite passes for the declared desktop environment."
+      "notes": "Ubuntu 24.04 LTS with APT and GNOME is the supported local Linux desktop profile on x86_64."
     }
   },
   "deployment_profiles": {
@@ -1984,7 +2003,7 @@
       "session_type": "local_desktop",
       "architecture": "x86_64",
       "reset_method": "fresh_os_install",
-      "notes": "Clean supported Windows 10, version 22H2, or manifest-listed Windows 11 installation used for platform conformance testing."
+      "notes": "Clean supported Windows 10 version 22H2 or manifest-listed Windows 11 installation used for platform conformance testing."
     },
     "windows_sandbox": {
       "display_name": "Windows Sandbox",
@@ -1997,10 +2016,10 @@
       "architecture": "x86_64",
       "profile_adapter_id": "windows_sandbox",
       "reset_method": "image_reset",
-      "notes": "Ephemeral Windows Sandbox environment on a supported Windows 11 host used for clean setup, verification, faculty testing, and technical-support reproduction. Closing the sandbox discards installed software and configuration."
+      "notes": "Ephemeral Windows Sandbox environment used for clean setup, verification, and support reproduction."
     },
     "macos_bare_metal": {
-      "display_name": "macOS Bare-Metal Computer",
+      "display_name": "macOS Apple Silicon Bare-Metal Computer",
       "enabled": true,
       "reference_profile": false,
       "platform_id": "macos",
@@ -2008,7 +2027,7 @@
       "session_type": "local_desktop",
       "architecture": "arm64",
       "reset_method": "fresh_os_install",
-      "notes": "Clean supported macOS installation on Apple Silicon used for platform conformance testing."
+      "notes": "Clean supported macOS installation on Apple silicon used for platform conformance testing."
     },
     "ubuntu_gnome_bare_metal": {
       "display_name": "Ubuntu GNOME Bare-Metal Computer",
@@ -2095,8 +2114,7 @@
       "source_path": "scripts/.manifest/it140_manifest.schema.json",
       "destination": "${SCRIPT_ROOT}/.manifest/it140_manifest.schema.json",
       "integrity": {
-        "method": "repository_revision",
-        "source_revision": "c888fb9f0d6b5bfdda0fc804c547f27e1aac954c"
+        "method": "provider_verified"
       },
       "replacement_mode": "atomic_replace",
       "managed_by": [
