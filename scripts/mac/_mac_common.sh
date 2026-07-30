@@ -61,10 +61,11 @@ it140_initialize_log() {
     exec > >(tee -a "$IT140_LOG_FILE") 2>&1
 }
 
-it140_install_cleanup_traps() {
-    trap 'it140_exit_code=$?; trap - EXIT INT TERM; it140_cleanup_common; exit "$it140_exit_code"' EXIT
-    trap 'trap - EXIT INT TERM; it140_cleanup_common; exit 130' INT
-    trap 'trap - EXIT INT TERM; it140_cleanup_common; exit 143' TERM
+it140_handle_exit() {
+    local exit_code="${1:-0}"
+    trap - EXIT INT TERM
+    it140_cleanup_common
+    exit "$exit_code"
 }
 
 it140_closing_notices() {
