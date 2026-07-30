@@ -1,5 +1,5 @@
 set -euo pipefail
-readonly ARTIFACT_VERSION="0.5.2"
+readonly ARTIFACT_VERSION="0.5.3"
 readonly VERSION_DATE="2026-07-30"
 readonly COURSE_ROOT="${HOME}/it140"
 readonly SCRIPT_DIR="${COURSE_ROOT}/scripts/mac"
@@ -21,7 +21,7 @@ trap cleanup EXIT INT TERM
     exit 3
 }
 mkdir -p -- "$COURSE_ROOT/logs" "$EXTRACT_ROOT"
-chmod 0700 -- "$COURSE_ROOT/logs"
+chmod -- 0700 "$COURSE_ROOT/logs"
 LOG_FILE="$COURSE_ROOT/logs/bootstrap_mac_$(date +%Y%m%d_%H%M%S).log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 printf '\n============================================================\n'
@@ -44,7 +44,7 @@ done
 }
 /usr/bin/ditto "$SOURCE_ROOT" "$COURSE_ROOT"
 rm -rf -- "$COURSE_ROOT/.git"
-chmod 0755 -- "$SCRIPT_DIR"/*.sh
+chmod -- 0755 "$SCRIPT_DIR"/*.sh
 readonly SHELL_STARTUP_FILE="$HOME/.zshrc"
 readonly PATH_LINE="export PATH=\"\$HOME/it140/scripts/mac:\$PATH\""
 grep -qxF "$PATH_LINE" "$SHELL_STARTUP_FILE" 2>/dev/null || printf '\n%s\n' "$PATH_LINE" >> "$SHELL_STARTUP_FILE"
