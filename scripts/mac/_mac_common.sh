@@ -115,6 +115,39 @@ it140_check_platform_and_user() {
     it140_resolve_profile
 }
 
+it140_command_line_tools_available() {
+    /usr/bin/xcode-select -p >/dev/null 2>&1 || return 1
+    /usr/bin/xcrun --find clang >/dev/null 2>&1 || return 1
+    return 0
+}
+
+it140_wait_for_command_line_tools() {
+    local response=""
+
+    while ! it140_command_line_tools_available; do
+        printf '[ACTION] When the Apple installer reports success, return here and press Enter. Type Q and press Enter to stop: '
+        if ! IFS= read -r response; then
+            it140_error "Unable to read confirmation from this Terminal. Complete the Apple installer, then rerun setup_mac.sh."
+            return 7
+        fi
+
+        case "$response" in
+            [Qq]|[Qq][Uu][Ii][Tt])
+                it140_notice "Setup stopped before Apple Command Line Tools were installed."
+                return 7
+                ;;
+        esac
+
+        if ! it140_command_line_tools_available; then
+            it140_warning "Apple Command Line Tools are not available yet. Complete the installer before continuing."
+        fi
+    done
+
+    it140_success "Apple Command Line Tools were installed successfully."
+    IT140_CHANGED=true
+    return 0
+}
+
 it140_initialize_homebrew() {
     local candidate
     for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do

@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 
-readonly IT140_SCRIPT_VERSION="0.3.2"
+readonly IT140_SCRIPT_VERSION="0.3.3"
 readonly IT140_VERSION_DATE="2026-07-30"
 readonly IT140_DEVELOPMENT_STATUS="Alpha Testing"
 readonly IT140_ACTION_ID="setup"
@@ -66,17 +66,20 @@ it140_check_free_space
 it140_acquire_lock
 
 it140_header "Step 1: Verify Apple Command Line Tools"
-if /usr/bin/xcode-select -p >/dev/null 2>&1; then
+if it140_command_line_tools_available; then
     it140_success "Apple Command Line Tools are available."
 else
     if [ "$IT140_NONINTERACTIVE" = true ]; then
-        it140_error "Apple Command Line Tools are required. Run 'xcode-select --install', finish the Apple installer, and rerun setup_mac.sh."
+        it140_error "Apple Command Line Tools are required. Run 'xcode-select --install', complete the Apple installer, and rerun setup_mac.sh."
         exit 7
     fi
+
     it140_notice "Opening Apple's Command Line Tools installer."
-    /usr/bin/xcode-select --install || true
-    it140_notice "Complete the Apple installer, then rerun setup_mac.sh."
-    exit 7
+    if ! /usr/bin/xcode-select --install; then
+        it140_notice "Apple may already have an installer request open. Check for a macOS installer dialog."
+    fi
+    it140_notice "Complete the Apple installer. This setup script will remain open."
+    it140_wait_for_command_line_tools || exit $?
 fi
 
 it140_header "Step 2: Install or Repair Homebrew"
