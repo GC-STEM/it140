@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 
-readonly IT140_SCRIPT_VERSION="0.5.0"
+readonly IT140_SCRIPT_VERSION="0.5.1"
 readonly IT140_VERSION_DATE="2026-07-30"
 readonly IT140_DEVELOPMENT_STATUS="Alpha Testing — Rebuilt Baseline"
 readonly IT140_ACTION_ID="verify"

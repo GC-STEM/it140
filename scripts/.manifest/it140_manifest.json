@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "automation_release": "0.5.0",
+  "automation_release": "0.5.1",
   "automation_release_date": "2026-07-30",
   "course": {
     "course_id": "IT 140",
@@ -11,7 +11,7 @@
     "status": "draft",
     "source_repository": "https://github.com/GC-STEM/it140",
     "source_revision": "2ad2ff23346896c3e27d3a8b64a9d40d652196e4",
-    "change_summary": "Rebuild the complete macOS lifecycle as five self-contained Apple-silicon scripts, remove the distributed shared runtime helper, add stale-lock recovery and line-level error diagnostics, and retain macOS operating-system updates outside the course automation lifecycle."
+    "change_summary": "Rebuild the macOS lifecycle as self-contained Apple-silicon scripts and reduce the manually copied bootstrap command set to only repository retrieval, transcript creation, file activation, executable permissions, and PATH availability."
   },
   "policy": {
     "course_root": "${HOME}/it140",
