@@ -17,6 +17,10 @@ readonly IT140_REPOSITORY_URL="https://github.com/GC-STEM/it140"
 readonly IT140_REPOSITORY_ARCHIVE="https://github.com/GC-STEM/it140/archive/refs/heads/main.zip"
 readonly IT140_HOMEBREW_INSTALLER="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 readonly IT140_CODE_APP_CLI="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+readonly IT140_DESKTOP_DIR="${HOME}/Desktop"
+readonly IT140_COURSE_DESKTOP_LINK="${IT140_DESKTOP_DIR}/IT 140"
+readonly IT140_VSCODE_DESKTOP_APP="${IT140_DESKTOP_DIR}/Visual Studio Code - IT 140.app"
+readonly IT140_VSCODE_DESKTOP_BUNDLE_ID="org.gc-stem.it140.vscode-launcher"
 readonly IT140_MANAGED_ENV_START="# >>> IT 140 managed environment >>>"
 readonly IT140_MANAGED_ENV_END="# <<< IT 140 managed environment <<<"
 
@@ -154,6 +158,18 @@ it140_plist_raw() {
 
 it140_plist_json() {
     /usr/bin/plutil -extract "$2" json -o - "$1" 2>/dev/null
+}
+
+it140_is_managed_vscode_launcher() {
+    local app_path="${1:-$IT140_VSCODE_DESKTOP_APP}"
+    local bundle_id
+
+    [ -d "$app_path" ] && [ ! -L "$app_path" ] || return 1
+    [ -r "$app_path/Contents/Info.plist" ] || return 1
+    [ -x "$app_path/Contents/MacOS/open-it140-in-code" ] || return 1
+
+    bundle_id="$(it140_plist_raw "$app_path/Contents/Info.plist" CFBundleIdentifier 2>/dev/null || true)"
+    [ "$bundle_id" = "$IT140_VSCODE_DESKTOP_BUNDLE_ID" ]
 }
 
 it140_semver_is_valid() {

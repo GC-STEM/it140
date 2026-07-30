@@ -2,8 +2,8 @@
 set -u
 set -o pipefail
 
-readonly IT140_SCRIPT_VERSION="0.3.0"
-readonly IT140_VERSION_DATE="2026-07-29"
+readonly IT140_SCRIPT_VERSION="0.4.0"
+readonly IT140_VERSION_DATE="2026-07-30"
 readonly IT140_DEVELOPMENT_STATUS="Alpha Testing"
 readonly IT140_ACTION_ID="verify"
 readonly IT140_USAGE="Usage: verify_mac.sh [--help] [--version] [--noninteractive] [--profile PROFILE_ID] [--support-bundle] [--yes] [--skip-network]"
@@ -244,7 +244,27 @@ for lifecycle_script in config_mac.sh setup_mac.sh update_mac.sh verify_mac.sh _
         record_fail "Lifecycle asset is missing or invalid: $lifecycle_script"
     fi
 done
-if [ -L "$HOME/Desktop/IT 140" ] || [ ! -d "$HOME/Desktop" ]; then record_pass "Course desktop integration is present or not applicable."; else record_warning "The optional IT 140 desktop link is missing."; fi
+if [ ! -d "$IT140_DESKTOP_DIR" ]; then
+    record_na "Desktop shortcut checks are not applicable because the Desktop directory is unavailable."
+else
+    if [ -L "$IT140_COURSE_DESKTOP_LINK" ] && [ -d "$IT140_COURSE_DESKTOP_LINK" ]; then
+        COURSE_LINK_TARGET="$(cd "$IT140_COURSE_DESKTOP_LINK" 2>/dev/null && pwd -P || true)"
+        COURSE_ROOT_TARGET="$(cd "$IT140_COURSE_ROOT" 2>/dev/null && pwd -P || true)"
+        if [ -n "$COURSE_LINK_TARGET" ] && [ "$COURSE_LINK_TARGET" = "$COURSE_ROOT_TARGET" ]; then
+            record_pass "IT 140 desktop folder shortcut opens the course root."
+        else
+            record_fail "IT 140 desktop folder shortcut does not target $IT140_COURSE_ROOT."
+        fi
+    else
+        record_fail "IT 140 desktop folder shortcut is missing. Run config_mac.sh."
+    fi
+
+    if it140_is_managed_vscode_launcher "$IT140_VSCODE_DESKTOP_APP"; then
+        record_pass "VS Code desktop launcher is present and managed by IT 140 automation."
+    else
+        record_fail "VS Code desktop launcher is missing or invalid. Run config_mac.sh."
+    fi
+fi
 
 if [ "$IT140_SUPPORT_BUNDLE" = true ]; then
     it140_header "6. Sanitized Support Bundle"

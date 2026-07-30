@@ -1,8 +1,8 @@
 #!/bin/zsh
 set -euo pipefail
 
-readonly IT140_SCRIPT_VERSION="0.3.0"
-readonly IT140_VERSION_DATE="2026-07-29"
+readonly IT140_SCRIPT_VERSION="0.4.0"
+readonly IT140_VERSION_DATE="2026-07-30"
 readonly IT140_DEVELOPMENT_STATUS="Alpha Testing"
 readonly IT140_ACTION_ID="config"
 readonly IT140_USAGE="Usage: config_mac.sh [--help] [--version] [--noninteractive] [--profile PROFILE_ID]"
@@ -55,6 +55,104 @@ export PATH="\$HOME/it140/.venv/bin:\$HOME/it140/scripts/mac:/opt/homebrew/bin:/
 $IT140_MANAGED_ENV_END
 ENV
     mv "$temp_file" "$file"
+}
+
+configure_desktop_shortcuts() {
+    local launcher_temp_app launcher_executable icon_source icon_entry existing_bundle_id
+
+    if [ ! -d "$IT140_DESKTOP_DIR" ]; then
+        it140_warning "The Desktop directory is unavailable; desktop shortcuts were not created."
+        return 0
+    fi
+
+    if [ -L "$IT140_COURSE_DESKTOP_LINK" ]; then
+        ln -sfn "$IT140_COURSE_ROOT" "$IT140_COURSE_DESKTOP_LINK"
+    elif [ ! -e "$IT140_COURSE_DESKTOP_LINK" ]; then
+        ln -s "$IT140_COURSE_ROOT" "$IT140_COURSE_DESKTOP_LINK"
+    else
+        it140_warning "$IT140_COURSE_DESKTOP_LINK already exists and is not a symbolic link; it was preserved."
+    fi
+
+    if [ -e "$IT140_VSCODE_DESKTOP_APP" ] || [ -L "$IT140_VSCODE_DESKTOP_APP" ]; then
+        if it140_is_managed_vscode_launcher "$IT140_VSCODE_DESKTOP_APP"; then
+            rm -rf "$IT140_VSCODE_DESKTOP_APP"
+        else
+            existing_bundle_id="$(it140_plist_raw "$IT140_VSCODE_DESKTOP_APP/Contents/Info.plist" CFBundleIdentifier 2>/dev/null || true)"
+            it140_warning "$IT140_VSCODE_DESKTOP_APP already exists and is not the managed IT 140 launcher${existing_bundle_id:+ ($existing_bundle_id)}; it was preserved."
+            return 0
+        fi
+    fi
+
+    IT140_TEMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/it140-vscode-launcher.XXXXXX")"
+    launcher_temp_app="$IT140_TEMP_ROOT/Visual Studio Code - IT 140.app"
+    launcher_executable="$launcher_temp_app/Contents/MacOS/open-it140-in-code"
+    mkdir -p "$launcher_temp_app/Contents/MacOS" "$launcher_temp_app/Contents/Resources"
+
+    cat > "$launcher_executable" <<'LAUNCHER'
+#!/bin/zsh
+set -u
+
+readonly course_root="${HOME}/it140"
+if [ ! -d "$course_root" ]; then
+    /usr/bin/osascript \
+        -e 'display alert "IT 140 folder not found" message "Run the IT 140 bootstrap and configuration scripts, then try again." as warning'
+    exit 1
+fi
+
+/usr/bin/open -a "Visual Studio Code" "$course_root"
+LAUNCHER
+    chmod 0755 "$launcher_executable"
+
+    icon_source="/Applications/Visual Studio Code.app/Contents/Resources/Code.icns"
+    icon_entry=""
+    if [ -r "$icon_source" ]; then
+        cp "$icon_source" "$launcher_temp_app/Contents/Resources/IT140Code.icns"
+        icon_entry='    <key>CFBundleIconFile</key>
+    <string>IT140Code.icns</string>'
+    fi
+
+    cat > "$launcher_temp_app/Contents/Info.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>English</string>
+    <key>CFBundleDisplayName</key>
+    <string>Visual Studio Code - IT 140</string>
+    <key>CFBundleExecutable</key>
+    <string>open-it140-in-code</string>
+    <key>CFBundleIdentifier</key>
+    <string>$IT140_VSCODE_DESKTOP_BUNDLE_ID</string>
+$icon_entry
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>Visual Studio Code - IT 140</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$IT140_SCRIPT_VERSION</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>11.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>
+PLIST
+
+    /usr/bin/plutil -lint "$launcher_temp_app/Contents/Info.plist" >/dev/null
+    mv "$launcher_temp_app" "$IT140_VSCODE_DESKTOP_APP"
+    rm -rf "$IT140_TEMP_ROOT"
+    IT140_TEMP_ROOT=""
+    /usr/bin/touch "$IT140_VSCODE_DESKTOP_APP"
+
+    IT140_CHANGED=true
+    it140_success "The IT 140 folder link and VS Code desktop launcher are configured."
 }
 
 it140_check_platform_and_user
@@ -182,18 +280,11 @@ settings = {
 path.write_text(json.dumps(settings, indent=4, sort_keys=True) + "\n", encoding="utf-8")
 PY
 
-DESKTOP_DIR="$HOME/Desktop"
-if [ -d "$DESKTOP_DIR" ]; then
-    if [ -L "$DESKTOP_DIR/IT 140" ]; then
-        ln -sfn "$IT140_COURSE_ROOT" "$DESKTOP_DIR/IT 140"
-    elif [ ! -e "$DESKTOP_DIR/IT 140" ]; then
-        ln -s "$IT140_COURSE_ROOT" "$DESKTOP_DIR/IT 140"
-    else
-        it140_notice "Desktop/IT 140 already exists and is not a symbolic link; it was preserved."
-    fi
-fi
 IT140_CHANGED=true
 it140_success "Required VS Code extensions, settings, and course integration are configured."
+
+it140_header "Step 5: Configure Desktop Shortcuts"
+configure_desktop_shortcuts
 
 it140_header "CONFIGURATION SUMMARY"
 printf 'macOS         : %s\n' "$(/usr/bin/sw_vers -productVersion)"
