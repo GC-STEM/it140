@@ -15,9 +15,9 @@ Click the links below to access the automation scripts for Codio, Windows, MacOS
 | **Platform** | **Bootstrap** | **Setup** | **Config** | **Update** | **Verify** | **Live ETA** |
 | ------------ | :-----------: | :--------: | :--------: | :--------: | :--------: | -----------: |
 | [Codio](scripts/cvd) | ✅ | ✅ | ✅ | ✅ | ✅ | 7/26/2026 |
-| [Windows](scripts/win) | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 8/1/2026 |
-| [MacOS](scripts/mac) | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 7/29/2026 |
-| [Ubuntu](scripts/nix/ubg/) | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 7/27/2026 |
+| [Windows](scripts/win) | ✅ | ✅ | ✅ | ✅ | ✅ | 7/29/2026 |
+| [MacOS](scripts/mac) | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 7/30/2026 |
+| [Ubuntu](scripts/nix/ubg/) | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 🅰️ | 7/31/2026 |
 
 ✅ = Ready for Production.
 🅰️ = Alpha Testing. Please report any issues using GitHub Issues.
