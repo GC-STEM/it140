@@ -18,8 +18,10 @@ Click the links below to access the automation scripts for Codio, Windows, MacOS
 | [Windows](scripts/win) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 7/29/2026 |
 | [MacOS](scripts/mac) | 🅰️ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 7/30/2026 |
 
-🅰️ = Alpha Testing.
-🅱️ = Beta Testing (Staff & Faculty). Please report any issues using GitHub Issues.
+- 🅰️ = Alpha Testing
+- 🅱️ = Beta Testing (Staff & Faculty)
+- Please report any issues using [GitHub Issues](https://github.com/GC-STEM/it140/issues).
+- Post any questions or concerns in [GitHub Discussions](https://github.com/GC-STEM/it140/discussions).
 
 ## Course Activity Repositories
 
@@ -28,8 +30,8 @@ Click the links below to access the repositories for each module's activity. Eac
 | **Module** | **Activity** | **Activity Repository** | **Status** | **Live ETA** |
 | ---------- | ------------ | ----------------------- | :--------: | -----------: |
 | One | Setup Tasks | [it140-m1-setup-tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | 🚧 | 8/2/2026 |
-| | &nbsp;&nbsp;- Github | [../github/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md) | ✅ | 7/25/2026 |
-| | &nbsp;&nbsp;- Codio | [../codio/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/codio/README.md) | ✅ | 7/26/2026 |
+| | &nbsp;&nbsp;- Github | [../github/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md) | 🟢 | 7/25/2026 |
+| | &nbsp;&nbsp;- Codio | [../codio/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/codio/README.md) | 🟢 | 7/26/2026 |
 | | &nbsp;&nbsp;- Local | [../local/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/local/README.md) | 🚧 | 8/1/2026 |
 | Two | Assignment | [it140-m2-assignment](https://github.com/GC-STEM/it140-m2-assignment) | 🚧 | 8/3/2026 |
 | Three | Assignment | [it140-m3-assignment](https://github.com/GC-STEM/it140-m3-assignment) | 🚧 | 8/4/2026 |
@@ -55,5 +57,5 @@ Click the links below to access the repositories for each module's activity. Eac
 ### Operational Status
 
 🟢 Live
-⚠️ Known Issue
+🟡 Known Issue
 🔴 Unavailable
