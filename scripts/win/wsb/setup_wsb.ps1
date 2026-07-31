@@ -120,7 +120,7 @@ function Write-ErrorMessage {
 
 function Show-Usage {
     @"
-IT 140 Windows Sandbox setup script
+IT 140 Windows Sandbox install script
 
 Usage:
   powershell.exe -ExecutionPolicy Bypass -File "$PSCommandPath"

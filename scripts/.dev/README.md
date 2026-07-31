@@ -16,7 +16,7 @@ Setup, configure, and update are designed to be idempotent. Verify remains read-
 ## Authoritative Engineering Artifacts
 
 | Artifact | Repository path | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | Software Requirements Specification | `scripts/.dev/analysis/it140_scripts_srs.md` | Defines required behavior, constraints, and acceptance criteria. |
 | Software Design Description | `scripts/.dev/design/it140_scripts_sdd.md` | Defines architecture, data, interfaces, control flow, and safety design. |
 | Manifest schema | `scripts/.manifest/it140_manifest.schema.json` | Defines the valid machine-readable manifest structure. |

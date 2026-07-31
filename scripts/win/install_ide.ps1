@@ -125,7 +125,7 @@ function Write-ErrorMessage {
 
 function Show-Usage {
     @"
-IT 140 Windows setup script
+IT 140 Windows install script
 
 Usage:
   powershell.exe -ExecutionPolicy Bypass -File .\install_ide.ps1

@@ -48,7 +48,7 @@
 # Explicit exclusions:
 #     - Operating-system release upgrades
 #     - Student source files, assignment repositories, and Git history
-#     - Synchronizing or replacing the administrator master/setup script
+#     - Synchronizing or replacing the administrator master/install script
 #     - Removing optional IDE extensions
 #     - Replacing undeclared user files or settings
 #

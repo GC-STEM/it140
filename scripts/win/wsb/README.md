@@ -20,7 +20,7 @@ Windows Sandbox is intended for faculty, SMEs, and technical-support testing. It
 
    The configuration file launches a fresh Windows Sandbox, downloads `bootstrap_wsb.ps1`, retrieves the current course repository, and runs `setup_wsb.ps1`.
 
-3. Allow the bootstrap and setup scripts to finish. The initial sandbox image is intentionally bare, so `setup_wsb.ps1` installs or repairs Windows Package Manager before installing the manifest-required course IDE software.
+3. Allow the bootstrap and install scripts to finish. The initial sandbox image is intentionally bare, so `setup_wsb.ps1` installs or repairs Windows Package Manager before installing the manifest-required course IDE software.
 
 4. When setup succeeds, a normal Windows PowerShell continuation window opens and displays:
 

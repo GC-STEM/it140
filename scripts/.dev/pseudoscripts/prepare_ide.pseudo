@@ -38,7 +38,7 @@
 #
 # Explicit exclusions:
 #     - Installing, updating, or repairing the operating system or course IDE
-#     - Running the administrator setup script
+#     - Running the administrator install script
 #     - Authenticating with a source-code hosting provider
 #     - Configuring Git identity, user tools, IDE settings, or desktop launchers
 #     - Deleting unrelated files already stored under the course root

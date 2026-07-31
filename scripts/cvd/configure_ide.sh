@@ -70,7 +70,7 @@ USAGE
 parse_options() {
     while (($#)); do
         case "$1" in
-            --help|-h)
+            --help| -h)
                 usage
                 exit 0
                 ;;

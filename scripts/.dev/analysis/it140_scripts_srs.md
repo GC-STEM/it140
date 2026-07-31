@@ -8,22 +8,21 @@
 - **Version**: 2026.07.25.2
 - **Repository Baseline**: `GC-STEM/it140` commit `77c826b4e5dfab03666a974b3adf63a752fefa36`
 
----
-
 ## 0. General Description
 
 ### 0.1 Purpose
 
 This Software Requirements Specification (SRS) defines what the **IT 140 Course Automation Scripts** package must do and the conditions it must satisfy. An SRS is an agreement about required software behavior. It describes the required results before developers choose the detailed design or write the final code.
 
-The package supports the IT 140 course integrated development environment (IDE). An IDE is a collection of tools used to write, run, test, debug, and manage programs. The package consists of four coordinated scripts for each supported operating system (OS) platform:
+The package supports the IT 140 course integrated development environment (IDE). An IDE is a collection of tools used to write, run, test, debug, and manage programs. The package consists of five coordinated scripts for each supported operating system (OS) platform:
 
-1. `setup_<platform>.<ext>` establishes system-level software and settings.
-2. `config_<platform>.<ext>` establishes settings for the current user.
-3. `verify_<platform>.<ext>` checks the system and user configuration without changing them.
-4. `update_<platform>.<ext>` maintains the supported environment over time.
+1. `prepare_ide.<ext>` acquires, installs, or refreshes the local course automation package required to execute the remaining lifecycle scripts.
+2. `setup_ide.<ext>` establishes or repairs system-level software and settings.
+3. `configure_ide.<ext>` establishes or repairs the current user's environment.
+4. `verify_ide.<ext>` inspects the system and user layers without changing them.
+5. `update_ide.<ext>` maintains approved software and course-managed assets over time.
 
-The four scripts form one software package because they share requirements, files, configuration data, logs, release information, and remediation paths. A **remediation path** is the recommended action for correcting a detected problem.
+The five scripts form one software package because they share requirements, files, configuration data, logs, release information, and remediation paths. A **remediation path** is the recommended action for correcting a detected problem.
 
 ### 0.2 Product Scope
 
@@ -38,7 +37,7 @@ The concrete reference environment used to review this SRS and design the initia
 ### 0.3 Intended Users and Stakeholders
 
 | User or stakeholder | Primary use cases |
-|---|---|
+| --- | --- |
 | IT 140 students | Configure, verify, and update their course environment. |
 | IT 140 faculty | Use the same supported environment, review logs, and guide students. |
 | Reference-platform administrators | Provision and maintain the shared reference environment. |
@@ -51,7 +50,7 @@ The concrete reference environment used to review this SRS and design the initia
 **System-level** changes affect the operating system or all users of a computer. **User-specific** changes affect only the account running the script.
 
 | Component | Primary responsibility | Expected user | May change system-level state? | May change user-specific state? |
-|---|---|---|---:|---:|
+| --- | --- | --- | ---: | ---: |
 | `setup_<platform>.<ext>` | Install or repair the supported system-level course IDE. | Administrator or approved standard user with controlled privilege elevation | Yes | No, except for the minimum files required to create its own log |
 | `config_<platform>.<ext>` | Configure the current user's course environment and accounts. | Student or faculty user | No | Yes |
 | `verify_<platform>.<ext>` | Inspect both layers and report results. | Student, faculty, AI support, or technical support | No | No |
@@ -74,7 +73,7 @@ The **bootstrap command set** is the short, documented sequence that obtains the
 ### 0.6 Terms and Abbreviations
 
 | Term | Definition and purpose in this SRS |
-|---|---|
+| --- | --- |
 | AI | Artificial intelligence. AI support may interpret approved diagnostics but shall not receive secrets or unnecessary personal information. |
 | API | Application Programming Interface. An API allows one program to request information or actions from another program or service. |
 | CLI | Command-Line Interface. A CLI is a text-based way to run and control software. |
@@ -114,8 +113,6 @@ Each mandatory requirement uses **shall** and has a unique identifier.
 A **functional requirement** states what the software shall do. A **nonfunctional requirement** states how well or under what general qualities it shall operate. A **technology constraint** limits the technologies or environment that may be used. A **Quality of Service (QoS) constraint** gives a measurable expectation for reliability, performance, security, or supportability.
 
 A paragraph labeled **Why** explains the reason for a requirement. The explanation supports learning and review but does not replace the testable “shall” statement.
-
----
 
 ## 1. Functional Requirements
 
@@ -163,9 +160,15 @@ The package shall:
 
   **Why:** Course automation must not put coursework or personal configuration at risk.
 
-### 1.2 Setup Script Requirements
+### 1.2 Prepare Script Requirements
 
-The setup script shall:
+The prepare script shall:
+
+TODO: Replace with prepare script requirements. Bump numbers of following sections accordingly.
+
+### 1.2 Install Script Requirements
+
+The install script shall:
 
 - **SET-FR-001** Verify the supported operating-system release, processor architecture, available disk space, network access, and required administrative capability before beginning installation.
 
@@ -455,8 +458,6 @@ The package shall:
 
   **Why:** A clear ownership boundary protects coursework and unrelated files.
 
----
-
 ## 2. Nonfunctional Requirements
 
 ### 2.1 Package-Level Requirements
@@ -517,7 +518,7 @@ The package shall:
 
 - **PKG-NFR-012** Keep authoritative product names, versions, package and extension identifiers, platform-release data, provider-specific rules, source locations, and managed paths in the manifest and avoid duplicated hardcoded lists that can drift apart.
 
-  **Why:** A change should be made once and used by all four scripts.
+  **Why:** A change should be made once and used by all five scripts.
 
 - **PKG-NFR-013** Organize each script into small, purpose-specific functions or equivalent units with descriptive names.
 
@@ -586,8 +587,6 @@ The package shall:
 - **PKG-NFR-027** Delete temporary files that contain downloaded or generated configuration data after successful use and safe error handling.
 
   **Why:** Unneeded temporary files create privacy, security, and storage risks.
-
----
 
 ## 3. Technology Constraints
 
@@ -660,8 +659,6 @@ A new platform variant shall not be marked supported until it:
 - Passes the full acceptance-test set on a clean supported environment.
 - Produces equivalent required outcomes to the reference platform.
 
----
-
 ## 4. Quality of Service Constraints
 
 ### 4.1 Reliability and Idempotence
@@ -705,7 +702,7 @@ The package shall:
 - **PKG-QOS-014** Use the following exit codes consistently:
 
 | Exit code | Meaning |
-|---:|---|
+| ---: | --- |
 | `0` | All required operations or checks completed successfully. Informational restart guidance may still be present. |
 | `1` | One or more required operations or checks failed. |
 | `2` | Invalid use, unsupported platform, or unsupported operating-system release. |
@@ -734,8 +731,6 @@ The package shall:
 - **PKG-QOS-021** Create a support bundle only after an explicit command option or user confirmation and list the files included before final creation.
 
 - **PKG-QOS-022** Exclude student source files, repository contents, version-control history, authentication data, and browser data from support bundles.
-
----
 
 ## 5. Sample Input and Output
 
@@ -858,8 +853,6 @@ Log file           : ~/it140/logs/update_ref_20260725_121500.log
 Exit code           : 0
 ```
 
----
-
 ## 6. Acceptance Test Cases
 
 An **acceptance test** checks whether the completed software meets an agreed requirement. Each test below identifies the requirement or requirements, test condition, expected result, and pass criteria.
@@ -867,7 +860,7 @@ An **acceptance test** checks whether the completed software meets an agreed req
 ### 6.1 Package-Level Acceptance Tests
 
 | Test ID | Requirements | Test input or condition | Expected result and pass criteria |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | AT-PKG-001 | PKG-FR-001, PKG-FR-002 | Inspect one fully supported platform implementation. | Exactly four correctly named lifecycle scripts are present, documented, and executable by the intended user. |
 | AT-PKG-002 | PKG-FR-003, PKG-QOS-014 | Run a platform script on a different or unsupported OS. | The script makes no managed change, explains the mismatch, writes a log when possible, and exits with code `2`. |
 | AT-PKG-003 | PKG-FR-004, PKG-FR-005, PKG-FR-019 | Replace the manifest with invalid JSON. | The script stops before managed changes, identifies the invalid manifest, and exits with code `5`. |
@@ -879,7 +872,7 @@ An **acceptance test** checks whether the completed software meets an agreed req
 ### 6.2 Setup Acceptance Tests
 
 | Test ID | Requirements | Test input or condition | Expected result and pass criteria |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | AT-SET-001 | SET-FR-001 through SET-FR-008 | Run setup on a clean supported system with sufficient space, network access, and required privilege. | All required system components are installed, version checks pass, no user-specific account settings are created, and exit code is `0`. |
 | AT-SET-002 | SET-FR-009, SET-FR-010, PKG-QOS-001 | Run setup twice on the same compliant system. | The second run succeeds without duplicate repositories, keys, policies, PATH entries, or package definitions. |
 | AT-SET-003 | SET-FR-001, SET-FR-002 | Run setup without required administrative capability. | No system installation begins; the user receives permission guidance and exit code `3`. |
@@ -891,7 +884,7 @@ An **acceptance test** checks whether the completed software meets an agreed req
 ### 6.3 Configure Acceptance Tests
 
 | Test ID | Requirements | Test input or condition | Expected result and pass criteria |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | AT-CFG-001 | CFG-FR-002 through CFG-FR-014 | Run configure for a new standard user after successful setup. | Required folders, PATH entry, source-code-hosting authentication, version-control identity, tools, extensions or plug-ins, settings, and integrations are correctly established. |
 | AT-CFG-002 | CFG-FR-005 | Run configure while the manifest-approved source-code-hosting CLI is already authenticated. | The existing valid authentication is used; no unnecessary login flow starts. |
 | AT-CFG-003 | CFG-FR-006, PKG-QOS-014 | Cancel the required external-service authentication flow. | Configure reports cancellation, does not claim success, preserves prior settings, and exits with code `6`. |
@@ -904,7 +897,7 @@ An **acceptance test** checks whether the completed software meets an agreed req
 ### 6.4 Verify Acceptance Tests
 
 | Test ID | Requirements | Test input or condition | Expected result and pass criteria |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | AT-VER-001 | VER-FR-003 through VER-FR-012 | Run verify on a fully compliant supported environment. | All required checks pass, summary totals are correct, result is compliant, and exit code is `0`. |
 | AT-VER-002 | VER-FR-005, VER-FR-008 through VER-FR-012 | Remove one required system application. | Verify reports `FAIL`, names the related requirement, recommends setup, and exits with code `1`. |
 | AT-VER-003 | VER-FR-006, VER-FR-009 | Remove one required user setting or extension. | Verify reports `FAIL`, recommends configure, and does not recommend setup. |
@@ -916,7 +909,7 @@ An **acceptance test** checks whether the completed software meets an agreed req
 ### 6.5 Update Acceptance Tests
 
 | Test ID | Requirements | Test input or condition | Expected result and pass criteria |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | AT-UPD-001 | UPD-FR-001, UPD-FR-006, UPD-FR-013 | Run update on a compliant environment with no available changes. | The script verifies the environment, avoids unnecessary reinstallations, reports that required components are current, and exits with code `0`. |
 | AT-UPD-002 | UPD-FR-003 through UPD-FR-008 | Make approved package, tool, extension, manifest, and managed-script updates available. | Approved updates install from staged validated sources and post-update checks pass. |
 | AT-UPD-003 | UPD-FR-002, PKG-QOS-005 | Start a second updater while one update holds the environment lock. | The second updater makes no changes, reports the concurrent run, and exits nonzero. |
@@ -931,14 +924,12 @@ An **acceptance test** checks whether the completed software meets an agreed req
 ### 6.6 Cross-Script Lifecycle Acceptance Tests
 
 | Test ID | Requirements | Test input or condition | Expected result and pass criteria |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | AT-LFC-001 | PKG-FR-001, SET-FR-012, CFG-FR-016, VER-FR-001 | On a clean supported environment, run setup, configure, and verify in order. | Setup establishes system state, configure establishes user state, and verify reports full compliance without changing either state. |
 | AT-LFC-002 | SET-FR-010, VER-FR-009 | Remove a required system component, run verify, run its recommended remediation, and verify again. | First verify recommends setup; setup repairs the component; second verify passes that check. |
 | AT-LFC-003 | CFG-FR-015, VER-FR-009 | Damage a required user setting, run verify, run its recommended remediation, and verify again. | First verify recommends configure; configure repairs the setting; second verify passes that check. |
 | AT-LFC-004 | UPD-FR-003, UPD-FR-013, UPD-FR-016 | Publish a new approved automation release, run update, and then verify. | Update installs the approved managed assets and environment changes; verify evaluates against the new manifest release and passes. |
 | AT-LFC-005 | PKG-FR-010, PKG-FR-020 | Complete the full lifecycle in an environment containing student work and unrelated user settings. | The lifecycle reaches compliance without changing user-owned files or unrelated settings. |
-
----
 
 ## Appendix A (Nonnormative): Reference Environment at the SRS Baseline
 
@@ -953,7 +944,7 @@ Where the repository baseline did not pin an exact product version, this appendi
 ### A.2 Reference Platform
 
 | Category | Reference selection at the baseline |
-|---|---|
+| --- | --- |
 | Virtual desktop provider | Codio Virtual Desktop |
 | Operating system | Ubuntu 24.04 Long-Term Support (LTS) |
 | Graphical desktop | Xfce |
@@ -964,7 +955,7 @@ Where the repository baseline did not pin an exact product version, this appendi
 ### A.3 Reference Applications, Services, and Command-Line Tools
 
 | Capability | Reference product or component | Version or policy at the baseline | Course purpose |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Secure source retrieval | `ca-certificates`, `curl`, and `gpg` | Ubuntu 24.04 approved package versions | Retrieve and validate approved software sources. |
 | Project environment loading | `direnv` | Ubuntu 24.04 approved package version | Apply approved project-specific environment settings when present. |
 | Version control | Git | Ubuntu 24.04 approved package version | Track file changes and interact with repositories. |
@@ -981,7 +972,7 @@ Where the repository baseline did not pin an exact product version, this appendi
 ### A.4 Reference Programming-Language Tools
 
 | Tool | Version or policy at the baseline | Course purpose |
-|---|---|---|
+| --- | --- | --- |
 | pytest | Current manifest-approved version compatible with Python 3.12 | Run tests supplied with course activities. |
 | pytest-cov | Current manifest-approved version compatible with Python 3.12 | Report test coverage when included with supplied tests. |
 | Ruff | Current manifest-approved version compatible with Python 3.12 | Identify code-quality issues and format code consistently. |
@@ -991,7 +982,7 @@ Students are expected to run provided tests; this package does not require stude
 ### A.5 Reference IDE Extensions
 
 | Extension identifier | Reference product or capability | Course purpose |
-|---|---|---|
+| --- | --- | --- |
 | `ms-python.python` | Python language support | Provide programming-language support in the IDE. |
 | `charliermarsh.ruff` | Ruff integration | Integrate code checking and formatting. |
 | `hediet.vscode-drawio` | Draw.io diagram support | View and edit approved diagrams. |
@@ -1009,9 +1000,6 @@ Students are expected to run provided tests; this package does not require stude
 - Course-managed launchers and file associations
 - Approved browser policies and bookmarks
 - Obsolete components explicitly listed by the manifest
-
-
----
 
 ## Appendix B: Requirements Traceability and Change Control
 

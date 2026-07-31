@@ -88,7 +88,7 @@ USAGE
 parse_options() {
     while (($#)); do
         case "$1" in
-            --help|-h)
+            --help| -h)
                 usage
                 exit 0
                 ;;
@@ -102,7 +102,7 @@ parse_options() {
             --support-bundle)
                 SUPPORT_BUNDLE=true
                 ;;
-            --yes|-y)
+            --yes| -y)
                 CONFIRM_SUPPORT_BUNDLE=true
                 ;;
             --skip-network)
