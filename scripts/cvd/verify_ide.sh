@@ -70,7 +70,7 @@ cleanup() {
 
 usage() {
     cat <<USAGE
-Usage: verify_cvd.sh [--help] [--version] [--noninteractive]
+Usage: verify_ide.sh [--help] [--version] [--noninteractive]
                      [--deployment-profile codio_cvd]
                      [--support-bundle] [--yes] [--skip-network]
 
@@ -418,7 +418,7 @@ check_platform() {
     if [[ "$EUID" -eq 0 ]]; then
         record_result fail "verify.user_context" \
             "Verify must run as the standard CVD user, not root." \
-            "Run verify_cvd.sh without sudo."
+            "Run verify_ide.sh without sudo."
     else
         record_result pass "verify.user_context" \
             "Verify is running as the standard user $(id -un)."
@@ -478,7 +478,7 @@ check_disk_and_network() {
     else
         record_result fail "verify.disk_space" \
             "Less than the required $((minimum / 1024 / 1024 / 1024)) GB is available." \
-            "Remove unneeded personal files, then rerun verify_cvd.sh."
+            "Remove unneeded personal files, then rerun verify_ide.sh."
     fi
 
     if [[ "$SKIP_NETWORK" == true ]]; then
@@ -513,7 +513,7 @@ check_system_layer() {
         else
             record_result fail "verify.package.${package}" \
                 "Required operating-system package is missing: $package" \
-                "Run update_cvd.sh. If the same check still fails, contact course support."
+                "Run update_ide.sh. If the same check still fails, contact course support."
         fi
     done < <(manifest_lines os_packages)
 
@@ -560,7 +560,7 @@ check_system_layer() {
         else
             record_result fail "verify.capability.${role}" \
                 "Required system capability is missing or not compliant: $package_id" \
-                "Run update_cvd.sh. If the same check still fails, contact course support."
+                "Run update_ide.sh. If the same check still fails, contact course support."
         fi
     done < <(manifest_lines system_bindings)
 
@@ -572,7 +572,7 @@ check_system_layer() {
     else
         record_result fail "verify.system.chrome_policy" \
             "The course browser bookmark policy is missing or invalid." \
-            "Run update_cvd.sh. If the same check still fails, contact course support."
+            "Run update_ide.sh. If the same check still fails, contact course support."
     fi
 
     check_optional_numlock
@@ -589,7 +589,7 @@ check_user_layer() {
     else
         record_result fail "verify.course_folders" \
             "The required course folders are incomplete." \
-            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run configure_ide.sh, close this terminal, open a new Terminal, and rerun verify_ide.sh."
     fi
 
     if has_managed_path_block "$HOME/.profile" \
@@ -599,7 +599,7 @@ check_user_layer() {
     else
         record_result fail "verify.user_path_files" \
             "The exact managed course PATH block is missing from ~/.profile or ~/.bashrc." \
-            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run configure_ide.sh, close this terminal, open a new Terminal, and rerun verify_ide.sh."
     fi
 
     if [[ ":$PATH:" == *":$VENV_DIR/bin:"* \
@@ -609,7 +609,7 @@ check_user_layer() {
     else
         record_result fail "verify.current_path" \
             "The current Terminal session does not include all managed course PATH entries." \
-            "Close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Close this terminal, open a new Terminal, and rerun verify_ide.sh."
     fi
 
     if [[ -x "$VENV_DIR/bin/python" ]]; then
@@ -618,7 +618,7 @@ check_user_layer() {
     else
         record_result fail "verify.virtual_environment" \
             "The course Python virtual environment is missing." \
-            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run configure_ide.sh, close this terminal, open a new Terminal, and rerun verify_ide.sh."
     fi
 
     while IFS= read -r package; do
@@ -630,7 +630,7 @@ check_user_layer() {
         else
             record_result fail "verify.user_tool.${package}" \
                 "Required course Python tool is missing: $package" \
-                "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+                "Run configure_ide.sh, close this terminal, open a new Terminal, and rerun verify_ide.sh."
         fi
     done < <(manifest_lines venv_packages)
 
@@ -650,7 +650,7 @@ check_user_layer() {
         else
             record_result fail "verify.extension.${role}" \
                 "Required IDE extension is missing: $extension" \
-                "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+                "Run configure_ide.sh, close this terminal, open a new Terminal, and rerun verify_ide.sh."
         fi
     done < <(manifest_lines extensions)
 
@@ -660,7 +660,7 @@ check_user_layer() {
     else
         record_result fail "verify.provider_authentication" \
             "Source-code hosting authentication is missing or invalid." \
-            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run configure_ide.sh, close this terminal, open a new Terminal, and rerun verify_ide.sh."
     fi
 
     if [[ -n "$(git config --global user.name 2>/dev/null || true)" ]]; then
@@ -669,7 +669,7 @@ check_user_layer() {
     else
         record_result fail "verify.git_display_name" \
             "The Git display name is missing." \
-            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run configure_ide.sh, close this terminal, open a new Terminal, and rerun verify_ide.sh."
     fi
 
     git_email="$(git config --global user.email 2>/dev/null || true)"
@@ -679,7 +679,7 @@ check_user_layer() {
     else
         record_result fail "verify.git_private_identity" \
             "Git does not use the approved private commit identity." \
-            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run configure_ide.sh, close this terminal, open a new Terminal, and rerun verify_ide.sh."
     fi
 
     while IFS=$'\t' read -r key expected_value; do
@@ -691,7 +691,7 @@ check_user_layer() {
         else
             record_result fail "verify.git_setting.${key}" \
                 "Managed Git setting is incorrect: $key" \
-                "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+                "Run configure_ide.sh, close this terminal, open a new Terminal, and rerun verify_ide.sh."
         fi
     done < <(manifest_lines git_settings)
 
@@ -702,7 +702,7 @@ check_user_layer() {
     else
         record_result fail "verify.ide_settings" \
             "Required IDE settings are missing, invalid, or not compliant." \
-            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run configure_ide.sh, close this terminal, open a new Terminal, and rerun verify_ide.sh."
     fi
 
     desktop_dir="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
@@ -714,7 +714,7 @@ check_user_layer() {
     else
         record_result fail "verify.desktop_launchers" \
             "One or more course desktop launchers are missing." \
-            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run configure_ide.sh, close this terminal, open a new Terminal, and rerun verify_ide.sh."
     fi
 
     if has_managed_panel_launcher; then
@@ -723,17 +723,17 @@ check_user_layer() {
     else
         record_result fail "verify.panel_launcher" \
             "The managed VS Code panel-launcher record or launcher file is missing." \
-            "Run config_cvd.sh, close this terminal, open a new Terminal, and rerun verify_cvd.sh."
+            "Run configure_ide.sh, close this terminal, open a new Terminal, and rerun verify_ide.sh."
     fi
 
-    for script in config_cvd.sh verify_cvd.sh update_cvd.sh; do
+    for script in configure_ide.sh verify_ide.sh update_ide.sh; do
         if [[ -x "$PLATFORM_SCRIPT_DIR/$script" ]]; then
             record_result pass "verify.script_permissions.${script}" \
                 "$script is present and executable."
         else
             record_result fail "verify.script_permissions.${script}" \
                 "$script is missing or not executable." \
-                "Run update_cvd.sh. If the same check still fails, contact course support."
+                "Run update_ide.sh. If the same check still fails, contact course support."
         fi
     done
 }
@@ -749,7 +749,7 @@ check_managed_assets() {
         else
             record_result fail "verify.asset.${asset_id}" \
                 "Managed asset is missing: ${destination/#$HOME/~}" \
-                "Run update_cvd.sh. If the same check still fails, contact course support."
+                "Run update_ide.sh. If the same check still fails, contact course support."
         fi
     done < <(manifest_lines asset_destinations)
 }
@@ -879,7 +879,7 @@ print_summary() {
     else
         result="FAIL"
         readiness="ACTION REQUIRED"
-        next_step="Complete the recommended action below, then rerun verify_cvd.sh."
+        next_step="Complete the recommended action below, then rerun verify_ide.sh."
     fi
 
     print_header "VERIFICATION SUMMARY"
@@ -931,7 +931,7 @@ main() {
     if [[ ! -r "$MANIFEST_PATH" || ! -r "$SCHEMA_PATH" ]]; then
         record_result fail "verify.manifest" \
             "The controlled manifest or schema is missing." \
-            "Run update_cvd.sh. If the same check still fails, contact course support."
+            "Run update_ide.sh. If the same check still fails, contact course support."
         MANIFEST_FAILURE=true
         local exit_code
         exit_code="$(resolve_exit_code)"
@@ -942,7 +942,7 @@ main() {
     if ! command -v python3 >/dev/null 2>&1; then
         record_result fail "verify.manifest_runtime" \
             "Python 3 is unavailable, so the controlled manifest cannot be validated." \
-            "Run update_cvd.sh. If the same check still fails, contact course support."
+            "Run update_ide.sh. If the same check still fails, contact course support."
         MANIFEST_FAILURE=true
         local exit_code
         exit_code="$(resolve_exit_code)"
@@ -959,7 +959,7 @@ main() {
         MANIFEST_RELEASE="unavailable"
         record_result fail "verify.manifest" \
             "Manifest validation failed: $validation_error" \
-            "Run update_cvd.sh. If the same check still fails, contact course support."
+            "Run update_ide.sh. If the same check still fails, contact course support."
         MANIFEST_FAILURE=true
         local exit_code
         exit_code="$(resolve_exit_code)"

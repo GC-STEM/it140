@@ -56,7 +56,7 @@ print_closing_notices() {
 
 usage() {
     cat <<USAGE
-Usage: setup_cvd.sh [--help] [--version] [--noninteractive]
+Usage: install_ide.sh [--help] [--version] [--noninteractive]
                     [--deployment-profile codio_cvd]
 
 Installs or repairs the manifest-declared system layer for the IT 140 Codio
@@ -110,7 +110,7 @@ on_error() {
 }
 
 on_interrupt() {
-    print_error "Setup was interrupted. Rerun setup_cvd.sh to repair the system layer."
+    print_error "Setup was interrupted. Rerun install_ide.sh to repair the system layer."
     if [[ "$CHANGED" == true ]]; then
         exit 7
     fi
@@ -224,7 +224,7 @@ PY
 
 check_platform() {
     if [[ "$EUID" -eq 0 ]]; then
-        print_error "Do not run setup_cvd.sh with sudo."
+        print_error "Do not run install_ide.sh with sudo."
         print_error "Run it as the standard Codio desktop user."
         exit 2
     fi
@@ -470,7 +470,7 @@ PY
         || failed=1
 
     if ((failed)); then
-        print_error "System-layer verification failed. Rerun setup_cvd.sh."
+        print_error "System-layer verification failed. Rerun install_ide.sh."
         exit 7
     fi
 
@@ -487,7 +487,7 @@ finish() {
     printf 'Warnings        : %s\n' "$WARNINGS"
     printf 'Failures        : 0\n'
     printf 'Elapsed time    : %s seconds\n' "$elapsed"
-    printf 'Next step       : Close this terminal, open a new Terminal, and run config_cvd.sh.\n'
+    printf 'Next step       : Close this terminal, open a new Terminal, and run configure_ide.sh.\n'
     printf 'Log file        : %s\n' "$LOG_FILE"
     printf 'Exit code       : 0\n'
     print_success "The IT 140 CVD system setup completed successfully."

@@ -61,7 +61,7 @@ print_closing_notices() {
 
 usage() {
     cat <<USAGE
-Usage: update_cvd.sh [--help] [--version] [--noninteractive]
+Usage: update_ide.sh [--help] [--version] [--noninteractive]
                      [--deployment-profile codio_cvd]
 
 Synchronizes approved course automation assets and updates the supported IT 140
@@ -123,7 +123,7 @@ on_error() {
 }
 
 on_interrupt() {
-    print_error "Update was interrupted. Rerun update_cvd.sh to recover."
+    print_error "Update was interrupted. Rerun update_ide.sh to recover."
     cleanup
     if [[ "$CHANGED" == true ]]; then
         exit 7
@@ -277,7 +277,7 @@ retry_operation() {
 
 check_platform_and_user() {
     if [[ "$EUID" -eq 0 ]]; then
-        print_error "Do not run update_cvd.sh with sudo."
+        print_error "Do not run update_ide.sh with sudo."
         print_error "Run it as the standard Codio desktop user."
         exit 2
     fi
@@ -395,7 +395,7 @@ detect_user_configuration() {
         USER_CONFIGURATION_COMPLETE=false
         WORKFLOW_NAME="First use or RESET VM"
         print_notice "IT 140 user configuration is not complete."
-        print_notice "The Update Summary will direct you to config_cvd.sh."
+        print_notice "The Update Summary will direct you to configure_ide.sh."
     fi
 }
 
@@ -525,12 +525,12 @@ synchronize_course_assets() {
 
     local source_script target_script candidate_name installed_script
     local candidate_version installed_version
-    for target_script in config_cvd.sh verify_cvd.sh update_cvd.sh; do
+    for target_script in configure_ide.sh verify_ide.sh update_ide.sh; do
         candidate_name="$target_script"
-        if [[ "$target_script" == config_cvd.sh \
+        if [[ "$target_script" == configure_ide.sh \
               && ! -f "$clone_dir/scripts/cvd/$candidate_name" \
-              && -f "$clone_dir/scripts/cvd/config_cvd.sh" ]]; then
-            candidate_name="config_cvd.sh"
+              && -f "$clone_dir/scripts/cvd/configure_ide.sh" ]]; then
+            candidate_name="configure_ide.sh"
         fi
 
         source_script="$clone_dir/scripts/cvd/$candidate_name"
@@ -852,7 +852,7 @@ refresh_desktop_integrations() {
         elif [[ "$USER_CONFIGURATION_COMPLETE" == true ]]; then
             print_warning "The managed panel-launcher record is missing."
         else
-            print_notice "The panel launcher will be added by config_cvd.sh."
+            print_notice "The panel launcher will be added by configure_ide.sh."
         fi
 
         xfdesktop --reload 2>/dev/null || true
@@ -949,21 +949,21 @@ restart_guidance() {
 
 set_summary_guidance() {
     local restart_vm="No"
-    local next_script="verify_cvd.sh"
+    local next_script="verify_ide.sh"
     local next_step
 
     if [[ "$RESTART_REQUIRED" == true ]]; then
         restart_vm="Yes"
     fi
     if [[ "$USER_CONFIGURATION_COMPLETE" != true ]]; then
-        next_script="config_cvd.sh"
+        next_script="configure_ide.sh"
     fi
 
     if [[ "$PARTIAL" == true || $FAILURES -gt 0 ]]; then
         if [[ "$RESTART_REQUIRED" == true ]]; then
-            next_step="Close this terminal, use RESTART VM, reconnect, open Terminal, and rerun update_cvd.sh."
+            next_step="Close this terminal, use RESTART VM, reconnect, open Terminal, and rerun update_ide.sh."
         else
-            next_step="Close this terminal, open a new Terminal, and rerun update_cvd.sh."
+            next_step="Close this terminal, open a new Terminal, and rerun update_ide.sh."
         fi
     elif [[ "$RESTART_REQUIRED" == true ]]; then
         next_step="Close this terminal, use RESTART VM, reconnect, open Terminal, and run $next_script."

@@ -23,7 +23,7 @@
 #     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
 #
 # CVD implementation target:
-#     setup_cvd.sh version 2026.07.27.1 (legacy calendar version)
+#     install_ide.sh version 2026.07.27.1 (legacy calendar version)
 #
 # Repository baseline:
 #     GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4

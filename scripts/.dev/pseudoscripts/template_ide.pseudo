@@ -425,7 +425,7 @@ ENDPROCEDURE
 # baseline must preserve these lifecycle boundaries:
 #
 #  - bootstrap retrieves the repository but performs no IDE maintenance;
-#  - setup_cvd.sh is admin/SME-facing and remains outside student updates;
+#  - install_ide.sh is admin/SME-facing and remains outside student updates;
 #  - update synchronizes only the student config, update, and verify scripts;
 #  - configure owns provider identity and current-user personalization;
 #  - verify is read-only except for its transcript and an explicitly approved

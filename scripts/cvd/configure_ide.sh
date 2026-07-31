@@ -54,7 +54,7 @@ print_closing_notices() {
 
 usage() {
     cat <<USAGE
-Usage: config_cvd.sh [--help] [--version] [--noninteractive]
+Usage: configure_ide.sh [--help] [--version] [--noninteractive]
                         [--deployment-profile codio_cvd]
 
 Configures or repairs the current user's IT 140 environment. Run as the
@@ -111,7 +111,7 @@ on_error() {
 }
 
 on_interrupt() {
-    print_error "Configuration was canceled. Rerun config_cvd.sh to continue."
+    print_error "Configuration was canceled. Rerun configure_ide.sh to continue."
     if [[ "$CHANGED" == true ]]; then
         exit 7
     fi
@@ -234,7 +234,7 @@ PY
 
 check_platform_and_user() {
     if [[ "$EUID" -eq 0 ]]; then
-        print_error "Do not run config_cvd.sh with sudo."
+        print_error "Do not run configure_ide.sh with sudo."
         print_error "Personal settings must be saved under the standard Codio account."
         exit 2
     fi
@@ -278,8 +278,8 @@ check_system_layer() {
         failed=1
     fi
     if ((failed)); then
-        print_error "The CVD system layer is incomplete. Run update_cvd.sh."
-        print_error "If update_cvd.sh already passed, contact course support."
+        print_error "The CVD system layer is incomplete. Run update_ide.sh."
+        print_error "If update_ide.sh already passed, contact course support."
         exit 1
     fi
     print_success "Required system components are present."
@@ -648,7 +648,7 @@ config_optional_numlock() {
 
     if ! command -v numlockx >/dev/null 2>&1; then
         print_notice "The optional Num Lock tool is unavailable."
-        print_notice "Run update_cvd.sh to attempt installation; this does not affect course work."
+        print_notice "Run update_ide.sh to attempt installation; this does not affect course work."
         return 0
     fi
 
@@ -927,13 +927,13 @@ post_validate() {
         failed=1
     }
 
-    [[ -x "$PLATFORM_SCRIPT_DIR/verify_cvd.sh" ]] || {
-        print_error "verify_cvd.sh is not executable."
+    [[ -x "$PLATFORM_SCRIPT_DIR/verify_ide.sh" ]] || {
+        print_error "verify_ide.sh is not executable."
         failed=1
     }
 
     if ((failed)); then
-        print_error "User-layer validation failed. Rerun config_cvd.sh."
+        print_error "User-layer validation failed. Rerun configure_ide.sh."
         exit 7
     fi
     print_success "User-layer validation passed."
@@ -951,7 +951,7 @@ finish() {
     printf 'Warnings        : %s\n' "$WARNINGS"
     printf 'Failures        : 0\n'
     printf 'Elapsed time    : %s seconds\n' "$elapsed"
-    printf 'Next step       : Close this terminal, open a new Terminal, and run verify_cvd.sh.\n'
+    printf 'Next step       : Close this terminal, open a new Terminal, and run verify_ide.sh.\n'
     printf 'Log file        : %s\n' "$LOG_FILE"
     printf 'Exit code       : 0\n'
     print_success "The IT 140 CVD user configuration completed successfully."
@@ -978,7 +978,7 @@ main() {
     acquire_lock
 
     [[ -r "$MANIFEST_PATH" && -r "$SCHEMA_PATH" ]] || {
-        print_error "The manifest or schema is missing. Run update_cvd.sh."
+        print_error "The manifest or schema is missing. Run update_ide.sh."
         print_error "If the problem continues, contact course support."
         exit 5
     }

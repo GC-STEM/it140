@@ -23,7 +23,7 @@
 #     Version 0.2.0 adopts SemVer metadata and a lifecycle transcript.
 #
 # CVD implementation baseline:
-#     scripts/cvd/bootstrap_cvd.sh at GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
+#     scripts/cvd/prepare_ide.sh at GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
 #
 # State boundary:
 #     PRE_MANIFEST_USER_FILES_AND_SHELL_PATH
