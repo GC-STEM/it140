@@ -17,7 +17,7 @@ Click the links below to access the automation scripts for Codio, Windows, MacOS
 | [Codio](scripts/cvd) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 8/10/2026 |
 | [Windows](scripts/win) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 7/29/2026 |
 | [MacOS](scripts/mac) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 7/30/2026 |
-| [Linux](scripts/nix) | 🅰️ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | T.B.D. |
+| [Linux](scripts/nix) | 🅰️ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 8/1/2026 |
 
 - 🅱️ = Beta Testing (Staff & Faculty)
   - Please report any issues or requests using [GitHub Issues](https://github.com/GC-STEM/it140/issues).
