@@ -9,22 +9,21 @@
 - **SRS Baseline**: `IT140-SRS-SCRIPTS`, version `2026.07.25.2`
 - **Repository Baseline**: `GC-STEM/it140` commit `dfcfe0bc1c0e8d0dc9ad47faf2b855a18bdf227e`
 
----
-
 ## 0. General Description
 
 ### 0.1 Purpose
 
-This Software Design Description (SDD) explains how the **IT 140 Course Automation Scripts** package will be organized to satisfy the approved Software Requirements Specification (SRS). The SRS defines **what** the package must do. This SDD defines the planned software structure, data, interfaces, control flow, safety mechanisms, and platform-abstraction approach that developers will use to build it.
+This Software Design Description (SDD) explains how the **IT 140 Course Automation Scripts** package will be organized to satisfy the approved Software Requirements Specification (SRS). The SRS defines **what** the package must do. This SDD defines the planned software structure, data, interfaces, control flow, safety mechanisms, and platform-abstraction approach that developers will use to build it--in other words, **how** the package will fulfill the requirements.
 
-The package contains four coordinated lifecycle scripts for each supported platform:
+The package contains five coordinated lifecycle components for each supported platform:
 
-1. `setup_<platform>.<ext>` establishes or repairs system-level software and settings.
-2. `config_<platform>.<ext>` establishes or repairs the current user's environment.
-3. `verify_<platform>.<ext>` inspects the system and user layers without changing them.
-4. `update_<platform>.<ext>` maintains approved software and course-managed assets over time.
+1. `prepare_ide.<ext>` acquires, installs, or refreshes the local course automation package required to execute the remaining lifecycle scripts.
+2. `setup_ide.<ext>` establishes or repairs system-level software and settings.
+3. `configure_ide.<ext>` establishes or repairs the current user's environment.
+4. `verify_ide.<ext>` inspects the system and user layers without changing them.
+5. `update_ide.<ext>` maintains approved software and course-managed assets over time.
 
-The design follows a modified Waterfall software development lifecycle (SDLC): requirements analysis, design, construction, and testing. **SDLC** means the organized process used to plan, build, verify, release, and maintain software.
+The design follows a modified [Waterfall Model](https://www.geeksforgeeks.org/software-engineering/waterfall-model/) software development lifecycle (SDLC): requirements analysis, design, construction, and testing. **SDLC** means the organized process used to plan, build, verify, release, and maintain software.
 
 ### 0.2 Design Philosophy
 
@@ -42,10 +41,10 @@ The manifest is not allowed to contain arbitrary executable commands. It may sel
 
 | Artifact | Primary question answered | Change authority |
 | :------: | ------------------------- | ---------------- |
-| SRS | What behavior and quality are required? | Approved requirements change process |
+| [SRS](../analysis/it140_scripts_srs.md) | What behavior and quality are required? | Approved requirements change process |
 | SDD | How will the package be structured to satisfy the SRS? | Approved design change process |
-| Manifest schema | What configuration structure and value types are valid? | Design and configuration-control process |
-| Controlled manifest | Which products, versions, sources, platforms, and provider profiles are approved now? | Configuration review, testing, approval, and release process |
+| [Manifest schema](../../.manifest/it140_manifest_schema.json) | What configuration structure and value types are valid? | Design and configuration-control process |
+| [Controlled manifest](../../.manifest/it140_manifest.json) | Which products, versions, sources, platforms, and provider profiles are approved now? | Configuration review, testing, approval, and release process |
 | Platform scripts and tests | How is the approved design implemented and verified on a platform? | Source-control review and testing process |
 
 A manifest-only change is appropriate when the selected product or version changes but the required capability, user workflow, trust boundary, and acceptance criteria remain the same. An SRS and SDD review is required when a change alters any of those items.
@@ -66,9 +65,9 @@ Technical terms and abbreviations are defined when first introduced. The documen
 
 This SDD covers:
 
-- The package architecture and four-script lifecycle.
+- The package architecture and five-script lifecycle.
 - The logical design of the controlled manifest and its schema.
-- Shared services used by all four scripts.
+- Shared services used by all five scripts.
 - Script-specific component and control-flow designs.
 - Command-line, file, operating-system, package-manager, and external-service interfaces.
 - Error handling, recovery, privacy, security, logging, and support-bundle design.
@@ -126,15 +125,13 @@ Each important design element has a stable identifier. Design identifiers suppor
 - `SEC-DES-###`: privacy and security design
 - `PLT-DES-###`: platform and provider abstraction design
 
----
-
 ## 1. Design Goals and Constraints
 
 The design uses the following goals as decision rules when alternatives are available.
 
 | Design ID | Goal or constraint | Design effect | Related SRS requirements |
 | --- | --- | --- | --- |
-| ARC-DES-001 | Preserve the four-script lifecycle. | The package exposes exactly four student- or administrator-facing lifecycle entry points per supported platform. | PKG-FR-001, PKG-FR-002 |
+| ARC-DES-001 | Preserve the five-script lifecycle. | The package exposes exactly four student- or administrator-facing lifecycle entry points per supported platform. | PKG-FR-001, PKG-FR-002 |
 | ARC-DES-002 | Separate system-level, user-specific, read-only, and maintenance responsibilities. | Each operation is placed in the script that owns the required privilege and state boundary. | SET-FR-011, VER-FR-001, REF-TC-006 |
 | ARC-DES-003 | Keep the main design capability-based and product-neutral. | Product names and identifiers are resolved through manifest role bindings and approved adapters. | PKG-TC-008, PKG-NFR-018, PKG-NFR-021 |
 | ARC-DES-004 | Use one controlled source of configuration truth. | Scripts load the same validated manifest and do not maintain independent authoritative product lists. | PKG-FR-004, PKG-NFR-012 |
@@ -171,8 +168,6 @@ The package should be understandable to students, but implementation simplicity 
 - Reusable platform-local modules when the native scripting language supports them.
 - Deterministic logic for the same supported starting state and inputs, implementing `PKG-NFR-004`.
 - Equivalent separately implemented helpers when code cannot be shared safely across platforms.
-
----
 
 ## 2. Solution Overview
 
@@ -277,8 +272,6 @@ The following supporting artifacts shall describe the same design at different l
 
 The diagrams and pseudoscripts are detailed design artifacts. This SDD remains authoritative when a supporting artifact is incomplete or inconsistent.
 
----
-
 ## 3. Program Structure
 
 ### 3.1 Repository and Installed Layout
@@ -287,22 +280,24 @@ The repository layout separates development artifacts from released platform scr
 
 ```text
 it140/
+├── .faculty/
+├── docs/
 ├── logs/
 ├── scripts/
 │   ├── .manifest/
 │   │   ├── it140_manifest.json
 │   │   └── it140_manifest.schema.json
 │   ├── <platform>/
-│   │   ├── setup_<platform>.<ext>
-│   │   ├── config_<platform>.<ext>
-│   │   ├── verify_<platform>.<ext>
-│   │   └── update_<platform>.<ext>
+│   │   ├── setup_ide.<ext>
+│   │   ├── configure_ide.<ext>
+│   │   ├── verify_ide.<ext>
+│   │   └── update_ide.<ext>
 │   └── .dev/
 │       ├── analysis/
 │       ├── design/
 │       ├── pseudoscripts/
 │       └── tests/
-└── <student-owned folders and repositories>
+└── README.md
 ```
 
 The installed package may omit `.dev/` files unless they are intentionally distributed as course-managed documentation. Student-owned folders and repositories are never inferred from naming alone; only explicitly declared managed paths are writable by automation.
@@ -349,8 +344,6 @@ All source scripts and text configuration shall use UTF-8 encoding with Line Fee
 - Verify shall not call a mutating adapter method. The verify orchestrator receives read-only adapter interfaces.
 - Update may change system and user-managed state, but only through manifest-declared capability roles, managed settings, and managed paths.
 - Shared services may be reused by all scripts, but they shall not silently broaden the authority of the calling script.
-
----
 
 ## 4. Data Design
 
@@ -518,8 +511,6 @@ When explicitly requested, verify creates a temporary bundle containing only app
 
 The bundle excludes assignment repositories, source files, version-control history, authentication stores, browser profiles, and unrelated settings. The user sees the proposed inventory before final creation.
 
----
-
 ## 5. Interface and Input/Output Design
 
 ### 5.1 Command-Line Interface
@@ -595,8 +586,6 @@ The result aggregator uses a deterministic precedence when more than one conditi
 | 8 | `0` | All required operations or checks completed successfully. |
 
 The exit code does not replace detailed stage results. A summary may report multiple failures while returning the highest-precedence applicable code.
-
----
 
 ## 6. Program Logic and Control Flow
 
@@ -677,11 +666,12 @@ Setup, configure, and update follow a **query-plan-apply-verify** pattern:
 
 A component is not reinstalled or rewritten merely because the script is rerun. Settings mergers compare managed keys, package adapters query installed state, and managed assets compare validated release or integrity data.
 
----
+## 7. Prepare Script Design
 
-## 7. Setup Script Design
 
-The setup orchestrator owns the shared system layer. It may use controlled privilege elevation for specific commands but is not run wholesale with elevated authority unless a future platform design proves that unavoidable and receives approval.
+## 8. Install Script Design
+
+The install orchestrator owns the shared system layer. It may use controlled privilege elevation for specific commands but is not run wholesale with elevated authority unless a future platform design proves that unavoidable and receives approval.
 
 | Design ID | Planned setup behavior | Main collaborators | Related SRS requirement |
 | --- | --- | --- | --- |
@@ -698,7 +688,7 @@ The setup orchestrator owns the shared system layer. It may use controlled privi
 | SET-DES-011 | Exclude provider authentication, personal identity, user-scoped tools, user settings, and user launchers from the setup plan. | Orchestrator boundary checks | SET-FR-011 |
 | SET-DES-012 | On successful post-validation, render the matching configure command as the next step. | Output service, platform metadata | SET-FR-012 |
 
-### 7.1 Setup Control Flow
+### 8.1 Install Control Flow
 
 ```text
 validate system prerequisites
@@ -720,7 +710,7 @@ run complete system-layer verification
 recommend configure when successful
 ```
 
-### 7.2 Setup Privilege Design
+### 8.2 Install Privilege Design
 
 The command runner receives a privilege policy per operation:
 
@@ -730,9 +720,7 @@ The command runner receives a privilege policy per operation:
 
 Arguments are passed as separate values rather than assembled into an unvalidated command string. Setup refuses to save user-specific files under an administrator's home directory accidentally.
 
----
-
-## 8. Configure Script Design
+## 9. Configure Script Design
 
 The configure orchestrator owns the current user's course environment. It runs as the student or faculty account and does not make system-wide changes.
 
@@ -755,7 +743,7 @@ The configure orchestrator owns the current user's course environment. It runs a
 | CFG-DES-015 | Use managed-key merging and query-plan-apply-verify behavior so reruns preserve optional extensions and unrelated preferences. | Settings merger, adapters | CFG-FR-015 |
 | CFG-DES-016 | Render the matching verify command after successful configuration. | Output service, platform metadata | CFG-FR-016 |
 
-### 8.1 Authentication Flow
+### 9.1 Authentication Flow
 
 ```text
 query provider authentication status
@@ -778,7 +766,7 @@ ENDIF
 
 Authentication secrets remain in the provider's approved credential store. Configure receives only the minimum status and account fields required by the provider profile.
 
-### 8.2 Settings Merge Algorithm
+### 9.2 Settings Merge Algorithm
 
 1. Read the existing settings file or interface.
 2. If the target does not exist, start with an empty valid structure.
@@ -790,9 +778,7 @@ Authentication secrets remain in the provider's approved credential store. Confi
 8. Replace the target atomically.
 9. Read the target again and verify managed keys.
 
----
-
-## 9. Verify Script Design
+## 10. Verify Script Design
 
 Verify uses read-only adapter interfaces. A platform implementation shall make mutating methods unavailable to the verify orchestrator rather than relying only on developer discipline.
 
@@ -813,7 +799,7 @@ Verify uses read-only adapter interfaces. A platform implementation shall make m
 | VER-DES-013 | Save a sanitized transcript and, only on explicit request, prepare an inventory-reviewed support bundle. | Transcript service, bundle builder | VER-FR-013 |
 | VER-DES-014 | Map unrepairable or administrative conditions to a manifest- or platform-declared support channel rather than an inappropriate lifecycle script. | Check registry, output service | VER-FR-014 |
 
-### 9.1 Check Registry Structure
+### 10.1 Check Registry Structure
 
 Each check definition contains:
 
@@ -832,7 +818,7 @@ support_escalation_rule
 
 The registry lets setup, configure, and update reuse selected post-operation probes without allowing verify to mutate state.
 
-### 9.2 Verification Flow
+### 10.2 Verification Flow
 
 ```text
 load ordered check registry
@@ -852,9 +838,7 @@ optionally create approved support bundle
 return resolved exit code
 ```
 
----
-
-## 10. Update Script Design
+## 11. Update Script Design
 
 Update owns maintenance of approved system software, user-scoped course tools, and course-managed assets. It does not perform an operating-system release upgrade and does not modify student-owned work.
 
@@ -877,7 +861,7 @@ Update owns maintenance of approved system software, user-scoped course tools, a
 | UPD-DES-015 | Use state queries, staging, locks, and idempotent operations so an interrupted run can be rerun safely. | Shared services | UPD-FR-015 |
 | UPD-DES-016 | Recommend verify after warnings, failures, partial completion, or required restart; successful no-restart maintenance may report verify as optional. | Output service | UPD-FR-016 |
 
-### 10.1 Managed-Asset Update Transaction
+### 11.1 Managed-Asset Update Transaction
 
 ```text
 retrieve release metadata
@@ -898,7 +882,7 @@ remove only explicitly obsolete managed assets
 remove staging data
 ```
 
-### 10.2 Update Ordering
+### 11.2 Update Ordering
 
 The planned default ordering is:
 
@@ -915,11 +899,9 @@ The planned default ordering is:
 
 A release may require a compatibility bridge when a new manifest schema cannot be interpreted by the installed updater. Release metadata shall identify the minimum updater version and provide an approved staged updater transition rather than allowing incompatible data to be used.
 
----
+## 12. Error and Exception Handling
 
-## 11. Error and Exception Handling
-
-### 11.1 Error-Handling Principles
+### 12.1 Error-Handling Principles
 
 - Detect predictable failures before mutation whenever possible.
 - Preserve the original root-cause result during cleanup and logging.
@@ -928,7 +910,7 @@ A release may require a compatibility bridge when a new manifest schema cannot b
 - Distinguish unsupported, permission, external-service, integrity, cancellation, partial-state, and general failures.
 - Never claim success solely because an external command returned without obvious text errors; verify the resulting state.
 
-### 11.2 Error and Recovery Components
+### 12.2 Error and Recovery Components
 
 | Design ID | Condition | Detection | Planned response | Related SRS requirements |
 | --- | --- | --- | --- | --- |
@@ -945,7 +927,7 @@ A release may require a compatibility bridge when a new manifest schema cannot b
 | ERR-DES-011 | Post-operation verification failure | Required probe after change | Attempt approved rollback where available; otherwise mark partial state and give remediation. | SET-FR-008, CFG-FR-014, UPD-FR-013 |
 | ERR-DES-012 | Unexpected internal error | Strict error handling and top-level exception or trap | Capture safe context, preserve original status, clean temporary data, summarize, and return code `1` or `7` based on changed state. | PKG-QOS-003, PKG-QOS-012, PKG-QOS-013 |
 
-### 11.3 Retry Policy
+### 12.3 Retry Policy
 
 Retry behavior is applied only to errors classified as temporary. The initial design uses:
 
@@ -955,7 +937,7 @@ Retry behavior is applied only to errors classified as temporary. The initial de
 - A visible message before a wait longer than a few seconds.
 - Attempt history in the log without exposing secrets.
 
-### 11.4 Interruption and Cleanup
+### 12.4 Interruption and Cleanup
 
 Mutating scripts install handlers for normal termination and supported interruption signals or exceptions. Cleanup attempts to:
 
@@ -966,11 +948,9 @@ Mutating scripts install handlers for normal termination and supported interrupt
 - Avoid deleting evidence needed for support.
 - Record the stage and whether any managed state changed.
 
----
+## 13. Privacy and Security Design
 
-## 12. Privacy and Security Design
-
-### 12.1 Trust Boundaries
+### 13.1 Trust Boundaries
 
 The package crosses the following trust boundaries:
 
@@ -997,7 +977,7 @@ Every boundary has validation, least-privilege, and redaction controls.
 | SEC-DES-011 | Provider-data minimization | Provider adapters request only account fields declared by the approved profile and needed by configuration. | CFG-FR-007, PKG-NFR-025 |
 | SEC-DES-012 | Change auditability | Logs identify release, stage, managed asset IDs, and result without storing secret values. | PKG-QOS-017, PKG-QOS-018 |
 
-### 12.2 Redaction Order
+### 13.2 Redaction Order
 
 1. Remove fields marked secret by the adapter contract.
 2. Replace complete personal email addresses with an approved masked representation or identity type.
@@ -1006,7 +986,7 @@ Every boundary has validation, least-privilege, and redaction controls.
 5. Apply pattern-based checks as a defense in depth.
 6. Scan the final support-bundle inventory and contents before creation.
 
-### 12.3 Trust-Root Design
+### 13.3 Trust-Root Design
 
 The manifest cannot prove its own authenticity using only values stored inside itself. The initial implementation shall anchor trust in one or more items distributed with the approved script release, such as:
 
@@ -1017,11 +997,9 @@ The manifest cannot prove its own authenticity using only values stored inside i
 
 The exact approved mechanism is platform- and release-specific and belongs in the platform design and controlled release process.
 
----
+## 14. Platform and Provider Abstraction Design
 
-## 13. Platform and Provider Abstraction Design
-
-### 13.1 Platform-Independent and Platform-Specific Layers
+### 14.1 Platform-Independent and Platform-Specific Layers
 
 | Design ID | Design element | Stable interface | Platform-specific implementation | Related SRS requirements |
 | --- | --- | --- | --- | --- |
@@ -1037,7 +1015,7 @@ The exact approved mechanism is platform- and release-specific and belongs in th
 | PLT-DES-010 | Platform qualification | Require manifest entry, adapter implementation, bootstrap instructions, platform constraints, and full conformance testing. | Platform-specific evidence package. | Section 3.3 of the SRS |
 | PLT-DES-011 | Deployment-profile resolution | Select one enabled profile by detected environment or explicit approved context, then confirm its platform, release, architecture, desktop, and session constraints. | Provider, desktop-session, and reset detection appropriate to the profile. | REF-TC-001 through REF-TC-006, PKG-FR-003 |
 
-### 13.2 Adapter Contract Rules
+### 14.2 Adapter Contract Rules
 
 Every adapter method shall:
 
@@ -1050,7 +1028,7 @@ Every adapter method shall:
 - Support a query operation used for idempotence and verification.
 - Avoid product-specific logic in the orchestrator.
 
-### 13.3 Provider Adapter Rules
+### 14.3 Provider Adapter Rules
 
 A provider adapter is added only when:
 
@@ -1061,7 +1039,7 @@ A provider adapter is added only when:
 - Its failure and cancellation states can be distinguished.
 - It has automated contract tests and controlled test accounts or mocks.
 
-### 13.4 New Platform Qualification
+### 14.4 New Platform Qualification
 
 A proposed platform implementation is not marked supported until it provides:
 
@@ -1075,7 +1053,7 @@ A proposed platform implementation is not marked supported until it provides:
 - Read-only evidence for verify.
 - Student-work preservation and redaction evidence.
 
-### 13.5 Initial Platform Conformance Test Matrix
+### 14.5 Initial Platform Conformance Test Matrix
 
 The initial release qualification uses resettable environments that match enabled deployment profiles.
 
@@ -1090,11 +1068,9 @@ The initial release qualification uses resettable environments that match enable
 
 A clean test begins from a fresh operating-system installation, provider reset, or approved image restoration. Test evidence records the exact release, build, architecture, deployment profile, manifest release, script release, and final results.
 
----
+## 15. Performance, Logging, and Operational Design
 
-## 14. Performance, Logging, and Operational Design
-
-### 14.1 Performance Controls
+### 15.1 Performance Controls
 
 - The entry point starts the log and displays identifying information before lengthy network or package work.
 - Manifest and schema files are loaded once per run and passed as immutable validated data.
@@ -1106,7 +1082,7 @@ A clean test begins from a fresh operating-system installation, provider reset, 
 - Platform adapters shall accept only manifest-approved operating-system releases that still receive vendor security updates, implementing `PKG-TC-006`.
 - Long operations emit truthful stage messages at intervals required by the SRS.
 
-### 14.2 Log Filename Design
+### 15.2 Log Filename Design
 
 The default logical pattern is:
 
@@ -1116,7 +1092,7 @@ The default logical pattern is:
 
 The path is derived from the current user's approved course log directory. A collision-resistant suffix may be added when two runs begin within the same second.
 
-### 14.3 Message Catalog
+### 15.3 Message Catalog
 
 Student-facing messages should use stable message keys and parameterized values where practical. This improves consistency across scripts and platforms and supports future accessibility or localization work without changing orchestration logic.
 
@@ -1136,18 +1112,16 @@ run.summary
 
 Exact English wording may differ slightly by platform when needed, but meaning, status label, and remediation shall remain equivalent.
 
----
-
-## 15. Design Decisions and Rationale
+## 16. Design Decisions and Rationale
 
 | # | Design decision | Rationale | Alternative considered |
 | ---: | --- | --- | --- |
-| 1 | Use one combined package SDD. | The four scripts share data, services, interfaces, quality rules, and remediation paths. One SDD reduces duplication and drift. | Separate SDD per script; rejected for the initial release because shared design would be repeated. |
+| 1 | Use one combined package SDD. | The five scripts share data, services, interfaces, quality rules, and remediation paths. One SDD reduces duplication and drift. | Separate SDD per script; rejected for the initial release because shared design would be repeated. |
 | 2 | Keep stable capability roles in the design and concrete products in the controlled manifest. | Product selections change more often than course capabilities. | Hardcode products in every script and design section; rejected because it increases maintenance and inconsistency. |
 | 3 | Allow only reviewed adapter identifiers in the manifest. | A public configuration file must not become an arbitrary command-execution mechanism. | Store executable command templates in JSON; rejected for security and portability reasons. |
 | 4 | Use platform-native entry points rather than one course-managed cross-platform runtime. | Setup must run before the course runtime is guaranteed to exist. | Require a shared runtime before setup; rejected because it adds a bootstrap dependency. |
 | 5 | Use four entry points with shared services. | Separate actions are easier for students and support personnel to understand while shared services maintain consistency. | One script with many subcommands; deferred because it increases command complexity for beginners. |
-| 6 | Make setup and configure idempotent repair paths. | Rerunning the correct lifecycle script is simpler than adding a separate repair script. | Add `repair`; deferred unless evidence shows the four-script model is insufficient. |
+| 6 | Make setup and configure idempotent repair paths. | Rerunning the correct lifecycle script is simpler than adding a separate repair script. | Add `repair`; deferred unless evidence shows the five-script model is insufficient. |
 | 7 | Keep verify structurally read-only. | Troubleshooting should observe the original problem and remain safe for students and support staff. | Permit optional repair inside verify; rejected because it mixes diagnosis and mutation. |
 | 8 | Put course-managed asset synchronization in update. | Existing copied installations need corrected scripts and manifests without another mandatory command. | Add a separate sync script; deferred to avoid expanding the support matrix. |
 | 9 | Use query-plan-apply-verify for mutating actions. | This pattern supports idempotence, minimal change, and evidence that the final state is usable. | Always reinstall or overwrite; rejected because it is slower and risks user settings. |
@@ -1155,9 +1129,7 @@ Exact English wording may differ slightly by platform when needed, but meaning, 
 | 11 | Use plain-text logs with stable fields. | Students and support personnel can read them without specialized tools. | Store only structured machine logs; rejected for student usability, though structured supplemental data may be added later. |
 | 12 | Keep the reference product mapping in a nonnormative appendix. | Reviewers need concrete context, but the manifest remains the current authority. | Remove all product names; rejected because it weakens review and test context. |
 
----
-
-## 16. Requirements Traceability
+## 17. Requirements Traceability
 
 A range in this table is inclusive. The design elements listed for a range apply to every requirement in that range. Script-specific requirements map one-to-one to the correspondingly numbered script design element where possible.
 
@@ -1184,11 +1156,11 @@ A range in this table is inclusive. The design elements listed for a range apply
 | PKG-QOS-011 through PKG-QOS-015 | SHR-DES-012, Section 5.5, ERR-DES-001 through ERR-DES-012 | Error-injection and exit-code tests |
 | PKG-QOS-016 through PKG-QOS-022 | SHR-DES-001 through SHR-DES-003, SHR-DES-013, DAT-DES-014, INT-DES-012, SEC-DES-007 through SEC-DES-012 | Log tests; support-bundle tests |
 
-### 16.1 Construction Traceability Rule
+### 17.1 Construction Traceability Rule
 
 During construction, each implementation function or module shall identify its primary SDD design element in a nearby comment, docstring, test name, or traceability record. Source code should not be cluttered by listing every related requirement when a module-level traceability record provides the mapping clearly.
 
-### 16.2 Test Traceability Rule
+### 17.2 Test Traceability Rule
 
 Automated and manual tests shall use stable test identifiers and identify:
 
@@ -1198,9 +1170,7 @@ Automated and manual tests shall use stable test identifiers and identify:
 - The starting state and expected final state.
 - Whether the test verifies normal, boundary, invalid, interruption, security, privacy, or idempotence behavior.
 
----
-
-## 17. Design Review Criteria
+## 18. Design Review Criteria
 
 Before construction begins, reviewers shall confirm the following evidence:
 
@@ -1219,8 +1189,6 @@ Before construction begins, reviewers shall confirm the following evidence:
 | Student usability | Stages, labels, prompts, explanations, next steps, and logs are understandable without relying on color. |
 | Platform portability | Adapter contracts and new-platform qualification evidence are defined. |
 | Design consistency | The SDD, diagrams, pseudoscripts, schema, implementation, and tests can describe one solution without contradiction. |
-
----
 
 ## Appendix A (Nonnormative): Reference Environment Used for Initial Design and Testing
 
@@ -1285,8 +1253,6 @@ The provider profile shall select the approved browser-based authentication meth
 
 The initial reference implementation uses approved official operating-system, vendor, project, and institutional distribution channels recorded in the manifest. Concrete URLs, repository definitions, signing keys, package identifiers, and integrity values belong in the controlled manifest or platform release data rather than this SDD.
 
----
-
 ## Appendix B: Planned Platform-Specific Design Supplements
 
 Each supported platform may have a concise supplement that records only design details that cannot remain generic, including:
@@ -1303,12 +1269,10 @@ Each supported platform may have a concise supplement that records only design d
 
 A supplement shall not redefine shared exit codes, log fields, status meanings, manifest ownership, user-data boundaries, or lifecycle responsibilities.
 
----
-
 ## Appendix C: References
 
 - `scripts/.dev/analysis/it140_scripts_srs.md`, *IT 140 Course Automation Scripts Software Requirements Specification*, version 2026.07.25.2.
-- `scripts/.dev/README.md`, development notes and four-script lifecycle decisions.
+- `scripts/.dev/README.md`, development notes and five-script lifecycle decisions.
 - `scripts/.manifest/it140_manifest.json`, controlled product, platform, deployment-profile, provider, version, source, and managed-asset selections when populated and approved.
 - `scripts/.dev/design/it140_scripts_sdd.md`, prior generic SDD template used as the structural starting point for this document.
 - Repository acceptance-test and platform-script files at the baseline commit identified in the document metadata.
