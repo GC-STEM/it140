@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # Repository path:
-#     scripts/.dev/pseudoscripts/verify_any.pseudo
+#     scripts/.dev/pseudoscripts/verify_ide.pseudo
 #
 # Purpose:
 #     Inspect the supported system and current-user course layers without

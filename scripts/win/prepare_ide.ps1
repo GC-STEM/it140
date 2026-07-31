@@ -1,7 +1,7 @@
 # IT 140 Windows bootstrap command set
 #
 # Repository path:
-#     scripts/win/bootstrap_win.ps1
+#     scripts/win/prepare_ide.ps1
 #
 # Purpose:
 #     Retrieve the current course automation package and make the Windows
@@ -27,7 +27,7 @@
 
 $LogDirectory = Join-Path ([Environment]::GetFolderPath("UserProfile")) "it140\logs"
 $LogPath = Join-Path $LogDirectory (
-    "bootstrap_win_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+    "prepare_ide_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 )
 New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null
 Start-Transcript -Path $LogPath -Force | Out-Null
@@ -160,7 +160,7 @@ try {
     )
     Write-Host (
         "[NOTICE] Next step: open an elevated Windows PowerShell terminal " +
-        "and run setup_win.ps1."
+        "and run install_ide.ps1."
     )
     Write-Host "[NOTICE] Bootstrap log: $LogPath"
 }

@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # Repository path:
-#     scripts/.dev/pseudoscripts/bootstrap_any.pseudo
+#     scripts/.dev/pseudoscripts/prepare_ide.pseudo
 #
 # Purpose:
 #     Retrieve the course automation package and make the matching student

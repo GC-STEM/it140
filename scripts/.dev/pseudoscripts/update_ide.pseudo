@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # Repository path:
-#     scripts/.dev/pseudoscripts/update_any.pseudo
+#     scripts/.dev/pseudoscripts/update_ide.pseudo
 #
 # Purpose:
 #     Synchronize approved student automation assets and maintain the supported

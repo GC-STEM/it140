@@ -22,7 +22,7 @@ trap cleanup EXIT INT TERM
 }
 mkdir -p -- "$COURSE_ROOT/logs" "$EXTRACT_ROOT"
 chmod -- 0700 "$COURSE_ROOT/logs"
-LOG_FILE="$COURSE_ROOT/logs/bootstrap_mac_$(date +%Y%m%d_%H%M%S).log"
+LOG_FILE="$COURSE_ROOT/logs/prepare_ide_$(date +%Y%m%d_%H%M%S).log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 printf '\n============================================================\n'
 printf 'IT 140 macOS BOOTSTRAP\n'
@@ -36,10 +36,10 @@ printf '[INFO] Log file         : %s\n' "$LOG_FILE"
 /usr/bin/ditto -x -k "$ARCHIVE_PATH" "$EXTRACT_ROOT"
 SOURCE_ROOT=""
 for candidate in "$EXTRACT_ROOT"/it140-*; do
-    [ -f "$candidate/scripts/mac/setup_mac.sh" ] && SOURCE_ROOT="$candidate" && break
+    [ -f "$candidate/scripts/mac/install_ide.zsh" ] && SOURCE_ROOT="$candidate" && break
 done
 [ -n "$SOURCE_ROOT" ] || {
-    printf '[ERROR] The downloaded archive does not contain setup_mac.sh.\n' >&2
+    printf '[ERROR] The downloaded archive does not contain install_ide.zsh.\n' >&2
     exit 4
 }
 /usr/bin/ditto "$SOURCE_ROOT" "$COURSE_ROOT"
@@ -55,5 +55,5 @@ esac
 hash -r
 printf '[SUCCESS] The current IT 140 course package is available at:\n'
 printf '[SUCCESS] %s\n' "$COURSE_ROOT"
-printf '[NOTICE] Next step: cd ~/it140/scripts/mac && ./setup_mac.sh\n'
+printf '[NOTICE] Next step: cd ~/it140/scripts/mac && ./install_ide.zsh\n'
 printf '[NOTICE] Bootstrap log: %s\n' "$LOG_FILE"

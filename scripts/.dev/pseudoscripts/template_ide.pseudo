@@ -3,18 +3,18 @@
 # ==============================================================================
 #
 # Repository path:
-#  scripts/.dev/pseudoscripts/template_any.pseudo
+#  scripts/.dev/pseudoscripts/template_ide.pseudo
 #
 # Purpose:
 #  Define the common structure and writing style for the platform-agnostic
 #  IT 140 automation pseudoscripts.
 #
 # Covered artifacts:
-#  bootstrap_any.pseudo
-#  setup_any.pseudo
-#  config_any.pseudo
-#  update_any.pseudo
-#  verify_any.pseudo
+#  prepare_ide.pseudo
+#  install_ide.pseudo
+#  configure_ide.pseudo
+#  update_ide.pseudo
+#  verify_ide.pseudo
 #
 # Artifact version:
 #  0.2.0
@@ -47,7 +47,7 @@
 # BOOTSTRAP COMMAND SET
 # ---------------------
 #
-# bootstrap_any.pseudo represents commands that a user manually copies and
+# prepare_ide.pseudo represents commands that a user manually copies and
 # pastes before the controlled manifest and lifecycle scripts are available.
 #
 # Bootstrap:
@@ -67,7 +67,7 @@
 # MANAGED LIFECYCLE SCRIPTS
 # -------------------------
 #
-# setup_any.pseudo, config_any.pseudo, update_any.pseudo, and verify_any.pseudo
+# install_ide.pseudo, configure_ide.pseudo, update_ide.pseudo, and verify_ide.pseudo
 # use the managed lifecycle-script pattern below.
 #
 # setup:

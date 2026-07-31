@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # Repository path:
-#     scripts/.dev/pseudoscripts/setup_any.pseudo
+#     scripts/.dev/pseudoscripts/install_ide.pseudo
 #
 # Purpose:
 #     Install or repair the manifest-declared system layer and approved

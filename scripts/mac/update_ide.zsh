@@ -5,7 +5,7 @@ readonly IT140_SCRIPT_VERSION="0.5.3"
 readonly IT140_VERSION_DATE="2026-07-30"
 readonly IT140_DEVELOPMENT_STATUS="Alpha Testing — Rebuilt Baseline"
 readonly IT140_ACTION_ID="update"
-readonly IT140_USAGE="Usage: update_mac.sh [--help] [--version] [--noninteractive] [--profile macos_bare_metal]"
+readonly IT140_USAGE="Usage: update_ide.zsh [--help] [--version] [--noninteractive] [--profile macos_bare_metal]"
 
 typeset -g IT140_NONINTERACTIVE=0
 typeset -g IT140_REQUESTED_PROFILE="macos_bare_metal"
@@ -14,7 +14,7 @@ show_help() {
     cat <<'HELP'
 Synchronize approved student assets and maintain course IDE components without updating macOS.
 
-Usage: update_mac.sh [--help] [--version] [--noninteractive] [--profile macos_bare_metal]
+Usage: update_ide.zsh [--help] [--version] [--noninteractive] [--profile macos_bare_metal]
 
 Options:
   --help                 Show this help.
@@ -711,10 +711,10 @@ it140_info "Course root      : $IT140_COURSE_ROOT"
 it140_info "Log file         : $IT140_LOG_FILE"
 it140_notice "This script synchronizes approved student lifecycle assets and updates course IDE components."
 it140_notice "macOS updates and macOS release upgrades are not installed."
-it140_notice "bootstrap_mac.sh and setup_mac.sh are intentionally preserved."
+it140_notice "prepare_ide.zsh and install_ide.zsh are intentionally preserved."
 installed_summary="$(it140_json_validate)"
 installed_release="${installed_summary%%$'\t'*}"
-it140_system_layer_available || it140_fail 7 "Required system components are missing. Run setup_mac.sh first."
+it140_system_layer_available || it140_fail 7 "Required system components are missing. Run install_ide.zsh first."
 if configuration_complete; then
     workflow="Periodic maintenance"
 else
@@ -733,7 +733,7 @@ candidate_schema="$candidate_repo/scripts/.manifest/it140_manifest.schema.json"
 candidate_summary="$(it140_json_validate "$candidate_manifest" "$candidate_schema")"
 candidate_release="${candidate_summary%%$'\t'*}"
 [ "$(semver_compare "$candidate_release" "$installed_release")" -ge 0 ] || it140_fail 5 "Candidate manifest $candidate_release is older than installed manifest $installed_release."
-for script_name in config_mac.sh update_mac.sh verify_mac.sh; do
+for script_name in configure_ide.zsh update_ide.zsh verify_ide.zsh; do
     candidate_script="$candidate_repo/scripts/mac/$script_name"
     [ -r "$candidate_script" ] || it140_fail 5 "Candidate release is missing $script_name."
     /bin/zsh -n "$candidate_script"
@@ -754,7 +754,7 @@ it140_header "Step 2: Activate Candidate Student Assets Atomically"
 begin_transaction
 stage_asset "$candidate_schema" "$IT140_SCHEMA_PATH" 0644 ".manifest/it140_manifest.schema.json"
 stage_asset "$candidate_manifest" "$IT140_MANIFEST_PATH" 0644 ".manifest/it140_manifest.json"
-for script_name in config_mac.sh update_mac.sh verify_mac.sh; do
+for script_name in configure_ide.zsh update_ide.zsh verify_ide.zsh; do
     stage_asset "$candidate_repo/scripts/mac/$script_name" "$IT140_PLATFORM_SCRIPT_DIR/$script_name" 0755 "mac/$script_name"
 done
 commit_transaction
@@ -820,15 +820,15 @@ while IFS= read -r package; do
     "$IT140_VENV_PYTHON" -m pip show "$package" >/dev/null 2>&1 || it140_fail 7 "Required Python package is missing after update: $package"
 done < <(it140_manifest_query venv_packages)
 if configuration_complete; then
-    if "$IT140_PLATFORM_SCRIPT_DIR/verify_mac.sh" --noninteractive; then
+    if "$IT140_PLATFORM_SCRIPT_DIR/verify_ide.zsh" --noninteractive; then
         it140_success "Post-update verification passed."
-        next_step="No action is required. Run update_mac.sh periodically for maintenance."
+        next_step="No action is required. Run update_ide.zsh periodically for maintenance."
     else
         it140_fail 7 "Post-update verification reported one or more required failures."
     fi
 else
     it140_notice "The system layer and course components are maintained, but first-use configuration is incomplete."
-    next_step="Run config_mac.sh, then run verify_mac.sh."
+    next_step="Run configure_ide.zsh, then run verify_ide.zsh."
 fi
 
 it140_header "UPDATE SUMMARY"

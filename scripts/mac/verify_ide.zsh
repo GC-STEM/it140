@@ -5,7 +5,7 @@ readonly IT140_SCRIPT_VERSION="0.5.3"
 readonly IT140_VERSION_DATE="2026-07-30"
 readonly IT140_DEVELOPMENT_STATUS="Alpha Testing — Rebuilt Baseline"
 readonly IT140_ACTION_ID="verify"
-readonly IT140_USAGE="Usage: verify_mac.sh [--help] [--version] [--noninteractive] [--profile macos_bare_metal]"
+readonly IT140_USAGE="Usage: verify_ide.zsh [--help] [--version] [--noninteractive] [--profile macos_bare_metal]"
 
 typeset -g IT140_NONINTERACTIVE=0
 typeset -g IT140_REQUESTED_PROFILE="macos_bare_metal"
@@ -13,7 +13,7 @@ show_help() {
     cat <<'HELP'
 Verify the complete IT 140 course IDE without changing managed configuration.
 
-Usage: verify_mac.sh [--help] [--version] [--noninteractive] [--profile macos_bare_metal]
+Usage: verify_ide.zsh [--help] [--version] [--noninteractive] [--profile macos_bare_metal]
 
 Options:
   --help                 Show this help.

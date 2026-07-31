@@ -53,7 +53,7 @@ writes a separate update_win_system log in the same directory.
 
 .USAGE
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-update_win.ps1
+update_ide.ps1
 
 #>
 
@@ -184,10 +184,10 @@ function Show-Usage {
 IT 140 Windows update script
 
 Usage:
-  powershell.exe -ExecutionPolicy Bypass -File .\update_win.ps1
-  powershell.exe -ExecutionPolicy Bypass -File .\update_win.ps1 -NonInteractive
-  powershell.exe -ExecutionPolicy Bypass -File .\update_win.ps1 -Help
-  powershell.exe -ExecutionPolicy Bypass -File .\update_win.ps1 -Version
+  powershell.exe -ExecutionPolicy Bypass -File .\update_ide.ps1
+  powershell.exe -ExecutionPolicy Bypass -File .\update_ide.ps1 -NonInteractive
+  powershell.exe -ExecutionPolicy Bypass -File .\update_ide.ps1 -Help
+  powershell.exe -ExecutionPolicy Bypass -File .\update_ide.ps1 -Version
 
 Run from a normal, non-elevated Windows PowerShell terminal. A UAC prompt
 appears only for targeted maintenance of machine-wide course IDE packages.
@@ -892,10 +892,10 @@ function Invoke-AssetTransaction {
         -CandidateSchema $CandidateSchema
 
     $LifecycleScripts = @(
-        "setup_win.ps1",
-        "config_win.ps1",
-        "update_win.ps1",
-        "verify_win.ps1"
+        "install_ide.ps1",
+        "configure_ide.ps1",
+        "update_ide.ps1",
+        "verify_ide.ps1"
     )
 
     try {
@@ -1432,7 +1432,7 @@ function Update-ManagedVsCodeSetting {
     param([Parameter(Mandatory = $true)]$Manifest)
 
     if (-not (Test-Path -LiteralPath $VsCodeSettings -PathType Leaf)) {
-        Write-Notice "VS Code settings are not configured; config_win.ps1 will create them."
+        Write-Notice "VS Code settings are not configured; configure_ide.ps1 will create them."
         return
     }
 
@@ -1625,7 +1625,7 @@ function Update-ManagedIntegration {
         }
     }
     else {
-        Write-Notice "Desktop shortcuts are not configured; config_win.ps1 will create them."
+        Write-Notice "Desktop shortcuts are not configured; configure_ide.ps1 will create them."
     }
 }
 
@@ -1640,10 +1640,10 @@ function Test-PostUpdateState {
     }
 
     foreach ($ScriptName in @(
-        "setup_win.ps1",
-        "config_win.ps1",
-        "update_win.ps1",
-        "verify_win.ps1"
+        "install_ide.ps1",
+        "configure_ide.ps1",
+        "update_ide.ps1",
+        "verify_ide.ps1"
     )) {
         $ScriptPath = Join-Path $WindowsScriptDirectory $ScriptName
         if (-not (Test-Path -LiteralPath $ScriptPath -PathType Leaf)) {
@@ -1746,7 +1746,7 @@ try {
     if (Test-IsAdministrator) {
         $FailureExitCode = 3
         throw (
-            "Run update_win.ps1 from a normal, non-elevated PowerShell window. " +
+            "Run update_ide.ps1 from a normal, non-elevated PowerShell window. " +
             "The script will request UAC elevation only for machine-wide " +
             "course IDE package maintenance."
         )
@@ -1773,7 +1773,7 @@ try {
         "code.cmd"
     )) {
         if ($null -eq (Get-Command $RequiredCommand -ErrorAction SilentlyContinue)) {
-            throw "Required update command is missing: $RequiredCommand. Run setup_win.ps1."
+            throw "Required update command is missing: $RequiredCommand. Run install_ide.ps1."
         }
     }
 
@@ -1796,7 +1796,7 @@ try {
         $WorkflowName = "First use or reset environment"
         Write-Notice (
             "User configuration is incomplete; the summary will direct " +
-            "you to config_win.ps1."
+            "you to configure_ide.ps1."
         )
     }
     Write-Info "Workflow         : $WorkflowName"
@@ -1875,13 +1875,13 @@ try {
         Write-ErrorMessage "The update completed partially."
         if ($ConfigurationComplete) {
             Write-Notice (
-                "Next step: run verify_win.ps1 and follow its " +
+                "Next step: run verify_ide.ps1 and follow its " +
                 "remediation guidance."
             )
         }
         else {
             Write-Notice (
-                "Next step: run config_win.ps1, then verify_win.ps1."
+                "Next step: run configure_ide.ps1, then verify_ide.ps1."
             )
         }
         Write-Info "Exit code         : 7"
@@ -1891,10 +1891,10 @@ try {
     else {
         Write-Success "The IT 140 Windows update completed successfully."
         if ($ConfigurationComplete) {
-            Write-Notice "Next step: run verify_win.ps1."
+            Write-Notice "Next step: run verify_ide.ps1."
         }
         else {
-            Write-Notice "Next step: run config_win.ps1."
+            Write-Notice "Next step: run configure_ide.ps1."
         }
         Write-Info "Exit code         : 0"
         Write-ClosingNotice
@@ -1911,7 +1911,7 @@ catch {
     if ($Changed) {
         Write-Notice (
             "Managed state changed before update stopped. " +
-            "Rerun update_win.ps1 to repair it."
+            "Rerun update_ide.ps1 to repair it."
         )
         $ExitCode = 7
     }

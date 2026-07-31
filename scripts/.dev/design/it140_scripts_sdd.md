@@ -267,10 +267,10 @@ The following supporting artifacts shall describe the same design at different l
 | `it140_scripts_sdd.md` | Package architecture, interfaces, component design, and traceability |
 | `it140_scripts_architecture.drawio` | Editable component, data-flow, and trust-boundary diagram |
 | `it140_scripts_lifecycle.drawio` | Editable normal and remediation lifecycle diagram |
-| `setup_any.pseudo` | Platform-agnostic setup control flow |
-| `config_any.pseudo` | Platform-agnostic user-configuration control flow |
-| `verify_any.pseudo` | Platform-agnostic verification control flow |
-| `update_any.pseudo` | Platform-agnostic update control flow |
+| `install_ide.pseudo` | Platform-agnostic setup control flow |
+| `configure_ide.pseudo` | Platform-agnostic user-configuration control flow |
+| `verify_ide.pseudo` | Platform-agnostic verification control flow |
+| `update_ide.pseudo` | Platform-agnostic update control flow |
 | `scripts/.manifest/it140_manifest.schema.json` | Machine-readable manifest structural contract |
 | `scripts/.manifest/it140_manifest.json` | Controlled concrete product, version, source, platform, and deployment-profile selections |
 | Automated test files | Unit, integration, safety, idempotence, and acceptance-test support |
@@ -1167,10 +1167,10 @@ A range in this table is inclusive. The design elements listed for a range apply
 | PKG-FR-004 through PKG-FR-005 | ARC-DES-004, SHR-DES-004, SHR-DES-005, DAT-DES-001 through DAT-DES-006 | Manifest schema; all four pseudoscripts |
 | PKG-FR-006 through PKG-FR-009 | SHR-DES-001 through SHR-DES-003, SHR-DES-012, INT-DES-001 through INT-DES-012 | Shared-output design; all four pseudoscripts |
 | PKG-FR-010 | ARC-DES-005, SHR-DES-009, SEC-DES-004, SEC-DES-010 | Safety tests; managed-path tests |
-| SET-FR-001 through SET-FR-012 | SET-DES-001 through SET-DES-012 | `setup_any.pseudo`; setup flowchart; setup tests |
-| CFG-FR-001 through CFG-FR-016 | CFG-DES-001 through CFG-DES-016 | `config_any.pseudo`; configure flowchart; configure tests |
-| VER-FR-001 through VER-FR-014 | VER-DES-001 through VER-DES-014 | `verify_any.pseudo`; check registry; verify tests |
-| UPD-FR-001 through UPD-FR-016 | UPD-DES-001 through UPD-DES-016 | `update_any.pseudo`; update transaction diagram; update tests |
+| SET-FR-001 through SET-FR-012 | SET-DES-001 through SET-DES-012 | `install_ide.pseudo`; setup flowchart; setup tests |
+| CFG-FR-001 through CFG-FR-016 | CFG-DES-001 through CFG-DES-016 | `configure_ide.pseudo`; configure flowchart; configure tests |
+| VER-FR-001 through VER-FR-014 | VER-DES-001 through VER-DES-014 | `verify_ide.pseudo`; check registry; verify tests |
+| UPD-FR-001 through UPD-FR-016 | UPD-DES-001 through UPD-DES-016 | `update_ide.pseudo`; update transaction diagram; update tests |
 | PKG-FR-011 through PKG-FR-020 | DAT-DES-001 through DAT-DES-014, SHR-DES-009, SEC-DES-004 | Manifest schema; configuration-control procedure |
 | PKG-NFR-001 through PKG-NFR-005 | ARC-DES-003 through ARC-DES-010, SHR-DES-002, DAT-DES-011; explicit coverage includes PKG-NFR-004 | Architecture diagram; conformance tests |
 | PKG-NFR-006 through PKG-NFR-011 | INT-DES-004, INT-DES-008 through INT-DES-012, SHR-DES-002 | Message catalog; usability review |

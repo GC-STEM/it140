@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # Repository path:
-#     scripts/.dev/pseudoscripts/config_any.pseudo
+#     scripts/.dev/pseudoscripts/configure_ide.pseudo
 #
 # Purpose:
 #     Configure or repair the intended user's course folders, authentication,

@@ -47,7 +47,7 @@ Logs are written under ~/it140/logs/.
 
 .USAGE
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-setup_win.ps1
+install_ide.ps1
 
 #>
 
@@ -128,10 +128,10 @@ function Show-Usage {
 IT 140 Windows setup script
 
 Usage:
-  powershell.exe -ExecutionPolicy Bypass -File .\setup_win.ps1
-  powershell.exe -ExecutionPolicy Bypass -File .\setup_win.ps1 -NonInteractive
-  powershell.exe -ExecutionPolicy Bypass -File .\setup_win.ps1 -Help
-  powershell.exe -ExecutionPolicy Bypass -File .\setup_win.ps1 -Version
+  powershell.exe -ExecutionPolicy Bypass -File .\install_ide.ps1
+  powershell.exe -ExecutionPolicy Bypass -File .\install_ide.ps1 -NonInteractive
+  powershell.exe -ExecutionPolicy Bypass -File .\install_ide.ps1 -Help
+  powershell.exe -ExecutionPolicy Bypass -File .\install_ide.ps1 -Version
 
 Run from an elevated Windows PowerShell terminal opened by the intended user.
 Update Windows manually before starting the course automation lifecycle. This
@@ -1014,7 +1014,7 @@ try {
         throw (
             "Setup requires an elevated Windows PowerShell terminal. " +
             "Open Windows PowerShell as administrator under the intended user, " +
-            "then rerun setup_win.ps1."
+            "then rerun install_ide.ps1."
         )
     }
 
@@ -1084,13 +1084,13 @@ try {
         Write-Notice "Next step: save your work and restart Windows."
         Write-Notice (
             "After Windows restarts, open a normal PowerShell window and " +
-            "run config_win.ps1."
+            "run configure_ide.ps1."
         )
     }
     else {
         Write-Notice (
             "Next step: close this window, open a normal PowerShell window, " +
-            "and run config_win.ps1."
+            "and run configure_ide.ps1."
         )
     }
     Write-Info "Exit code        : 0"
@@ -1107,7 +1107,7 @@ catch {
     if ($Changed) {
         Write-Notice (
             "Managed system state changed before setup stopped. " +
-            "Rerun setup_win.ps1 to repair it."
+            "Rerun install_ide.ps1 to repair it."
         )
         $ExitCode = 7
     }
