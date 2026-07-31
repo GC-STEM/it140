@@ -9,7 +9,6 @@ readonly IT140_USAGE="Usage: verify_mac.sh [--help] [--version] [--noninteractiv
 
 typeset -g IT140_NONINTERACTIVE=0
 typeset -g IT140_REQUESTED_PROFILE="macos_bare_metal"
-
 show_help() {
     cat <<'HELP'
 Verify the complete IT 140 course IDE without changing managed configuration.
@@ -23,7 +22,6 @@ Options:
   --profile PROFILE_ID   Must be macos_bare_metal.
 HELP
 }
-
 readonly IT140_PLATFORM_ID="macos"
 readonly IT140_PLATFORM_ABBREVIATION="mac"
 readonly IT140_DEPLOYMENT_PROFILE="macos_bare_metal"
@@ -48,7 +46,6 @@ readonly IT140_COURSE_DESKTOP_LINK="${IT140_DESKTOP_DIR}/IT 140"
 readonly IT140_VSCODE_DESKTOP_APP="${IT140_DESKTOP_DIR}/Visual Studio Code - IT 140.app"
 readonly IT140_MANAGED_ENV_START="# >>> IT 140 managed environment >>>"
 readonly IT140_MANAGED_ENV_END="# <<< IT 140 managed environment <<<"
-
 typeset -g IT140_LOG_FILE=""
 typeset -g IT140_LAST_COMMAND=""
 typeset -g IT140_TEMP_ROOT=""
@@ -61,7 +58,6 @@ typeset -gi IT140_WARNINGS=0
 typeset -gi IT140_FAILURES=0
 typeset -gi IT140_PARTIAL=0
 typeset -g IT140_START_EPOCH="$(date +%s)"
-
 it140_header() {
     printf '\n============================================================\n'
     printf '%s\n' "$1"
@@ -72,13 +68,11 @@ it140_success() { printf '[SUCCESS] %s\n' "$1"; }
 it140_notice() { printf '[NOTICE] %s\n' "$1"; }
 it140_warning() { IT140_WARNINGS=$((IT140_WARNINGS + 1)); printf '[WARNING] %s\n' "$1"; }
 it140_error() { printf '[ERROR] %s\n' "$1" >&2; }
-
 it140_print_version() {
     printf 'Script version   : %s\n' "$IT140_SCRIPT_VERSION"
     printf 'Version date     : %s\n' "$IT140_VERSION_DATE"
     printf 'Status           : %s\n' "$IT140_DEVELOPMENT_STATUS"
 }
-
 it140_remove_path_safely() {
     local target="${1:-}"
     [ -n "$target" ] || return 0
@@ -90,7 +84,6 @@ it140_remove_path_safely() {
         *) return 1 ;;
     esac
 }
-
 it140_rollback_transaction() {
     [ "$IT140_TRANSACTION_ACTIVE" -eq 1 ] || return 0
     [ -n "$IT140_TRANSACTION_ROOT" ] || return 0
@@ -108,7 +101,6 @@ it140_rollback_transaction() {
     IT140_TRANSACTION_ACTIVE=0
     it140_notice "Rolled back the interrupted managed-asset activation."
 }
-
 it140_release_lock() {
     if [ "$IT140_LOCK_HELD" -eq 1 ]; then
         if [ -d "$IT140_LOCK_DIR" ] && [ ! -L "$IT140_LOCK_DIR" ]; then
@@ -121,7 +113,6 @@ it140_release_lock() {
         IT140_LOCK_HELD=0
     fi
 }
-
 it140_cleanup() {
     set +e
     it140_rollback_transaction
@@ -129,7 +120,6 @@ it140_cleanup() {
     [ -n "$IT140_TEMP_ROOT" ] && it140_remove_path_safely "$IT140_TEMP_ROOT"
     [ -n "$IT140_TRANSACTION_ROOT" ] && it140_remove_path_safely "$IT140_TRANSACTION_ROOT"
 }
-
 it140_handle_error() {
     local exit_code="${1:-1}"
     local line_number="${2:-unknown}"
@@ -149,7 +139,6 @@ it140_handle_error() {
     trap - DEBUG ZERR INT TERM EXIT
     exit "$exit_code"
 }
-
 it140_handle_signal() {
     local exit_code="$1"
     local signal_name="$2"
@@ -160,7 +149,6 @@ it140_handle_signal() {
     trap - DEBUG ZERR INT TERM EXIT
     exit "$exit_code"
 }
-
 it140_install_traps() {
     # This function is called before EXIT is installed. Installing EXIT inside
     # a zsh function would make it run when this function returns.
@@ -169,9 +157,6 @@ it140_install_traps() {
     trap 'it140_handle_signal 130 INT' INT
     trap 'it140_handle_signal 143 TERM' TERM
 }
-
-
-
 it140_write_managed_environment_block() {
     local target="$1"
     local temp
@@ -185,7 +170,6 @@ it140_write_managed_environment_block() {
         ' "$target" > "$temp"
     fi
     cat >> "$temp" <<'ENV'
-
 # >>> IT 140 managed environment >>>
 export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/mac:/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 # <<< IT 140 managed environment <<<
@@ -193,7 +177,6 @@ ENV
     mv -- "$temp" "$target"
     chmod -- 0600 "$target"
 }
-
 it140_initialize_log() {
     mkdir -p -- "$IT140_LOG_DIR"
     chmod -- 0700 "$IT140_LOG_DIR"
@@ -202,7 +185,6 @@ it140_initialize_log() {
     chmod -- 0600 "$IT140_LOG_FILE"
     exec > >(tee -a "$IT140_LOG_FILE") 2>&1
 }
-
 it140_prune_logs() {
     [ -d "$IT140_LOG_DIR" ] || return 0
     find "$IT140_LOG_DIR" -type f -name '*.log' -mtime +180 -delete 2>/dev/null || true
@@ -218,7 +200,6 @@ it140_fail() {
     [ -n "$IT140_LOG_FILE" ] && it140_error "Log file: $IT140_LOG_FILE"
     exit "$exit_code"
 }
-
 it140_check_platform_user() {
     [ "$(uname -s)" = "Darwin" ] || it140_fail 2 "This script supports macOS only."
     [ "$(id -u)" -ne 0 ] || it140_fail 3 "Do not run this script with sudo or as root."
@@ -226,7 +207,6 @@ it140_check_platform_user() {
     architecture="$(uname -m)"
     [ "$architecture" = "arm64" ] || it140_fail 2 "This rebuilt baseline supports Apple silicon only. Detected architecture: $architecture"
 }
-
 it140_acquire_lock() {
     mkdir -p -- "$IT140_LOCK_PARENT"
     chmod -- 0700 "$IT140_LOCK_PARENT" 2>/dev/null || true
@@ -254,7 +234,6 @@ it140_acquire_lock() {
     chmod -- 0700 "$IT140_LOCK_DIR"
     IT140_LOCK_HELD=1
 }
-
 it140_json_validate() {
     local manifest_file="${1:-$IT140_MANIFEST_PATH}"
     local schema_file="${2:-$IT140_SCHEMA_PATH}"
@@ -420,7 +399,6 @@ JXA
     fi
     printf '%s\n' "$output"
 }
-
 it140_manifest_query() {
     local query="$1"
     local manifest_file="${2:-$IT140_MANIFEST_PATH}"
@@ -560,7 +538,6 @@ if (query === 'formulae') {
 result;
 JXA
 }
-
 it140_initialize_homebrew() {
     [ -x "$IT140_HOMEBREW_BIN" ] || return 1
     eval "$("$IT140_HOMEBREW_BIN" shellenv)"
@@ -570,7 +547,6 @@ it140_initialize_homebrew() {
 it140_command_line_tools_available() {
     /usr/bin/xcode-select -p >/dev/null 2>&1 && /usr/bin/xcrun --find clang >/dev/null 2>&1
 }
-
 it140_system_layer_available() {
     it140_command_line_tools_available || return 1
     it140_initialize_homebrew || return 1
@@ -579,7 +555,6 @@ it140_system_layer_available() {
     command -v git >/dev/null 2>&1 || return 1
     command -v gh >/dev/null 2>&1 || return 1
 }
-
 it140_check_free_space() {
     local available_kb required_bytes
     required_bytes="$(it140_manifest_policy_free_space)"
@@ -588,7 +563,6 @@ it140_check_free_space() {
     [ $((available_kb * 1024)) -ge "$required_bytes" ] || it140_fail 1 "At least $((required_bytes / 1073741824)) GB of free space is required."
     it140_success "Required free space is available."
 }
-
 it140_manifest_policy_free_space() {
     env IT140_JXA_MANIFEST_FILE="$IT140_MANIFEST_PATH" /usr/bin/osascript -l JavaScript <<'JXA'
 ObjC.import('Foundation');
@@ -599,7 +573,6 @@ var text=$.NSString.alloc.initWithDataEncoding(data,$.NSUTF8StringEncoding);
 String(JSON.parse(ObjC.unwrap(text)).policy.minimum_free_space_bytes);
 JXA
 }
-
 it140_elapsed_seconds() {
     printf '%s\n' "$(( $(date +%s) - IT140_START_EPOCH ))"
 }
@@ -612,17 +585,19 @@ it140_closing_notice() {
 check_pass() { printf '[PASS] %s\n' "$1"; }
 check_fail() { IT140_FAILURES=$((IT140_FAILURES + 1)); printf '[FAIL] %s\n' "$1"; }
 check_warn() { IT140_WARNINGS=$((IT140_WARNINGS + 1)); printf '[WARNING] %s\n' "$1"; }
-
 check_command() {
     local command_name="$1"
     local display_name="$2"
     if command -v "$command_name" >/dev/null 2>&1; then check_pass "$display_name is available."; else check_fail "$display_name is missing."; fi
 }
-
 check_vscode_settings() {
     local settings_file="$HOME/Library/Application Support/Code/User/settings.json"
     [ -r "$settings_file" ] || { check_fail "Visual Studio Code settings are missing."; return; }
-    if IT140_SETTINGS_FILE="$settings_file" IT140_VENV_PYTHON="$IT140_VENV_PYTHON" IT140_COURSE_ROOT="$IT140_COURSE_ROOT" "$IT140_VENV_PYTHON" - <<'PYVERIFY'
+    if /usr/bin/env \
+        IT140_SETTINGS_FILE="$settings_file" \
+        IT140_VENV_PYTHON="$IT140_VENV_PYTHON" \
+        IT140_COURSE_ROOT="$IT140_COURSE_ROOT" \
+        "$IT140_VENV_PYTHON" - <<'PYVERIFY'
 import json, os
 from pathlib import Path
 observed=json.loads(Path(os.environ['IT140_SETTINGS_FILE']).read_text(encoding='utf-8'))
@@ -639,7 +614,6 @@ if observed.get('files.associations',{}).get('*.pseudo') != 'pseudo': raise Syst
 PYVERIFY
     then check_pass "Course-managed Visual Studio Code settings are present."; else check_fail "One or more course-managed Visual Studio Code settings are missing or different."; fi
 }
-
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --help) show_help; exit 0 ;;
@@ -658,13 +632,11 @@ done
     printf '[ERROR] Only the macos_bare_metal profile is supported by this Apple-silicon baseline.\n' >&2
     exit 64
 }
-
 it140_install_traps
 it140_check_platform_user
 it140_initialize_log
 trap 'it140_cleanup' EXIT
 it140_prune_logs
-
 it140_header "IT 140 macOS VERIFICATION"
 it140_print_version | sed 's/^/[INFO] /'
 it140_info "Deployment       : $IT140_REQUESTED_PROFILE"
@@ -675,7 +647,6 @@ it140_info "Operating system : $(/usr/bin/sw_vers -productName) $(/usr/bin/sw_ve
 it140_info "Architecture     : $(uname -m)"
 manifest_summary="$(it140_json_validate)"
 it140_info "Manifest release : ${manifest_summary%%$'\t'*}"
-
 it140_header "Step 1: Verify System Components"
 if it140_command_line_tools_available; then check_pass "Apple Command Line Tools are available."; else check_fail "Apple Command Line Tools are unavailable."; fi
 if it140_initialize_homebrew; then check_pass "Homebrew is available."; else check_fail "Homebrew is unavailable."; fi
@@ -683,7 +654,6 @@ check_command git "Git"
 check_command gh "GitHub CLI"
 [ -x "$IT140_PYTHON_BIN" ] && "$IT140_PYTHON_BIN" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3,12) else 1)' >/dev/null 2>&1 && check_pass "Python 3.12 is available." || check_fail "Python 3.12 is unavailable or has the wrong version."
 [ -x "$IT140_CODE_BIN" ] && "$IT140_CODE_BIN" --version >/dev/null 2>&1 && check_pass "Visual Studio Code is available." || check_fail "Visual Studio Code is unavailable."
-
 it140_header "Step 2: Verify User Configuration"
 if gh auth status --hostname github.com >/dev/null 2>&1; then check_pass "GitHub authentication is configured."; else check_fail "GitHub authentication is not configured."; fi
 [ -n "$(git config --global --get user.name 2>/dev/null || true)" ] && check_pass "Git display name is configured." || check_fail "Git display name is missing."
@@ -697,7 +667,6 @@ done < <(it140_manifest_query git_settings)
 for shell_file in "$HOME/.zprofile" "$HOME/.zshrc"; do
     grep -Fq "$IT140_MANAGED_ENV_START" "$shell_file" 2>/dev/null && check_pass "The managed shell environment block is present in $shell_file." || check_fail "The managed shell environment block is missing from $shell_file."
 done
-
 it140_header "Step 3: Verify Python and Visual Studio Code"
 if [ -x "$IT140_VENV_PYTHON" ] && "$IT140_VENV_PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3,12) else 1)' >/dev/null 2>&1; then
     check_pass "The course Python 3.12 virtual environment is available."
@@ -720,11 +689,9 @@ if [ -x "$IT140_CODE_BIN" ]; then
         check_fail "Visual Studio Code settings could not be validated because the course Python environment is unavailable."
     fi
 fi
-
 it140_header "Step 4: Verify Desktop Shortcuts"
 if [ -L "$IT140_COURSE_DESKTOP_LINK" ] && [ "$(readlink "$IT140_COURSE_DESKTOP_LINK")" = "$IT140_COURSE_ROOT" ]; then check_pass "The IT 140 desktop folder link is correct."; else check_fail "The IT 140 desktop folder link is missing or incorrect."; fi
 if [ -x "$IT140_VSCODE_DESKTOP_APP/Contents/MacOS/open-it140-in-code" ] && /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$IT140_VSCODE_DESKTOP_APP/Contents/Info.plist" 2>/dev/null | grep -Fxq 'org.gc-stem.it140.vscode-launcher'; then check_pass "The Visual Studio Code desktop launcher is correct."; else check_fail "The Visual Studio Code desktop launcher is missing or invalid."; fi
-
 it140_header "VERIFICATION SUMMARY"
 if [ "$IT140_FAILURES" -eq 0 ]; then
     it140_info "Result           : PASS"
