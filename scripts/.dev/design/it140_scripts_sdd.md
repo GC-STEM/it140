@@ -668,7 +668,6 @@ A component is not reinstalled or rewritten merely because the script is rerun. 
 
 ## 7. Prepare Script Design
 
-
 ## 8. Install Script Design
 
 The install orchestrator owns the shared system layer. It may use controlled privilege elevation for specific commands but is not run wholesale with elevated authority unless a future platform design proves that unavoidable and receives approval.
