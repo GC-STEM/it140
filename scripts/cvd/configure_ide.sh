@@ -3,21 +3,21 @@
 # IT 140 Codio Virtual Desktop user configuration and repair script
 #
 # Artifact ID: IT140-CVD-CONFIGURE
-# Artifact version: 0.7.1-alpha.2
-# Version date-time group: 2026-08-01-17-03
+# Artifact version: 0.7.1-alpha.3
+# Version date-time group: 2026-08-01-17-11
 # Development status: Alpha Testing
 #
 # Traceability: CFG-FR-001 through CFG-FR-017; PKG-FR-021;
 #               CFG-DES-001 through CFG-DES-017; ERR-DES-014.
 # Scope: Current-user course folders, PATH, GitHub authentication, private Git
 #        identity, course virtual environment, VS Code extensions and settings,
-#        desktop launcher repair, and course-folder shortcut.
+#        existing VS Code desktop-launcher repair, and file associations.
 
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="0.7.1-alpha.2"
-readonly VERSION_DTG="2026-08-01-17-03"
+readonly SCRIPT_VERSION="0.7.1-alpha.3"
+readonly VERSION_DTG="2026-08-01-17-11"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"
@@ -745,24 +745,21 @@ PY
     print_success "The existing Visual Studio Code desktop launcher now opens $COURSE_ROOT."
 }
 
-configure_course_folder_shortcut() {
-    CURRENT_STAGE="course-folder shortcut configuration"
-    local desktop_dir shortcut
+remove_obsolete_course_folder_shortcut() {
+    CURRENT_STAGE="obsolete course-folder shortcut cleanup"
+    local desktop_dir shortcut target
     desktop_dir="$(desktop_directory)"
-    mkdir -p "$desktop_dir"
     shortcut="$desktop_dir/IT 140 Course Folder"
-    if [[ -L "$shortcut" ]]; then
-        if [[ "$(readlink -f "$shortcut")" != "$(readlink -f "$COURSE_ROOT")" ]]; then
-            ln -sfn "$COURSE_ROOT" "$shortcut"
-            CHANGED=true
-        fi
-    elif [[ -e "$shortcut" ]]; then
-        fatal "$EXIT_FAILURE" "A non-managed item already uses the course-folder shortcut name and was preserved: $shortcut"
-    else
-        ln -s "$COURSE_ROOT" "$shortcut"
+
+    [[ -L "$shortcut" ]] || return 0
+    target="$(readlink -f "$shortcut" 2>/dev/null || true)"
+    if [[ "$target" == "$(readlink -f "$COURSE_ROOT")" ]]; then
+        rm -- "$shortcut"
         CHANGED=true
+        print_success "Removed the obsolete duplicate desktop shortcut: $shortcut"
+    else
+        print_notice "Preserved an unrelated desktop symlink using the obsolete shortcut name: $shortcut"
     fi
-    print_success "The desktop course-folder shortcut opens $COURSE_ROOT."
 }
 
 configure_file_associations() {
@@ -891,7 +888,7 @@ main() {
     configure_git_settings
     configure_vscode_settings
     repair_vscode_launcher
-    configure_course_folder_shortcut
+    remove_obsolete_course_folder_shortcut
     configure_file_associations
     validate_configuration
 

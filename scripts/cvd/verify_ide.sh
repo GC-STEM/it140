@@ -3,8 +3,8 @@
 # IT 140 Codio Virtual Desktop read-only verification script
 #
 # Artifact ID: IT140-CVD-VERIFY
-# Artifact version: 0.7.1-alpha.1
-# Version date-time group: 2026-08-01-16-05
+# Artifact version: 0.7.1-alpha.3
+# Version date-time group: 2026-08-01-17-11
 # Development status: Alpha Testing
 #
 # Traceability: VER-FR-001 through VER-FR-014; PKG-FR-021;
@@ -16,8 +16,8 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="0.7.1-alpha.1"
-readonly VERSION_DTG="2026-08-01-16-05"
+readonly SCRIPT_VERSION="0.7.1-alpha.3"
+readonly VERSION_DTG="2026-08-01-17-11"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"
@@ -650,17 +650,7 @@ check_paths_and_settings() {
 }
 
 check_desktop_integrations() {
-    local desktop_dir shortcut launcher launcher_count
-    desktop_dir="$(desktop_directory)"
-    shortcut="$desktop_dir/IT 140 Course Folder"
-    if [[ -L "$shortcut" && "$(readlink -f "$shortcut")" == "$(readlink -f "$COURSE_ROOT")" ]]; then
-        record_result pass "VER-SHORTCUT-001" "The desktop course-folder shortcut opens $COURSE_ROOT."
-    else
-        record_result fail "VER-SHORTCUT-001" \
-            "The desktop course-folder shortcut is missing or has the wrong target." \
-            "Run configure_ide.sh, then rerun verify_ide.sh."
-    fi
-
+    local launcher launcher_count
     launcher="$(find_vscode_launcher 2>/dev/null || true)"
     if [[ -z "$launcher" ]]; then
         record_result fail "VER-LAUNCHER-001" \
