@@ -1,473 +1,475 @@
-<mxfile host="65bd71144e" compressed="false" pages="2">
-    <diagram id="architecture-layered" name="Layered Architecture">
-        <mxGraphModel dx="890" dy="527" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1450" background="#ffffff" math="0" shadow="0" adaptiveColors="none">
-            <root>
-                <mxCell id="0"/>
-                <mxCell id="1" parent="0"/>
-                <mxCell id="b_pre" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#666666;html=1;container=0;" parent="1" vertex="1">
-                    <mxGeometry x="60" y="165" width="610" height="420" as="geometry"/>
-                </mxCell>
-                <mxCell id="b_local" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#666666;html=1;container=0;" parent="1" vertex="1">
-                    <mxGeometry x="720" y="165" width="1250" height="1010" as="geometry"/>
-                </mxCell>
-                <mxCell id="b_external" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#666666;html=1;container=0;" parent="1" vertex="1">
-                    <mxGeometry x="720" y="1210" width="1250" height="170" as="geometry"/>
-                </mxCell>
-                <mxCell id="b_services" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#666666;html=1;container=0;" parent="1" vertex="1">
-                    <mxGeometry x="1080" y="565" width="770" height="430" as="geometry"/>
-                </mxCell>
-                <mxCell id="b_adapters" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#666666;html=1;container=0;" parent="1" vertex="1">
-                    <mxGeometry x="780" y="1020" width="1040" height="130" as="geometry"/>
-                </mxCell>
-                <mxCell id="title" value="IT 140 Course Automation Scripts — Layered Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=26;fontStyle=1;" parent="1" vertex="1">
-                    <mxGeometry x="40" y="20" width="2020" height="42" as="geometry"/>
-                </mxCell>
-                <mxCell id="metadata" value="&lt;b&gt;Artifact:&lt;/b&gt; architecture.drawio &amp;nbsp; | &amp;nbsp; &lt;b&gt;Version:&lt;/b&gt; 0.1.0 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Version date:&lt;/b&gt; 2026-08-01 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Status:&lt;/b&gt; Alpha Testing&lt;br&gt;&lt;b&gt;Baseline:&lt;/b&gt; IT140-SDD-SCRIPTS 0.3.0 and applicable pseudoscript 0.3.0 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Traceability:&lt;/b&gt; SDD §§2.1, 3.2–3.4, 4–5, 12–14&lt;br&gt;&lt;b&gt;Notation:&lt;/b&gt; ISO 5807:1985 system-flowchart symbol profile using native draw.io shapes; arrows show control or data flow." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Arial;fontSize=12;fontColor=#444444;" parent="1" vertex="1">
-                    <mxGeometry x="42" y="66" width="2016" height="62" as="geometry"/>
-                </mxCell>
-                <mxCell id="b_pre_label" value="PRE-MANIFEST PREPARATION BOUNDARY" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#444444;spacingLeft=4;" parent="1" vertex="1">
-                    <mxGeometry x="72" y="152" width="520" height="28" as="geometry"/>
-                </mxCell>
-                <mxCell id="b_local_label" value="COURSE-CONTROLLED LOCAL PACKAGE" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#444444;spacingLeft=4;" parent="1" vertex="1">
-                    <mxGeometry x="732" y="152" width="520" height="28" as="geometry"/>
-                </mxCell>
-                <mxCell id="b_external_label" value="OPERATING-SYSTEM AND EXTERNAL TRUST BOUNDARIES" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#444444;spacingLeft=4;" parent="1" vertex="1">
-                    <mxGeometry x="732" y="1197" width="520" height="28" as="geometry"/>
-                </mxCell>
-                <mxCell id="user_input" value="&lt;b&gt;Student / faculty user&lt;/b&gt;&lt;br&gt;Copied first-use commands or installed lifecycle command" style="shape=manualInput;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;size=20;" parent="1" vertex="1">
-                    <mxGeometry x="95" y="230" width="230" height="82" as="geometry"/>
-                </mxCell>
-                <mxCell id="repo_store" value="&lt;b&gt;Authorized course repository&lt;/b&gt;&lt;br&gt;Trusted source snapshot" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="95" y="405" width="230" height="88" as="geometry"/>
-                </mxCell>
-                <mxCell id="prepare_component" value="&lt;b&gt;Prepare component&lt;/b&gt;&lt;br&gt;Native retrieval, private transcript, staging, validation, package overlay, permissions, PATH, cleanup" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFE6CC;strokeColor=#D79B00;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="390" y="260" width="240" height="150" as="geometry"/>
-                </mxCell>
-                <mxCell id="staging_store" value="&lt;b&gt;Private staging&lt;/b&gt;&lt;br&gt;Untrusted until structurally validated" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFE6CC;strokeColor=#D79B00;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="390" y="455" width="240" height="82" as="geometry"/>
-                </mxCell>
-                <mxCell id="pre_note" value="&lt;b&gt;Boundary rule&lt;/b&gt;&lt;br&gt;Prepare cannot assume the manifest, shared modules, package manager, version-control client, or course runtime already exists." style="shape=note;size=15;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;align=left;verticalAlign=top;spacing=8;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=1;" parent="1" vertex="1">
-                    <mxGeometry x="95" y="515" width="530" height="58" as="geometry"/>
-                </mxCell>
-                <mxCell id="local_package" value="&lt;b&gt;Local course package&lt;/b&gt;&lt;br&gt;Lifecycle scripts, manifest, schema, managed assets" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="770" y="230" width="270" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="entry_points" value="&lt;b&gt;Managed lifecycle entry points&lt;/b&gt;&lt;br&gt;Install | Configure | Verify | Update" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="770" y="380" width="270" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="orchestrator" value="&lt;b&gt;Action orchestrator&lt;/b&gt;&lt;br&gt;Stages, decisions, plan execution, post-validation, remediation, exit code" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="1130" y="380" width="300" height="110" as="geometry"/>
-                </mxCell>
-                <mxCell id="b_services_label" value="SHARED-SERVICE LAYER" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#444444;spacingLeft=4;" parent="1" vertex="1">
-                    <mxGeometry x="1092" y="552" width="520" height="28" as="geometry"/>
-                </mxCell>
-                <mxCell id="svc_context" value="&lt;b&gt;Run context &amp;amp; artifact identity&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="1120" y="625" width="210" height="76" as="geometry"/>
-                </mxCell>
-                <mxCell id="svc_manifest" value="&lt;b&gt;Manifest loader &amp;amp; validator&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="1370" y="625" width="210" height="76" as="geometry"/>
-                </mxCell>
-                <mxCell id="svc_output" value="&lt;b&gt;Output &amp;amp; transcript service&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="1620" y="625" width="210" height="76" as="geometry"/>
-                </mxCell>
-                <mxCell id="svc_path" value="&lt;b&gt;Path safety &amp;amp; file preservation&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="1120" y="760" width="210" height="76" as="geometry"/>
-                </mxCell>
-                <mxCell id="svc_lock" value="&lt;b&gt;Lock &amp;amp; command runner&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="1370" y="760" width="210" height="76" as="geometry"/>
-                </mxCell>
-                <mxCell id="svc_stage" value="&lt;b&gt;Staging, replacement &amp;amp; rollback&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="1620" y="760" width="210" height="76" as="geometry"/>
-                </mxCell>
-                <mxCell id="svc_result" value="&lt;b&gt;Result aggregation &amp;amp; exit resolution&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="1245" y="895" width="210" height="76" as="geometry"/>
-                </mxCell>
-                <mxCell id="svc_redact" value="&lt;b&gt;Redaction &amp;amp; support-bundle service&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="1495" y="895" width="210" height="76" as="geometry"/>
-                </mxCell>
-                <mxCell id="manifest_store" value="&lt;b&gt;Controlled manifest + schema&lt;/b&gt;&lt;br&gt;Approved products, adapters, profiles, policy, paths" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="1510" y="250" width="300" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="log_doc" value="&lt;b&gt;Logs and support records&lt;/b&gt;&lt;br&gt;~/it140/logs; sanitized diagnostics" style="shape=document;boundedLbl=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="1835" y="625" width="220" height="92" as="geometry"/>
-                </mxCell>
-                <mxCell id="assets_store" value="&lt;b&gt;Managed assets&lt;/b&gt;&lt;br&gt;Settings, launchers, lifecycle files" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="1835" y="800" width="220" height="86" as="geometry"/>
-                </mxCell>
-                <mxCell id="b_adapters_label" value="ALLOWLISTED ADAPTER LAYER" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#444444;spacingLeft=4;" parent="1" vertex="1">
-                    <mxGeometry x="792" y="1007" width="520" height="28" as="geometry"/>
-                </mxCell>
-                <mxCell id="adapter_platform" value="&lt;b&gt;Platform adapter&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="815" y="1060" width="210" height="66" as="geometry"/>
-                </mxCell>
-                <mxCell id="adapter_cap" value="&lt;b&gt;Capability / package adapter&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="1065" y="1060" width="210" height="66" as="geometry"/>
-                </mxCell>
-                <mxCell id="adapter_desktop" value="&lt;b&gt;Desktop integration adapter&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="1315" y="1060" width="210" height="66" as="geometry"/>
-                </mxCell>
-                <mxCell id="adapter_provider" value="&lt;b&gt;Provider adapter&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="1565" y="1060" width="210" height="66" as="geometry"/>
-                </mxCell>
-                <mxCell id="os_target" value="&lt;b&gt;Operating system / privilege / filesystem&lt;/b&gt;" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="790" y="1255" width="260" height="82" as="geometry"/>
-                </mxCell>
-                <mxCell id="product_target" value="&lt;b&gt;Approved IDE stack products&lt;/b&gt;" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="1125" y="1255" width="260" height="82" as="geometry"/>
-                </mxCell>
-                <mxCell id="desktop_target" value="&lt;b&gt;Desktop and shell interfaces&lt;/b&gt;" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="1460" y="1255" width="260" height="82" as="geometry"/>
-                </mxCell>
-                <mxCell id="provider_target" value="&lt;b&gt;External source-hosting service&lt;/b&gt;" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="1775" y="1255" width="180" height="82" as="geometry"/>
-                </mxCell>
-                <mxCell id="legend_title" value="&lt;b&gt;ISO 5807 symbol legend&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Arial;fontSize=13;whiteSpace=wrap;" parent="1" vertex="1">
-                    <mxGeometry x="80" y="650" width="760" height="25" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_term" value="" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#D5E8D4;strokeColor=#82B366;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="80" y="680" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_term_t" value="Terminator" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="136" y="688" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_prep" value="" style="shape=hexagon;perimeter=hexagonPerimeter2;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFE6CC;strokeColor=#D79B00;strokeWidth=2;size=0.22;" parent="1" vertex="1">
-                    <mxGeometry x="270" y="680" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_prep_t" value="Preparation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="326" y="688" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_proc" value="" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="460" y="680" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_proc_t" value="Process" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="516" y="688" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_sub" value="" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;size=0.12;" parent="1" vertex="1">
-                    <mxGeometry x="650" y="680" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_sub_t" value="Predefined process" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="706" y="688" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_dec" value="" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="80" y="744" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_dec_t" value="Decision" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="136" y="752" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_io" value="" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;size=0.18;" parent="1" vertex="1">
-                    <mxGeometry x="270" y="744" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_io_t" value="Data / input-output" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="326" y="752" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_doc" value="" style="shape=document;boundedLbl=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="460" y="744" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_doc_t" value="Document / transcript" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="516" y="752" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_store" value="" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="650" y="744" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_store_t" value="Stored data" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="706" y="752" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_e1" value="first use / refresh" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="user_input" target="prepare_component" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_e2" value="authorized snapshot" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="repo_store" target="prepare_component" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_e3" value="stage" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="prepare_component" target="staging_store" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_e4" value="validated activation" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="staging_store" target="local_package" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <Array as="points">
-                            <mxPoint x="690" y="496"/>
-                            <mxPoint x="690" y="275"/>
-                        </Array>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="a_e5" value="available package" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="local_package" target="entry_points" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_e6" value="action + context" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="entry_points" target="orchestrator" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_orch_0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="orchestrator" target="svc_context" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_orch_1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="orchestrator" target="svc_manifest" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_orch_2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="orchestrator" target="svc_output" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_orch_3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="orchestrator" target="svc_path" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_orch_4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="orchestrator" target="svc_lock" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_orch_5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="orchestrator" target="svc_stage" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_orch_6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="orchestrator" target="svc_result" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_orch_7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="orchestrator" target="svc_redact" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_manifest" value="validated data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="manifest_store" target="svc_manifest" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_log" value="terminal + transcript" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="svc_output" target="log_doc" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_bundle" value="sanitized bundle" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="svc_redact" target="log_doc" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_assets" value="atomic replacement" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="svc_stage" target="assets_store" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_adapt_0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="svc_lock" target="adapter_platform" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_adapt_1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="svc_lock" target="adapter_cap" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_adapt_2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="svc_path" target="adapter_desktop" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_adapt_3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="svc_redact" target="adapter_provider" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_target_0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="adapter_platform" target="os_target" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_target_1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="adapter_cap" target="product_target" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_target_2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="adapter_desktop" target="desktop_target" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="a_target_3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" parent="1" source="adapter_provider" target="provider_target" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-            </root>
-        </mxGraphModel>
-    </diagram>
-    <diagram id="architecture-data-trust" name="Data Flow and Trust Boundaries">
-        <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1450" math="0" shadow="0" adaptiveColors="none">
-            <root>
-                <mxCell id="0"/>
-                <mxCell id="1" parent="0"/>
-                <mxCell id="z_user" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#666666;html=1;container=0;" vertex="1" parent="1">
-                    <mxGeometry x="50" y="170" width="420" height="1030" as="geometry"/>
-                </mxCell>
-                <mxCell id="z_course" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#666666;html=1;container=0;" vertex="1" parent="1">
-                    <mxGeometry x="510" y="170" width="700" height="1030" as="geometry"/>
-                </mxCell>
-                <mxCell id="z_system" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#666666;html=1;container=0;" vertex="1" parent="1">
-                    <mxGeometry x="1250" y="170" width="390" height="1030" as="geometry"/>
-                </mxCell>
-                <mxCell id="z_external" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#666666;html=1;container=0;" vertex="1" parent="1">
-                    <mxGeometry x="1680" y="170" width="370" height="1030" as="geometry"/>
-                </mxCell>
-                <mxCell id="title" value="IT 140 Course Automation Scripts — Data Flow and Trust Boundaries" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=26;fontStyle=1;" vertex="1" parent="1">
-                    <mxGeometry x="40" y="20" width="2020" height="42" as="geometry"/>
-                </mxCell>
-                <mxCell id="metadata" value="&lt;b&gt;Artifact:&lt;/b&gt; architecture.drawio &amp;nbsp; | &amp;nbsp; &lt;b&gt;Version:&lt;/b&gt; 0.1.0 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Version date:&lt;/b&gt; 2026-08-01 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Status:&lt;/b&gt; Alpha Testing&lt;br&gt;&lt;b&gt;Baseline:&lt;/b&gt; IT140-SDD-SCRIPTS 0.3.0 and applicable pseudoscript 0.3.0 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Traceability:&lt;/b&gt; SDD §§4–5, 12–14; SEC-DES and ERR-DES elements&lt;br&gt;&lt;b&gt;Notation:&lt;/b&gt; ISO 5807:1985 system-flowchart symbol profile using native draw.io shapes; arrows show control or data flow." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Arial;fontSize=12;fontColor=#444444;" vertex="1" parent="1">
-                    <mxGeometry x="42" y="66" width="2016" height="62" as="geometry"/>
-                </mxCell>
-                <mxCell id="z_user_label" value="USER-CONTROLLED INPUT / OUTPUT" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#444444;spacingLeft=4;" vertex="1" parent="1">
-                    <mxGeometry x="62" y="157" width="396" height="28" as="geometry"/>
-                </mxCell>
-                <mxCell id="z_course_label" value="COURSE-CONTROLLED LOCAL DATA" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#444444;spacingLeft=4;" vertex="1" parent="1">
-                    <mxGeometry x="522" y="157" width="520" height="28" as="geometry"/>
-                </mxCell>
-                <mxCell id="z_system_label" value="LOCAL SYSTEM / DESKTOP" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#444444;spacingLeft=4;" vertex="1" parent="1">
-                    <mxGeometry x="1262" y="157" width="366" height="28" as="geometry"/>
-                </mxCell>
-                <mxCell id="z_external_label" value="EXTERNAL NETWORK / SERVICE" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#444444;spacingLeft=4;" vertex="1" parent="1">
-                    <mxGeometry x="1692" y="157" width="346" height="28" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_user_args" value="&lt;b&gt;Arguments and prompts&lt;/b&gt;&lt;br&gt;Options, confirmations, public display name" style="shape=manualInput;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;size=20;" vertex="1" parent="1">
-                    <mxGeometry x="105" y="260" width="300" height="80" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_terminal" value="&lt;b&gt;Terminal output&lt;/b&gt;&lt;br&gt;Status, remediation, next step, continuity guidance" style="shape=display;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="105" y="470" width="300" height="100" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_student_files" value="&lt;b&gt;Student-owned content&lt;/b&gt;&lt;br&gt;Assignments, repositories, unrelated settings" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#D5E8D4;strokeColor=#82B366;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="105" y="760" width="300" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_preserve" value="&lt;b&gt;Preservation rule&lt;/b&gt;&lt;br&gt;Automation may change only allowlisted managed paths and keys. All other content remains user-owned." style="shape=note;size=15;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;align=left;verticalAlign=top;spacing=8;fillColor=#D5E8D4;strokeColor=#82B366;strokeWidth=1;" vertex="1" parent="1">
-                    <mxGeometry x="105" y="920" width="300" height="120" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_entry" value="&lt;b&gt;Lifecycle entry point&lt;/b&gt;&lt;br&gt;Build minimal run context and start private transcript" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;size=0.12;" vertex="1" parent="1">
-                    <mxGeometry x="590" y="245" width="250" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_validate" value="&lt;b&gt;Validation gate&lt;/b&gt;&lt;br&gt;Platform/profile, artifact identity, manifest/schema, paths, trust and compatibility" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;size=0.12;" vertex="1" parent="1">
-                    <mxGeometry x="895" y="245" width="250" height="120" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_orch" value="&lt;b&gt;Orchestrator&lt;/b&gt;&lt;br&gt;Build and execute the approved operation/check plan" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="740" y="430" width="270" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_redact" value="&lt;b&gt;Redaction gate&lt;/b&gt;&lt;br&gt;Remove secrets and unnecessary PII before output or bundle" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F8CECC;strokeColor=#B85450;strokeWidth=2;size=0.12;" vertex="1" parent="1">
-                    <mxGeometry x="740" y="650" width="270" height="100" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_manifest" value="&lt;b&gt;Manifest + schema&lt;/b&gt;&lt;br&gt;Immutable validated configuration" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="550" y="850" width="250" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_logs" value="&lt;b&gt;Private logs / support bundle&lt;/b&gt;&lt;br&gt;Versioned run records under ~/it140/logs" style="shape=document;boundedLbl=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="875" y="850" width="250" height="100" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_stage" value="&lt;b&gt;Private staging&lt;/b&gt;&lt;br&gt;Candidate assets before validation and atomic activation" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFE6CC;strokeColor=#D79B00;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="710" y="1030" width="250" height="85" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_platform_adapter" value="&lt;b&gt;Platform / desktop adapters&lt;/b&gt;&lt;br&gt;Native commands, paths, privilege and restart queries" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;size=0.12;" vertex="1" parent="1">
-                    <mxGeometry x="1310" y="330" width="270" height="100" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_command_runner" value="&lt;b&gt;Controlled command runner&lt;/b&gt;&lt;br&gt;Reviewed executable + separated validated arguments" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;size=0.12;" vertex="1" parent="1">
-                    <mxGeometry x="1310" y="540" width="270" height="100" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_local_state" value="&lt;b&gt;System and managed user state&lt;/b&gt;&lt;br&gt;Packages, runtime, settings, launchers, PATH" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="1310" y="790" width="270" height="100" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_repo" value="&lt;b&gt;Authorized repository / software sources&lt;/b&gt;&lt;br&gt;Verified transport and controlled trust material" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="1725" y="300" width="280" height="100" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_provider" value="&lt;b&gt;External provider&lt;/b&gt;&lt;br&gt;Browser authentication and minimum approved account fields" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="1725" y="560" width="280" height="100" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_network" value="&lt;b&gt;Network response&lt;/b&gt;&lt;br&gt;Untrusted until validated; credentials never written to logs" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFE6CC;strokeColor=#D79B00;strokeWidth=2;size=0.18;" vertex="1" parent="1">
-                    <mxGeometry x="1725" y="830" width="280" height="95" as="geometry"/>
-                </mxCell>
-                <mxCell id="legend_title" value="&lt;b&gt;ISO 5807 symbol legend&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Arial;fontSize=13;whiteSpace=wrap;" vertex="1" parent="1">
-                    <mxGeometry x="70" y="1240" width="760" height="25" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_term" value="" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#D5E8D4;strokeColor=#82B366;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="70" y="1270" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_term_t" value="Terminator" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
-                    <mxGeometry x="126" y="1278" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_prep" value="" style="shape=hexagon;perimeter=hexagonPerimeter2;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFE6CC;strokeColor=#D79B00;strokeWidth=2;size=0.22;" vertex="1" parent="1">
-                    <mxGeometry x="260" y="1270" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_prep_t" value="Preparation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
-                    <mxGeometry x="316" y="1278" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_proc" value="" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="450" y="1270" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_proc_t" value="Process" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
-                    <mxGeometry x="506" y="1278" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_sub" value="" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;size=0.12;" vertex="1" parent="1">
-                    <mxGeometry x="640" y="1270" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_sub_t" value="Predefined process" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
-                    <mxGeometry x="696" y="1278" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_dec" value="" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="70" y="1334" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_dec_t" value="Decision" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
-                    <mxGeometry x="126" y="1342" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_io" value="" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;size=0.18;" vertex="1" parent="1">
-                    <mxGeometry x="260" y="1334" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_io_t" value="Data / input-output" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
-                    <mxGeometry x="316" y="1342" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_doc" value="" style="shape=document;boundedLbl=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="450" y="1334" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_doc_t" value="Document / transcript" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
-                    <mxGeometry x="506" y="1342" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_store" value="" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
-                    <mxGeometry x="640" y="1334" width="50" height="36" as="geometry"/>
-                </mxCell>
-                <mxCell id="leg_store_t" value="Stored data" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
-                    <mxGeometry x="696" y="1342" width="128" height="24" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_user_args" target="dt_entry">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_entry" target="dt_validate">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_e3" value="approved context" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_validate" target="dt_orch">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_e4" value="configuration" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_manifest" target="dt_validate">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_e5" value="structured operation" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_orch" target="dt_platform_adapter">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_platform_adapter" target="dt_command_runner">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_e7" value="query / managed change" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_command_runner" target="dt_local_state">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_e8" value="download" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_repo" target="dt_stage">
-                    <mxGeometry relative="1" as="geometry">
-                        <Array as="points">
-                            <mxPoint x="1660" y="350"/>
-                            <mxPoint x="1660" y="1070"/>
-                        </Array>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="dt_e9" value="candidate validation" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_stage" target="dt_validate">
-                    <mxGeometry relative="1" as="geometry">
-                        <Array as="points">
-                            <mxPoint x="835" y="1000"/>
-                            <mxPoint x="1020" y="1000"/>
-                            <mxPoint x="1020" y="380"/>
-                        </Array>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="dt_e10" value="provider adapter call" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_provider" target="dt_platform_adapter">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_e11" value="captured result" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_network" target="dt_redact">
-                    <mxGeometry relative="1" as="geometry">
-                        <Array as="points">
-                            <mxPoint x="1660" y="878"/>
-                            <mxPoint x="1660" y="700"/>
-                        </Array>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="dt_e12" value="messages / diagnostics" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_orch" target="dt_redact">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_e13" value="safe output" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_redact" target="dt_terminal">
-                    <mxGeometry relative="1" as="geometry">
-                        <Array as="points">
-                            <mxPoint x="490" y="700"/>
-                            <mxPoint x="490" y="520"/>
-                        </Array>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="dt_e14" value="safe record" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_redact" target="dt_logs">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="dt_e15" value="preserve unless explicitly managed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dt_orch" target="dt_student_files">
-                    <mxGeometry relative="1" as="geometry">
-                        <Array as="points">
-                            <mxPoint x="590" y="475"/>
-                            <mxPoint x="590" y="805"/>
-                            <mxPoint x="455" y="805"/>
-                        </Array>
-                    </mxGeometry>
-                </mxCell>
-            </root>
-        </mxGraphModel>
-    </diagram>
+<?xml version='1.0' encoding='UTF-8'?>
+<mxfile host="Electron" modified="2026-08-01T13:28:00.000Z" agent="OpenAI GPT-5.6 Thinking; generated as editable uncompressed mxGraph XML" version="30.0.4" type="device" compressed="false" pages="2">
+  <!--IT 140 controlled design artifact. ISO 5807 symbol profile; monochrome black-and-white presentation; uncompressed Draw.io XML.-->
+  <diagram id="architecture-layered" name="Layered Architecture">
+    <mxGraphModel background="#FFFFFF" dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1450" math="0" shadow="0" adaptiveColors="none">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="b_pre" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#000000;html=1;container=0;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="165" width="610" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_local" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#000000;html=1;container=0;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="720" y="165" width="1250" height="1010" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_external" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#000000;html=1;container=0;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="720" y="1210" width="1250" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_services" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#000000;html=1;container=0;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="565" width="770" height="430" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_adapters" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#000000;html=1;container=0;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="780" y="1020" width="1040" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="IT 140 Course Automation Scripts — Layered Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=26;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="2020" height="42" as="geometry"/>
+        </mxCell>
+        <mxCell id="metadata" value="&lt;b&gt;Artifact:&lt;/b&gt; architecture.drawio &amp;nbsp; | &amp;nbsp; &lt;b&gt;Version:&lt;/b&gt; 0.1.1 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Version date:&lt;/b&gt; 2026-08-01 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Status:&lt;/b&gt; Alpha Testing&lt;br&gt;&lt;b&gt;Baseline:&lt;/b&gt; IT140-SDD-SCRIPTS 0.3.0 and applicable pseudoscript 0.3.0 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Traceability:&lt;/b&gt; SDD §§2.1, 3.2–3.4, 4–5, 12–14&lt;br&gt;&lt;b&gt;Notation:&lt;/b&gt; ISO 5807:1985 system-flowchart symbol profile using native draw.io shapes; monochrome black lines and text on a white background; arrows show control or data flow." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Arial;fontSize=12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="42" y="66" width="2016" height="62" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_pre_label" value="PRE-MANIFEST PREPARATION BOUNDARY" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#000000;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="72" y="152" width="520" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_local_label" value="COURSE-CONTROLLED LOCAL PACKAGE" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#000000;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="732" y="152" width="520" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_external_label" value="OPERATING-SYSTEM AND EXTERNAL TRUST BOUNDARIES" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#000000;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="732" y="1197" width="520" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="user_input" value="&lt;b&gt;Student / faculty user&lt;/b&gt;&lt;br&gt;Copied first-use commands or installed lifecycle command" style="shape=manualInput;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=20;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="95" y="230" width="230" height="82" as="geometry"/>
+        </mxCell>
+        <mxCell id="repo_store" value="&lt;b&gt;Authorized course repository&lt;/b&gt;&lt;br&gt;Trusted source snapshot" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="95" y="405" width="230" height="88" as="geometry"/>
+        </mxCell>
+        <mxCell id="prepare_component" value="&lt;b&gt;Prepare component&lt;/b&gt;&lt;br&gt;Native retrieval, private transcript, staging, validation, package overlay, permissions, PATH, cleanup" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="390" y="260" width="240" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="staging_store" value="&lt;b&gt;Private staging&lt;/b&gt;&lt;br&gt;Untrusted until structurally validated" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="390" y="455" width="240" height="82" as="geometry"/>
+        </mxCell>
+        <mxCell id="pre_note" value="&lt;b&gt;Boundary rule&lt;/b&gt;&lt;br&gt;Prepare cannot assume the manifest, shared modules, package manager, version-control client, or course runtime already exists." style="shape=note;size=15;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;align=left;verticalAlign=top;spacing=8;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="95" y="515" width="530" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="local_package" value="&lt;b&gt;Local course package&lt;/b&gt;&lt;br&gt;Lifecycle scripts, manifest, schema, managed assets" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="770" y="230" width="270" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="entry_points" value="&lt;b&gt;Managed lifecycle entry points&lt;/b&gt;&lt;br&gt;Install | Configure | Verify | Update" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="770" y="380" width="270" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="orchestrator" value="&lt;b&gt;Action orchestrator&lt;/b&gt;&lt;br&gt;Stages, decisions, plan execution, post-validation, remediation, exit code" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="380" width="300" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_services_label" value="SHARED-SERVICE LAYER" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#000000;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="1092" y="552" width="520" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_context" value="&lt;b&gt;Run context &amp;amp; artifact identity&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="625" width="210" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_manifest" value="&lt;b&gt;Manifest loader &amp;amp; validator&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1370" y="625" width="210" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_output" value="&lt;b&gt;Output &amp;amp; transcript service&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1620" y="625" width="210" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_path" value="&lt;b&gt;Path safety &amp;amp; file preservation&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="760" width="210" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_lock" value="&lt;b&gt;Lock &amp;amp; command runner&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1370" y="760" width="210" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_stage" value="&lt;b&gt;Staging, replacement &amp;amp; rollback&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1620" y="760" width="210" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_result" value="&lt;b&gt;Result aggregation &amp;amp; exit resolution&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1245" y="895" width="210" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_redact" value="&lt;b&gt;Redaction &amp;amp; support-bundle service&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1495" y="895" width="210" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="manifest_store" value="&lt;b&gt;Controlled manifest + schema&lt;/b&gt;&lt;br&gt;Approved products, adapters, profiles, policy, paths" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1510" y="250" width="300" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="log_doc" value="&lt;b&gt;Logs and support records&lt;/b&gt;&lt;br&gt;~/it140/logs; sanitized diagnostics" style="shape=document;boundedLbl=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1835" y="625" width="220" height="92" as="geometry"/>
+        </mxCell>
+        <mxCell id="assets_store" value="&lt;b&gt;Managed assets&lt;/b&gt;&lt;br&gt;Settings, launchers, lifecycle files" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1835" y="800" width="220" height="86" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_adapters_label" value="ALLOWLISTED ADAPTER LAYER" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#000000;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="792" y="1007" width="520" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="adapter_platform" value="&lt;b&gt;Platform adapter&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="815" y="1060" width="210" height="66" as="geometry"/>
+        </mxCell>
+        <mxCell id="adapter_cap" value="&lt;b&gt;Capability / package adapter&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1065" y="1060" width="210" height="66" as="geometry"/>
+        </mxCell>
+        <mxCell id="adapter_desktop" value="&lt;b&gt;Desktop integration adapter&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1315" y="1060" width="210" height="66" as="geometry"/>
+        </mxCell>
+        <mxCell id="adapter_provider" value="&lt;b&gt;Provider adapter&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1565" y="1060" width="210" height="66" as="geometry"/>
+        </mxCell>
+        <mxCell id="os_target" value="&lt;b&gt;Operating system / privilege / filesystem&lt;/b&gt;" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="790" y="1255" width="260" height="82" as="geometry"/>
+        </mxCell>
+        <mxCell id="product_target" value="&lt;b&gt;Approved IDE stack products&lt;/b&gt;" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1125" y="1255" width="260" height="82" as="geometry"/>
+        </mxCell>
+        <mxCell id="desktop_target" value="&lt;b&gt;Desktop and shell interfaces&lt;/b&gt;" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="1255" width="260" height="82" as="geometry"/>
+        </mxCell>
+        <mxCell id="provider_target" value="&lt;b&gt;External source-hosting service&lt;/b&gt;" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1775" y="1255" width="180" height="82" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="&lt;b&gt;ISO 5807 symbol legend&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Arial;fontSize=13;whiteSpace=wrap;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="80" y="650" width="760" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_term" value="" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="80" y="680" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_term_t" value="Terminator" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="136" y="688" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_prep" value="" style="shape=hexagon;perimeter=hexagonPerimeter2;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.22;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="270" y="680" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_prep_t" value="Preparation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="326" y="688" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_proc" value="" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="460" y="680" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_proc_t" value="Process" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="516" y="688" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_sub" value="" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="650" y="680" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_sub_t" value="Predefined process" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="706" y="688" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_dec" value="" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="80" y="744" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_dec_t" value="Decision" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="136" y="752" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_io" value="" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.18;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="270" y="744" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_io_t" value="Data / input-output" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="326" y="752" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_doc" value="" style="shape=document;boundedLbl=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="460" y="744" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_doc_t" value="Document / transcript" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="516" y="752" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_store" value="" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="650" y="744" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_store_t" value="Stored data" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="706" y="752" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_e1" value="first use / refresh" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="user_input" target="prepare_component">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_e2" value="authorized snapshot" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="repo_store" target="prepare_component">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_e3" value="stage" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="prepare_component" target="staging_store">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_e4" value="validated activation" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="staging_store" target="local_package">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="690" y="496"/>
+              <mxPoint x="690" y="275"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a_e5" value="available package" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="local_package" target="entry_points">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_e6" value="action + context" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="entry_points" target="orchestrator">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_orch_0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="orchestrator" target="svc_context">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_orch_1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="orchestrator" target="svc_manifest">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_orch_2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="orchestrator" target="svc_output">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_orch_3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="orchestrator" target="svc_path">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_orch_4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="orchestrator" target="svc_lock">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_orch_5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="orchestrator" target="svc_stage">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_orch_6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="orchestrator" target="svc_result">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_orch_7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="orchestrator" target="svc_redact">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_manifest" value="validated data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="manifest_store" target="svc_manifest">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_log" value="terminal + transcript" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="svc_output" target="log_doc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_bundle" value="sanitized bundle" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="svc_redact" target="log_doc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_assets" value="atomic replacement" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="svc_stage" target="assets_store">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_adapt_0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="svc_lock" target="adapter_platform">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_adapt_1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="svc_lock" target="adapter_cap">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_adapt_2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="svc_path" target="adapter_desktop">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_adapt_3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="svc_redact" target="adapter_provider">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_target_0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="adapter_platform" target="os_target">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_target_1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="adapter_cap" target="product_target">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_target_2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="adapter_desktop" target="desktop_target">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a_target_3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="adapter_provider" target="provider_target">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="architecture-data-trust" name="Data Flow and Trust Boundaries">
+    <mxGraphModel background="#FFFFFF" dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1450" math="0" shadow="0" adaptiveColors="none">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="z_user" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#000000;html=1;container=0;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="50" y="170" width="420" height="1030" as="geometry"/>
+        </mxCell>
+        <mxCell id="z_course" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#000000;html=1;container=0;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="510" y="170" width="700" height="1030" as="geometry"/>
+        </mxCell>
+        <mxCell id="z_system" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#000000;html=1;container=0;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="170" width="390" height="1030" as="geometry"/>
+        </mxCell>
+        <mxCell id="z_external" value="" style="rounded=0;dashed=1;dashPattern=8 4;strokeWidth=2;fillColor=none;strokeColor=#000000;html=1;container=0;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1680" y="170" width="370" height="1030" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="IT 140 Course Automation Scripts — Data Flow and Trust Boundaries" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=26;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="2020" height="42" as="geometry"/>
+        </mxCell>
+        <mxCell id="metadata" value="&lt;b&gt;Artifact:&lt;/b&gt; architecture.drawio &amp;nbsp; | &amp;nbsp; &lt;b&gt;Version:&lt;/b&gt; 0.1.1 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Version date:&lt;/b&gt; 2026-08-01 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Status:&lt;/b&gt; Alpha Testing&lt;br&gt;&lt;b&gt;Baseline:&lt;/b&gt; IT140-SDD-SCRIPTS 0.3.0 and applicable pseudoscript 0.3.0 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Traceability:&lt;/b&gt; SDD §§4–5, 12–14; SEC-DES and ERR-DES elements&lt;br&gt;&lt;b&gt;Notation:&lt;/b&gt; ISO 5807:1985 system-flowchart symbol profile using native draw.io shapes; monochrome black lines and text on a white background; arrows show control or data flow." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Arial;fontSize=12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="42" y="66" width="2016" height="62" as="geometry"/>
+        </mxCell>
+        <mxCell id="z_user_label" value="USER-CONTROLLED INPUT / OUTPUT" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#000000;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="62" y="157" width="396" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="z_course_label" value="COURSE-CONTROLLED LOCAL DATA" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#000000;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="522" y="157" width="520" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="z_system_label" value="LOCAL SYSTEM / DESKTOP" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#000000;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="1262" y="157" width="366" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="z_external_label" value="EXTERNAL NETWORK / SERVICE" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontStyle=1;fontColor=#000000;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="1692" y="157" width="346" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_user_args" value="&lt;b&gt;Arguments and prompts&lt;/b&gt;&lt;br&gt;Options, confirmations, public display name" style="shape=manualInput;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=20;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="105" y="260" width="300" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_terminal" value="&lt;b&gt;Terminal output&lt;/b&gt;&lt;br&gt;Status, remediation, next step, continuity guidance" style="shape=display;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="105" y="470" width="300" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_student_files" value="&lt;b&gt;Student-owned content&lt;/b&gt;&lt;br&gt;Assignments, repositories, unrelated settings" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="105" y="760" width="300" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_preserve" value="&lt;b&gt;Preservation rule&lt;/b&gt;&lt;br&gt;Automation may change only allowlisted managed paths and keys. All other content remains user-owned." style="shape=note;size=15;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;align=left;verticalAlign=top;spacing=8;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="105" y="920" width="300" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_entry" value="&lt;b&gt;Lifecycle entry point&lt;/b&gt;&lt;br&gt;Build minimal run context and start private transcript" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="590" y="245" width="250" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_validate" value="&lt;b&gt;Validation gate&lt;/b&gt;&lt;br&gt;Platform/profile, artifact identity, manifest/schema, paths, trust and compatibility" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="895" y="245" width="250" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_orch" value="&lt;b&gt;Orchestrator&lt;/b&gt;&lt;br&gt;Build and execute the approved operation/check plan" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="740" y="430" width="270" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_redact" value="&lt;b&gt;Redaction gate&lt;/b&gt;&lt;br&gt;Remove secrets and unnecessary PII before output or bundle" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="740" y="650" width="270" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_manifest" value="&lt;b&gt;Manifest + schema&lt;/b&gt;&lt;br&gt;Immutable validated configuration" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="550" y="850" width="250" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_logs" value="&lt;b&gt;Private logs / support bundle&lt;/b&gt;&lt;br&gt;Versioned run records under ~/it140/logs" style="shape=document;boundedLbl=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="875" y="850" width="250" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_stage" value="&lt;b&gt;Private staging&lt;/b&gt;&lt;br&gt;Candidate assets before validation and atomic activation" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="710" y="1030" width="250" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_platform_adapter" value="&lt;b&gt;Platform / desktop adapters&lt;/b&gt;&lt;br&gt;Native commands, paths, privilege and restart queries" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="330" width="270" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_command_runner" value="&lt;b&gt;Controlled command runner&lt;/b&gt;&lt;br&gt;Reviewed executable + separated validated arguments" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="540" width="270" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_local_state" value="&lt;b&gt;System and managed user state&lt;/b&gt;&lt;br&gt;Packages, runtime, settings, launchers, PATH" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="790" width="270" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_repo" value="&lt;b&gt;Authorized repository / software sources&lt;/b&gt;&lt;br&gt;Verified transport and controlled trust material" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1725" y="300" width="280" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_provider" value="&lt;b&gt;External provider&lt;/b&gt;&lt;br&gt;Browser authentication and minimum approved account fields" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1725" y="560" width="280" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_network" value="&lt;b&gt;Network response&lt;/b&gt;&lt;br&gt;Untrusted until validated; credentials never written to logs" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.18;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1725" y="830" width="280" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="&lt;b&gt;ISO 5807 symbol legend&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Arial;fontSize=13;whiteSpace=wrap;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1240" width="760" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_term" value="" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1270" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_term_t" value="Terminator" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="126" y="1278" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_prep" value="" style="shape=hexagon;perimeter=hexagonPerimeter2;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.22;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="260" y="1270" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_prep_t" value="Preparation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="316" y="1278" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_proc" value="" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="450" y="1270" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_proc_t" value="Process" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="506" y="1278" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_sub" value="" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="640" y="1270" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_sub_t" value="Predefined process" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="696" y="1278" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_dec" value="" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1334" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_dec_t" value="Decision" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="126" y="1342" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_io" value="" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.18;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="260" y="1334" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_io_t" value="Data / input-output" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="316" y="1342" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_doc" value="" style="shape=document;boundedLbl=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="450" y="1334" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_doc_t" value="Document / transcript" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="506" y="1342" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_store" value="" style="shape=cylinder;boundedLbl=1;backgroundOutline=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="640" y="1334" width="50" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_store_t" value="Stored data" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="696" y="1342" width="128" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_user_args" target="dt_entry">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_entry" target="dt_validate">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_e3" value="approved context" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_validate" target="dt_orch">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_e4" value="configuration" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_manifest" target="dt_validate">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_e5" value="structured operation" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_orch" target="dt_platform_adapter">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_platform_adapter" target="dt_command_runner">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_e7" value="query / managed change" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_command_runner" target="dt_local_state">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_e8" value="download" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_repo" target="dt_stage">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1660" y="350"/>
+              <mxPoint x="1660" y="1070"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dt_e9" value="candidate validation" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_stage" target="dt_validate">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="835" y="1000"/>
+              <mxPoint x="1020" y="1000"/>
+              <mxPoint x="1020" y="380"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dt_e10" value="provider adapter call" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_provider" target="dt_platform_adapter">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_e11" value="captured result" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_network" target="dt_redact">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1660" y="878"/>
+              <mxPoint x="1660" y="700"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dt_e12" value="messages / diagnostics" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_orch" target="dt_redact">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_e13" value="safe output" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_redact" target="dt_terminal">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="490" y="700"/>
+              <mxPoint x="490" y="520"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dt_e14" value="safe record" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_redact" target="dt_logs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="dt_e15" value="preserve unless explicitly managed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="dt_orch" target="dt_student_files">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590" y="475"/>
+              <mxPoint x="590" y="805"/>
+              <mxPoint x="455" y="805"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
 </mxfile>

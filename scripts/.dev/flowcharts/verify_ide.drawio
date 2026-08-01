@@ -1,171 +1,171 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<mxfile host="Electron" modified="2026-08-01T13:30:00.000Z" agent="OpenAI GPT-5.6 Thinking; generated as editable uncompressed mxGraph XML" version="30.0.4" type="device" compressed="false" pages="1">
-  <!--IT 140 controlled design artifact. ISO 5807 symbol profile; uncompressed Draw.io XML.-->
+<mxfile host="Electron" modified="2026-08-01T13:28:00.000Z" agent="OpenAI GPT-5.6 Thinking; generated as editable uncompressed mxGraph XML" version="30.0.4" type="device" compressed="false" pages="1">
+  <!--IT 140 controlled design artifact. ISO 5807 symbol profile; monochrome black-and-white presentation; uncompressed Draw.io XML.-->
   <diagram id="verify-flow" name="Verify Script Flowchart">
-    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1950" pageHeight="1980" math="0" shadow="0" adaptiveColors="none">
+    <mxGraphModel background="#FFFFFF" dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1950" pageHeight="1980" math="0" shadow="0" adaptiveColors="none">
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
-        <mxCell id="title" value="Verify Lifecycle Script — ISO 5807 System Flowchart" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=26;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="title" value="Verify Lifecycle Script — ISO 5807 System Flowchart" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=26;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="1870" height="42" as="geometry"/>
         </mxCell>
-        <mxCell id="metadata" value="&lt;b&gt;Artifact:&lt;/b&gt; verify_ide.drawio &amp;nbsp; | &amp;nbsp; &lt;b&gt;Version:&lt;/b&gt; 0.1.0 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Version date:&lt;/b&gt; 2026-08-01 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Status:&lt;/b&gt; Alpha Testing&lt;br&gt;&lt;b&gt;Baseline:&lt;/b&gt; IT140-SDD-SCRIPTS 0.3.0 and applicable pseudoscript 0.3.0 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Traceability:&lt;/b&gt; SDD §10; VER-DES elements; verify_ide.pseudo 0.3.0&lt;br&gt;&lt;b&gt;Notation:&lt;/b&gt; ISO 5807:1985 system-flowchart symbol profile using native draw.io shapes; arrows show control or data flow." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Arial;fontSize=12;fontColor=#444444;" vertex="1" parent="1">
+        <mxCell id="metadata" value="&lt;b&gt;Artifact:&lt;/b&gt; verify_ide.drawio &amp;nbsp; | &amp;nbsp; &lt;b&gt;Version:&lt;/b&gt; 0.1.1 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Version date:&lt;/b&gt; 2026-08-01 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Status:&lt;/b&gt; Alpha Testing&lt;br&gt;&lt;b&gt;Baseline:&lt;/b&gt; IT140-SDD-SCRIPTS 0.3.0 and applicable pseudoscript 0.3.0 &amp;nbsp; | &amp;nbsp; &lt;b&gt;Traceability:&lt;/b&gt; SDD §10; VER-DES elements; verify_ide.pseudo 0.3.0&lt;br&gt;&lt;b&gt;Notation:&lt;/b&gt; ISO 5807:1985 system-flowchart symbol profile using native draw.io shapes; monochrome black lines and text on a white background; arrows show control or data flow." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Arial;fontSize=12;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="42" y="66" width="1866" height="62" as="geometry"/>
         </mxCell>
-        <mxCell id="v_start" value="&lt;b&gt;Start Verify&lt;/b&gt;" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#D5E8D4;strokeColor=#82B366;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_start" value="&lt;b&gt;Start Verify&lt;/b&gt;" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="710" y="140" width="260" height="62" as="geometry"/>
         </mxCell>
-        <mxCell id="v_args" value="&lt;b&gt;Parse supported options&lt;/b&gt;" style="shape=manualInput;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;size=20;" vertex="1" parent="1">
+        <mxCell id="v_args" value="&lt;b&gt;Parse supported options&lt;/b&gt;" style="shape=manualInput;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=20;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="710" y="245" width="260" height="65" as="geometry"/>
         </mxCell>
-        <mxCell id="v_info" value="&lt;b&gt;Help or version requested?&lt;/b&gt;" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_info" value="&lt;b&gt;Help or version requested?&lt;/b&gt;" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="740" y="355" width="200" height="100" as="geometry"/>
         </mxCell>
-        <mxCell id="v_info_out" value="&lt;b&gt;Display requested information&lt;/b&gt;" style="shape=display;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_info_out" value="&lt;b&gt;Display requested information&lt;/b&gt;" style="shape=display;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="210" y="375" width="300" height="70" as="geometry"/>
         </mxCell>
-        <mxCell id="v_info_end" value="&lt;b&gt;End&lt;/b&gt;&lt;br&gt;Return 0" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#D5E8D4;strokeColor=#82B366;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_info_end" value="&lt;b&gt;End&lt;/b&gt;&lt;br&gt;Return 0" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="260" y="500" width="200" height="58" as="geometry"/>
         </mxCell>
-        <mxCell id="v_init" value="&lt;b&gt;Initialize read-only run&lt;/b&gt;&lt;br&gt;Strict handling; private transcript; run context; opening information; never elevate or repair managed state" style="shape=hexagon;perimeter=hexagonPerimeter2;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFE6CC;strokeColor=#D79B00;strokeWidth=2;size=0.22;" vertex="1" parent="1">
+        <mxCell id="v_init" value="&lt;b&gt;Initialize read-only run&lt;/b&gt;&lt;br&gt;Strict handling; private transcript; run context; opening information; never elevate or repair managed state" style="shape=hexagon;perimeter=hexagonPerimeter2;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.22;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="660" y="510" width="360" height="105" as="geometry"/>
         </mxCell>
-        <mxCell id="v_platform" value="&lt;b&gt;Check platform and user context&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;size=0.12;" vertex="1" parent="1">
+        <mxCell id="v_platform" value="&lt;b&gt;Check platform and user context&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="660" y="675" width="360" height="75" as="geometry"/>
         </mxCell>
-        <mxCell id="v_supported" value="&lt;b&gt;Supported context?&lt;/b&gt;" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_supported" value="&lt;b&gt;Supported context?&lt;/b&gt;" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="730" y="805" width="220" height="105" as="geometry"/>
         </mxCell>
-        <mxCell id="v_manifest" value="&lt;b&gt;Validate manifest, schema, deployment profile and artifact identities&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;size=0.12;" vertex="1" parent="1">
+        <mxCell id="v_manifest" value="&lt;b&gt;Validate manifest, schema, deployment profile and artifact identities&lt;/b&gt;" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="660" y="955" width="360" height="90" as="geometry"/>
         </mxCell>
-        <mxCell id="v_manifest_ok" value="&lt;b&gt;Controlled data valid?&lt;/b&gt;" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_manifest_ok" value="&lt;b&gt;Controlled data valid?&lt;/b&gt;" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="730" y="1095" width="220" height="105" as="geometry"/>
         </mxCell>
-        <mxCell id="v_checks" value="&lt;b&gt;Run ordered check registry&lt;/b&gt;&lt;br&gt;Disk and optional network; system layer; optional conveniences; user layer; managed assets; record PASS / NOTICE / WARNING / FAIL with remediation owner" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;size=0.12;" vertex="1" parent="1">
+        <mxCell id="v_checks" value="&lt;b&gt;Run ordered check registry&lt;/b&gt;&lt;br&gt;Disk and optional network; system layer; optional conveniences; user layer; managed assets; record PASS / NOTICE / WARNING / FAIL with remediation owner" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="620" y="1250" width="440" height="130" as="geometry"/>
         </mxCell>
-        <mxCell id="v_bundle_req" value="&lt;b&gt;Sanitized support bundle requested?&lt;/b&gt;" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_bundle_req" value="&lt;b&gt;Sanitized support bundle requested?&lt;/b&gt;" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="1160" y="1245" width="240" height="115" as="geometry"/>
         </mxCell>
-        <mxCell id="v_confirm" value="&lt;b&gt;Explicit confirmation available?&lt;/b&gt;" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_confirm" value="&lt;b&gt;Explicit confirmation available?&lt;/b&gt;" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="1160" y="1405" width="240" height="110" as="geometry"/>
         </mxCell>
-        <mxCell id="v_bundle" value="&lt;b&gt;Create sanitized support bundle&lt;/b&gt;&lt;br&gt;Redact secrets and unnecessary PII; include approved inventory and logs only" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;size=0.12;" vertex="1" parent="1">
+        <mxCell id="v_bundle" value="&lt;b&gt;Create sanitized support bundle&lt;/b&gt;&lt;br&gt;Redact secrets and unnecessary PII; include approved inventory and logs only" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="1475" y="1400" width="350" height="110" as="geometry"/>
         </mxCell>
-        <mxCell id="v_aggregate" value="&lt;b&gt;Aggregate ordered results and resolve exit code&lt;/b&gt;" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_aggregate" value="&lt;b&gt;Aggregate ordered results and resolve exit code&lt;/b&gt;" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="620" y="1455" width="440" height="80" as="geometry"/>
         </mxCell>
-        <mxCell id="v_failures" value="&lt;b&gt;Any required FAIL results?&lt;/b&gt;" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_failures" value="&lt;b&gt;Any required FAIL results?&lt;/b&gt;" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="720" y="1590" width="240" height="110" as="geometry"/>
         </mxCell>
-        <mxCell id="v_pass" value="&lt;b&gt;Display compliant summary&lt;/b&gt;&lt;br&gt;Counts, notices/warnings, no required remediation, exact log path, exit code 0" style="shape=display;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#D5E8D4;strokeColor=#82B366;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_pass" value="&lt;b&gt;Display compliant summary&lt;/b&gt;&lt;br&gt;Counts, notices/warnings, no required remediation, exact log path, exit code 0" style="shape=display;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="260" y="1740" width="380" height="105" as="geometry"/>
         </mxCell>
-        <mxCell id="v_end_pass" value="&lt;b&gt;End Verify&lt;/b&gt;&lt;br&gt;Close transcript and return 0" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#D5E8D4;strokeColor=#82B366;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_end_pass" value="&lt;b&gt;End Verify&lt;/b&gt;&lt;br&gt;Close transcript and return 0" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="350" y="1870" width="200" height="58" as="geometry"/>
         </mxCell>
-        <mxCell id="v_noncompliant" value="&lt;b&gt;Display noncompliant summary&lt;/b&gt;&lt;br&gt;List failed checks and exact owner-specific remediation; include log path and profile-aware course-continuity guidance" style="shape=display;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F8CECC;strokeColor=#B85450;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_noncompliant" value="&lt;b&gt;Display noncompliant summary&lt;/b&gt;&lt;br&gt;List failed checks and exact owner-specific remediation; include log path and profile-aware course-continuity guidance" style="shape=display;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="1070" y="1725" width="430" height="125" as="geometry"/>
         </mxCell>
-        <mxCell id="v_end_fail" value="&lt;b&gt;End Verify&lt;/b&gt;&lt;br&gt;Close transcript and return 1" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F8CECC;strokeColor=#B85450;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_end_fail" value="&lt;b&gt;End Verify&lt;/b&gt;&lt;br&gt;Close transcript and return 1" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="1185" y="1870" width="200" height="58" as="geometry"/>
         </mxCell>
-        <mxCell id="v_early_fail" value="&lt;b&gt;Display unsupported or controlled-data failure conclusion&lt;/b&gt;&lt;br&gt;Include specific reason, remediation/support instruction, log path and profile-aware course continuity" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F8CECC;strokeColor=#B85450;strokeWidth=2;size=0.12;" vertex="1" parent="1">
+        <mxCell id="v_early_fail" value="&lt;b&gt;Display unsupported or controlled-data failure conclusion&lt;/b&gt;&lt;br&gt;Include specific reason, remediation/support instruction, log path and profile-aware course continuity" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="1390" y="710" width="430" height="130" as="geometry"/>
         </mxCell>
-        <mxCell id="v_early_end" value="&lt;b&gt;End&lt;/b&gt;&lt;br&gt;Return 2 for unsupported context or 5 for controlled-data failure" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F8CECC;strokeColor=#B85450;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_early_end" value="&lt;b&gt;End&lt;/b&gt;&lt;br&gt;Return 2 for unsupported context or 5 for controlled-data failure" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="1505" y="910" width="210" height="85" as="geometry"/>
         </mxCell>
-        <mxCell id="v_log" value="&lt;b&gt;Private Verify transcript&lt;/b&gt;&lt;br&gt;Read-only results under ~/it140/logs" style="shape=document;boundedLbl=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="v_log" value="&lt;b&gt;Private Verify transcript&lt;/b&gt;&lt;br&gt;Read-only results under ~/it140/logs" style="shape=document;boundedLbl=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="100" y="680" width="330" height="90" as="geometry"/>
         </mxCell>
-        <mxCell id="legend_title" value="&lt;b&gt;ISO symbol legend&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Arial;fontSize=13;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="legend_title" value="&lt;b&gt;ISO symbol legend&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Arial;fontSize=13;whiteSpace=wrap;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="80" y="1180" width="400" height="25" as="geometry"/>
         </mxCell>
-        <mxCell id="leg_term" value="" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#D5E8D4;strokeColor=#82B366;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="leg_term" value="" style="ellipse;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="80" y="1210" width="46" height="34" as="geometry"/>
         </mxCell>
-        <mxCell id="leg_term_t" value="Start / End" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="leg_term_t" value="Start / End" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="132" y="1217" width="115" height="25" as="geometry"/>
         </mxCell>
-        <mxCell id="leg_proc" value="" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="leg_proc" value="" style="rectangle;rounded=0;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="250" y="1210" width="46" height="34" as="geometry"/>
         </mxCell>
-        <mxCell id="leg_proc_t" value="Process" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="leg_proc_t" value="Process" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="302" y="1217" width="115" height="25" as="geometry"/>
         </mxCell>
-        <mxCell id="leg_sub" value="" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;size=0.12;" vertex="1" parent="1">
+        <mxCell id="leg_sub" value="" style="shape=process;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.12;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="420" y="1210" width="46" height="34" as="geometry"/>
         </mxCell>
-        <mxCell id="leg_sub_t" value="Predefined process" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="leg_sub_t" value="Predefined process" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="472" y="1217" width="115" height="25" as="geometry"/>
         </mxCell>
-        <mxCell id="leg_dec" value="" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="leg_dec" value="" style="rhombus;perimeter=rhombusPerimeter;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="80" y="1272" width="46" height="34" as="geometry"/>
         </mxCell>
-        <mxCell id="leg_dec_t" value="Decision" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="leg_dec_t" value="Decision" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="132" y="1279" width="115" height="25" as="geometry"/>
         </mxCell>
-        <mxCell id="leg_io" value="" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;size=0.18;" vertex="1" parent="1">
+        <mxCell id="leg_io" value="" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;size=0.18;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="250" y="1272" width="46" height="34" as="geometry"/>
         </mxCell>
-        <mxCell id="leg_io_t" value="Input / Output" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="leg_io_t" value="Input / Output" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="302" y="1279" width="115" height="25" as="geometry"/>
         </mxCell>
-        <mxCell id="leg_doc" value="" style="shape=document;boundedLbl=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="leg_doc" value="" style="shape=document;boundedLbl=1;fontFamily=Arial;fontSize=14;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="420" y="1272" width="46" height="34" as="geometry"/>
         </mxCell>
-        <mxCell id="leg_doc_t" value="Log / Document" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="leg_doc_t" value="Log / Document" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="472" y="1279" width="115" height="25" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_start" target="v_args">
+        <mxCell id="v_e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_start" target="v_args">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_args" target="v_info">
+        <mxCell id="v_e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_args" target="v_info">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e3" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_info" target="v_info_out">
+        <mxCell id="v_e3" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_info" target="v_info_out">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_info_out" target="v_info_end">
+        <mxCell id="v_e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_info_out" target="v_info_end">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e5" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_info" target="v_init">
+        <mxCell id="v_e5" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_info" target="v_init">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_init" target="v_platform">
+        <mxCell id="v_e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_init" target="v_platform">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_platform" target="v_supported">
+        <mxCell id="v_e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_platform" target="v_supported">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e8" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_supported" target="v_manifest">
+        <mxCell id="v_e8" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_supported" target="v_manifest">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e9" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#B85450;fontFamily=Arial;fontSize=12;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_supported" target="v_early_fail">
+        <mxCell id="v_e9" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;fontStyle=1;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_supported" target="v_early_fail">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_manifest" target="v_manifest_ok">
+        <mxCell id="v_e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_manifest" target="v_manifest_ok">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e11" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_manifest_ok" target="v_checks">
+        <mxCell id="v_e11" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_manifest_ok" target="v_checks">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e12" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#B85450;fontFamily=Arial;fontSize=12;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_manifest_ok" target="v_early_fail">
+        <mxCell id="v_e12" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;fontStyle=1;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_manifest_ok" target="v_early_fail">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_early_fail" target="v_early_end">
+        <mxCell id="v_e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_early_fail" target="v_early_end">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_checks" target="v_bundle_req">
+        <mxCell id="v_e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_checks" target="v_bundle_req">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e15" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_bundle_req" target="v_confirm">
+        <mxCell id="v_e15" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_bundle_req" target="v_confirm">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e16" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_bundle_req" target="v_aggregate">
+        <mxCell id="v_e16" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_bundle_req" target="v_aggregate">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="1105" y="1302"/>
@@ -173,10 +173,10 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="v_e17" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_confirm" target="v_bundle">
+        <mxCell id="v_e17" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_confirm" target="v_bundle">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e18" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_confirm" target="v_aggregate">
+        <mxCell id="v_e18" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_confirm" target="v_aggregate">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="1105" y="1460"/>
@@ -184,7 +184,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="v_e19" value="created" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_bundle" target="v_aggregate">
+        <mxCell id="v_e19" value="created" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_bundle" target="v_aggregate">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="1435" y="1455"/>
@@ -193,22 +193,22 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="v_e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_aggregate" target="v_failures">
+        <mxCell id="v_e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_aggregate" target="v_failures">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e21" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_failures" target="v_pass">
+        <mxCell id="v_e21" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_failures" target="v_pass">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_pass" target="v_end_pass">
+        <mxCell id="v_e22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_pass" target="v_end_pass">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e23" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_failures" target="v_noncompliant">
+        <mxCell id="v_e23" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_failures" target="v_noncompliant">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_e24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_noncompliant" target="v_end_fail">
+        <mxCell id="v_e24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_noncompliant" target="v_end_fail">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="v_log_edge" value="write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="v_init" target="v_log">
+        <mxCell id="v_log_edge" value="write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#000000;fontFamily=Arial;fontSize=12;labelBackgroundColor=#FFFFFF;fontColor=#000000;" edge="1" parent="1" source="v_init" target="v_log">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
       </root>
