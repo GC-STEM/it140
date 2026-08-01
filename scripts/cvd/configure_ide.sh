@@ -3,8 +3,8 @@
 # IT 140 Codio Virtual Desktop user configuration and repair script
 #
 # Artifact ID: IT140-CVD-CONFIGURE
-# Artifact version: 0.7.1-alpha.1
-# Version date-time group: 2026-08-01-16-05
+# Artifact version: 0.7.1-alpha.2
+# Version date-time group: 2026-08-01-17-03
 # Development status: Alpha Testing
 #
 # Traceability: CFG-FR-001 through CFG-FR-017; PKG-FR-021;
@@ -16,14 +16,15 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="0.7.1-alpha.1"
-readonly VERSION_DTG="2026-08-01-16-05"
+readonly SCRIPT_VERSION="0.7.1-alpha.2"
+readonly VERSION_DTG="2026-08-01-17-03"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
 readonly SCRIPT_ROOT="${COURSE_ROOT}/scripts"
+readonly PLATFORM_SCRIPT_DIR="${SCRIPT_ROOT}/${PLATFORM_ID}"
 readonly MANIFEST_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.json"
 readonly SCHEMA_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.schema.json"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
@@ -196,9 +197,9 @@ finish() {
     printf 'End time        : %s\n' "$(date --iso-8601=seconds)"
     printf 'Managed changes : %s\n' "$( [[ "$CHANGED" == true ]] && printf 'Yes' || printf 'No' )"
     printf 'Elapsed time    : %s seconds\n' "$elapsed"
+    printf 'Next step       : %s\n' "$next_step"
     printf 'Log file        : %s\n' "$LOG_FILE"
     printf 'Exit code       : %s\n' "$exit_code"
-    printf 'Next step       : %s\n' "$next_step"
 
     if ((exit_code == 0)); then
         print_success "The IT 140 CVD user configuration completed successfully."
