@@ -10,10 +10,10 @@
 #     identity, user tools, IDE settings, and desktop integrations.
 #
 # Artifact version:
-#     0.2.0
+#     0.3.0
 #
 # Version date:
-#     2026-07-29
+#     2026-08-01
 #
 # Development status:
 #     Alpha Testing
@@ -21,6 +21,7 @@
 # Version basis:
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
+#     Version 0.3.0 adds the common CVD course-continuity conclusion.
 #
 # CVD implementation target:
 #     configure_ide.sh version 2026.07.26.5 (legacy calendar version)
@@ -33,10 +34,10 @@
 #     and automation_release_date in YYYY-MM-DD format.
 #
 # SRS traceability:
-#     CFG-FR-001 through CFG-FR-016
+#     CFG-FR-001 through CFG-FR-017; PKG-FR-021
 #
 # SDD traceability:
-#     CFG-DES-001 through CFG-DES-016
+#     CFG-DES-001 through CFG-DES-017; INT-DES-014; ERR-DES-014
 #
 # Intended user:
 #     The standard student or faculty account that will complete course work.
@@ -52,13 +53,13 @@
 #     - Removal of unrelated valid user settings
 #
 # Normal next step:
-#     Close the terminal, open a new terminal, and run verify_<platform>.
+#     Close the terminal, open a new terminal, and run verify_ide.<ext>.
 #
 # ==============================================================================
 
 
-artifact_version = "0.2.0"
-version_date = "2026-07-29"
+artifact_version = "0.3.0"
+version_date = "2026-08-01"
 development_status = "Alpha Testing"
 action_id = "configure"
 may_change_state = TRUE
@@ -97,7 +98,7 @@ PROCEDURE main(arguments)
     set_private_default_file_permissions()
 
     run_context = resolve_configure_paths_and_start_private_transcript(
-        filename_pattern = "config_<platform>_<YYYYMMDD>_<HHMMSS>.log"
+        filename_pattern = "configure_ide_<YYYYMMDD>_<HHMMSS>.log"
     )
 
     changed = FALSE
@@ -105,10 +106,12 @@ PROCEDURE main(arguments)
 
     INSTALL error handler:
         - report the failing location and log path;
+        - call display_course_continuity_guidance(run_context);
         - return 7 when managed user state changed, otherwise 1.
 
     INSTALL interruption handler:
         - instruct the user to rerun configure;
+        - call display_course_continuity_guidance(run_context);
         - return 7 when managed user state changed, otherwise 6.
 
     DISPLAY opening information:

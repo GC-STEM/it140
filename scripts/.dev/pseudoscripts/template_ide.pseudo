@@ -17,10 +17,10 @@
 #  verify_ide.pseudo
 #
 # Artifact version:
-#  0.2.0
+#  0.3.0
 #
 # Version date:
-#  2026-07-29
+#  2026-08-01
 #
 # Development status:
 #  Alpha Testing
@@ -28,6 +28,7 @@
 # Version basis:
 #  Version 0.1.0 represents the initial template baseline. Version 0.2.0 adds
 #  the artifact version, version date, and development-status standard.
+#  Version 0.3.0 adds the common CVD course-continuity conclusion.
 #
 # Repository baseline:
 #  GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
@@ -70,7 +71,7 @@
 # install_ide.pseudo, configure_ide.pseudo, update_ide.pseudo, and verify_ide.pseudo
 # use the managed lifecycle-script pattern below.
 #
-# setup:
+# install:
 #  state_scope       = system
 #  may_change_state  = TRUE
 #  lock_required     = TRUE
@@ -205,6 +206,8 @@
 #  update.course_assets
 #  verify.user_path
 #  run.summary
+#  run.course_continuity.local
+#  run.course_continuity.cvd
 #
 # Layout:
 #  - Indent nested blocks by four spaces.
@@ -360,6 +363,17 @@ PROCEDURE preserve_unrelated_user_content(target, managed_changes)
 ENDPROCEDURE
 
 
+PROCEDURE display_course_continuity_guidance(execution_context)
+
+    IF execution_context identifies the CVD deployment profile
+        DISPLAY: Course continuity: This issue affects the Codio Virtual Desktop (CVD). Follow the remediation above. If the issue continues, contact course support and include the log file.
+    ELSE
+        DISPLAY: Course continuity: You can continue your IT 140 coursework in the Codio Virtual Desktop (CVD) while this local course IDE issue is resolved.
+    ENDIF
+
+ENDPROCEDURE
+
+
 PROCEDURE finish_mutating_action(result, run_context, changed, warnings, failures)
 
     DETERMINE exit code:
@@ -387,6 +401,11 @@ PROCEDURE finish_mutating_action(result, run_context, changed, warnings, failure
         exit code
 
     DISPLAY NOTICE with the log path
+
+    IF resolved exit code is nonzero OR result is noncompliant
+        CALL display_course_continuity_guidance(run_context)
+    ENDIF
+
     DISPLAY NOTICE to close the current terminal after reviewing the summary
     DISPLAY NOTICE to open a new terminal before another script or command
 

@@ -5,9 +5,9 @@
 - **Program Name**: IT 140 Course Automation Scripts
 - **Document ID**: IT140-SRS-SCRIPTS
 - **Status**: Draft for faculty review
-- **Version**: 0.2.0
-- **Version Date**: 2026-07-31
-- **Repository Baseline**: `GC-STEM/it140` commit `aec4aba5c59483e485b06f33f121fab02a0acc50`
+- **Version**: 0.3.0
+- **Version Date**: 2026-08-01
+- **Repository Baseline**: `GC-STEM/it140` commit `e7d3e7fc24eeefd5aafccd8939982f5c0369c3f4`
 
 ## 0. General Description
 
@@ -29,7 +29,9 @@ The five components form one software package because they share requirements, f
 
 ### 0.2 Product Scope
 
-The package shall provide a consistent, supportable course integrated development environment (IDE) across supported platforms. It shall reduce manual preparation, installation, and configuration steps, identify configuration problems, and provide useful diagnostic information to students, faculty, artificial intelligence (AI) support tools, and university technical support.
+The package shall provide a consistent, supportable course integrated development environment (IDE) across designated course-supported deployment profiles. It shall reduce manual preparation, installation, and configuration steps, identify configuration problems, and provide useful diagnostic information to students, faculty, artificial intelligence (AI) support tools, and university technical support.
+
+The requirements shall minimize unnecessary platform-specific assumptions and isolate platform-dependent behavior so that another deployment profile for which the complete required software stack has a viable implementation path can be added without redesigning the platform-independent lifecycle. The project is not required to discover, implement, test, or maintain every platform that upstream products might technically support. A deployment profile becomes course-supported only after its implementation, qualification testing, documentation, and approval are complete. Technical compatibility, vendor support, or successful unqualified use does not by itself imply course support.
 
 The main body of this SRS defines stable capabilities, responsibility boundaries, and quality expectations without selecting a particular commercial or open-source product. The package shall use a shared **JavaScript Object Notation (JSON)** manifest. JSON is a plain-text data format that software can read and validate. The controlled manifest shall be the authoritative source for concrete approved products and services, vendor or project names, package and extension identifiers, versions or version ranges, approved distribution sources, supported platform releases, provider-specific integration rules, managed paths, and the current automation release.
 
@@ -84,6 +86,8 @@ The **bootstrap command set** is the short, platform-native sequence represented
 | Bootstrap command set | The first-use, platform-native commands represented by `prepare_ide.<ext>` that obtain or refresh the local automation package without depending on that package. |
 | CLI | Command-Line Interface. A CLI is a text-based way to run and control software. |
 | Controlled configuration item | A file or data set whose changes require review, testing, approval, and release tracking. The manifest is controlled because it selects the products and versions used by the package. |
+| Course-supported deployment profile | A concrete local, virtual, or hosted environment—defined by operating-system family and release, architecture, deployment kind, desktop or session, and applicable platform implementation—that has completed required implementation, qualification testing, documentation, and approval for course use. |
+| Platform implementation | One platform-native set of lifecycle scripts and adapters that may be reused by one or more deployment profiles. |
 | Exit code | A small integer returned when a script ends. Other programs and support tools use it to determine whether the run succeeded or why it failed. |
 | GUI | Graphical User Interface. A GUI uses windows, icons, buttons, and menus rather than only typed commands. |
 | IDE | Integrated Development Environment. It combines tools used to write, run, test, debug, and manage programs. |
@@ -101,6 +105,7 @@ The **bootstrap command set** is the short, platform-native sequence represented
 | Source-code hosting service | An external service that stores version-controlled repositories and may provide authentication, collaboration, and account APIs. |
 | Semantic Versioning (SemVer) | A versioning scheme expressed as `MAJOR.MINOR.PATCH`. Incompatible changes increment MAJOR, backward-compatible functionality increments MINOR, and backward-compatible corrections increment PATCH. |
 | SRS | Software Requirements Specification. It defines required software behavior and constraints. |
+| Technical compatibility | Evidence that the required software stack might operate on a deployment profile. Technical compatibility does not establish implementation completeness, qualification, documentation, approval, or course support. |
 | Version date | The calendar date, written as `YYYY-MM-DD`, on which a specific artifact version was created or approved. The version date supplements SemVer and does not determine version precedence. |
 | Version-control system | Software that records file changes and preserves change history so earlier versions can be reviewed or restored. |
 
@@ -129,9 +134,9 @@ A paragraph labeled **Why** explains the reason for a requirement. The explanati
 
 The package shall:
 
-- **PKG-FR-001** Provide one `prepare_ide.<ext>`, `install_ide.<ext>`, `configure_ide.<ext>`, `verify_ide.<ext>`, and `update_ide.<ext>` implementation for every supported platform listed in the manifest.
+- **PKG-FR-001** Provide one platform-native set of `prepare_ide.<ext>`, `install_ide.<ext>`, `configure_ide.<ext>`, `verify_ide.<ext>`, and `update_ide.<ext>` entry points for every platform implementation used by one or more designated course-supported deployment profiles. Multiple deployment profiles may reuse the same platform implementation.
 
-  **Why:** Users and support personnel need the same five-stage lifecycle on each supported platform.
+  **Why:** Users and support personnel need the same five-stage lifecycle for every supported deployment profile without requiring duplicate script families for profiles that share the same native implementation.
 
 - **PKG-FR-002** Use the filename pattern `<action>_ide.<ext>`, where `<action>` is `prepare`, `install`, `configure`, `verify`, or `update`, and `<ext>` is the platform-appropriate script extension. Each implementation shall reside in the approved platform directory.
 
@@ -168,6 +173,10 @@ The package shall:
 - **PKG-FR-010** Preserve student work, assignment repositories, version-control history, optional extensions or plug-ins, and unrelated settings during every package operation.
 
   **Why:** Course automation must not put coursework or personal configuration at risk.
+
+- **PKG-FR-021** Whenever a managed lifecycle run ends with a nonzero exit code or a noncompliant result, display plain-language, profile-aware course-continuity guidance. If the affected environment is not CVD, or cannot be confirmed as CVD, tell the user they can continue their IT 140 coursework in CVD while the local course IDE issue is resolved. If CVD itself is affected, state that the issue affects CVD and direct the user to the applicable remediation and support path. The guidance shall supplement, not replace, the specific remediation and exact log path.
+
+  **Why:** A local automation problem should not prevent a student from continuing required coursework, and a CVD failure should not misleadingly present the affected environment as its own alternative.
 
 ### 1.2 Prepare Script Requirements
 
@@ -497,9 +506,9 @@ The package shall:
 
   **Why:** Scripts must know whether they understand the manifest structure, which release they are applying, and when that release was issued.
 
-- **PKG-FR-013** Define each supported platform, platform abbreviation, supported operating-system releases, architectures, platform script directory, and platform script extension in the manifest.
+- **PKG-FR-013** Define each recognized platform implementation and deployment profile in the manifest, including the platform abbreviation, applicable operating-system releases, architectures, deployment constraints, platform script directory, platform script extension, and enabled state. Manifest enablement shall permit controlled resolution or qualification use but shall not by itself declare a deployment profile course-supported.
 
-  **Why:** Platform support must be explicit and testable.
+  **Why:** Platform resolution and course support must be explicit, bounded, and testable, while allowing qualification-only profiles to reuse an enabled implementation without being represented as student-supported.
 
 - **PKG-FR-014** Define each required software or service capability and, for every concrete approved product, its product identifier, version rule, installation scope, verification method, and approved source in the manifest.
 
@@ -615,9 +624,9 @@ The package shall:
 
 The package shall:
 
-- **PKG-NFR-018** Maintain one platform-agnostic design for the five lifecycle operations and use separate platform implementations only where operating-system commands differ.
+- **PKG-NFR-018** Maintain one platform-agnostic design for the five lifecycle operations and isolate platform-, package-manager-, desktop-, provider-, and product-dependent behavior behind reviewed interfaces or equivalent boundaries.
 
-  **Why:** Shared logic reduces inconsistent behavior across platforms.
+  **Why:** Stable lifecycle logic and explicit boundaries reduce inconsistent behavior without requiring one distributed cross-platform runtime.
 
 - **PKG-NFR-019** Derive home, desktop, temporary, configuration, and executable paths from the running environment rather than assuming a specific username.
 
@@ -630,6 +639,10 @@ The package shall:
 - **PKG-NFR-021** Produce equivalent required outcomes on all supported platforms even when the implementation commands differ.
 
   **Why:** Students should receive the same course capabilities regardless of platform.
+
+- **PKG-NFR-028** Minimize unnecessary platform-specific assumptions so that an additional designated deployment profile can reuse the platform-independent lifecycle, an existing platform implementation, and existing adapter contracts without redesigning the package core. This requirement does not obligate the project to implement or qualify every technically compatible deployment profile.
+
+  **Why:** The package should remain extensible while keeping implementation, testing, documentation, and maintenance commitments within available course resources.
 
 ### 2.5 Privacy and Security
 
@@ -685,9 +698,9 @@ The package shall:
 
   **Why:** A standard location helps students and support personnel find diagnostic files.
 
-- **PKG-TC-006** Support only operating-system releases that still receive vendor security updates and that have been approved and tested for IT 140.
+- **PKG-TC-006** Mark only designated deployment profiles as course-supported when their operating-system releases still receive approved security updates and the complete profile has been implemented, qualified, documented, and approved for IT 140.
 
-  **Why:** Unsupported systems may contain known security problems or incompatible tools.
+  **Why:** Upstream product compatibility is not sufficient evidence that the complete course environment is secure and supportable.
 
 - **PKG-TC-007** Use the course-required programming-language implementation and major and minor version declared by the manifest and aligned with the version used by required course activities.
 
@@ -719,9 +732,11 @@ The reference-platform implementation shall:
 
 - **REF-TC-007** Obtain products only through the vendor, project, operating-system, or institutional distribution channels approved by the manifest.
 
-### 3.3 Additional Platform Variants
+### 3.3 Additional Course-Supported Deployment Profiles
 
-A new platform variant shall not be marked supported until it:
+The package is designed so additional deployment profiles can be considered selectively when course need and available implementation, testing, documentation, and support resources justify the work. The project is not required to identify or qualify every deployment profile that upstream products might technically support. Technical compatibility, vendor documentation, or successful unqualified use shall not be represented as course support.
+
+A new deployment profile shall not be marked course-supported until it:
 
 - Implements all applicable requirements in this SRS.
 - Provides `prepare_ide.<ext>`, `install_ide.<ext>`, `configure_ide.<ext>`, `verify_ide.<ext>`, and `update_ide.<ext>` in the approved platform directory.
@@ -925,6 +940,8 @@ Not applicable: 0
 Result        : NOT COMPLIANT
 Exit code     : 1
 Log file      : ~/it140/logs/verify_ref_20260731_120000.log
+
+Course continuity: You can continue your IT 140 coursework in the Codio Virtual Desktop (CVD) while this local course IDE issue is resolved.
 ```
 
 ### 5.5 Update: Successful Maintenance with Restart Guidance
@@ -975,6 +992,8 @@ An **acceptance test** checks whether the completed software meets an agreed req
 | AT-PKG-006 | PKG-NFR-025, PKG-QOS-018 | Use a test account with known username, email, and token-like values, then inspect output, logs, and bundle. | No password, token, private key, complete personal email address, or unapproved PII appears. |
 | AT-PKG-007 | PKG-NFR-001, PKG-NFR-008, PKG-QOS-014 | Compare results from two supported platform variants. | Status terms, summary fields, remediation meanings, and exit-code meanings are equivalent. |
 | AT-PKG-008 | PKG-NFR-015, PKG-FR-006, PKG-FR-012, PKG-QOS-017 | Inspect representative design, construction, testing, logging, and maintenance artifacts. | Controlled authored artifacts contain strict `MAJOR.MINOR.PATCH` SemVer and a separate valid `YYYY-MM-DD` version date; generated records identify the producing or evaluated artifact versions and dates; no date-based version substitutes for SemVer. |
+| AT-PKG-009 | PKG-FR-008, PKG-FR-021, PKG-QOS-012, PKG-QOS-020 | Cause each lifecycle component on a non-CVD profile to end once with a handled nonzero or noncompliant result. Exercise the CVD-specific guidance branch through a representative CVD failure or an approved output-service test. | Each component attempts a final summary, gives problem-specific remediation and the exact log path, and presents CVD as the continuity option for the local-profile failure. The CVD branch states that CVD is affected and directs the user to the applicable remediation and support path. |
+| AT-PKG-010 | PKG-NFR-018, PKG-NFR-028, PKG-TC-006, Section 3.3 | Review a proposed technically compatible but unqualified deployment profile. | The proposal is not represented as course-supported until all qualification conditions are complete. When it can reuse an approved platform implementation and adapter contracts, the platform-independent lifecycle requires no redesign and no duplicate script family. |
 
 ### 6.2 Prepare Acceptance Tests
 
@@ -1053,7 +1072,7 @@ An **acceptance test** checks whether the completed software meets an agreed req
 
 ### A.1 Purpose and Authority
 
-This appendix records the concrete environment used to review this SRS and design the initial acceptance tests at repository baseline commit `aec4aba5c59483e485b06f33f121fab02a0acc50`. **Nonnormative** means that this appendix provides context but does not create binding requirements.
+This appendix records the concrete environment used to review this SRS and design the initial acceptance tests at repository baseline commit `e7d3e7fc24eeefd5aafccd8939982f5c0369c3f4`. **Nonnormative** means that this appendix provides context but does not create binding requirements.
 
 The controlled `it140_manifest.json` file is the sole authoritative source for products, services, identifiers, versions, approved sources, provider profiles, and supported platform releases. When this appendix and the manifest differ, the manifest controls. Deployment approval requires a complete, valid, and approved manifest.
 

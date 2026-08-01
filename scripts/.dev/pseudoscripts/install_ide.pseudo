@@ -1,5 +1,5 @@
 # ==============================================================================
-# IT 140 SETUP PSEUDOSCRIPT
+# IT 140 INSTALL PSEUDOSCRIPT
 # ==============================================================================
 #
 # Repository path:
@@ -10,10 +10,10 @@
 #     system-level course integrations.
 #
 # Artifact version:
-#     0.2.0
+#     0.3.0
 #
 # Version date:
-#     2026-07-29
+#     2026-08-01
 #
 # Development status:
 #     Alpha Testing
@@ -21,6 +21,7 @@
 # Version basis:
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
+#     Version 0.3.0 adds the common CVD course-continuity conclusion.
 #
 # CVD implementation target:
 #     install_ide.sh version 2026.07.27.1 (legacy calendar version)
@@ -33,10 +34,10 @@
 #     and automation_release_date in YYYY-MM-DD format.
 #
 # SRS traceability:
-#     SET-FR-001 through SET-FR-012
+#     INS-FR-001 through INS-FR-012; PKG-FR-021
 #
 # SDD traceability:
-#     SET-DES-001 through SET-DES-012
+#     INS-DES-001 through INS-DES-012; INT-DES-014; ERR-DES-014
 #
 # Intended user:
 #     A reference-environment administrator or SME using the intended standard
@@ -53,15 +54,15 @@
 #     - Operating-system release upgrades
 #
 # Normal next step:
-#     Close the terminal, open a new terminal, and run config_<platform>.
+#     Close the terminal, open a new terminal, and run configure_ide.<ext>.
 #
 # ==============================================================================
 
 
-artifact_version = "0.2.0"
-version_date = "2026-07-29"
+artifact_version = "0.3.0"
+version_date = "2026-08-01"
 development_status = "Alpha Testing"
-action_id = "setup"
+action_id = "install"
 may_change_state = TRUE
 lock_required = TRUE
 required_options = [
@@ -81,12 +82,12 @@ PROCEDURE main(arguments)
     options = parse_supported_options_before_logging(arguments, required_options)
 
     IF options.help_requested
-        display_setup_help()
+        display_install_help()
         RETURN 0
     ENDIF
 
     IF options.version_requested
-        display_setup_version(
+        display_install_version(
             artifact_version,
             version_date,
             development_status
@@ -97,8 +98,8 @@ PROCEDURE main(arguments)
     enable_strict_error_handling()
     set_private_default_file_permissions()
 
-    run_context = resolve_setup_paths_and_start_private_transcript(
-        filename_pattern = "setup_<platform>_<YYYYMMDD>_<HHMMSS>.log"
+    run_context = resolve_install_paths_and_start_private_transcript(
+        filename_pattern = "install_ide_<YYYYMMDD>_<HHMMSS>.log"
     )
 
     changed = FALSE
@@ -108,11 +109,13 @@ PROCEDURE main(arguments)
     INSTALL error handler:
         - report the failing location and log path;
         - clean temporary files;
+        - call display_course_continuity_guidance(run_context);
         - return 7 when managed state changed, otherwise 1.
 
     INSTALL interruption handler:
-        - instruct the user to rerun setup to repair the system layer;
+        - instruct the user to rerun install to repair the system layer;
         - clean temporary files;
+        - call display_course_continuity_guidance(run_context);
         - return 7 when managed state changed, otherwise 6.
 
     DISPLAY opening information:
@@ -128,14 +131,14 @@ PROCEDURE main(arguments)
     acquire_shared_mutation_lock(action_id, run_context.platform_id)
 
     REQUIRE the controlled manifest and schema are readable
-    manifest_release = validate_setup_manifest(run_context)
+    manifest_release = validate_install_manifest(run_context)
     check_required_free_space(run_context, manifest_release)
 
     install_or_repair_system_layer(run_context)
     configure_system_integrations(run_context)
     post_validate_system_layer(run_context)
 
-    DISPLAY setup summary:
+    DISPLAY installation summary:
         result = PASS
         script version
         version date
@@ -177,7 +180,7 @@ PROCEDURE validate_platform_and_privilege(run_context)
 ENDPROCEDURE
 
 
-PROCEDURE validate_setup_manifest(run_context)
+PROCEDURE validate_install_manifest(run_context)
 
     RETURN validate_controlled_manifest_pair(
         run_context.manifest_path,
@@ -284,7 +287,7 @@ PROCEDURE post_validate_system_layer(run_context)
     ENDFOR
 
     IF any required check fails
-        DISPLAY ERROR instructing the administrator to rerun setup
+        DISPLAY ERROR instructing the administrator to rerun install
         RETURN exit code 7
     ENDIF
 

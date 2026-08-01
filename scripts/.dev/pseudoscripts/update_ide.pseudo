@@ -10,10 +10,10 @@
 #     operating-system release, required tools, extensions, and integrations.
 #
 # Artifact version:
-#     0.2.0
+#     0.3.0
 #
 # Version date:
-#     2026-07-29
+#     2026-08-01
 #
 # Development status:
 #     Alpha Testing
@@ -21,6 +21,7 @@
 # Version basis:
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
+#     Version 0.3.0 adds the common CVD course-continuity conclusion.
 #
 # CVD implementation target:
 #     update_ide.sh version 2026.07.26.6 (legacy calendar version)
@@ -33,10 +34,10 @@
 #     and automation_release_date in YYYY-MM-DD format.
 #
 # SRS traceability:
-#     UPD-FR-001 through UPD-FR-016
+#     UPD-FR-001 through UPD-FR-016; PKG-FR-021
 #
 # SDD traceability:
-#     UPD-DES-001 through UPD-DES-016
+#     UPD-DES-001 through UPD-DES-016; INT-DES-014; ERR-DES-014
 #
 # Intended user:
 #     The standard student or faculty account during first use, after a reset,
@@ -58,8 +59,8 @@
 # ==============================================================================
 
 
-artifact_version = "0.2.0"
-version_date = "2026-07-29"
+artifact_version = "0.3.0"
+version_date = "2026-08-01"
 development_status = "Alpha Testing"
 action_id = "update"
 may_change_state = TRUE
@@ -119,11 +120,13 @@ PROCEDURE main(arguments)
     INSTALL error handler:
         - report the failing location and log path;
         - remove private staging;
+        - call display_course_continuity_guidance(run_context);
         - return 7 when managed state changed, otherwise 1.
 
     INSTALL interruption handler:
         - instruct the user to rerun update for recovery;
         - remove private staging;
+        - call display_course_continuity_guidance(run_context);
         - return 7 when managed state changed, otherwise 6.
 
     INSTALL cleanup handler for private staging
@@ -563,6 +566,10 @@ PROCEDURE display_update_summary_and_closing_notices(run_context)
         next step
         log path
         exit code
+
+    IF exit_code is nonzero
+        CALL display_course_continuity_guidance(run_context)
+    ENDIF
 
     DISPLAY closing log and fresh-terminal notices
     RETURN exit_code

@@ -27,11 +27,11 @@ This guide gives faculty, course developers, maintainers, testers, platform admi
 - **Course**: IT 140 - *Introduction to Scripting*
 - **Program name**: IT 140 Course Automation Scripts
 - **Artifact ID**: `IT140-DEV-README`
-- **Artifact version**: `0.1.0`
+- **Artifact version**: `0.2.0`
 - **Version date**: `2026-08-01`
 - **Status**: Draft for faculty review
-- **SRS baseline**: `IT140-SRS-SCRIPTS`, version `0.2.0`, version date `2026-07-31`
-- **SDD baseline**: `IT140-SDD-SCRIPTS`, version `0.2.0`, version date `2026-07-31`
+- **SRS baseline**: `IT140-SRS-SCRIPTS`, version `0.3.0`, version date `2026-08-01`
+- **SDD baseline**: `IT140-SDD-SCRIPTS`, version `0.3.0`, version date `2026-08-01`
 - **Manifest baseline reviewed**: automation release `0.5.1`, release date `2026-07-30`, status `draft`
 
 > [!IMPORTANT]
@@ -43,11 +43,13 @@ The **IT 140 Course Automation Scripts** package prepares and maintains a consis
 
 The engineering objective is not to make every platform implementation identical. It is to produce **equivalent required course outcomes** through predictable lifecycle stages, controlled configuration, safe state boundaries, and supportable diagnostics.
 
+The package supports only designated deployment profiles that the course can implement, qualify, document, approve, and maintain. Its architecture minimizes unnecessary platform-specific assumptions so another justified profile can reuse the stable lifecycle and adapter contracts. Technical compatibility with the software stack does not by itself imply course support, and the project does not promise to test every platform that upstream products might support.
+
 This `.dev/` directory contains analysis and design artifacts used by computer science faculty, course developers, platform administrators, maintainers, testers, and technical support personnel. Student installations may omit `.dev/`; operational scripts must not depend on development-only files.
 
 ## 2. Waterfall SDLC
 
-The project follows the [Waterfall](https://en.wikipedia.org/wiki/Waterfall_modelhttps://www.geeksforgeeks.org/software-engineering/waterfall-model/) software development lifecycle (SDLC), since IT 140 students will follow a simplified version of this model in the course. Work proceeds through defined analysis, design, construction, and testing baselines while allowing controlled feedback when testing or maintenance reveals a requirements or design defect.
+The project follows the [Waterfall](https://en.wikipedia.org/wiki/Waterfall_model) software development lifecycle (SDLC), since IT 140 students will follow a simplified version of this model in the course. Work proceeds through defined analysis, design, construction, and testing baselines while allowing controlled feedback when testing or maintenance reveals a requirements or design defect.
 
 | Phase | Primary question | Principal artifacts and evidence |
 | --- | --- | --- |
@@ -157,10 +159,16 @@ Only explicitly declared repository-managed files, managed assets, paths, settin
 
 ## 7. Deployment and Support Model
 
+A **course-supported deployment profile** is a specific operating-system, release, architecture, deployment, desktop or session, and script-implementation combination that has completed implementation, qualification testing, documentation, and approval for course use. Vendor documentation, technical compatibility, or successful unqualified use does not create a course-support commitment.
+
+The architecture is intentionally extensible, but platform expansion is selective. A new deployment profile is considered when it is useful to the course and implementation, testing, documentation, and ongoing support resources are available. The project does not maintain an inventory of every deployment profile that upstream products might technically support.
+
+Manifest `enabled` status allows a profile to be resolved for controlled operation or qualification; it is not, by itself, a student-support declaration. Approved qualification evidence and course documentation determine the profile's support role. Multiple deployment profiles may reuse one platform-native script implementation.
+
 | Deployment profile | Role in the package |
 | --- | --- |
 | Codio Virtual Desktop: Ubuntu 24.04 LTS, APT, Xfce, x86_64 | **Reference deployment** for primary course documentation, screenshots, support reproduction, development, and release acceptance testing. |
-| Supported Windows 10 version 22H2 or manifest-listed Windows 11, x86_64 | Supported local deployment that must pass the complete platform conformance suite. |
+| Manifest-approved Windows x86_64 bare-metal deployment | Supported local deployment that must pass the complete platform conformance suite. |
 | Supported macOS on Apple Silicon, arm64 | Supported local deployment that must pass the complete platform conformance suite. |
 | Ubuntu 24.04 LTS, APT, GNOME, x86_64 | Supported local Linux deployment that must pass the complete platform conformance suite. |
 | Windows Sandbox, x86_64 | Ephemeral testing and support-reproduction profile; it does not replace bare-metal Windows qualification. |
@@ -177,6 +185,7 @@ The reference designation standardizes course-facing evidence and support reprod
 | IDE course entry | Configure creates or repairs a launcher that starts the approved IDE with the course root opened as the active folder or workspace; Verify checks the target and behavior. |
 | Script discovery | Prepare and Configure establish the matching platform script directory in the current and future user `PATH` without duplicate entries. |
 | Version evidence | Opening output, logs, test results, support-bundle inventories, and release records identify applicable artifact versions and version dates. |
+| Unsuccessful run | Specific remediation and the exact log path are followed by profile-aware course-continuity guidance. A local-profile failure states: `Course continuity: You can continue your IT 140 coursework in the Codio Virtual Desktop (CVD) while this local course IDE issue is resolved.` A CVD failure directs the user to the applicable remediation and support path. |
 
 ## 8. Reading Guide
 
@@ -192,18 +201,18 @@ The reference designation standardizes course-facing evidence and support reprod
 
 ## 9. Current Artifact Alignment Snapshot
 
-This section records the repository state reviewed for README version `0.1.0`; it is not a release approval.
+This section records the repository state reviewed for README version `0.2.0`; it is not a release approval.
 
 | Area | Current observation | Required follow-through |
 | --- | --- | --- |
-| SRS and SDD | Both use the five-component lifecycle, SemVer, version dates, Prepare requirements and design, desktop course-root integration, and updated traceability. Both headers currently say **Draft for faculty review**. | Complete the applicable faculty review and approval record before treating them as released baselines. |
-| Flowcharts | The directory currently lists `setup.drawio`, `config.drawio`, `verify.drawio`, and `update.drawio`. It does not list a Prepare flowchart, current `install` and `configure` filenames, or `.drawio.png` exports. | Refactor and version the mid-level designs before relying on them as complete lifecycle diagrams. No image is embedded in this README because no current PNG export is available. |
-| Pseudoscripts | Files exist for Prepare, Install, Configure, Verify, and Update, plus a template. Several still retain legacy `bootstrap`, `setup`, or `config` terminology, older traceability identifiers, or obsolete lifecycle transitions. | Reconcile each pseudoscript with SRS `0.2.0` and SDD `0.2.0`, then increment its independent SemVer and version date. |
+| SRS and SDD | Both use the five-component lifecycle, SemVer, version dates, designated course-supported deployment profiles, selective portability, profile-aware course-continuity behavior, desktop course-root integration, and updated traceability. Both headers currently say **Draft for faculty review**. | Complete the applicable faculty review and approval record before treating them as released baselines. |
+| Flowcharts | The directory contains root-only Draw.io placeholder files named `setup.drawio`, `config.drawio`, `verify.drawio`, and `update.drawio`. It has no Prepare flowchart, current `install` and `configure` filenames, diagram content, or `.drawio.png` exports. | Create and version the mid-level designs before relying on flowcharts as lifecycle evidence. The empty placeholders are not part of this revision. |
+| Pseudoscripts | Files exist for Prepare, Install, Configure, Verify, and Update, plus a template. Version `0.3.0` adds the shared profile-aware course-continuity behavior to unsuccessful conclusions. Some files still retain legacy implementation references or other terminology outside the scope of this revision. | Complete the broader pseudoscript reconciliation against SRS `0.3.0` and SDD `0.3.0` before treating the low-level design set as fully aligned. |
 | CVD, Windows, and macOS directories | Each directory currently exposes five lifecycle filenames using `prepare_ide`, `install_ide`, `configure_ide`, `verify_ide`, and `update_ide`. Filename presence alone is not conformance evidence. | Maintain platform-specific test and release evidence against the current SRS, SDD, manifest, and script versions. |
 | Ubuntu GNOME directory | The current files retain legacy `bootstrap_ubg`, `setup_ubg`, `config_ubg`, `verify_ubg`, and `update_ubg` names. | Refactor and qualify the implementation against the five approved entry-point names and current lifecycle contracts. |
 | Windows Sandbox directory | The current auxiliary testing files retain legacy `bootstrap_wsb`, `setup_wsb`, `config_wsb`, and `verify_wsb` names. | Keep the Sandbox profile clearly separated from the general Windows student lifecycle and update its support documentation when the auxiliary design changes. |
 | Test artifacts | No dedicated `scripts/.dev/tests/` directory is present in the reviewed structure. Acceptance cases exist in the SRS, and the SDD defines test traceability and review criteria. | Establish or document the controlled location for executable test definitions and versioned result evidence. |
-| Software Development Worksheet | The worksheet is a generic placeholder template and does not currently carry project-specific artifact identity or completed IT 140 content. | Treat it as supporting material only until separately revised and controlled. |
+| Software Development Worksheet | The worksheet now records the project-specific stakeholder intent, selective platform-support boundary, portability objective, and CVD course-continuity requirement as draft analysis input. | Review and approve the analysis baseline with the SRS and SDD; the SRS remains authoritative for required behavior. |
 
 ## 10. Maintaining This Guide
 
