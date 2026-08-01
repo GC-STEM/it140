@@ -1,7 +1,6 @@
 {
-  "schema_version": "2.0",
-  "automation_release": "0.5.1",
-  "automation_release_date": "2026-07-30",
+  "schema_version": "2.2",
+  "automation_release": "0.7.0",
   "course": {
     "course_id": "IT 140",
     "course_title": "Introduction to Scripting",
@@ -11,7 +10,7 @@
     "status": "draft",
     "source_repository": "https://github.com/GC-STEM/it140",
     "source_revision": "2ad2ff23346896c3e27d3a8b64a9d40d652196e4",
-    "change_summary": "Rebuild the macOS lifecycle as self-contained Apple-silicon scripts and reduce the manually copied bootstrap command set to only repository retrieval, transcript creation, file activation, executable permissions, and PATH availability."
+    "change_summary": "Adopt minute-resolution version date-time groups for controlled artifacts and preserve profile-aware Prepare success transitions: local initialization continues to Install, while both CVD initialization workflows continue to Update."
   },
   "policy": {
     "course_root": "${HOME}/it140",
@@ -1992,7 +1991,12 @@
       "architecture": "x86_64",
       "profile_adapter_id": "codio_virtual_desktop",
       "reset_method": "provider_reset",
-      "notes": "Primary environment for course documentation, screenshots, support reproduction, development, and release acceptance testing."
+      "notes": "Primary environment for course documentation, screenshots, support reproduction, development, and release acceptance testing.",
+      "allowed_workflow_ids": [
+        "cvd_provider_baseline_administrator",
+        "cvd_course_master_student",
+        "cvd_periodic_maintenance"
+      ]
     },
     "windows_bare_metal": {
       "display_name": "Windows Bare-Metal Computer",
@@ -2003,7 +2007,11 @@
       "session_type": "local_desktop",
       "architecture": "x86_64",
       "reset_method": "fresh_os_install",
-      "notes": "Clean supported Windows 10 version 22H2 or manifest-listed Windows 11 installation used for platform conformance testing."
+      "notes": "Clean supported Windows 10 version 22H2 or manifest-listed Windows 11 installation used for platform conformance testing.",
+      "allowed_workflow_ids": [
+        "local_initial_install",
+        "local_periodic_maintenance"
+      ]
     },
     "windows_sandbox": {
       "display_name": "Windows Sandbox",
@@ -2016,7 +2024,11 @@
       "architecture": "x86_64",
       "profile_adapter_id": "windows_sandbox",
       "reset_method": "image_reset",
-      "notes": "Ephemeral Windows Sandbox environment used for clean setup, verification, and support reproduction."
+      "notes": "Ephemeral Windows Sandbox environment used for clean setup, verification, and support reproduction.",
+      "allowed_workflow_ids": [
+        "local_initial_install",
+        "local_periodic_maintenance"
+      ]
     },
     "macos_bare_metal": {
       "display_name": "macOS Apple Silicon Bare-Metal Computer",
@@ -2027,7 +2039,11 @@
       "session_type": "local_desktop",
       "architecture": "arm64",
       "reset_method": "fresh_os_install",
-      "notes": "Clean supported macOS installation on Apple silicon used for platform conformance testing."
+      "notes": "Clean supported macOS installation on Apple silicon used for platform conformance testing.",
+      "allowed_workflow_ids": [
+        "local_initial_install",
+        "local_periodic_maintenance"
+      ]
     },
     "ubuntu_gnome_bare_metal": {
       "display_name": "Ubuntu GNOME Bare-Metal Computer",
@@ -2040,7 +2056,133 @@
       "os_release_id": "24.04",
       "architecture": "x86_64",
       "reset_method": "fresh_os_install",
-      "notes": "Clean Ubuntu 24.04 LTS installation with APT and GNOME used for platform conformance testing."
+      "notes": "Clean Ubuntu 24.04 LTS installation with APT and GNOME used for platform conformance testing.",
+      "allowed_workflow_ids": [
+        "local_initial_install",
+        "local_periodic_maintenance"
+      ]
+    }
+  },
+  "lifecycle_workflows": {
+    "local_initial_install": {
+      "display_name": "Local Initial Installation",
+      "deployment_profile_ids": [
+        "windows_bare_metal",
+        "windows_sandbox",
+        "macos_bare_metal",
+        "ubuntu_gnome_bare_metal"
+      ],
+      "operating_roles": [
+        "local_user"
+      ],
+      "starting_state_id": "local_unmanaged_environment",
+      "ordered_actions": [
+        "prepare",
+        "install",
+        "configure",
+        "verify"
+      ],
+      "success_transitions": {
+        "prepare": "install",
+        "install": "configure",
+        "configure": "verify",
+        "verify": "complete"
+      },
+      "notes": "Default first-use workflow for supported local and local test deployments."
+    },
+    "local_periodic_maintenance": {
+      "display_name": "Local Periodic Maintenance",
+      "deployment_profile_ids": [
+        "windows_bare_metal",
+        "windows_sandbox",
+        "macos_bare_metal",
+        "ubuntu_gnome_bare_metal"
+      ],
+      "operating_roles": [
+        "local_user"
+      ],
+      "starting_state_id": "initialized_environment",
+      "ordered_actions": [
+        "update",
+        "verify"
+      ],
+      "update_mode": "periodic_maintenance",
+      "success_transitions": {
+        "update": "verify",
+        "verify": "complete"
+      },
+      "notes": "Maintains an already initialized local environment; Verify follows Update when indicated."
+    },
+    "cvd_provider_baseline_administrator": {
+      "display_name": "CVD Provider Baseline Administrator Initialization",
+      "deployment_profile_ids": [
+        "codio_cvd"
+      ],
+      "operating_roles": [
+        "cvd_administrator"
+      ],
+      "starting_state_id": "provider_baseline_master",
+      "ordered_actions": [
+        "prepare",
+        "update",
+        "install",
+        "configure",
+        "verify"
+      ],
+      "update_mode": "initial_provider_baseline",
+      "success_transitions": {
+        "prepare": "update",
+        "update": "install",
+        "install": "configure",
+        "configure": "verify",
+        "verify": "complete"
+      },
+      "notes": "Authorized administrator or SME workflow for converting a clean Codio provider image into a verified IT 140 course master."
+    },
+    "cvd_course_master_student": {
+      "display_name": "CVD Course Master Student Initialization",
+      "deployment_profile_ids": [
+        "codio_cvd"
+      ],
+      "operating_roles": [
+        "cvd_student"
+      ],
+      "starting_state_id": "it140_course_master",
+      "ordered_actions": [
+        "prepare",
+        "update",
+        "configure",
+        "verify"
+      ],
+      "update_mode": "initial_course_master",
+      "success_transitions": {
+        "prepare": "update",
+        "update": "configure",
+        "configure": "verify",
+        "verify": "complete"
+      },
+      "notes": "Student and faculty course-user workflow for an IT 140 course master on which administrator-owned installation is already complete."
+    },
+    "cvd_periodic_maintenance": {
+      "display_name": "CVD Periodic Maintenance",
+      "deployment_profile_ids": [
+        "codio_cvd"
+      ],
+      "operating_roles": [
+        "cvd_administrator",
+        "cvd_student"
+      ],
+      "starting_state_id": "initialized_environment",
+      "ordered_actions": [
+        "update",
+        "verify"
+      ],
+      "update_mode": "periodic_maintenance",
+      "success_transitions": {
+        "update": "verify",
+        "verify": "complete"
+      },
+      "notes": "Maintains an initialized Codio environment; Verify follows Update when indicated."
     }
   },
   "managed_settings": {
@@ -2162,5 +2304,6 @@
         "browser_data"
       ]
     }
-  }
+  },
+  "automation_release_date_time_group": "2026-08-01-10-43"
 }

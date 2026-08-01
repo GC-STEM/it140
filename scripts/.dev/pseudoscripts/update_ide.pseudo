@@ -10,10 +10,10 @@
 #     operating-system release, required tools, extensions, and integrations.
 #
 # Artifact version:
-#     0.4.0
+#     0.5.0
 #
-# Version date:
-#     2026-08-01
+# Version date-time group-time group:
+#     2026-08-01-10-43
 #
 # Development status:
 #     Alpha Testing
@@ -22,6 +22,8 @@
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
 #     Version 0.4.0 adds the common CVD course-continuity conclusion.
+#     Version 0.5.0 adopts minute-resolution version date-time group-time groups and
+#     profile-aware lifecycle transition reporting.
 #
 # CVD implementation target:
 #     update_ide.sh version 2026.07.26.6 (legacy calendar version)
@@ -31,7 +33,7 @@
 #
 # Manifest compatibility:
 #     Requires schema_version 2.0, a strict SemVer automation_release,
-#     and automation_release_date in YYYY-MM-DD format.
+#     and automation_release_date_time_group in YYYY-MM-DD-HH-MM format.
 #
 # SRS traceability:
 #     UPD-FR-001 through UPD-FR-016; PKG-FR-021
@@ -59,8 +61,8 @@
 # ==============================================================================
 
 
-artifact_version = "0.4.0"
-version_date = "2026-08-01"
+artifact_version = "0.5.0"
+version_date_time_group = "2026-08-01-10-43"
 development_status = "Alpha Testing"
 action_id = "update"
 update_mode = resolve_update_mode_from_manifest_workflow(
@@ -100,7 +102,7 @@ PROCEDURE main(arguments)
     IF options.version_requested
         display_update_version(
             artifact_version,
-            version_date,
+            version_date_time_group,
             development_status
         )
         RETURN 0
@@ -140,7 +142,7 @@ PROCEDURE main(arguments)
         operating role
         update mode
         script version
-        version date
+        version date-time group
         development status
         current user
         purpose
@@ -205,7 +207,7 @@ PROCEDURE validate_update_manifest_pair(manifest_path, schema_path)
         required_top_level_keys = [
             "schema_version",
             "automation_release",
-            "automation_release_date",
+            "automation_release_date_time_group",
             "policy",
             "platforms",
             "deployment_profiles",
@@ -563,7 +565,7 @@ PROCEDURE display_update_summary_and_closing_notices(run_context)
         result
         workflow name
         script version
-        version date
+        version date-time group
         development status
         active manifest release
         warnings

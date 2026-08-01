@@ -10,10 +10,10 @@
 #     identity, user tools, IDE settings, and desktop integrations.
 #
 # Artifact version:
-#     0.4.0
+#     0.5.0
 #
-# Version date:
-#     2026-08-01
+# Version date-time group-time group:
+#     2026-08-01-10-43
 #
 # Development status:
 #     Alpha Testing
@@ -22,6 +22,8 @@
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
 #     Version 0.4.0 adds the common CVD course-continuity conclusion.
+#     Version 0.5.0 adopts minute-resolution version date-time group-time groups and
+#     profile-aware lifecycle transition reporting.
 #
 # CVD implementation target:
 #     configure_ide.sh version 2026.07.26.5 (legacy calendar version)
@@ -31,7 +33,7 @@
 #
 # Manifest compatibility:
 #     Requires schema_version 2.0, a strict SemVer automation_release,
-#     and automation_release_date in YYYY-MM-DD format.
+#     and automation_release_date_time_group in YYYY-MM-DD-HH-MM format.
 #
 # SRS traceability:
 #     CFG-FR-001 through CFG-FR-017; PKG-FR-021
@@ -58,8 +60,8 @@
 # ==============================================================================
 
 
-artifact_version = "0.4.0"
-version_date = "2026-08-01"
+artifact_version = "0.5.0"
+version_date_time_group = "2026-08-01-10-43"
 development_status = "Alpha Testing"
 action_id = "configure"
 may_change_state = TRUE
@@ -88,7 +90,7 @@ PROCEDURE main(arguments)
     IF options.version_requested
         display_configure_version(
             artifact_version,
-            version_date,
+            version_date_time_group,
             development_status
         )
         RETURN 0
@@ -116,7 +118,7 @@ PROCEDURE main(arguments)
 
     DISPLAY opening information:
         script version
-        version date
+        version date-time group
         development status
         current user
         purpose
@@ -141,7 +143,7 @@ PROCEDURE main(arguments)
     DISPLAY configuration summary:
         result = PASS
         script version
-        version date
+        version date-time group
         development status
         manifest release
         provider login = valid
@@ -184,7 +186,7 @@ PROCEDURE validate_configure_manifest(run_context)
         required_top_level_keys = [
             "schema_version",
             "automation_release",
-            "automation_release_date",
+            "automation_release_date_time_group",
             "policy",
             "platforms",
             "deployment_profiles",

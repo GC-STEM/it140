@@ -5,8 +5,8 @@
 - **Program Name**: IT 140 Course Automation Scripts
 - **Document ID**: IT140-SRS-SCRIPTS
 - **Status**: Draft for faculty review
-- **Version**: 0.4.0
-- **Version Date**: 2026-08-01
+- **Version**: 0.5.0
+- **Version Date-Time Group**: 2026-08-01-10-43
 - **Repository Baseline**: `GC-STEM/it140` commit `e7d3e7fc24eeefd5aafccd8939982f5c0369c3f4`
 
 ## 0. General Description
@@ -110,7 +110,7 @@ The **bootstrap command set** is the short, platform-native sequence represented
 | Semantic Versioning (SemVer) | A versioning scheme expressed as `MAJOR.MINOR.PATCH`. Incompatible changes increment MAJOR, backward-compatible functionality increments MINOR, and backward-compatible corrections increment PATCH. |
 | SRS | Software Requirements Specification. It defines required software behavior and constraints. |
 | Technical compatibility | Evidence that the required software stack might operate on a deployment profile. Technical compatibility does not establish implementation completeness, qualification, documentation, approval, or course support. |
-| Version date | The calendar date, written as `YYYY-MM-DD`, on which a specific artifact version was created or approved. The version date supplements SemVer and does not determine version precedence. |
+| Version date-time group-time group | The local date and 24-hour time, written as `YYYY-MM-DD-HH-MM`, at which a specific artifact version was created or approved. The date-time group supplements SemVer and does not determine version precedence. |
 | Version-control system | Software that records file changes and preserves change history so earlier versions can be reviewed or restored. |
 
 ### 0.7 Requirement Conventions
@@ -158,7 +158,7 @@ The package shall:
 
   **Why:** Acting on incomplete or corrupted requirements could install the wrong software or change the wrong files.
 
-- **PKG-FR-006** Display the script name, strict SemVer artifact version, version date, detected platform, current user, start time, purpose, and log location near the beginning of each run.
+- **PKG-FR-006** Display the script name, strict SemVer artifact version, version date-time group, detected platform, current user, start time, purpose, and log location near the beginning of each run.
 
   **Why:** Clear context helps beginners confirm that they started the correct tool and helps support personnel interpret the transcript.
 
@@ -214,7 +214,7 @@ The prepare component shall:
 
   **Why:** Preparation must work for different account names and must not erase student work.
 
-- **PRE-FR-006** Create a timestamped preparation log under `~/it140/logs/` and record the artifact SemVer version, version date, current user, purpose, and exact log path before network retrieval begins.
+- **PRE-FR-006** Create a timestamped preparation log under `~/it140/logs/` and record the artifact SemVer version, version date-time group, current user, purpose, and exact log path before network retrieval begins.
 
   **Why:** First-use and refresh failures must be diagnosable even when later lifecycle scripts are unavailable.
 
@@ -620,7 +620,7 @@ The package shall:
 
   **Why:** Maintainers need to understand why a design choice exists.
 
-- **PKG-NFR-015** Assign every controlled design artifact, construction artifact, testing artifact, and maintenance artifact its own strict SemVer `MAJOR.MINOR.PATCH` version and a separate `YYYY-MM-DD` version date. Incompatible changes shall increment MAJOR, backward-compatible functionality shall increment MINOR, and backward-compatible corrections shall increment PATCH. Generated logs, transcripts, support-bundle inventories, and test results shall record the SemVer version and version date of the producing or evaluated script, package, manifest, test definition, or other governing artifact. A version date shall supplement SemVer and shall not replace it or determine version precedence.
+- **PKG-NFR-015** Assign every controlled design artifact, construction artifact, testing artifact, and maintenance artifact its own strict SemVer `MAJOR.MINOR.PATCH` version and a separate `YYYY-MM-DD-HH-MM` version date-time group. Incompatible changes shall increment MAJOR, backward-compatible functionality shall increment MINOR, and backward-compatible corrections shall increment PATCH. Generated logs, transcripts, support-bundle inventories, and test results shall record the SemVer version and version date-time group of the producing or evaluated script, package, manifest, test definition, or other governing artifact. A version date-time group shall supplement SemVer and shall not replace it or determine version precedence.
 
   **Why:** Developers, testers, faculty, and support personnel must be able to identify exactly which approved artifacts produced, tested, or governed a result.
 
@@ -819,7 +819,7 @@ The package shall:
 
 - **PKG-QOS-016** Create a unique timestamped log for each run using the action name, platform, date, and time.
 
-- **PKG-QOS-017** Record the producing script or component SemVer version and version date, manifest SemVer release and release date when available, platform, operating-system version, architecture, current user identifier, start time, end time, elapsed time, major stages, results, and final exit code.
+- **PKG-QOS-017** Record the producing script or component SemVer version and version date-time group, manifest SemVer release and release date when available, platform, operating-system version, architecture, current user identifier, start time, end time, elapsed time, major stages, results, and final exit code.
 
 - **PKG-QOS-018** Record enough version, path, permission, and configuration information to diagnose failures while following the redaction rules in `PKG-NFR-025`.
 
@@ -842,7 +842,7 @@ The exact wording may vary by platform, but every implementation shall communica
 IT 140 COURSE AUTOMATION PREPARE
 ============================================================
 Artifact version : 0.2.0
-Version date     : 2026-07-31
+Version date-time group     : 2026-07-31
 Platform         : ref
 Current user     : student
 Log file         : ~/it140/logs/prepare_ide_20260731_112000.log
@@ -864,7 +864,7 @@ Log file : ~/it140/logs/prepare_ide_20260731_112000.log
 IT 140 COURSE IDE INSTALL
 ============================================================
 Script version  : 0.2.0
-Version date    : 2026-07-31
+Version date-time group    : 2026-07-31
 Platform        : ref
 Operating system: Approved reference release
 Current user    : student
@@ -895,7 +895,7 @@ Log file           : ~/it140/logs/install_ref_20260731_113000.log
 IT 140 USER CONFIGURATION
 ============================================================
 Script version: 0.2.0
-Version date  : 2026-07-31
+Version date-time group  : 2026-07-31
 Platform      : ref
 Current user  : student
 Log file      : ~/it140/logs/configure_ref_20260731_114500.log
@@ -926,7 +926,7 @@ Next step: Run verify_ide.sh
 IT 140 ENVIRONMENT VERIFICATION
 ============================================================
 Script version   : 0.2.0
-Version date     : 2026-07-31
+Version date-time group     : 2026-07-31
 Manifest release : 0.2.0
 Manifest date    : 2026-07-31
 
@@ -963,7 +963,7 @@ Course continuity: You can continue your IT 140 coursework in the Codio Virtual 
 IT 140 COURSE IDE UPDATE
 ============================================================
 Script version: 0.2.0
-Version date  : 2026-07-31
+Version date-time group  : 2026-07-31
 
 [INFO] Validating the current manifest and staging updated maintenance assets...
 [SUCCESS] Course-managed maintenance assets validated and refreshed.
@@ -999,11 +999,11 @@ An **acceptance test** checks whether the completed software meets an agreed req
 | AT-PKG-001 | PKG-FR-001, PKG-FR-002 | Inspect one fully supported platform implementation. | Exactly five correctly named artifacts—`prepare_ide.<ext>`, `install_ide.<ext>`, `configure_ide.<ext>`, `verify_ide.<ext>`, and `update_ide.<ext>`—are present in the approved platform directory, documented, and usable by the intended user. |
 | AT-PKG-002 | PKG-FR-003, PKG-QOS-014 | Run a platform component on a different or unsupported OS. | The component makes no managed change, explains the mismatch, writes a log when possible, and exits with code `2`. |
 | AT-PKG-003 | PKG-FR-004, PKG-FR-005, PKG-FR-019 | Replace the manifest with invalid JSON. | Each manifest-dependent script stops before managed changes, identifies the invalid manifest, and exits with code `5`; first-use prepare remains independent of the manifest. |
-| AT-PKG-004 | PKG-FR-006 through PKG-FR-009 | Run each component under a normal supported condition. | Each run shows required opening information, including SemVer and version date, creates a timestamped log, ends with the required completion information, and returns the documented result. |
+| AT-PKG-004 | PKG-FR-006 through PKG-FR-009 | Run each component under a normal supported condition. | Each run shows required opening information, including SemVer and version date-time group, creates a timestamped log, ends with the required completion information, and returns the documented result. |
 | AT-PKG-005 | PKG-FR-010, PKG-FR-020 | Place student files and an unrelated repository beside managed assets, then run all applicable components. | File contents, timestamps, version-control history, and repository state remain unchanged except for explicitly managed assets. |
 | AT-PKG-006 | PKG-NFR-025, PKG-QOS-018 | Use a test account with known username, email, and token-like values, then inspect output, logs, and bundle. | No password, token, private key, complete personal email address, or unapproved PII appears. |
 | AT-PKG-007 | PKG-NFR-001, PKG-NFR-008, PKG-QOS-014 | Compare results from two supported platform variants. | Status terms, summary fields, remediation meanings, and exit-code meanings are equivalent. |
-| AT-PKG-008 | PKG-NFR-015, PKG-FR-006, PKG-FR-012, PKG-QOS-017 | Inspect representative design, construction, testing, logging, and maintenance artifacts. | Controlled authored artifacts contain strict `MAJOR.MINOR.PATCH` SemVer and a separate valid `YYYY-MM-DD` version date; generated records identify the producing or evaluated artifact versions and dates; no date-based version substitutes for SemVer. |
+| AT-PKG-008 | PKG-NFR-015, PKG-FR-006, PKG-FR-012, PKG-QOS-017 | Inspect representative design, construction, testing, logging, and maintenance artifacts. | Controlled authored artifacts contain strict `MAJOR.MINOR.PATCH` SemVer and a separate valid `YYYY-MM-DD-HH-MM` version date-time group; generated records identify the producing or evaluated artifact versions and dates; no date-based version substitutes for SemVer. |
 | AT-PKG-009 | PKG-FR-008, PKG-FR-021, PKG-QOS-012, PKG-QOS-020 | Cause each lifecycle component on a non-CVD profile to end once with a handled nonzero or noncompliant result. Exercise the CVD-specific guidance branch through a representative CVD failure or an approved output-service test. | Each component attempts a final summary, gives problem-specific remediation and the exact log path, and presents CVD as the continuity option for the local-profile failure. The CVD branch states that CVD is affected and directs the user to the applicable remediation and support path. |
 | AT-PKG-010 | PKG-NFR-018, PKG-NFR-028, PKG-TC-006, Section 3.3 | Review a proposed technically compatible but unqualified deployment profile. | The proposal is not represented as course-supported until all qualification conditions are complete. When it can reuse an approved platform implementation and adapter contracts, the platform-independent lifecycle requires no redesign and no duplicate script family. |
 
@@ -1170,7 +1170,7 @@ A proposed requirement change shall identify:
 - The reason for the change.
 - The platforms and scripts affected.
 - Changes required in the manifest, SDD, code, tests, logs or support records, maintenance artifacts, and student documentation.
-- The required SemVer increment and new version date for each affected controlled artifact.
+- The required SemVer increment and new version date-time group for each affected controlled artifact.
 - Compatibility or migration effects for existing installations.
 
-The SRS SemVer version, SRS version date, and repository baseline shall be updated after an approved change is merged.
+The SRS SemVer version, SRS version date-time group, and repository baseline shall be updated after an approved change is merged.

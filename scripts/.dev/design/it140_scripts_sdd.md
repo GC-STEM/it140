@@ -5,9 +5,9 @@
 - **Program Name**: IT 140 Course Automation Scripts
 - **Document ID**: IT140-SDD-SCRIPTS
 - **Status**: Draft for faculty review
-- **Version**: 0.4.0
-- **Version Date**: 2026-08-01
-- **SRS Baseline**: `IT140-SRS-SCRIPTS`, version `0.4.0`, version date `2026-08-01`
+- **Version**: 0.5.0
+- **Version Date-Time Group**: 2026-08-01-10-43
+- **SRS Baseline**: `IT140-SRS-SCRIPTS`, version `0.5.0`, version date-time group-time group `2026-08-01-10-43`
 - **Repository Baseline**: `GC-STEM/it140` commit `e7d3e7fc24eeefd5aafccd8939982f5c0369c3f4`
 
 ## 0. General Description
@@ -40,7 +40,7 @@ Product names are retained only when one of the following conditions applies:
 
 The manifest is not allowed to contain arbitrary executable commands. It may select approved adapters and provide validated data, but executable behavior remains in reviewed source code. An **adapter** is a component that translates a stable package operation into commands appropriate for one platform, package manager, application, or external service.
 
-Every controlled analysis, design, construction, testing, release, and maintenance artifact has its own strict Semantic Versioning (SemVer) `MAJOR.MINOR.PATCH` version and separate `YYYY-MM-DD` version date. Generated logs, transcripts, test results, and support-bundle inventories record the version and version date of the artifact that produced or governed the result. Version dates supplement SemVer; they do not determine version precedence.
+Every controlled analysis, design, construction, testing, release, and maintenance artifact has its own strict Semantic Versioning (SemVer) `MAJOR.MINOR.PATCH` version and separate `YYYY-MM-DD-HH-MM` version date-time group. Generated logs, transcripts, test results, and support-bundle inventories record the version and version date-time group of the artifact that produced or governed the result. Version date-time groups supplement SemVer; they do not determine version precedence.
 
 ### 0.3 Relationship Among Requirements, Design, Configuration, and Code
 
@@ -121,14 +121,14 @@ This SDD does not define:
 | Read-only | Designed not to install, update, remove, repair, or rewrite software, files, or settings. |
 | Redaction | Removing or masking secrets and unnecessary personally identifiable information (PII) before displaying or saving data. |
 | Rollback | Restoring a previous valid state after a new managed asset cannot be installed successfully. |
-| Run context | The in-memory data describing one script run, including action, artifact version, version date, platform, user, time, paths, manifest release, and accumulated result. |
+| Run context | The in-memory data describing one script run, including action, artifact version, version date-time group, platform, user, time, paths, manifest release, and accumulated result. |
 | Schema | A machine-readable definition of allowed manifest fields, data types, required values, and structural rules. |
 | Semantic Versioning (SemVer) | A versioning scheme expressed as `MAJOR.MINOR.PATCH`. Incompatible changes increment MAJOR, backward-compatible functionality increments MINOR, and backward-compatible corrections increment PATCH. |
 | Staging | Downloading or generating a candidate asset in a temporary location before validating and activating it. |
 | Technical compatibility | Evidence that the required stack might operate on a profile. It does not establish implementation completeness, qualification, documentation, approval, or course support. |
 | Trust root | The small, preapproved source of authority used to decide whether downloaded configuration or code is authentic. |
 | Validation | Checking structure, type, value, relationships, paths, integrity, and compatibility before data is used. |
-| Version date | The calendar date, written as `YYYY-MM-DD`, on which a specific artifact version was created or approved. It supplements SemVer and does not determine version precedence. |
+| Version date-time group | The calendar date, written as `YYYY-MM-DD`, on which a specific artifact version was created or approved. It supplements SemVer and does not determine version precedence. |
 
 ### 0.7 Design Element Identifiers
 
@@ -163,7 +163,7 @@ The design uses the following goals as decision rules when alternatives are avai
 | ARC-DES-008 | Avoid requiring a course-managed runtime before installation establishes it. | Prepare uses only approved platform-native facilities expected on the baseline; each managed entry point uses the approved platform-native scripting language. | PRE-FR-003, PKG-TC-001, REF-TC-002 |
 | ARC-DES-009 | Make failure recoverable and diagnosable. | Mutating operations use validation, staging, bounded retries, locks where applicable, rollback where practical, logs, and deterministic exit codes. | PRE-FR-012, PRE-FR-014, PKG-QOS-003 through PKG-QOS-005, PKG-QOS-011 through PKG-QOS-022 |
 | ARC-DES-010 | Maintain complete traceability. | Every SRS requirement maps to one or more versioned design elements, implementation artifacts, tests, and maintenance records. | Appendix B of the SRS |
-| ARC-DES-011 | Give every controlled artifact an independent release identity. | Artifact headers, manifest metadata, logs, test records, support inventories, and traceability records carry strict SemVer and a separate version date. | PKG-FR-006, PKG-NFR-015, VER-FR-003 |
+| ARC-DES-011 | Give every controlled artifact an independent release identity. | Artifact headers, manifest metadata, logs, test records, support inventories, and traceability records carry strict SemVer and a separate version date-time group. | PKG-FR-006, PKG-NFR-015, VER-FR-003 |
 | ARC-DES-012 | Design for selective platform expansion rather than universal platform coverage. | Stable lifecycle orchestration and reviewed adapter boundaries allow a justified deployment profile to be added without redesigning the package core, while support remains limited to profiles the course can implement, qualify, document, approve, and maintain. | PKG-NFR-018, PKG-NFR-028, PKG-TC-006, Section 3.3 of the SRS |
 
 ### 1.1 Design Quality Priorities
@@ -272,7 +272,7 @@ Prepare uses a deliberately small native flow because the controlled manifest, s
 1. Enable strict native error handling and register cleanup.
 2. Derive the current user's home, course, log, and temporary paths.
 3. Create the log directory and start a transcript before network retrieval.
-4. Display the Prepare artifact version, version date, platform, user, purpose, and log path.
+4. Display the Prepare artifact version, version date-time group, platform, user, purpose, and log path.
 5. Validate the operating-system family, required architecture, and standard-user context.
 6. Download the authorized repository archive with bounded retries into a unique temporary location.
 7. Extract and structurally validate the staged package, including the matching platform directory and every lifecycle entry point required by the resolved workflow.
@@ -289,7 +289,7 @@ Install, Configure, Verify, and Update follow this high-level processing pattern
 1. Initialize a minimal run context, artifact identity, and safe error handling.
 2. Parse supported command-line options.
 3. Create the standard log location and start the transcript.
-4. Display the artifact version and version date with the run context.
+4. Display the artifact version and version date-time group with the run context.
 5. Detect the platform, current user, privilege state, paths, and available native facilities.
 6. Locate, load, and validate the manifest.
 7. Select the platform, capability, and provider adapters named by approved manifest identifiers.
@@ -319,9 +319,9 @@ The following supporting artifacts shall describe the same design at different l
 | `scripts/.manifest/it140_manifest.schema.json` | Machine-readable manifest structural contract |
 | `scripts/.manifest/it140_manifest.json` | Controlled concrete product, version, source, platform, deployment-profile, desktop-integration, and maintenance-asset selections |
 | Automated and manual test artifacts | Unit, integration, safety, idempotence, interruption, acceptance, and platform-conformance evidence |
-| Release and maintenance records | Approved changes, compatibility effects, SemVer decisions, version dates, and deployed baselines |
+| Release and maintenance records | Approved changes, compatibility effects, SemVer decisions, version date-time groups, and deployed baselines |
 
-Every controlled artifact in this table has its own SemVer version and version date. Generated test results and release records identify the versions and dates of the artifacts they evaluate. The diagrams and pseudoscripts are detailed design artifacts. This SDD remains authoritative when a supporting artifact is incomplete or inconsistent.
+Every controlled artifact in this table has its own SemVer version and version date-time group. Generated test results and release records identify the versions and dates of the artifacts they evaluate. The diagrams and pseudoscripts are detailed design artifacts. This SDD remains authoritative when a supporting artifact is incomplete or inconsistent.
 
 ## 3. Program Structure
 
@@ -379,7 +379,7 @@ All source scripts and text configuration shall use UTF-8 encoding with Line Fee
 
 | Design ID | Component | Responsibility | Primary inputs | Primary outputs | Related SRS requirements |
 | --- | --- | --- | --- | --- | --- |
-| SHR-DES-001 | Run-context builder | Capture action, artifact SemVer, version date, platform, user, times, paths, and manifest release for one run. | Entry-point metadata and detected environment | `RunContext` | PKG-FR-006, PKG-NFR-015, PKG-QOS-017 |
+| SHR-DES-001 | Run-context builder | Capture action, artifact SemVer, version date-time group, platform, user, times, paths, and manifest release for one run. | Entry-point metadata and detected environment | `RunContext` | PKG-FR-006, PKG-NFR-015, PKG-QOS-017 |
 | SHR-DES-002 | Output service | Produce consistent stage headings, status labels, prompts, summaries, profile-aware course-continuity guidance, and plain-text fallbacks. | Message key, severity, values | Terminal and log messages | PKG-FR-008, PKG-FR-021, PKG-NFR-001 through PKG-NFR-011 |
 | SHR-DES-003 | Transcript service | Create a unique timestamped UTF-8 log in the approved course log directory and write terminal output without losing the original exit result. | Run context and output stream | Log file | PKG-FR-007, PKG-TC-005, PKG-QOS-013, PKG-QOS-016 through PKG-QOS-020 |
 | SHR-DES-004 | Manifest loader | Locate and read the controlled manifest as data. | Manifest path | Raw manifest object | PKG-FR-004, PKG-FR-011 |
@@ -417,7 +417,7 @@ The manifest is a controlled configuration item, not a program. It contains decl
 | Design ID | Manifest design rule | Purpose | Related SRS requirements |
 | --- | --- | --- | --- |
 | DAT-DES-001 | The root object contains artifact identity, release control, policy, capabilities, products, sources, provider profiles, platforms, optional deployment profiles, managed settings, desktop integrations, managed assets, obsolete components, and logging data. | Provides a predictable top-level contract while separating stable platform bindings from concrete deployment environments. | PKG-FR-011 through PKG-FR-017, PKG-NFR-015 |
-| DAT-DES-002 | `schema_version` uses strict SemVer and a documented compatibility policy separate from the automation release. The schema artifact also has its own version date. | Allows scripts to reject a manifest structure they cannot interpret and identify the governing schema precisely. | PKG-FR-012, PKG-FR-019, PKG-NFR-015 |
+| DAT-DES-002 | `schema_version` uses strict SemVer and a documented compatibility policy separate from the automation release. The schema artifact also has its own version date-time group. | Allows scripts to reject a manifest structure they cannot interpret and identify the governing schema precisely. | PKG-FR-012, PKG-FR-019, PKG-NFR-015 |
 | DAT-DES-003 | Capability definitions use stable role identifiers rather than product names in script logic. | Allows an approved product to change without changing lifecycle logic. | PKG-TC-008, PKG-NFR-012 |
 | DAT-DES-004 | Platform entries bind capability roles to concrete package identifiers, commands, version probes, sources, settings, and adapter IDs. | Keeps product-specific data in one controlled location and enforces the no-additional-fee selection constraint. | PKG-FR-013, PKG-FR-014, PKG-FR-015, PKG-FR-016, PKG-TC-002 |
 | DAT-DES-005 | Provider profiles identify an allowlisted provider adapter and validated authentication, account-field, and privacy-identity parameters. | Supports provider-specific behavior without hardcoding it throughout Configure and Verify. | CFG-FR-005 through CFG-FR-008, VER-FR-006 |
@@ -429,10 +429,10 @@ The manifest is a controlled configuration item, not a program. It contains decl
 | DAT-DES-011 | Required and optional items are represented explicitly and are never inferred from missing fields. | Keeps optional features from causing required failures. | VER-FR-010, PKG-NFR-005 |
 | DAT-DES-012 | Retry limits, timeouts, and performance settings are bounded by schema validation and safe code-defined maximums. | Allows controlled tuning without indefinite waits or excessive load. | PRE-FR-007, UPD-FR-012, PKG-QOS-007 through PKG-QOS-010 |
 | DAT-DES-013 | Secrets, personal values, and runtime authentication data are prohibited in the manifest schema and semantic validator. | Keeps the public controlled file safe to distribute. | PKG-FR-018, PKG-NFR-025 |
-| DAT-DES-014 | A manifest release is approved only with its schema validation, platform conformance tests, integrity metadata, SemVer decision, version date, and release record. | Treats product selection as controlled engineering data. | PKG-FR-019, PKG-NFR-015, Appendix B of the SRS |
+| DAT-DES-014 | A manifest release is approved only with its schema validation, platform conformance tests, integrity metadata, SemVer decision, version date-time group, and release record. | Treats product selection as controlled engineering data. | PKG-FR-019, PKG-NFR-015, Appendix B of the SRS |
 | DAT-DES-015 | Deployment profiles reference a platform implementation and record deployment kind, provider, desktop, session, release, architecture, reset method, reference status, and allowed workflow identifiers. | Distinguishes hosted, local, and test deployments without duplicating course IDE product bindings. | REF-TC-001 through REF-TC-006, PKG-FR-022, Section 3.3 of the SRS |
 | DAT-DES-018 | A top-level workflow catalog defines each workflow identifier, deployment-profile applicability, operating role, starting-state identifier, ordered actions, update mode, and exact success transitions. | Keeps lifecycle sequencing declarative and testable without allowing arbitrary commands in the manifest. | PKG-FR-022, PKG-FR-023, PRE-FR-013 |
-| DAT-DES-016 | Every controlled manifest, schema, design, construction, test, release, and maintenance record stores or is associated with an `ArtifactIdentity` containing artifact ID, SemVer, and version date. | Supports exact traceability without requiring unrelated artifact versions to match. | PKG-NFR-015 |
+| DAT-DES-016 | Every controlled manifest, schema, design, construction, test, release, and maintenance record stores or is associated with an `ArtifactIdentity` containing artifact ID, SemVer, and version date-time group. | Supports exact traceability without requiring unrelated artifact versions to match. | PKG-NFR-015 |
 | DAT-DES-017 | Desktop integrations separately declare the course-folder shortcut target, the IDE executable role, the course-root launch argument or workspace behavior, optional default-folder setting, ownership scope, and validation probe. | Makes the Windows-established course-root launch behavior portable and testable without hardcoding desktop commands. | CFG-FR-013 through CFG-FR-015, VER-FR-006 |
 
 ### 4.2 Illustrative Logical Manifest Structure
@@ -444,15 +444,15 @@ The following example is informative. Field names may be refined when the JSON s
   "artifact": {
     "id": "IT140-MANIFEST",
     "version": "0.2.0",
-    "version_date": "2026-07-31"
+    "version_date_time_group": "2026-07-31-12-00"
   },
   "schema": {
     "version": "0.2.0",
-    "version_date": "2026-07-31"
+    "version_date_time_group": "2026-07-31-12-00"
   },
   "automation_release": {
     "version": "0.2.0",
-    "version_date": "2026-07-31"
+    "version_date_time_group": "2026-07-31-12-00"
   },
   "policy": {
     "course_root": "${HOME}/it140",
@@ -523,7 +523,7 @@ Manifest validation occurs in this order:
 1. **File validation**: path exists, file is readable, expected encoding is used, and size is within a safe limit.
 2. **Syntax validation**: content parses as JSON without duplicate-key ambiguity.
 3. **Schema validation**: required fields, types, enumerations, patterns, and ranges are correct.
-4. **Artifact-identity validation**: required artifact versions are strict SemVer, version dates are valid `YYYY-MM-DD` values, and compatibility declarations are internally consistent.
+4. **Artifact-identity validation**: required artifact versions are strict SemVer, version date-time groups are valid `YYYY-MM-DD-HH-MM` values, and compatibility declarations are internally consistent.
 5. **Semantic validation**: identifiers are unique; required capability roles have bindings; product versions, sources, and desktop integration definitions are meaningful.
 6. **Relationship validation**: referenced adapters, provider profiles, platforms, assets, integrations, and policies exist and are compatible.
 7. **Path validation**: expanded managed paths remain within approved boundaries and do not target protected or user-owned locations.
@@ -538,7 +538,7 @@ The names below describe logical structures. Native implementations may use reco
 
 | Data structure | Required fields | Purpose |
 | --- | --- | --- |
-| `ArtifactIdentity` | artifact ID, strict SemVer, version date, development or release status, optional compatibility range | Identifies one controlled artifact independently of other artifacts. |
+| `ArtifactIdentity` | artifact ID, strict SemVer, version date-time group, development or release status, optional compatibility range | Identifies one controlled artifact independently of other artifacts. |
 | `RunContext` | action, artifact identity, platform ID, user ID, paths, start time, manifest identity, interactivity | Provides common context to every component. |
 | `PlatformFacts` | OS type and release, architecture, session type, home path, desktop path, temporary path, privilege capability | Supports platform matching and prerequisite checks. |
 | `DeploymentProfile` | platform identifier, deployment kind, provider, desktop environment, session type, release, architecture, reset method, and reference flag | Selects environment-specific behavior and testing evidence without duplicating product bindings. |
@@ -571,15 +571,15 @@ Shared result values are represented internally by stable identifiers and render
 Logs are human-readable UTF-8 plain text. Each meaningful line begins with a timestamp and stable level label when practical.
 
 ```text
-2026-07-31T12:00:00-07:00 [INFO] [run.identity] Script version 0.2.0; version date 2026-07-31.
-2026-07-31T12:00:01-07:00 [INFO] [manifest.validate] Manifest version 0.2.0; version date 2026-07-31.
+2026-07-31T12:00:00-07:00 [INFO] [run.identity] Script version 0.2.0; version date-time group 2026-07-31-12-00.
+2026-07-31T12:00:01-07:00 [INFO] [manifest.validate] Manifest version 0.2.0; version date-time group 2026-07-31-12-00.
 2026-07-31T12:00:02-07:00 [PASS] [platform.release] Detected platform release is supported.
 2026-07-31T12:00:03-07:00 [FAIL] [capability.quality_tool] Required capability is not available.
 ```
 
 The transcript service records:
 
-- Producing script artifact ID, SemVer, and version date.
+- Producing script artifact ID, SemVer, and version date-time group.
 - Package, manifest, and schema artifact identities when applicable.
 - Test-definition or support-inventory identity when the log is generated by testing or support tooling.
 - Detected platform and architecture.
@@ -589,14 +589,14 @@ The transcript service records:
 - Sanitized observed and expected values.
 - Changes, warnings, failures, remediation, restart guidance, and exit code.
 
-Prepare starts its transcript before network retrieval and records its embedded artifact version and version date even when the package cannot be downloaded. Logs do not record passwords, tokens, private keys, browser data, complete personal email addresses, or student source files.
+Prepare starts its transcript before network retrieval and records its embedded artifact version and version date-time group even when the package cannot be downloaded. Logs do not record passwords, tokens, private keys, browser data, complete personal email addresses, or student source files.
 
 ### 4.7 Support-Bundle Design
 
 When explicitly requested, Verify creates a temporary bundle containing only approved diagnostics, such as:
 
 - Sanitized verification log.
-- Bundle-inventory artifact ID, SemVer, and version date.
+- Bundle-inventory artifact ID, SemVer, and version date-time group.
 - SRS, SDD, script, manifest, schema, and test-definition artifact identities relevant to the result.
 - Supported platform facts.
 - Required capability product-version results.
@@ -615,7 +615,7 @@ The bundle excludes assignment repositories, source files, version-control histo
 | INT-DES-001 | First-use Prepare requires no installed course command. | The documented platform-native `prepare_ide.<ext>` content can be copied and run directly; after installation, the same artifact can be executed by name or approved path to refresh the package. | PRE-FR-001, PRE-FR-002, PRE-FR-003 |
 | INT-DES-002 | Managed lifecycle invocation requires no advanced arguments. | Running Install, Configure, Verify, or Update by its installed name starts the normal student- or administrator-facing workflow. | PKG-NFR-002, PKG-NFR-010 |
 | INT-DES-003 | Managed scripts support help; Prepare remains minimal. | Help explains purpose, intended user, prerequisites, common invocation, log location, and exit-code meanings without changing state. Prepare instead uses embedded comments, opening output, and exact next-step output because it must remain copyable and dependency-free. | PKG-FR-006, PRE-FR-003, PKG-NFR-003 |
-| INT-DES-004 | Every artifact exposes its version identity. | Managed scripts provide a local version operation; Prepare displays and logs its embedded SemVer and version date during every run. No external service is required to obtain version identity. | PKG-FR-006, PRE-FR-006, PKG-NFR-015, PKG-QOS-017 |
+| INT-DES-004 | Every artifact exposes its version identity. | Managed scripts provide a local version operation; Prepare displays and logs its embedded SemVer and version date-time group during every run. No external service is required to obtain version identity. | PKG-FR-006, PRE-FR-006, PKG-NFR-015, PKG-QOS-017 |
 | INT-DES-005 | Interactive prompts are used only when user choice or external authentication is required. | The script explains the action, available choices, default, cancellation method, and effect before reading input. | CFG-FR-006, PKG-NFR-007 |
 | INT-DES-006 | Noninteractive execution fails safely when required interaction cannot be completed. | Automated or managed runs receive a clear result rather than waiting indefinitely for input. | PKG-QOS-003, PKG-QOS-011 |
 | INT-DES-007 | Verify alone may expose a support-bundle option. | The option requests bundle preparation; final creation still displays the approved inventory and obtains explicit confirmation when interactive. | VER-FR-013, PKG-QOS-021 |
@@ -624,7 +624,7 @@ The bundle excludes assignment repositories, source files, version-control histo
 | INT-DES-010 | Student-facing output uses consistent status labels. | `INFO`, `SUCCESS`, `NOTICE`, `WARNING`, and `ERROR` appear as text and do not rely on color. | PKG-NFR-008, PKG-QOS-019 |
 | INT-DES-011 | Progress reflects completed stages or underlying tool output. | Timed animations are not used as progress measurements. A truthful heartbeat appears during long silent operations. | PKG-NFR-009, PKG-QOS-008 |
 | INT-DES-012 | Remediation commands are rendered from detected platform metadata. | Commands use the installed action name and tell the user where to run them. | PRE-FR-013, VER-FR-009, PKG-NFR-010 |
-| INT-DES-013 | The final summary is always attempted for managed scripts. | The summary shows result, changes, warnings, failures, restart guidance, next step, log path, and exit code, even after a handled failure. Prepare provides a smaller success or failure conclusion with the log path and exact Install next step. | PKG-FR-008, PRE-FR-013, PRE-FR-014, PKG-QOS-012, PKG-QOS-020 |
+| INT-DES-013 | The final summary is always attempted for managed scripts. | The summary shows result, changes, warnings, failures, restart guidance, next step, log path, and exit code, even after a handled failure. Prepare provides a smaller success or failure conclusion with the log path and the exact next step resolved from the approved lifecycle workflow; local initialization selects Install, while both CVD initialization workflows select Update. | PKG-FR-008, PRE-FR-013, PRE-FR-014, PKG-QOS-012, PKG-QOS-020 |
 | INT-DES-014 | Every unsuccessful managed lifecycle conclusion preserves course continuity. | When a run ends nonzero or noncompliant, the output and transcript add profile-aware guidance. For a local or unconfirmed profile, display: `Course continuity: You can continue your IT 140 coursework in the Codio Virtual Desktop (CVD) while this local course IDE issue is resolved.` For a CVD profile, display: `Course continuity: This issue affects the Codio Virtual Desktop (CVD). Follow the remediation above. If the issue continues, contact course support and include the log file.` The guidance never replaces the problem-specific remediation or exact log path. | PKG-FR-021 |
 
 ### 5.2 Common Opening Output
@@ -633,7 +633,7 @@ Each normal run displays the following fields near the beginning:
 
 - Package and action name.
 - Artifact SemVer.
-- Artifact version date.
+- Artifact version date-time group.
 - Manifest release and release date after validation, except Prepare because the manifest is not a prerequisite.
 - Detected platform and operating-system release when available.
 - Current user identifier.
@@ -701,7 +701,7 @@ BEGIN managed action
     validate embedded artifact identity
     build minimal run context
     create log directory and transcript
-    display opening information, version, and version date
+    display opening information, version, and version date-time group
 
     detect platform and user context
     IF action-platform mismatch OR unsupported platform
@@ -796,14 +796,14 @@ Prepare is the package bootstrap and refresh boundary. On first use, its source 
 | PRE-DES-003 | Use only baseline platform-native facilities and embedded constants; do not load the manifest, package manager, version-control client, or another lifecycle script. | Native retrieval and archive tools | PRE-FR-003 |
 | PRE-DES-004 | Validate the OS family, required architecture, and standard-user context before replacing local package files. | Minimal native platform probes | PRE-FR-004 |
 | PRE-DES-005 | Derive home paths, create the course and log roots, and allocate a unique private staging directory without removing existing course-root content. | Native path and temporary-directory facilities | PRE-FR-005 |
-| PRE-DES-006 | Start a timestamped transcript before retrieval and record the Prepare artifact SemVer, version date, user, purpose, and log path. | Minimal local transcript helper | PRE-FR-006 |
+| PRE-DES-006 | Start a timestamped transcript before retrieval and record the Prepare artifact SemVer, version date-time group, user, purpose, and log path. | Minimal local transcript helper | PRE-FR-006 |
 | PRE-DES-007 | Retrieve the authorized repository archive over encrypted transport with bounded attempts into a unique partial or temporary file. | Native HTTPS client, retry loop | PRE-FR-007 |
 | PRE-DES-008 | Extract into staging and require the expected platform directory plus every lifecycle entry point required by the resolved workflow before package refresh begins. | Native archive tool, structural validator | PRE-FR-008 |
 | PRE-DES-009 | Overlay only repository-managed source files into the course root while preserving unrelated files, assignment content, and nested repositories. | Package refresh copier, path boundary rules | PRE-FR-009 |
 | PRE-DES-010 | Remove only top-level repository metadata copied from the downloaded package; never recursively search for and delete nested version-control metadata. | Exact-path deletion helper | PRE-FR-010 |
 | PRE-DES-011 | Apply required executable permissions and prepend or add the platform script directory to the current and future user `PATH` idempotently. | Native permission and user-environment interfaces | PRE-FR-011 |
 | PRE-DES-012 | Register cleanup before retrieval and remove only the unique staging archive and extraction tree on normal exit, handled failure, cancellation, or supported interruption. | Native trap, `finally`, or cleanup handler | PRE-FR-012 |
-| PRE-DES-013 | On success, print the installed course root, exact log path, resolved workflow identifier, starting state, operating role, and exact platform-specific next-step command. Local workflows select Install; both CVD initial workflows select Update. | Minimal output helper and bounded workflow resolver | PRE-FR-013, PKG-FR-022 |
+| PRE-DES-013 | On success, print the installed course root, exact log path, resolved workflow identifier, starting state, operating role, and exact platform-specific next-step command. Local initialization selects Install; both CVD initialization workflows select Update. | Minimal output helper and bounded workflow resolver | PRE-FR-013, PKG-FR-022 |
 | PRE-DES-014 | Complete download, extraction, and structural validation before touching existing package files; on pre-refresh failure, leave the prior package unchanged and return nonzero. | Staging validator, error handler | PRE-FR-014 |
 | PRE-DES-015 | Enforce an explicit authority allowlist limited to package retrieval or refresh, logging, script permissions, and user `PATH`. | Prepare boundary checks | PRE-FR-015 |
 
@@ -811,7 +811,7 @@ Prepare is the package bootstrap and refresh boundary. On first use, its source 
 
 ```text
 initialize strict native error handling
-validate embedded SemVer and version date constants
+validate embedded SemVer and version date-time group constants
 resolve home, course, log, and unique temporary paths
 create log directory and start transcript
 register cleanup handler
@@ -1192,7 +1192,7 @@ Every boundary has validation, least-privilege, ownership, and redaction control
 | SEC-DES-009 | Temporary-data lifecycle | Prepare and managed scripts delete private downloaded or generated temporary data after safe use and error handling. | PRE-FR-012, PKG-NFR-027 |
 | SEC-DES-010 | User-owned data exclusion | Package refresh, support collection, and cleanup start from explicit allowlists, not broad recursive collection. | PRE-FR-009, PRE-FR-010, PKG-FR-010, PKG-QOS-022 |
 | SEC-DES-011 | Provider-data minimization | Provider adapters request only account fields declared by the approved profile and needed by configuration. | CFG-FR-007, PKG-NFR-025 |
-| SEC-DES-012 | Change auditability | Logs identify artifact SemVer, version date, stage, managed asset IDs, and result without storing secret values. | PKG-NFR-015, PKG-QOS-017, PKG-QOS-018 |
+| SEC-DES-012 | Change auditability | Logs identify artifact SemVer, version date-time group, stage, managed asset IDs, and result without storing secret values. | PKG-NFR-015, PKG-QOS-017, PKG-QOS-018 |
 
 ### 13.2 Redaction Order
 
@@ -1319,7 +1319,7 @@ The default logical pattern is:
 <action>_ide_<YYYYMMDD>_<HHMMSS>.<log-extension>
 ```
 
-The path is derived from the current user's approved course log directory. A collision-resistant suffix may be added when two runs begin within the same second. The filename is not the artifact identity; the log header records the producing artifact's ID, SemVer, and version date.
+The path is derived from the current user's approved course log directory. A collision-resistant suffix may be added when two runs begin within the same second. The filename is not the artifact identity; the log header records the producing artifact's ID, SemVer, and version date-time group.
 
 ### 15.3 Message Catalog
 
@@ -1352,7 +1352,7 @@ Exact English wording may differ slightly by platform when needed, but meaning, 
 
 Each approved release record identifies:
 
-- The artifact ID, SemVer, and version date of every changed controlled artifact.
+- The artifact ID, SemVer, and version date-time group of every changed controlled artifact.
 - The reason each artifact received a MAJOR, MINOR, or PATCH increment.
 - The SRS and SDD baselines used for construction.
 - The manifest, schema, and platform implementation versions tested.
@@ -1378,7 +1378,7 @@ Logs and test results are generated records rather than source artifacts, but th
 | 10 | Use staging and atomic replacement where practical. | A failed download or interrupted write must not replace a working asset with a partial file. | Write directly to the destination; rejected because recovery is weaker. |
 | 11 | Use plain-text logs with stable version fields. | Students and support personnel can read them without specialized tools while identifying the exact producing artifact. | Store only structured machine logs; rejected for student usability, though structured supplemental data may be added later. |
 | 12 | Keep the reference product mapping in a nonnormative appendix. | Reviewers need concrete context, but the manifest remains the current authority. | Remove all product names; rejected because it weakens review and test context. |
-| 13 | Give each controlled artifact an independent SemVer and version date. | Independent identities support exact traceability and correct compatibility decisions without forcing unrelated files to share a version. | Use one date-based package number for every artifact; rejected because dates do not express compatibility or change type. |
+| 13 | Give each controlled artifact an independent SemVer and version date-time group. | Independent identities support exact traceability and correct compatibility decisions without forcing unrelated files to share a version. | Use one date-based package number for every artifact; rejected because dates do not express compatibility or change type. |
 | 14 | Manage both a desktop course-folder shortcut and an IDE launcher that opens the course root. | Beginning students receive a predictable starting location in both the file manager and IDE, matching the validated Windows behavior. | Provide only a generic IDE shortcut; rejected because it can open an unrelated recent folder or empty window. |
 | 15 | Design for selective extensibility instead of universal platform coverage. | Stable lifecycle orchestration and adapter contracts keep future expansion practical, while explicit qualification prevents an unbounded testing and maintenance commitment. | Promise support for every platform accepted by any upstream product; rejected because the course cannot implement, test, document, and maintain that open-ended matrix responsibly. |
 | 16 | Add profile-aware course-continuity guidance to every unsuccessful managed lifecycle conclusion. | Students can continue required coursework in CVD while a local environment issue is repaired, without misleading users when CVD itself is affected. | Provide remediation only; rejected because it can leave beginners believing they must stop coursework until local repair is complete. |
@@ -1415,13 +1415,13 @@ A range in this table is inclusive. The design elements listed for a range apply
 
 ### 17.1 Construction Traceability Rule
 
-During construction, each implementation function or module shall identify its primary SDD design element in a nearby comment, docstring, test name, or traceability record. Each controlled implementation file records its own artifact ID, strict SemVer, and version date. Source code should not be cluttered by listing every related requirement when a versioned module-level traceability record provides the mapping clearly.
+During construction, each implementation function or module shall identify its primary SDD design element in a nearby comment, docstring, test name, or traceability record. Each controlled implementation file records its own artifact ID, strict SemVer, and version date-time group. Source code should not be cluttered by listing every related requirement when a versioned module-level traceability record provides the mapping clearly.
 
 ### 17.2 Test Traceability Rule
 
 Automated and manual tests shall use stable test identifiers and identify:
 
-- The test-definition artifact ID, SemVer, and version date.
+- The test-definition artifact ID, SemVer, and version date-time group.
 - The SRS version and date plus the requirement or acceptance test being verified.
 - The SDD version and date plus the design element being exercised.
 - The implementation, manifest, and schema artifact versions and dates evaluated.
@@ -1444,7 +1444,7 @@ Before construction or release approval, reviewers shall confirm the following e
 | Responsibility separation | Prepare, Install, Configure, Verify, and Update remain within their approved state and privilege boundaries. |
 | Evergreen design | Main-body orchestration uses capability roles and adapters rather than current product names. |
 | Controlled configuration | Concrete products, product versions, sources, provider rules, desktop integrations, and maintenance assets are assigned to the manifest and schema. |
-| Version governance | Every controlled analysis, design, construction, testing, release, and maintenance artifact has strict SemVer and a version date; logs and results record governing artifact identities. |
+| Version governance | Every controlled analysis, design, construction, testing, release, and maintenance artifact has strict SemVer and a version date-time group; logs and results record governing artifact identities. |
 | Manifest safety | Manifest data cannot directly introduce arbitrary executable commands or unsafe paths. |
 | Idempotence | Query-plan-apply-verify behavior is defined for Prepare, Install, Configure, and Update. |
 | Read-only verification | Verify receives only read interfaces and cannot invoke mutating adapter methods. |
@@ -1462,7 +1462,7 @@ Before construction or release approval, reviewers shall confirm the following e
 
 This appendix records the concrete reference environment used to review this SDD and design the initial adapters and tests. It is **nonnormative**, meaning it provides context but does not override the SRS or controlled manifest. The current approved `it140_manifest.json` is authoritative when this appendix and the manifest differ.
 
-The reference mapping should be updated when convenient for historical clarity, but a routine product or product-version change does not require an SDD change unless the architecture, capability, interface, security boundary, or workflow changes. Appendix updates still receive their own SDD SemVer increment and version date under the artifact-control policy.
+The reference mapping should be updated when convenient for historical clarity, but a routine product or product-version change does not require an SDD change unless the architecture, capability, interface, security boundary, or workflow changes. Appendix updates still receive their own SDD SemVer increment and version date-time group under the artifact-control policy.
 
 ### A.2 Reference Platform Mapping
 
@@ -1523,7 +1523,7 @@ The initial reference implementation uses approved official operating-system, ve
 
 Each supported platform may have a concise, independently versioned supplement that records only design details that cannot remain generic, including:
 
-- Supplement artifact ID, SemVer, and version date.
+- Supplement artifact ID, SemVer, and version date-time group.
 - Native script language conventions and strict mode.
 - Prepare retrieval, extraction, structure validation, cleanup, and `PATH` behavior.
 - Package-manager operations and source configuration.
@@ -1540,7 +1540,7 @@ A supplement shall not redefine shared exit codes, log fields, artifact identity
 
 ## Appendix C: References
 
-- `scripts/.dev/analysis/it140_scripts_srs.md`, *IT 140 Course Automation Scripts Software Requirements Specification*, version `0.3.0`, version date `2026-08-01`.
+- `scripts/.dev/analysis/it140_scripts_srs.md`, *IT 140 Course Automation Scripts Software Requirements Specification*, version `0.5.0`, version date-time group `2026-08-01-10-43`.
 - `scripts/.dev/README.md`, development notes and five-component lifecycle decisions.
 - `scripts/.dev/pseudoscripts/prepare_ide.pseudo`, platform-agnostic Prepare design artifact.
 - `scripts/.dev/pseudoscripts/install_ide.pseudo`, platform-agnostic Install design artifact.

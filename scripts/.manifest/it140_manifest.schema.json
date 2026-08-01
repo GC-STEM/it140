@@ -2,14 +2,14 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/GC-STEM/it140/refs/heads/main/scripts/.manifest/it140_manifest.schema.json",
   "title": "IT 140 Course Automation Manifest",
-  "description": "Structural contract for the controlled IT 140 automation manifest. The manifest selects concrete approved products, versions, sources, platforms, deployment profiles, provider profiles, managed settings, and managed assets. Operating-system support packages are intentionally separated from course IDE capability bindings.",
-  "$comment": "Validation is layered. This schema performs structural validation. The scripts must also perform semantic validation: reject duplicate JSON keys; confirm every referenced product, source, provider profile, deployment profile, settings profile, and adapter exists; confirm every required capability has one valid binding on every enabled platform; confirm deployment-profile platform, release, and architecture references are valid; confirm exactly one enabled reference deployment profile and that its platform is marked as the reference platform; confirm adapter IDs are compiled into or distributed with the approved automation release; confirm managed and obsolete paths remain within approved boundaries; confirm the manifest contains no secrets or personal values; and confirm integrity metadata is appropriate for each source type.",
+  "description": "Structural contract for the controlled IT 140 automation manifest. The manifest selects concrete approved products, versions, sources, platforms, deployment profiles, lifecycle workflows, provider profiles, managed settings, and managed assets. Operating-system support packages are intentionally separated from course IDE capability bindings.",
+  "$comment": "Validation is layered. This schema performs structural validation. The scripts must also perform semantic validation: reject duplicate JSON keys; confirm every referenced product, source, provider profile, deployment profile, lifecycle workflow, settings profile, and adapter exists; confirm every required capability has one valid binding on every enabled platform; confirm deployment-profile platform, release, architecture, and allowed-workflow references are valid; confirm lifecycle workflow deployment-profile references, role and starting-state combinations, ordered actions, update modes, and success transitions are coherent; confirm exactly one enabled reference deployment profile and that its platform is marked as the reference platform; confirm adapter IDs are compiled into or distributed with the approved automation release; confirm managed and obsolete paths remain within approved boundaries; confirm the manifest contains no secrets or personal values; and confirm integrity metadata is appropriate for each source type.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schema_version",
     "automation_release",
-    "automation_release_date",
+    "automation_release_date_time_group",
     "course",
     "control",
     "policy",
@@ -18,6 +18,8 @@
     "software_sources",
     "provider_profiles",
     "platforms",
+    "deployment_profiles",
+    "lifecycle_workflows",
     "managed_settings",
     "managed_assets",
     "obsolete_components",
@@ -26,16 +28,11 @@
   "properties": {
     "schema_version": {
       "type": "string",
-      "const": "2.0",
+      "const": "2.2",
       "description": "Manifest schema compatibility version understood by this schema."
     },
     "automation_release": {
       "$ref": "#/$defs/automationRelease"
-    },
-    "automation_release_date": {
-      "type": "string",
-      "format": "date",
-      "description": "Date on which the automation release version was assigned."
     },
     "course": {
       "$ref": "#/$defs/course"
@@ -75,6 +72,12 @@
     },
     "logging": {
       "$ref": "#/$defs/logging"
+    },
+    "lifecycle_workflows": {
+      "$ref": "#/$defs/lifecycleWorkflowCatalog"
+    },
+    "automation_release_date_time_group": {
+      "$ref": "#/$defs/versionDateTimeGroup"
     }
   },
   "$defs": {
@@ -1418,7 +1421,8 @@
         "reference_profile",
         "platform_id",
         "deployment_kind",
-        "session_type"
+        "session_type",
+        "allowed_workflow_ids"
       ],
       "properties": {
         "display_name": {
@@ -1492,6 +1496,10 @@
         "notes": {
           "type": "string",
           "maxLength": 1000
+        },
+        "allowed_workflow_ids": {
+          "$ref": "#/$defs/identifierList",
+          "description": "Lifecycle workflow identifiers authorized for this deployment profile."
         }
       },
       "allOf": [
@@ -1536,7 +1544,7 @@
           }
         }
       ],
-      "description": "A concrete environment in which a platform implementation is deployed. Deployment profiles keep provider, desktop-environment, session, reset, release, and architecture details separate from software and package bindings."
+      "description": "A concrete environment in which a platform implementation is deployed. Deployment profiles keep provider, desktop-environment, session, reset, release, architecture, and authorized workflow details separate from software and package bindings."
     },
     "deploymentProfileCatalog": {
       "type": "object",
@@ -1547,7 +1555,221 @@
       "additionalProperties": {
         "$ref": "#/$defs/deploymentProfile"
       },
-      "description": "Optional catalog of local, virtual, hosted, or other deployment environments. When present, semantic validation requires exactly one enabled reference profile."
+      "description": "Catalog of local, virtual, hosted, or other deployment environments. Semantic validation requires exactly one enabled reference profile and validates every allowed workflow reference."
+    },
+    "lifecycleAction": {
+      "type": "string",
+      "enum": [
+        "prepare",
+        "install",
+        "configure",
+        "verify",
+        "update"
+      ]
+    },
+    "workflowTransitionTarget": {
+      "type": "string",
+      "enum": [
+        "prepare",
+        "install",
+        "configure",
+        "verify",
+        "update",
+        "complete"
+      ]
+    },
+    "lifecycleWorkflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "display_name",
+        "deployment_profile_ids",
+        "operating_roles",
+        "starting_state_id",
+        "ordered_actions",
+        "success_transitions"
+      ],
+      "properties": {
+        "display_name": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "deployment_profile_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "operating_roles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "local_user",
+              "cvd_administrator",
+              "cvd_student"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "starting_state_id": {
+          "type": "string",
+          "enum": [
+            "local_unmanaged_environment",
+            "provider_baseline_master",
+            "it140_course_master",
+            "initialized_environment"
+          ]
+        },
+        "ordered_actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lifecycleAction"
+          },
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true
+        },
+        "update_mode": {
+          "type": "string",
+          "enum": [
+            "initial_provider_baseline",
+            "initial_course_master",
+            "periodic_maintenance"
+          ]
+        },
+        "success_transitions": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "enum": [
+              "prepare",
+              "install",
+              "configure",
+              "verify",
+              "update"
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/workflowTransitionTarget"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "ordered_actions": {
+                "contains": {
+                  "const": "update"
+                }
+              }
+            },
+            "required": [
+              "ordered_actions"
+            ]
+          },
+          "then": {
+            "required": [
+              "update_mode"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "starting_state_id": {
+                "const": "provider_baseline_master"
+              }
+            },
+            "required": [
+              "starting_state_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "operating_roles": {
+                "contains": {
+                  "const": "cvd_administrator"
+                }
+              },
+              "update_mode": {
+                "const": "initial_provider_baseline"
+              }
+            },
+            "required": [
+              "update_mode"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "starting_state_id": {
+                "const": "it140_course_master"
+              }
+            },
+            "required": [
+              "starting_state_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "operating_roles": {
+                "contains": {
+                  "const": "cvd_student"
+                }
+              },
+              "update_mode": {
+                "const": "initial_course_master"
+              }
+            },
+            "required": [
+              "update_mode"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "starting_state_id": {
+                "const": "initialized_environment"
+              }
+            },
+            "required": [
+              "starting_state_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "update_mode": {
+                "const": "periodic_maintenance"
+              }
+            },
+            "required": [
+              "update_mode"
+            ]
+          }
+        }
+      ],
+      "description": "Declarative, non-executable lifecycle sequence selected from deployment profile, operating role, and starting state."
+    },
+    "lifecycleWorkflowCatalog": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "#/$defs/identifier"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/lifecycleWorkflow"
+      },
+      "description": "Controlled workflow catalog. Semantic validation confirms ordered actions and success transitions agree and that each workflow is authorized by every referenced deployment profile."
     },
     "managedSetting": {
       "type": "object",
@@ -1959,6 +2181,11 @@
           }
         }
       }
+    },
+    "versionDateTimeGroup": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])-([01][0-9]|2[0-3])-[0-5][0-9]$",
+      "description": "Local version date-time group in YYYY-MM-DD-HH-MM format using a 24-hour clock. Semantic validation must confirm that the calendar date is valid."
     }
   }
 }

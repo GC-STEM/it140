@@ -10,10 +10,10 @@
 #     lifecycle scripts immediately available from the current terminal.
 #
 # Artifact version:
-#     0.4.0
+#     0.5.0
 #
-# Version date:
-#     2026-08-01
+# Version date-time group-time group:
+#     2026-08-01-10-43
 #
 # Development status:
 #     Alpha Testing
@@ -22,6 +22,8 @@
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and a lifecycle transcript.
 #     Version 0.4.0 adds the common CVD course-continuity conclusion.
+#     Version 0.5.0 adopts minute-resolution version date-time group-time groups and
+#     profile-aware lifecycle transition reporting.
 #
 # CVD implementation baseline:
 #     scripts/cvd/prepare_ide.sh at GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
@@ -62,8 +64,8 @@
 # 1. CONTROLLED IMPLEMENTATION VALUES
 # ==============================================================================
 
-artifact_version = "0.4.0"
-version_date = "2026-08-01"
+artifact_version = "0.5.0"
+version_date_time_group = "2026-08-01-10-43"
 development_status = "Alpha Testing"
 platform_id = implementation_platform_id()
 course_repository_url = controlled_course_repository_url()
@@ -92,7 +94,7 @@ BEGIN PREPARE
     START timestamped lifecycle transcript at log_path
     DISPLAY opening information:
         script version
-        version date
+        version date-time group
         development status
         current user
         purpose
