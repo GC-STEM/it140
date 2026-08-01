@@ -42,19 +42,21 @@ The manifest is not allowed to contain arbitrary executable commands. It may sel
 
 Every controlled analysis, design, construction, testing, release, and maintenance artifact has its own strict Semantic Versioning (SemVer) `MAJOR.MINOR.PATCH` version and separate `YYYY-MM-DD` version date. Generated logs, transcripts, test results, and support-bundle inventories record the version and version date of the artifact that produced or governed the result. Version dates supplement SemVer; they do not determine version precedence.
 
-### 0.3 Relationship Among the SRS, SDD, Manifest, and Code
+### 0.3 Relationship Among Requirements, Design, Configuration, and Code
 
 | Artifact | Primary question answered | Change authority |
-| :------: | ------------------------- | ---------------- |
+| :------: | :----------------------- | :---------------- |
 | [SRS](../analysis/it140_scripts_srs.md) | What behavior and quality are required? | Approved requirements change process |
-| SDD | How will the package be structured to satisfy the SRS? | Approved design change process |
+| SDD | How will the package be structured to satisfy the SRS? | Approved high-level design change process |
+| [Flowcharts](../flowcharts/) | How do the package's major processes, decisions, and control paths interact? | Approved mid-level design change process |
+| [Pseudoscripts](../pseudoscripts/) | What detailed, platform-neutral logic, sequencing, state handling, and error behavior must each lifecycle component implement? | Approved low-level design change process |
 | [Manifest schema](../../.manifest/it140_manifest.schema.json) | What configuration structure and value types are valid? | Design and configuration-control process |
 | [Controlled manifest](../../.manifest/it140_manifest.json) | Which products, versions, sources, platforms, and provider profiles are approved now? | Configuration review, testing, approval, and release process |
-| Platform scripts and tests | How is the approved design implemented and verified on a platform? | Source-control review and testing process |
+| [Platform scripts](../../../scripts/) | How is the approved design implemented and verified on each platform? | Source-control review and testing process |
 
-A manifest-only change is appropriate when the selected product or product version changes but the required capability, user workflow, trust boundary, and acceptance criteria remain the same. An SRS and SDD review is required when a change alters any of those items.
+A manifest-only change is appropriate when the selected product or product version changes but the required capability, user workflow, trust boundary, design logic, and acceptance criteria remain the same. An SRS and SDD review is required when a change alters any of those items. Affected flowcharts and pseudoscripts must also be reviewed and updated when a design change alters their documented processes, decisions, sequencing, state handling, or error behavior.
 
-Each controlled artifact carries an independent `artifact_version` or equivalent SemVer identifier and `version_date`. Traceability records identify the exact versions and dates of the SRS, SDD, manifest, schema, implementation, test definition, and test result used for a release decision. A changed artifact receives the SemVer increment required by its own compatibility effect; related artifacts do not receive artificial version changes merely to make their numbers match.
+Each controlled artifact carries an independent `artifact_version` or equivalent SemVer identifier and `version_date`. Traceability records identify the exact versions and dates of the SRS, SDD, applicable flowcharts, applicable pseudoscripts, manifest schema, controlled manifest, implementation, test definition, and test result used for a release decision. A changed artifact receives the SemVer increment required by its own compatibility effect; related artifacts do not receive artificial version changes merely to make their numbers match.
 
 ### 0.4 Intended Audience
 
@@ -200,32 +202,32 @@ The package uses a **layered orchestrator-and-adapter architecture** with a mini
 
 ```text
 First-use user commands                 Installed package
-        |                                      |
+ | |
         +---------------+----------------------+
                         v
                Prepare Component
        (native retrieval, staging, validation,
           package refresh, PATH, transcript)
-                        |
+ |
                         v
              Local Package Available
-                        |
+ |
                         v
            Managed Lifecycle Entry Point
        (install | configure | verify | update)
-                        |
+ |
                         v
                 Action Orchestrator
-                        |
+ |
         +---------------- Shared Services ----------------+
-        | Manifest | Version | Log | Validation | Lock   |
-        | Results  | Paths   | Staging | Command Runner  |
+ | Manifest | Version | Log | Validation | Lock |
+ | Results | Paths | Staging | Command Runner |
         +-------------------------------------------------+
-                        |
+ |
         +---------------+----------------+----------------+
         v                                v                v
 Platform Adapter              Capability Adapters  Provider Adapter
-        |                                |                |
+ | | |
         v                                v                v
 Operating System              Approved Products   External Service
 ```
@@ -236,34 +238,34 @@ The lifecycle is state-based but does not store one authoritative state flag. St
 
 ```text
 No Local Course Package
-        |
-        | prepare (copied first-use command set)
+ |
+ | prepare (copied first-use command set)
         v
 Local Package Available and Current
-        |
-        | install
+ |
+ | install
         v
 System Layer Ready
-        |
-        | configure
+ |
+ | configure
         v
 System + User Layers Ready
-        |
-        | verify (read-only)
+ |
+ | verify (read-only)
         v
 Compliant Environment
-        |
-        | update
+ |
+ | update
         v
 Maintained Environment
-        |
-        | verify when indicated
+ |
+ | verify when indicated
         v
 Compliant Environment
 
 Any package-present state
-        |
-        | prepare (execute installed artifact to refresh package)
+ |
+ | prepare (execute installed artifact to refresh package)
         v
 Local Package Available and Current
 ```
@@ -315,8 +317,8 @@ The following supporting artifacts shall describe the same design at different l
 | Artifact | Purpose |
 | --- | --- |
 | `it140_scripts_sdd.md` | Package architecture, interfaces, component design, version policy, and traceability |
-| `it140_scripts_architecture.drawio` | Editable component, data-flow, trust-boundary, and preparation-boundary diagram |
-| `it140_scripts_lifecycle.drawio` | Editable normal, refresh, and remediation lifecycle diagram |
+| `architecture.drawio` | Editable component, data-flow, trust-boundary, and preparation-boundary diagram |
+| `lifecycle.drawio` | Editable normal, refresh, and remediation lifecycle diagram |
 | `prepare_ide.pseudo` | Platform-agnostic first-use and package-refresh control flow |
 | `install_ide.pseudo` | Platform-agnostic system-installation and repair control flow |
 | `configure_ide.pseudo` | Platform-agnostic user-configuration control flow |
