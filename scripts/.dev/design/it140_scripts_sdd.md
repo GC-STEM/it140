@@ -5,9 +5,9 @@
 - **Program Name**: IT 140 Course Automation Scripts
 - **Document ID**: IT140-SDD-SCRIPTS
 - **Status**: Draft for faculty review
-- **Version**: 0.3.0
+- **Version**: 0.4.0
 - **Version Date**: 2026-08-01
-- **SRS Baseline**: `IT140-SRS-SCRIPTS`, version `0.3.0`, version date `2026-08-01`
+- **SRS Baseline**: `IT140-SRS-SCRIPTS`, version `0.4.0`, version date `2026-08-01`
 - **Repository Baseline**: `GC-STEM/it140` commit `e7d3e7fc24eeefd5aafccd8939982f5c0369c3f4`
 
 ## 0. General Description
@@ -106,7 +106,10 @@ This SDD does not define:
 | Component | A cohesive part of the design with one primary responsibility and a defined interface. |
 | Controlled configuration item | A file or data set whose changes require review, testing, approval, and release tracking. |
 | Course-supported deployment profile | A deployment profile whose applicable platform implementation, bindings, qualification testing, documentation, and approval for course use are complete. |
-| Deployment profile | A concrete local, virtual, or hosted environment that uses one platform implementation and records provider, desktop, session, release, architecture, and reset characteristics. |
+| Deployment profile | A concrete local, virtual, or hosted environment that uses one platform implementation and records provider, desktop, session, release, architecture, reset characteristics, and permitted lifecycle workflows. |
+| Lifecycle workflow | A manifest-selected ordered sequence of lifecycle components for a deployment profile, starting-state classification, and operating role. |
+| Provider baseline master | The clean CVD provider image before IT 140-specific system provisioning. |
+| IT 140 course master | The CVD image after the administrator workflow has installed and verified the IT 140 system layer and before student-specific configuration. |
 | Dependency | A component, tool, file, service, or condition required before another operation can succeed. |
 | Idempotent | Safe to run repeatedly. Repeated execution reaches the required state without harmful duplication or damage. |
 | Managed asset | A file, setting, package, launcher, extension, plug-in, or other item the package is authorized to manage. |
@@ -150,7 +153,7 @@ The design uses the following goals as decision rules when alternatives are avai
 
 | Design ID | Goal or constraint | Design effect | Related SRS requirements |
 | --- | --- | --- | --- |
-| ARC-DES-001 | Preserve the five-component lifecycle. | Each supported platform provides `prepare`, `install`, `configure`, `verify`, and `update` entry points with predictable names and ordered next steps. | PKG-FR-001, PKG-FR-002 |
+| ARC-DES-001 | Preserve the five lifecycle components while permitting profile-specific workflow sequences. | Each supported platform provides `prepare`, `install`, `configure`, `verify`, and `update` entry points; a workflow resolver selects the permitted sequence and next step from deployment profile, starting state, and operating role. | PKG-FR-001, PKG-FR-002, PKG-FR-022, PKG-FR-023 |
 | ARC-DES-002 | Separate package preparation, system installation, user configuration, read-only verification, and maintenance responsibilities. | Each operation is placed in the component that owns the required privilege, data, and state boundary. | PRE-FR-015, INS-FR-011, VER-FR-001, REF-TC-006 |
 | ARC-DES-003 | Keep the main design capability-based and product-neutral. | Product names and identifiers are resolved through manifest role bindings and approved adapters. | PKG-TC-008, PKG-NFR-018, PKG-NFR-021 |
 | ARC-DES-004 | Use one controlled source of configuration truth after preparation. | Managed lifecycle scripts load the same validated manifest and do not maintain independent authoritative product lists; Prepare uses only its embedded trust-root data and structural expectations. | PKG-FR-004, PKG-NFR-012, PRE-FR-003 |
@@ -238,45 +241,27 @@ Platform Adapter              Capability Adapters  Provider Adapter
 Operating System              Approved Products   External Service
 ```
 
-### 2.2 Package Lifecycle
+### 2.2 Package Lifecycle and Workflow Resolution
 
-The lifecycle is state-based but does not store one authoritative state flag. State is derived from observable checks so the components can recover from manual changes or interrupted runs.
+The package preserves five lifecycle components, but it does not impose one universal initial sequence. The workflow resolver uses the selected deployment profile, a bounded starting-state classification, and an authorized operating role. It does not infer workflow authority from a username alone.
 
 ```text
-No Local Course Package
- |
- | prepare (copied first-use command set)
-        v
-Local Package Available and Current
- |
- | install
-        v
-System Layer Ready
- |
- | configure
-        v
-System + User Layers Ready
- |
- | verify (read-only)
-        v
-Compliant Environment
- |
- | update
-        v
-Maintained Environment
- |
- | verify when indicated
-        v
-Compliant Environment
+Local unmanaged environment
+    Prepare → Install → Configure → Verify
 
-Any package-present state
- |
- | prepare (execute installed artifact to refresh package)
-        v
-Local Package Available and Current
+CVD provider baseline master (authorized administrator or SME)
+    Prepare → Update [initial provider baseline] → Install → Configure → Verify
+
+IT 140 course master (student or faculty course user)
+    Prepare → Update [initial course master] → Configure → Verify
+
+Any initialized environment
+    Update [periodic maintenance] → Verify when indicated
 ```
 
-`prepare` does not install course IDE software or configure user accounts. It makes the package available or refreshes it. `verify` may run from any package-present state. It does not advance or repair state; it reports the observed condition and the appropriate remediation owner.
+The **provider baseline master** is the clean provider image before IT 140-specific system provisioning. The **IT 140 course master** is the administrator-produced image after the approved system layer has been installed and verified. A student never runs Install on the IT 140 course master because that responsibility has already been completed before image distribution.
+
+Update receives a resolved update mode: `initial_provider_baseline`, `initial_course_master`, or `periodic_maintenance`. The mode changes sequencing, labels, prerequisites, and next-step output; it does not transfer Install or Configure responsibilities into Update. Verify remains callable from any package-present state and remains read-only.
 
 ### 2.3 Normal Processing Pattern
 
@@ -290,11 +275,11 @@ Prepare uses a deliberately small native flow because the controlled manifest, s
 4. Display the Prepare artifact version, version date, platform, user, purpose, and log path.
 5. Validate the operating-system family, required architecture, and standard-user context.
 6. Download the authorized repository archive with bounded retries into a unique temporary location.
-7. Extract and structurally validate the staged package, including the matching platform directory and `install_ide.<ext>` artifact.
+7. Extract and structurally validate the staged package, including the matching platform directory and every lifecycle entry point required by the resolved workflow.
 8. Refresh only repository-managed package files while preserving user-owned content and nested repositories.
 9. Remove only the downloaded package's top-level repository metadata.
 10. Apply required script permissions and establish the platform script directory in the current and future user `PATH` without duplicates.
-11. Report the course root, log path, and exact Install next step.
+11. Resolve the workflow and report the course root, log path, workflow identifier, starting state, operating role, update mode when applicable, and exact next step.
 12. Remove temporary data on success, failure, cancellation, or supported interruption.
 
 #### 2.3.2 Managed Lifecycle Processing Pattern
@@ -445,7 +430,8 @@ The manifest is a controlled configuration item, not a program. It contains decl
 | DAT-DES-012 | Retry limits, timeouts, and performance settings are bounded by schema validation and safe code-defined maximums. | Allows controlled tuning without indefinite waits or excessive load. | PRE-FR-007, UPD-FR-012, PKG-QOS-007 through PKG-QOS-010 |
 | DAT-DES-013 | Secrets, personal values, and runtime authentication data are prohibited in the manifest schema and semantic validator. | Keeps the public controlled file safe to distribute. | PKG-FR-018, PKG-NFR-025 |
 | DAT-DES-014 | A manifest release is approved only with its schema validation, platform conformance tests, integrity metadata, SemVer decision, version date, and release record. | Treats product selection as controlled engineering data. | PKG-FR-019, PKG-NFR-015, Appendix B of the SRS |
-| DAT-DES-015 | Optional deployment profiles reference a platform implementation and record deployment kind, provider, desktop, session, release, architecture, reset method, and reference status. | Distinguishes hosted, local, and test deployments without duplicating course IDE product bindings. | REF-TC-001 through REF-TC-006, Section 3.3 of the SRS |
+| DAT-DES-015 | Deployment profiles reference a platform implementation and record deployment kind, provider, desktop, session, release, architecture, reset method, reference status, and allowed workflow identifiers. | Distinguishes hosted, local, and test deployments without duplicating course IDE product bindings. | REF-TC-001 through REF-TC-006, PKG-FR-022, Section 3.3 of the SRS |
+| DAT-DES-018 | A top-level workflow catalog defines each workflow identifier, deployment-profile applicability, operating role, starting-state identifier, ordered actions, update mode, and exact success transitions. | Keeps lifecycle sequencing declarative and testable without allowing arbitrary commands in the manifest. | PKG-FR-022, PKG-FR-023, PRE-FR-013 |
 | DAT-DES-016 | Every controlled manifest, schema, design, construction, test, release, and maintenance record stores or is associated with an `ArtifactIdentity` containing artifact ID, SemVer, and version date. | Supports exact traceability without requiring unrelated artifact versions to match. | PKG-NFR-015 |
 | DAT-DES-017 | Desktop integrations separately declare the course-folder shortcut target, the IDE executable role, the course-root launch argument or workspace behavior, optional default-folder setting, ownership scope, and validation probe. | Makes the Windows-established course-root launch behavior portable and testable without hardcoding desktop commands. | CFG-FR-013 through CFG-FR-015, VER-FR-006 |
 
@@ -787,6 +773,18 @@ Prepare, Install, Configure, and Update follow a **query-plan-apply-verify** pri
 
 Prepare never deletes the course root before refreshing it. It validates the archive before overlaying repository-managed files, preserves unrelated files and nested repositories, removes only top-level downloaded repository metadata, and avoids duplicate `PATH` entries. Install and Configure do not reinstall or rewrite a compliant component merely because the script is rerun. Settings mergers compare managed keys, package adapters query installed state, desktop integration probes validate exact shortcut targets and IDE launch arguments, and managed assets compare validated release or integrity data.
 
+## 6.8 Workflow Resolver Design
+
+The workflow resolver accepts only schema-valid identifiers from the controlled workflow catalog. Its inputs are the deployment profile, an explicit or safely detected starting-state identifier, and an operating role authorized by that profile. It returns the workflow identifier, ordered actions, current action index, update mode when the current action is Update, and exact next action. Ambiguous or unauthorized combinations fail safely and require an explicit approved selection; they never default a CVD student into Install.
+
+The CVD implementation recognizes:
+
+- `cvd_provider_baseline_administrator`: `prepare`, `update`, `install`, `configure`, `verify`; Update mode `initial_provider_baseline`.
+- `cvd_course_master_student`: `prepare`, `update`, `configure`, `verify`; Update mode `initial_course_master`.
+- `cvd_periodic_maintenance`: `update`, with Verify recommended when required; Update mode `periodic_maintenance`.
+
+Local deployment profiles retain `local_initial_install`: `prepare`, `install`, `configure`, `verify`, followed by periodic Update.
+
 ## 7. Prepare Script Design
 
 Prepare is the package bootstrap and refresh boundary. On first use, its source is presented as a short platform-native command set that the user copies and runs. After first use, the same artifact is present under the platform script directory and may be executed directly to refresh the package. Prepare is intentionally self-contained and does not require the manifest, another lifecycle script, a third-party package manager, or a version-control client.
@@ -800,12 +798,12 @@ Prepare is the package bootstrap and refresh boundary. On first use, its source 
 | PRE-DES-005 | Derive home paths, create the course and log roots, and allocate a unique private staging directory without removing existing course-root content. | Native path and temporary-directory facilities | PRE-FR-005 |
 | PRE-DES-006 | Start a timestamped transcript before retrieval and record the Prepare artifact SemVer, version date, user, purpose, and log path. | Minimal local transcript helper | PRE-FR-006 |
 | PRE-DES-007 | Retrieve the authorized repository archive over encrypted transport with bounded attempts into a unique partial or temporary file. | Native HTTPS client, retry loop | PRE-FR-007 |
-| PRE-DES-008 | Extract into staging and require the expected platform directory plus matching `install_ide.<ext>` before package refresh begins. | Native archive tool, structural validator | PRE-FR-008 |
+| PRE-DES-008 | Extract into staging and require the expected platform directory plus every lifecycle entry point required by the resolved workflow before package refresh begins. | Native archive tool, structural validator | PRE-FR-008 |
 | PRE-DES-009 | Overlay only repository-managed source files into the course root while preserving unrelated files, assignment content, and nested repositories. | Package refresh copier, path boundary rules | PRE-FR-009 |
 | PRE-DES-010 | Remove only top-level repository metadata copied from the downloaded package; never recursively search for and delete nested version-control metadata. | Exact-path deletion helper | PRE-FR-010 |
 | PRE-DES-011 | Apply required executable permissions and prepend or add the platform script directory to the current and future user `PATH` idempotently. | Native permission and user-environment interfaces | PRE-FR-011 |
 | PRE-DES-012 | Register cleanup before retrieval and remove only the unique staging archive and extraction tree on normal exit, handled failure, cancellation, or supported interruption. | Native trap, `finally`, or cleanup handler | PRE-FR-012 |
-| PRE-DES-013 | On success, print the installed course root, exact log path, and exact platform-specific `install_ide.<ext>` command and required terminal context. | Minimal output helper | PRE-FR-013 |
+| PRE-DES-013 | On success, print the installed course root, exact log path, resolved workflow identifier, starting state, operating role, and exact platform-specific next-step command. Local workflows select Install; both CVD initial workflows select Update. | Minimal output helper and bounded workflow resolver | PRE-FR-013, PKG-FR-022 |
 | PRE-DES-014 | Complete download, extraction, and structural validation before touching existing package files; on pre-refresh failure, leave the prior package unchanged and return nonzero. | Staging validator, error handler | PRE-FR-014 |
 | PRE-DES-015 | Enforce an explicit authority allowlist limited to package retrieval or refresh, logging, script permissions, and user `PATH`. | Prepare boundary checks | PRE-FR-015 |
 
@@ -827,7 +825,8 @@ ENDIF
 retrieve authorized repository archive with bounded retries
 extract archive into unique staging directory
 locate staged repository root
-validate matching platform directory and install_ide artifact
+resolve bounded workflow context
+validate matching platform directory and all workflow-required entry points
 IF any staging validation fails
     preserve current package and exit nonzero
 ENDIF
@@ -836,7 +835,7 @@ overlay repository-managed files into course root
 remove only course-root top-level downloaded repository metadata
 apply script permissions
 establish current-session and persistent user PATH entry without duplicates
-report course root, log path, and exact Install next step
+report course root, log path, workflow context, and exact resolved next step
 cleanup unique temporary data
 exit success
 ```

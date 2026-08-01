@@ -10,7 +10,7 @@
 #     operating-system release, required tools, extensions, and integrations.
 #
 # Artifact version:
-#     0.3.0
+#     0.4.0
 #
 # Version date:
 #     2026-08-01
@@ -21,7 +21,7 @@
 # Version basis:
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
-#     Version 0.3.0 adds the common CVD course-continuity conclusion.
+#     Version 0.4.0 adds the common CVD course-continuity conclusion.
 #
 # CVD implementation target:
 #     update_ide.sh version 2026.07.26.6 (legacy calendar version)
@@ -59,10 +59,13 @@
 # ==============================================================================
 
 
-artifact_version = "0.3.0"
+artifact_version = "0.4.0"
 version_date = "2026-08-01"
 development_status = "Alpha Testing"
 action_id = "update"
+update_mode = resolve_update_mode_from_manifest_workflow(
+    allowed = ["initial_provider_baseline", "initial_course_master", "periodic_maintenance"]
+)
 may_change_state = TRUE
 lock_required = TRUE
 student_scripts_to_synchronize = [
@@ -132,6 +135,10 @@ PROCEDURE main(arguments)
     INSTALL cleanup handler for private staging
 
     DISPLAY opening information:
+        workflow identifier
+        starting state
+        operating role
+        update mode
         script version
         version date
         development status
@@ -575,3 +582,12 @@ PROCEDURE display_update_summary_and_closing_notices(run_context)
     RETURN exit_code
 
 ENDPROCEDURE
+
+
+# WORKFLOW MODE RULES
+# - initial_provider_baseline updates the provider image within the current OS release,
+#   then names install_ide.<ext> as the next step.
+# - initial_course_master applies approved course-master maintenance, never performs
+#   Install responsibilities, and names configure_ide.<ext> as the next step.
+# - periodic_maintenance maintains an initialized environment and recommends Verify
+#   when restart, change, warning, or policy requires it.

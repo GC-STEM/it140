@@ -10,7 +10,7 @@
 #     system-level course integrations.
 #
 # Artifact version:
-#     0.3.0
+#     0.4.0
 #
 # Version date:
 #     2026-08-01
@@ -21,7 +21,7 @@
 # Version basis:
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
-#     Version 0.3.0 adds the common CVD course-continuity conclusion.
+#     Version 0.4.0 adds the common CVD course-continuity conclusion.
 #
 # CVD implementation target:
 #     install_ide.sh version 2026.07.27.1 (legacy calendar version)
@@ -59,7 +59,7 @@
 # ==============================================================================
 
 
-artifact_version = "0.3.0"
+artifact_version = "0.4.0"
 version_date = "2026-08-01"
 development_status = "Alpha Testing"
 action_id = "install"
@@ -128,6 +128,8 @@ PROCEDURE main(arguments)
     DISPLAY NOTICE that system software may change but personal settings will not
 
     validate_platform_and_privilege(run_context)
+    workflow_context = resolve_manifest_workflow_context(run_context, action_id)
+    REQUIRE workflow_context permits install for the selected profile and role
     acquire_shared_mutation_lock(action_id, run_context.platform_id)
 
     REQUIRE the controlled manifest and schema are readable
@@ -163,6 +165,8 @@ ENDPROCEDURE
 # ==============================================================================
 
 PROCEDURE validate_platform_and_privilege(run_context)
+    workflow_context = resolve_manifest_workflow_context(run_context, action_id)
+    REQUIRE workflow_context permits install for the selected profile and role
 
     REJECT execution as root or the platform system-administrator account
     REQUIRE the detected operating-system family and release match the

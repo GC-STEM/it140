@@ -5,7 +5,7 @@
 - **Program Name**: IT 140 Course Automation Scripts
 - **Document ID**: IT140-SRS-SCRIPTS
 - **Status**: Draft for faculty review
-- **Version**: 0.3.0
+- **Version**: 0.4.0
 - **Version Date**: 2026-08-01
 - **Repository Baseline**: `GC-STEM/it140` commit `e7d3e7fc24eeefd5aafccd8939982f5c0369c3f4`
 
@@ -94,11 +94,15 @@ The **bootstrap command set** is the short, platform-native sequence represented
 | Idempotent | Safe to run repeatedly. An idempotent script reaches the required state without duplicating entries or damaging a correct configuration. |
 | Least privilege | Giving a script only the permissions required for the current task. This limits the damage caused by mistakes or misuse. |
 | Log or transcript | A timestamped text record of script actions and results. Logs support troubleshooting and auditing. |
+| Lifecycle workflow | An approved ordered sequence of lifecycle components for a defined deployment profile, starting state, and operating role. A workflow does not remove or redefine the five lifecycle components. |
 | Managed asset | A file, setting, package, launcher, extension, plug-in, or other item that the course automation is authorized to create, replace, update, or remove. |
 | Manifest | The shared JSON file that defines the concrete approved environment, including products, versions, sources, settings, provider profiles, and managed paths. It prevents different scripts from using inconsistent requirements. |
 | OS | Operating system. The OS manages computer hardware, files, applications, users, and permissions. |
 | PATH | An operating-system setting that lists folders searched for executable commands. |
 | PII | Personally Identifiable Information. PII is information that can identify a person, such as an email address. |
+| Provider baseline master | The clean CVD provider image available to an authorized administrator before IT 140-specific system software is installed. |
+| IT 140 course master | The CVD image after the administrator workflow has established and verified the approved IT 140 system layer; it is the starting image distributed to students. |
+| Operating role | The authorized role selecting an applicable workflow, such as `local_user`, `cvd_administrator`, or `cvd_student`. |
 | Provider profile | Manifest data that defines how the package interacts with an external service, including its CLI or API, authentication flow, account fields, and privacy-preserving identity rules. |
 | QoS | Quality of Service. QoS requirements define measurable expectations for reliability, performance, error handling, and diagnostics. |
 | Reference platform | The approved environment used for primary development, documentation, and acceptance testing. Its current products and versions are selected by the manifest. |
@@ -174,6 +178,14 @@ The package shall:
 
   **Why:** Course automation must not put coursework or personal configuration at risk.
 
+- **PKG-FR-022** Resolve and report the approved lifecycle workflow from the detected deployment profile, recognized starting state, and authorized operating role. The package shall preserve the local workflow `Prepare → Install → Configure → Verify`, define the CVD administrator workflow `Prepare → Update (initial provider baseline) → Install → Configure → Verify`, define the CVD student workflow `Prepare → Update (initial course master) → Configure → Verify`, and treat later Update runs as periodic maintenance.
+
+  **Why:** Hosted image preparation and student initialization begin from different managed states even though both use the same five lifecycle components.
+
+- **PKG-FR-023** Distinguish an **initial baseline update** from a **periodic maintenance update** in user output, logs, workflow resolution, and acceptance evidence. Initial baseline update shall bring the current image to the approved maintenance baseline without performing Install or Configure responsibilities; periodic maintenance shall maintain an already provisioned environment.
+
+  **Why:** The word “update” otherwise hides materially different starting conditions and can make support instructions ambiguous.
+
 - **PKG-FR-021** Whenever a managed lifecycle run ends with a nonzero exit code or a noncompliant result, display plain-language, profile-aware course-continuity guidance. If the affected environment is not CVD, or cannot be confirmed as CVD, tell the user they can continue their IT 140 coursework in CVD while the local course IDE issue is resolved. If CVD itself is affected, state that the issue affects CVD and direct the user to the applicable remediation and support path. The guidance shall supplement, not replace, the specific remediation and exact log path.
 
   **Why:** A local automation problem should not prevent a student from continuing required coursework, and a CVD failure should not misleadingly present the affected environment as its own alternative.
@@ -210,7 +222,7 @@ The prepare component shall:
 
   **Why:** Bounded retries tolerate temporary network failures without allowing an incomplete download to become the installed package.
 
-- **PRE-FR-008** Extract the archive to a temporary staging location and verify that it contains the expected platform script directory and matching `install_ide.<ext>` artifact before refreshing the course root.
+- **PRE-FR-008** Extract the archive to a temporary staging location and verify that it contains the expected platform script directory and every lifecycle entry point required by the selected workflow before refreshing the course root.
 
   **Why:** A structurally incomplete or incorrect archive must not replace a usable package.
 
@@ -230,9 +242,9 @@ The prepare component shall:
 
   **Why:** Temporary package files should not consume space or expose stale content.
 
-- **PRE-FR-013** Report the installed course root, preparation log path, and exact `install_ide.<ext>` next-step command after successful preparation.
+- **PRE-FR-013** Report the installed course root, preparation log path, resolved workflow identifier, workflow starting state, operating role, and exact next-step command after successful preparation. The default local next step shall remain `install_ide.<ext>`; both approved CVD initial workflows shall identify `update_ide.sh` as the next step.
 
-  **Why:** Beginners need an unambiguous transition from preparation to installation.
+  **Why:** Beginners and administrators need an unambiguous transition that matches the actual deployment state rather than a universal hard-coded Install transition.
 
 - **PRE-FR-014** Preserve the prior valid local package when download, extraction, or structural validation fails and shall return a nonzero result with a plain-language explanation.
 
@@ -999,7 +1011,9 @@ An **acceptance test** checks whether the completed software meets an agreed req
 
 | Test ID | Requirements | Test input or condition | Expected result and pass criteria |
 | --- | --- | --- | --- |
-| AT-PRE-001 | PRE-FR-001, PRE-FR-003, PRE-FR-005 through PRE-FR-013 | On a clean supported user account with no local `~/it140/` package, run the documented first-use command set. | The commands use only baseline native utilities, create the course root and log, download and validate the approved archive, install all five platform artifacts, establish permissions and `PATH`, clean temporary files, and identify the exact install next step. |
+| AT-PRE-001 | PRE-FR-001, PRE-FR-003, PRE-FR-005 through PRE-FR-013 | On a clean supported local user account with no local `~/it140/` package, run the documented first-use command set. | The commands use only baseline native utilities, create the course root and log, download and validate the approved archive, install all five platform artifacts, establish permissions and `PATH`, clean temporary files, resolve the local workflow, and identify the exact Install next step. |
+| AT-PRE-011 | PRE-FR-008, PRE-FR-013, PKG-FR-022 | Run Prepare on the CVD provider baseline master as the authorized CVD administrator. | Prepare validates the CVD lifecycle entry points, resolves `cvd_provider_baseline_administrator`, and reports `update_ide.sh` as the exact next step. |
+| AT-PRE-012 | PRE-FR-008, PRE-FR-013, PKG-FR-022 | Run Prepare on the IT 140 course master as a CVD student. | Prepare validates the CVD student lifecycle entry points, resolves `cvd_course_master_student`, and reports `update_ide.sh` as the exact next step. |
 | AT-PRE-002 | PRE-FR-002, PRE-FR-009 through PRE-FR-011, PKG-QOS-001 | Place an older installed automation package beside student files and a nested student repository, then execute the installed prepare artifact twice. | Repository-managed package files refresh to the approved versions, the second run creates no duplicate `PATH` entry, and student files and nested repository history remain unchanged. |
 | AT-PRE-003 | PRE-FR-007, PRE-FR-008, PRE-FR-014, PKG-QOS-003, PKG-QOS-004 | Interrupt the download or provide a truncated archive. | The incomplete archive is not activated, the prior valid package remains usable, temporary files are cleaned when safe, the failure is logged, and the result is nonzero. |
 | AT-PRE-004 | PRE-FR-004 | Run the prepare commands on an unsupported OS or in a prohibited root or administrator context. | Preparation stops before replacing package files, explains the platform or privilege mismatch, and returns the applicable nonzero result. |
@@ -1062,11 +1076,14 @@ An **acceptance test** checks whether the completed software meets an agreed req
 
 | Test ID | Requirements | Test input or condition | Expected result and pass criteria |
 | --- | --- | --- | --- |
-| AT-LFC-001 | PKG-FR-001, PRE-FR-001, INS-FR-012, CFG-FR-017, VER-FR-001 | On a clean supported environment, run the first-use prepare commands, install, configure, and verify in order. | Prepare makes the package available, install establishes system state, configure establishes user state and desktop integrations, and verify reports full compliance without changing either state. |
+| AT-LFC-001 | PKG-FR-001, PKG-FR-022, PRE-FR-001, INS-FR-012, CFG-FR-017, VER-FR-001 | On a clean supported local environment, run Prepare, Install, Configure, and Verify in order. | Prepare resolves the local workflow; Install establishes system state; Configure establishes user state and desktop integrations; Verify reports full compliance without changing either state. |
 | AT-LFC-002 | INS-FR-010, VER-FR-009 | Remove a required system component, run verify, run its recommended remediation, and verify again. | First verify recommends install; install repairs the component; second verify passes that check. |
 | AT-LFC-003 | CFG-FR-016, VER-FR-009 | Damage a required user setting, run verify, run its recommended remediation, and verify again. | First verify recommends configure; configure repairs the setting; second verify passes that check. |
 | AT-LFC-004 | PRE-FR-002, PRE-FR-009, UPD-FR-003, UPD-FR-013, UPD-FR-016 | Publish a new approved automation package and maintenance release, rerun prepare, run update, and then verify. | Prepare refreshes the lifecycle scripts and controlled package files; update applies approved maintenance-scope changes; verify evaluates against the new manifest release and passes. |
 | AT-LFC-005 | PKG-FR-010, PKG-FR-020 | Complete the full prepare, install, configure, verify, and update lifecycle in an environment containing student work and unrelated user settings. | The lifecycle reaches compliance without changing user-owned files or unrelated settings. |
+| AT-LFC-006 | PKG-FR-022, PKG-FR-023, PRE-FR-013 | From a clean CVD provider baseline master, run Prepare, initial Update, Install, Configure, and Verify. | Each component reports the administrator workflow and correct next transition; initial Update maintains the OS baseline without performing Install or Configure work; final Verify reports compliance. |
+| AT-LFC-007 | PKG-FR-022, PKG-FR-023, PRE-FR-013 | From an IT 140 course master distributed to a student, run Prepare, initial Update, Configure, and Verify. | Prepare and initial Update omit Install from the student path, Configure establishes the current-user layer, and Verify reports compliance. |
+| AT-LFC-008 | PKG-FR-023, UPD-FR-001 through UPD-FR-016 | Run Update again after either CVD initialization workflow has completed. | Update identifies periodic maintenance mode, applies only approved maintenance responsibilities, and recommends Verify when appropriate. |
 
 ## Appendix A (Nonnormative): Reference Environment at the SRS Baseline
 

@@ -10,7 +10,7 @@
 #     installing, updating, removing, repairing, or rewriting managed state.
 #
 # Artifact version:
-#     0.3.0
+#     0.4.0
 #
 # Version date:
 #     2026-08-01
@@ -21,7 +21,7 @@
 # Version basis:
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
-#     Version 0.3.0 adds the common CVD course-continuity conclusion.
+#     Version 0.4.0 adds the common CVD course-continuity conclusion.
 #
 # CVD implementation target:
 #     verify_ide.sh version 2026.07.26.4 (legacy calendar version)
@@ -57,10 +57,11 @@
 # ==============================================================================
 
 
-artifact_version = "0.3.0"
+artifact_version = "0.4.0"
 version_date = "2026-08-01"
 development_status = "Alpha Testing"
 action_id = "verify"
+workflow_context = resolve_manifest_workflow_context_read_only()
 may_change_state = FALSE
 lock_required = FALSE
 required_options = [

@@ -10,7 +10,7 @@
 #     lifecycle scripts immediately available from the current terminal.
 #
 # Artifact version:
-#     0.3.0
+#     0.4.0
 #
 # Version date:
 #     2026-08-01
@@ -21,7 +21,7 @@
 # Version basis:
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and a lifecycle transcript.
-#     Version 0.3.0 adds the common CVD course-continuity conclusion.
+#     Version 0.4.0 adds the common CVD course-continuity conclusion.
 #
 # CVD implementation baseline:
 #     scripts/cvd/prepare_ide.sh at GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
@@ -53,7 +53,7 @@
 #     PRE-DES-001 through PRE-DES-015; INT-DES-014; ERR-DES-014
 #
 # Normal next step:
-#     Run the matching install_ide.<ext> script.
+#     Run the exact next step resolved for the deployment profile, starting state, and operating role.
 #
 # ==============================================================================
 
@@ -62,7 +62,7 @@
 # 1. CONTROLLED IMPLEMENTATION VALUES
 # ==============================================================================
 
-artifact_version = "0.3.0"
+artifact_version = "0.4.0"
 version_date = "2026-08-01"
 development_status = "Alpha Testing"
 platform_id = implementation_platform_id()
@@ -73,6 +73,10 @@ log_path = log_directory + "/prepare_ide_<YYYYMMDD>_<HHMMSS>.log"
 temporary_root = create_unique_temporary_directory()
 temporary_clone = temporary_root + "/it140"
 student_script_directory = course_root + "/scripts/" + platform_id
+workflow_context = resolve_bounded_prepare_workflow_context(
+    platform_id, detected_deployment_profile(), detected_or_explicit_starting_state(),
+    authorized_operating_role()
+)
 shell_startup_file = platform_primary_interactive_shell_startup_file()
 persistent_path_entry = student_script_directory
 
@@ -133,7 +137,10 @@ BEGIN PREPARE
     REFRESH the current shell command lookup cache
 
     DISPLAY SUCCESS that the course automation package is ready
-    DISPLAY NOTICE with the exact matching install_ide.<ext> next-step command
+    DISPLAY NOTICE with workflow_context.workflow_id
+    DISPLAY NOTICE with workflow_context.starting_state_id
+    DISPLAY NOTICE with workflow_context.operating_role
+    DISPLAY NOTICE with the exact workflow_context.next_step_command
     DISPLAY NOTICE with the log path
     STOP the lifecycle transcript
 
