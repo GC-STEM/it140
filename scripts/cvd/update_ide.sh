@@ -225,9 +225,9 @@ finish() {
     printf 'End time        : %s\n' "$(date --iso-8601=seconds)"
     printf 'Managed changes : %s\n' "$( [[ "$CHANGED" == true ]] && printf 'Yes' || printf 'No' )"
     printf 'Elapsed time    : %s seconds\n' "$elapsed"
-    printf 'Next step       : %s\n' "$next_step"
     printf 'Log file        : %s\n' "$LOG_FILE"
     printf 'Exit code       : %s\n' "$exit_code"
+    printf 'Next step       : %s\n' "$next_step"
 
     if ((exit_code == 0)); then
         print_success "The IT 140 CVD update completed successfully."

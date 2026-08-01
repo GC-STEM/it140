@@ -275,8 +275,8 @@ main() {
     printf 'Workflow: Continue with the applicable CVD initialization workflow.\n'
     printf 'Starting state: CVD provider baseline or IT 140 course master.\n'
     printf 'Operating role: CVD administrator or CVD student.\n'
-    printf 'Next step: update_ide.sh\n'
     printf 'Log: %s\n' "$LOG_PATH"
+    printf 'Next step: update_ide.sh\n'
 }
 
 main "$@"

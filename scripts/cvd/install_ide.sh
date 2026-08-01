@@ -487,11 +487,11 @@ finish() {
     printf 'Warnings        : %s\n' "$WARNINGS"
     printf 'Failures        : 0\n'
     printf 'Elapsed time    : %s seconds\n' "$elapsed"
-    printf 'Next step       : Close this terminal, open a new Terminal, and run configure_ide.sh.\n'
     printf 'Log file        : %s\n' "$LOG_FILE"
     printf 'Exit code       : 0\n'
     print_success "The IT 140 CVD system setup completed successfully."
     print_closing_notices
+    printf 'Next step       : Close this terminal, open a new Terminal, and run configure_ide.sh.\n'
 }
 
 main() {
