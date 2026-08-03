@@ -32,7 +32,7 @@ The current controlled manifest still identifies the macOS script extension as `
 ## Validation performed in the build environment
 
 - UTF-8 and LF line endings
-- Executable mode (`0755`) for every lifecycle script
+- Executable mode (`chmod -- 0755`) for every lifecycle script
 - Shell syntax parsing with `bash -n` as a compatibility screen
 - Static checks for required metadata, schema `2.2`, date-time-group usage, `.zsh` permissions, log paths, lifecycle names, and absence of the obsolete exact manifest key
 - ZIP integrity and SHA-256 inventory
