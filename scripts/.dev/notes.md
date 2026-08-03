@@ -14,12 +14,11 @@
 - Push new/modified log file to the course repository so instructor or tech support can review it, if needed.
 
 >[!IMPORTANT]
-> Would need to make absolutely sure that no PII or other FERPA-protected information is included in log files that is not part of .
+> Would need to make absolutely sure that no PII or other FERPA-protected information is included in log files that is not part of GitHub public information.
 
 ## 2. Install the course IDE
 
 - Start logging the course IDE installation process.
-
 
 ## 3. Configure the course IDE
 

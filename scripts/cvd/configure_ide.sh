@@ -435,7 +435,7 @@ acquire_lock() {
         return 0
     }
     mkdir -p -- "$(dirname "$LOCK_FILE")"
-    chmod 0700 -- "$(dirname "$LOCK_FILE")"
+    chmod -- 0700 "$(dirname "$LOCK_FILE")"
     exec 9>"$LOCK_FILE"
     flock --nonblock 9 || fatal "$EXIT_FAILURE" "Another IT 140 mutating lifecycle script is running."
 }
