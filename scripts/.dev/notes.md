@@ -1,5 +1,26 @@
 # IT 140 IDE Setup Scripts
 
+## Setup Script MVP
+
+### Bootstrap the course MVP setup script
+
+```bash
+sudo apt update
+sudo apt install -y git
+git clone --depth 1 https://github.com/GC-STEM/it140.git "$HOME/repos/it140"
+chmod +x "$HOME/repos/it140/scripts/cvd/setup_it140.sh"
+"$HOME/repos/it140/scripts/cvd/setup_it140.sh"
+```
+
+### MVP Setup Script
+
+```bash
+#!/bin/bash
+# Install system dependencies.
+
+# Install Python 3.12
+```
+
 ## 0. Manually setup a GitHub account
 
 ## 1. Prepare for the course IDE (initial bootstrap)
