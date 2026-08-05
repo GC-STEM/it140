@@ -22,7 +22,7 @@ if [[ "${IT140_PREPARE_MODE:-refresh}" == "bootstrap" ]]; then
 # ----- BEGIN COPYABLE BOOTSTRAP COMMAND SET -----
 (
 set -Eeuo pipefail
-version="0.5.0"
+version="0.5.1"
 version_dtg="2026-08-01-11-06"
 course_root="$HOME/it140"
 log_dir="$course_root/logs"

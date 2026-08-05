@@ -3,29 +3,27 @@
 # IT 140 Codio Virtual Desktop managed update and repair script
 #
 # Artifact ID: IT140-CVD-UPDATE
-# Artifact version: 0.7.1-alpha.1
-# Version date-time group: 2026-08-01-16-05
+# Artifact version: 0.7.2-alpha.1
+# Version date-time group: 2026-08-04-15-26
 # Development status: Alpha Testing
 #
 # Traceability: UPD-FR-001 through UPD-FR-016; PKG-FR-021;
 #               UPD-DES-001 through UPD-DES-016; ERR-DES-014.
 # Scope: Approved Ubuntu maintenance, controlled manifest refresh, required
 #        course software, Python virtual-environment tools, VS Code extensions,
-#        and post-update checks. The script never upgrades Ubuntu to a new
-#        release and never modifies coursework or student repositories.
-
+#        system integrations, and post-update checks. The script never upgrades
+#        Ubuntu to a new release and never modifies coursework or repositories.
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="0.7.1-alpha.1"
-readonly VERSION_DTG="2026-08-01-16-05"
+readonly SCRIPT_VERSION="0.7.2-alpha.1"
+readonly VERSION_DTG="2026-08-04-15-26"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
 readonly COURSE_ROOT="${HOME}/it140"
 readonly SCRIPT_ROOT="${COURSE_ROOT}/scripts"
-readonly PLATFORM_SCRIPT_DIR="${SCRIPT_ROOT}/${PLATFORM_ID}"
 readonly MANIFEST_DIR="${SCRIPT_ROOT}/.manifest"
 readonly MANIFEST_PATH="${MANIFEST_DIR}/it140_manifest.json"
 readonly SCHEMA_PATH="${MANIFEST_DIR}/it140_manifest.schema.json"
@@ -34,6 +32,7 @@ readonly LOG_FILE="${LOG_DIR}/update_cvd_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="${COURSE_ROOT}/.venv"
 readonly LOCK_FILE="${HOME}/.cache/it140-${PLATFORM_ID}-mutation.lock"
 readonly ARCHIVE_URL="https://github.com/GC-STEM/it140/archive/refs/heads/main.tar.gz"
+readonly NUMLOCK_AUTOSTART_PATH="/etc/xdg/autostart/numlockx.desktop"
 readonly MANAGED_PATH_START="# >>> IT 140 managed PATH >>>"
 readonly MANAGED_PATH_END="# <<< IT 140 managed PATH <<<"
 readonly MANAGED_PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/cvd:$PATH"'
@@ -68,7 +67,6 @@ print_header() {
     printf '%s\n' "$1"
     printf '============================================================\n'
 }
-
 print_info() { printf '[INFO] %s\n' "$1"; }
 print_success() { printf '[SUCCESS] %s\n' "$1"; }
 print_notice() { printf '[NOTICE] %s\n' "$1"; }
@@ -81,8 +79,8 @@ Usage: update_ide.sh [--help] [--version] [--noninteractive]
                      [--deployment-profile codio_cvd]
 
 Maintains the approved IT 140 Codio Virtual Desktop on Ubuntu 24.04. Run as
-its standard desktop user, not with sudo. A successful update may return exit code 0 with required restart guidance;
-subsequent lifecycle scripts will refuse to continue in the stale session.
+its standard desktop user, not with sudo. A successful update may require a
+CVD restart before another lifecycle script is run.
 
 Exit codes:
   0  Completed successfully
@@ -140,25 +138,14 @@ cleanup() {
 resolve_failure_code() {
     local requested="$1"
     case "$requested" in
-        "$EXIT_MANIFEST"|"$EXIT_UNSUPPORTED"|"$EXIT_PRIVILEGE"|"$EXIT_EXTERNAL")
+        "$EXIT_MANIFEST"|"$EXIT_UNSUPPORTED"|"$EXIT_PRIVILEGE"|"$EXIT_EXTERNAL"|"$EXIT_PARTIAL")
             printf '%s\n' "$requested"
             ;;
-        "$EXIT_PARTIAL")
-            printf '%s\n' "$EXIT_PARTIAL"
-            ;;
         "$EXIT_CANCELED")
-            if [[ "$CHANGED" == true ]]; then
-                printf '%s\n' "$EXIT_PARTIAL"
-            else
-                printf '%s\n' "$EXIT_CANCELED"
-            fi
+            [[ "$CHANGED" == true ]] && printf '%s\n' "$EXIT_PARTIAL" || printf '%s\n' "$EXIT_CANCELED"
             ;;
         *)
-            if [[ "$CHANGED" == true ]]; then
-                printf '%s\n' "$EXIT_PARTIAL"
-            else
-                printf '%s\n' "$EXIT_FAILURE"
-            fi
+            [[ "$CHANGED" == true ]] && printf '%s\n' "$EXIT_PARTIAL" || printf '%s\n' "$EXIT_FAILURE"
             ;;
     esac
 }
@@ -193,7 +180,6 @@ finish() {
     if [[ "$PARTIAL" == true && "$requested_code" -eq 0 ]]; then
         requested_code="$EXIT_PARTIAL"
     fi
-
     if ((requested_code == 0)); then
         exit_code=0
     else
@@ -210,7 +196,6 @@ finish() {
 
     elapsed=$(( $(date +%s) - START_EPOCH ))
     next_step="$(summary_guidance "$exit_code")"
-
     print_header "UPDATE SUMMARY"
     [[ -n "$message" ]] && printf 'Conclusion      : %s\n' "$message"
     printf 'Result          : %s\n' "$result"
@@ -287,8 +272,14 @@ def no_duplicates(pairs):
     return result
 
 try:
-    manifest = json.loads(pathlib.Path(manifest_path).read_text(encoding="utf-8"), object_pairs_hook=no_duplicates)
-    schema = json.loads(pathlib.Path(schema_path).read_text(encoding="utf-8"), object_pairs_hook=no_duplicates)
+    manifest = json.loads(
+        pathlib.Path(manifest_path).read_text(encoding="utf-8"),
+        object_pairs_hook=no_duplicates,
+    )
+    schema = json.loads(
+        pathlib.Path(schema_path).read_text(encoding="utf-8"),
+        object_pairs_hook=no_duplicates,
+    )
 except (OSError, UnicodeError, json.JSONDecodeError, DuplicateKeyError) as exc:
     raise SystemExit(f"controlled JSON validation failed: {exc}")
 
@@ -296,24 +287,33 @@ required = {
     "schema_version", "automation_release", "automation_release_date_time_group", "course",
     "control", "policy", "capabilities", "products", "software_sources", "platforms",
     "deployment_profiles", "lifecycle_workflows", "managed_settings",
-    "managed_assets", "obsolete_components", "logging"
+    "managed_assets", "obsolete_components", "logging",
 }
 missing = sorted(required - manifest.keys())
 if missing:
     raise SystemExit("manifest missing required keys: " + ", ".join(missing))
 if manifest.get("schema_version") != supported_schema:
-    raise SystemExit(f"unsupported manifest schema: {manifest.get('schema_version')!r}; expected {supported_schema}")
+    raise SystemExit(
+        f"unsupported manifest schema: {manifest.get('schema_version')!r}; "
+        f"expected {supported_schema}"
+    )
 if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
     raise SystemExit("schema is not the approved Draft 2020-12 format")
 if manifest.get("policy", {}).get("allow_os_release_upgrade") is not False:
     raise SystemExit("manifest attempts to allow an operating-system release upgrade")
+
 platform = manifest["platforms"].get(platform_id)
 profile = manifest["deployment_profiles"].get(profile_id)
 if not platform or not platform.get("enabled"):
     raise SystemExit("CVD platform is missing or disabled")
 if not profile or not profile.get("enabled") or profile.get("platform_id") != platform_id:
     raise SystemExit("CVD deployment profile is invalid")
-required_workflows = {"cvd_provider_baseline_administrator", "cvd_course_master_student", "cvd_periodic_maintenance"}
+
+required_workflows = {
+    "cvd_provider_baseline_administrator",
+    "cvd_course_master_student",
+    "cvd_periodic_maintenance",
+}
 allowed = set(profile.get("allowed_workflow_ids", []))
 if not required_workflows <= allowed:
     raise SystemExit("CVD deployment profile does not allow every required CVD workflow")
@@ -321,6 +321,16 @@ for workflow_id in required_workflows:
     workflow = manifest["lifecycle_workflows"].get(workflow_id)
     if not workflow or profile_id not in workflow.get("deployment_profile_ids", []):
         raise SystemExit(f"invalid CVD workflow binding: {workflow_id}")
+
+required_packages = {"xclip", "numlockx"}
+os_packages = platform.get("os_packages", {})
+missing_packages = sorted(required_packages - os_packages.keys())
+if missing_packages:
+    raise SystemExit("CVD manifest is missing required packages: " + ", ".join(missing_packages))
+for package_id in sorted(required_packages):
+    package = os_packages[package_id]
+    if not package.get("required") or package.get("package_identifier") != package_id:
+        raise SystemExit(f"CVD package definition is invalid: {package_id}")
 
 try:
     import jsonschema  # type: ignore
@@ -357,20 +367,18 @@ if query == "system_packages":
         if package.get("required"):
             values.append(package["package_identifier"])
     for binding in bindings.values():
-        if (binding.get("required") and binding.get("installation_scope") == "system"
-                and binding.get("installer_adapter_id") == "apt_package"):
+        if (binding.get("required") and
+                binding.get("installation_scope") == "system" and
+                binding.get("installer_adapter_id") == "apt_package"):
             values.append(binding["package_identifier"])
     for value in sorted(set(values)):
         print(value)
-elif query == "optional_numlock_package":
-    package = platform.get("os_packages", {}).get("numlockx")
-    if package and not package.get("required"):
-        print(package["package_identifier"])
 elif query == "venv_packages":
     values = []
     for role, binding in bindings.items():
-        if (binding.get("required") and binding.get("installation_scope") == "user"
-                and binding.get("installer_adapter_id") == "python_venv_package"):
+        if (binding.get("required") and
+                binding.get("installation_scope") == "user" and
+                binding.get("installer_adapter_id") == "python_venv_package"):
             values.append(binding["package_identifier"])
         if role == "code_quality_tool" and binding.get("required"):
             values.append("ruff")
@@ -378,8 +386,9 @@ elif query == "venv_packages":
         print(value)
 elif query == "extensions":
     for binding in bindings.values():
-        if (binding.get("required") and binding.get("installation_scope") == "user"
-                and binding.get("installer_adapter_id") == "vscode_extension"):
+        if (binding.get("required") and
+                binding.get("installation_scope") == "user" and
+                binding.get("installer_adapter_id") == "vscode_extension"):
             print(binding["package_identifier"])
 elif query == "minimum_space":
     print(manifest["policy"]["minimum_free_space_bytes"])
@@ -387,7 +396,8 @@ elif query == "retry_profile":
     profile_id = manifest["policy"]["default_retry_profile_id"]
     profile = manifest["policy"]["retry_profiles"][profile_id]
     print("\t".join(str(profile[key]) for key in (
-        "maximum_attempts", "initial_delay_seconds", "backoff_multiplier", "maximum_delay_seconds"
+        "maximum_attempts", "initial_delay_seconds", "backoff_multiplier",
+        "maximum_delay_seconds",
     )))
 else:
     raise SystemExit(f"unsupported manifest query: {query}")
@@ -431,15 +441,15 @@ check_platform_and_user() {
     if [[ "$architecture" != amd64 && "$architecture" != x86_64 ]]; then
         fatal "$EXIT_UNSUPPORTED" "This CVD implementation supports only x86_64; detected $architecture."
     fi
-    print_info "Platform       : $PLATFORM_ID / $DEPLOYMENT_PROFILE_ID"
-    print_info "Operating system: ${PRETTY_NAME:-Ubuntu 24.04}"
-    print_info "Architecture   : $architecture"
     [[ "$REQUESTED_PROFILE" == "$DEPLOYMENT_PROFILE_ID" ]] \
         || fatal "$EXIT_UNSUPPORTED" "Unsupported deployment profile: $REQUESTED_PROFILE"
     command -v sudo >/dev/null 2>&1 \
         || fatal "$EXIT_PRIVILEGE" "The sudo command is unavailable."
     sudo -n true >/dev/null 2>&1 \
         || fatal "$EXIT_PRIVILEGE" "The current account lacks required passwordless sudo access."
+    print_info "Platform        : $PLATFORM_ID / $DEPLOYMENT_PROFILE_ID"
+    print_info "Operating system: ${PRETTY_NAME:-Ubuntu 24.04}"
+    print_info "Architecture    : $architecture"
 }
 
 acquire_lock() {
@@ -473,7 +483,7 @@ check_prerequisites() {
 
 refresh_controlled_manifest_assets() {
     CURRENT_STAGE="controlled manifest refresh"
-    local archive_path stage_dir source_root candidate_manifest candidate_schema candidate_info
+    local archive_path stage_dir source_root candidate_manifest candidate_schema candidate_info validated obsolete
 
     STAGING_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/it140-update.XXXXXXXX")"
     chmod 0700 "$STAGING_ROOT"
@@ -487,7 +497,6 @@ refresh_controlled_manifest_assets() {
             --connect-timeout 20 --max-time 180 \
             --output "$archive_path" "$ARCHIVE_URL" \
         || fatal "$EXIT_EXTERNAL" "The repository archive could not be downloaded."
-
     tar -xzf "$archive_path" -C "$stage_dir" \
         || fatal "$EXIT_EXTERNAL" "The downloaded repository archive could not be extracted."
     source_root="$(find "$stage_dir" -mindepth 1 -maxdepth 1 -type d -name 'it140-*' -print -quit)"
@@ -518,14 +527,10 @@ refresh_controlled_manifest_assets() {
         print_info "The manifest schema is already current."
     fi
 
-    local validated
     validated="$(validate_manifest_pair "$MANIFEST_PATH" "$SCHEMA_PATH")" \
         || fatal "$EXIT_MANIFEST" "The activated manifest pair failed validation."
     IFS=$'\t' read -r MANIFEST_RELEASE MANIFEST_DTG <<< "$validated"
 
-    # Remove only the two obsolete root-level duplicates introduced by an
-    # earlier alpha package. Authoritative copies remain under scripts/.manifest.
-    local obsolete
     for obsolete in "$COURSE_ROOT/it140_manifest.json" "$COURSE_ROOT/it140_manifest.schema.json"; do
         if [[ -e "$obsolete" ]]; then
             rm -f -- "$obsolete"
@@ -566,21 +571,45 @@ update_system_packages() {
         fatal "$EXIT_EXTERNAL" "One or more required system packages could not be installed or repaired."
     fi
     CHANGED=true
-    print_success "Required Ubuntu packages are current."
+    print_success "Required Ubuntu packages, including xclip and numlockx, are current."
 
-    local optional_numlock
-    optional_numlock="$(manifest_query optional_numlock_package 2>/dev/null || true)"
-    if [[ -n "$optional_numlock" ]]; then
-        if sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -y install -- "$optional_numlock"; then
-            CHANGED=true
-            print_success "Optional Num Lock integration is available."
-        else
-            print_warning "Optional Num Lock integration could not be installed; required course functionality is unaffected."
-        fi
+    sudo apt-get -y autoremove --purge \
+        || print_warning "Optional obsolete-package cleanup did not complete."
+    sudo apt-get clean \
+        || print_warning "Optional package-cache cleanup did not complete."
+}
+
+repair_numlock_autostart() {
+    CURRENT_STAGE="Num Lock startup integration maintenance"
+    local staged_entry
+    staged_entry="$(mktemp)"
+    cat > "$staged_entry" <<'EOF_NUMLOCK'
+[Desktop Entry]
+Type=Application
+Name=Enable Num Lock
+Comment=Enable Num Lock when the Codio Xfce desktop session starts
+Exec=/usr/bin/numlockx on
+OnlyShowIn=XFCE;
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+EOF_NUMLOCK
+
+    sudo install -d -m 0755 "$(dirname "$NUMLOCK_AUTOSTART_PATH")"
+    if sudo test -r "$NUMLOCK_AUTOSTART_PATH" && \
+            sudo cmp -s "$staged_entry" "$NUMLOCK_AUTOSTART_PATH"; then
+        print_info "The Xfce Num Lock autostart entry is already current."
+    else
+        sudo install -o root -g root -m 0644 "$staged_entry" "$NUMLOCK_AUTOSTART_PATH" \
+            || fatal "$EXIT_FAILURE" "The Xfce Num Lock autostart entry could not be installed."
+        CHANGED=true
+        print_success "The Xfce Num Lock desktop-startup integration was installed or repaired."
     fi
+    rm -f -- "$staged_entry"
 
-    sudo apt-get -y autoremove --purge || print_warning "Optional obsolete-package cleanup did not complete."
-    sudo apt-get clean || print_warning "Optional package-cache cleanup did not complete."
+    if command -v desktop-file-validate >/dev/null 2>&1; then
+        desktop-file-validate "$NUMLOCK_AUTOSTART_PATH" >/dev/null 2>&1 \
+            || fatal "$EXIT_FAILURE" "The Num Lock autostart desktop entry is invalid."
+    fi
 }
 
 update_python_tools() {
@@ -598,13 +627,15 @@ update_python_tools() {
     fi
 
     retry_operation "Python packaging-tool update" \
-        "$VENV_DIR/bin/python" -m pip install --disable-pip-version-check --upgrade pip setuptools wheel \
+        "$VENV_DIR/bin/python" -m pip install --disable-pip-version-check \
+            --upgrade pip setuptools wheel \
         || fatal "$EXIT_EXTERNAL" "The Python packaging tools could not be updated."
     CHANGED=true
 
     if ((${#packages[@]} > 0)); then
         retry_operation "Course Python tool update" \
-            "$VENV_DIR/bin/python" -m pip install --disable-pip-version-check --upgrade "${packages[@]}" \
+            "$VENV_DIR/bin/python" -m pip install --disable-pip-version-check \
+                --upgrade "${packages[@]}" \
             || fatal "$EXIT_EXTERNAL" "One or more required course Python tools could not be updated."
         CHANGED=true
     fi
@@ -638,18 +669,20 @@ has_managed_path_block() {
         && grep -Fqx "$MANAGED_PATH_END" "$file"
 }
 
+desktop_directory() {
+    xdg-user-dir DESKTOP 2>/dev/null || printf '%s/Desktop\n' "$HOME"
+}
+
 find_vscode_launcher() {
     local desktop_dir candidate
-    desktop_dir="$(xdg-user-dir DESKTOP 2>/dev/null || printf '%s/Desktop' "$HOME")"
+    desktop_dir="$(desktop_directory)"
     [[ -d "$desktop_dir" ]] || return 1
-
     for candidate in \
         "$desktop_dir/visual-studio-code.desktop" \
         "$desktop_dir/code.desktop" \
         "$desktop_dir/Visual Studio Code.desktop"; do
         [[ -f "$candidate" ]] && { printf '%s\n' "$candidate"; return 0; }
     done
-
     while IFS= read -r -d '' candidate; do
         if grep -Eiq '^Name=.*Visual Studio Code|^Exec=([^[:space:]]*/)?code([[:space:]]|$)' "$candidate"; then
             printf '%s\n' "$candidate"
@@ -666,11 +699,13 @@ import pathlib
 import shlex
 import sys
 
-path, course_root = map(pathlib.Path, sys.argv[1:])
+path = pathlib.Path(sys.argv[1])
+course_root = sys.argv[2]
 try:
     lines = path.read_text(encoding="utf-8").splitlines()
 except (OSError, UnicodeError):
     raise SystemExit(1)
+
 in_desktop = False
 exec_value = None
 for line in lines:
@@ -690,9 +725,7 @@ except ValueError:
 args = [arg for arg in args if not (arg.startswith("%") and len(arg) == 2)]
 if not args or pathlib.Path(args[0]).name != "code":
     raise SystemExit(1)
-if str(course_root) not in args:
-    raise SystemExit(1)
-if any(pathlib.Path(arg).name in {"sh", "bash", "dash"} for arg in args[:1]):
+if course_root not in args:
     raise SystemExit(1)
 PY
 }
@@ -701,28 +734,43 @@ detect_user_configuration() {
     CURRENT_STAGE="user-configuration state detection"
     local launcher
     USER_CONFIGURATION_COMPLETE=true
-    gh auth status --hostname github.com >/dev/null 2>&1 || USER_CONFIGURATION_COMPLETE=false
-    [[ -n "$(git config --global --get user.name 2>/dev/null || true)" ]] || USER_CONFIGURATION_COMPLETE=false
-    [[ -n "$(git config --global --get user.email 2>/dev/null || true)" ]] || USER_CONFIGURATION_COMPLETE=false
+    gh auth status --hostname github.com >/dev/null 2>&1 \
+        || USER_CONFIGURATION_COMPLETE=false
+    [[ -n "$(git config --global --get user.name 2>/dev/null || true)" ]] \
+        || USER_CONFIGURATION_COMPLETE=false
+    [[ -n "$(git config --global --get user.email 2>/dev/null || true)" ]] \
+        || USER_CONFIGURATION_COMPLETE=false
     [[ -x "$VENV_DIR/bin/python" ]] || USER_CONFIGURATION_COMPLETE=false
     has_managed_path_block "$HOME/.bashrc" || USER_CONFIGURATION_COMPLETE=false
     launcher="$(find_vscode_launcher 2>/dev/null || true)"
-    [[ -n "$launcher" ]] && launcher_opens_course_root "$launcher" || USER_CONFIGURATION_COMPLETE=false
+    [[ -n "$launcher" ]] && launcher_opens_course_root "$launcher" \
+        || USER_CONFIGURATION_COMPLETE=false
 }
 
 post_update_checks() {
     CURRENT_STAGE="post-update verification"
-    local command_name extension package
-    local -a required_commands=(git gh python3.12 code)
+    local command_name extension package installed_extensions
+    local -a required_commands=(git gh python3.12 code xclip numlockx)
     local -a extensions=() packages=()
 
     for command_name in "${required_commands[@]}"; do
         command -v "$command_name" >/dev/null 2>&1 \
             || fatal "$EXIT_FAILURE" "Post-update check failed; required command is unavailable: $command_name"
     done
+
+    [[ -r "$NUMLOCK_AUTOSTART_PATH" ]] \
+        || fatal "$EXIT_FAILURE" "Post-update check failed; the Xfce Num Lock autostart entry is missing."
+    grep -Fqx 'Exec=/usr/bin/numlockx on' "$NUMLOCK_AUTOSTART_PATH" \
+        || fatal "$EXIT_FAILURE" "Post-update check failed; the Num Lock startup command is incorrect."
+    grep -Fqx 'OnlyShowIn=XFCE;' "$NUMLOCK_AUTOSTART_PATH" \
+        || fatal "$EXIT_FAILURE" "Post-update check failed; the Num Lock entry is not restricted to Xfce."
+    if command -v desktop-file-validate >/dev/null 2>&1; then
+        desktop-file-validate "$NUMLOCK_AUTOSTART_PATH" >/dev/null 2>&1 \
+            || fatal "$EXIT_FAILURE" "Post-update check failed; the Num Lock desktop entry is invalid."
+    fi
+
     [[ -x "$VENV_DIR/bin/python" ]] \
         || fatal "$EXIT_FAILURE" "Post-update check failed; the course Python environment is unavailable."
-
     mapfile -t packages < <(manifest_query venv_packages)
     for package in "${packages[@]}"; do
         "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1 \
@@ -730,7 +778,6 @@ post_update_checks() {
     done
 
     mapfile -t extensions < <(manifest_query extensions)
-    local installed_extensions
     installed_extensions="$(code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')"
     for extension in "${extensions[@]}"; do
         grep -Fqx "${extension,,}" <<< "$installed_extensions" \
@@ -779,6 +826,7 @@ main() {
     check_prerequisites
     refresh_controlled_manifest_assets
     update_system_packages
+    repair_numlock_autostart
     update_python_tools
     update_vscode_extensions
     detect_user_configuration

@@ -3,8 +3,8 @@
 # IT 140 Codio Virtual Desktop read-only verification script
 #
 # Artifact ID: IT140-CVD-VERIFY
-# Artifact version: 0.7.1-alpha.3
-# Version date-time group: 2026-08-01-17-11
+# Artifact version: 0.7.2-alpha.1
+# Version date-time group: 2026-08-04-15-26
 # Development status: Alpha Testing
 #
 # Traceability: VER-FR-001 through VER-FR-014; PKG-FR-021;
@@ -12,12 +12,11 @@
 # Scope: Read-only inspection of the CVD system and current-user course layers.
 #        The only files created are the required transcript and an explicitly
 #        requested sanitized support bundle.
-
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="0.7.1-alpha.3"
-readonly VERSION_DTG="2026-08-01-17-11"
+readonly SCRIPT_VERSION="0.7.2-alpha.1"
+readonly VERSION_DTG="2026-08-04-15-26"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"
@@ -29,6 +28,7 @@ readonly SCHEMA_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.schema.json"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
 readonly LOG_FILE="${LOG_DIR}/verify_cvd_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="${COURSE_ROOT}/.venv"
+readonly NUMLOCK_AUTOSTART_PATH="/etc/xdg/autostart/numlockx.desktop"
 readonly MANAGED_PATH_START="# >>> IT 140 managed PATH >>>"
 readonly MANAGED_PATH_END="# <<< IT 140 managed PATH <<<"
 readonly MANAGED_PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/cvd:$PATH"'
@@ -69,8 +69,8 @@ print_header() {
     printf '%s\n' "$1"
     printf '============================================================\n'
 }
-
 print_info() { printf '[INFO] %s\n' "$1"; }
+print_success() { printf '[SUCCESS] %s\n' "$1"; }
 print_notice() { printf '[NOTICE] %s\n' "$1"; }
 print_error() { printf '[ERROR] %s\n' "$1" >&2; }
 
@@ -185,13 +185,13 @@ record_result() {
             exit "$EXIT_FAILURE"
             ;;
     esac
-
     printf '[%s] [%s] %s\n' "$label" "$check_id" "$message"
     RESULT_LINES+=("${label}|${check_id}|${message}")
 }
 
 validate_manifest() {
-    python3 - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" "$REQUESTED_PROFILE" "$SUPPORTED_SCHEMA" <<'PY'
+    python3 - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" \
+        "$REQUESTED_PROFILE" "$SUPPORTED_SCHEMA" <<'PY'
 import json
 import pathlib
 import sys
@@ -210,25 +210,36 @@ def no_duplicates(pairs):
     return result
 
 try:
-    manifest = json.loads(pathlib.Path(manifest_path).read_text(encoding="utf-8"), object_pairs_hook=no_duplicates)
-    schema = json.loads(pathlib.Path(schema_path).read_text(encoding="utf-8"), object_pairs_hook=no_duplicates)
+    manifest = json.loads(
+        pathlib.Path(manifest_path).read_text(encoding="utf-8"),
+        object_pairs_hook=no_duplicates,
+    )
+    schema = json.loads(
+        pathlib.Path(schema_path).read_text(encoding="utf-8"),
+        object_pairs_hook=no_duplicates,
+    )
 except (OSError, UnicodeError, json.JSONDecodeError, DuplicateKeyError) as exc:
     raise SystemExit(f"controlled JSON validation failed: {exc}")
+
 required = {
     "schema_version", "automation_release", "automation_release_date_time_group", "course",
     "control", "policy", "capabilities", "products", "software_sources", "provider_profiles",
     "platforms", "deployment_profiles", "lifecycle_workflows", "managed_settings",
-    "managed_assets", "obsolete_components", "logging"
+    "managed_assets", "obsolete_components", "logging",
 }
 missing = sorted(required - manifest.keys())
 if missing:
     raise SystemExit("manifest missing required keys: " + ", ".join(missing))
 if manifest.get("schema_version") != supported_schema:
-    raise SystemExit(f"unsupported manifest schema: {manifest.get('schema_version')!r}; expected {supported_schema}")
+    raise SystemExit(
+        f"unsupported manifest schema: {manifest.get('schema_version')!r}; "
+        f"expected {supported_schema}"
+    )
 if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
     raise SystemExit("schema is not the approved Draft 2020-12 format")
 if manifest.get("policy", {}).get("allow_os_release_upgrade") is not False:
     raise SystemExit("manifest attempts to allow an operating-system release upgrade")
+
 platform = manifest["platforms"].get(platform_id)
 profile = manifest["deployment_profiles"].get(profile_id)
 if not platform or not platform.get("enabled"):
@@ -241,6 +252,16 @@ workflow = manifest["lifecycle_workflows"].get("cvd_course_master_student")
 if not workflow or workflow.get("success_transitions", {}).get("verify") != "complete":
     raise SystemExit("CVD student workflow does not terminate after Verify")
 
+required_packages = {"xclip", "numlockx"}
+os_packages = platform.get("os_packages", {})
+missing_packages = sorted(required_packages - os_packages.keys())
+if missing_packages:
+    raise SystemExit("CVD manifest is missing required packages: " + ", ".join(missing_packages))
+for package_id in sorted(required_packages):
+    package = os_packages[package_id]
+    if not package.get("required") or package.get("package_identifier") != package_id:
+        raise SystemExit(f"CVD package definition is invalid: {package_id}")
+
 try:
     import jsonschema  # type: ignore
 except ImportError:
@@ -249,7 +270,11 @@ else:
     jsonschema.Draft202012Validator.check_schema(schema)
     jsonschema.Draft202012Validator(schema).validate(manifest)
 
-version_dtg = manifest.get("automation_release_date_time_group") or manifest.get("automation_release_date") or "unavailable"
+version_dtg = (
+    manifest.get("automation_release_date_time_group")
+    or manifest.get("automation_release_date")
+    or "unavailable"
+)
 print(f"{manifest['automation_release']}\t{version_dtg}")
 PY
 }
@@ -272,8 +297,9 @@ if query == "os_packages":
         if package.get("required"):
             values.append(package["package_identifier"])
     for binding in bindings.values():
-        if (binding.get("required") and binding.get("installation_scope") == "system"
-                and binding.get("installer_adapter_id") == "apt_package"):
+        if (binding.get("required") and
+                binding.get("installation_scope") == "system" and
+                binding.get("installer_adapter_id") == "apt_package"):
             values.append(binding["package_identifier"])
     for value in sorted(set(values)):
         print(value)
@@ -285,8 +311,9 @@ elif query == "system_bindings":
 elif query == "venv_packages":
     values = []
     for role, binding in bindings.items():
-        if (binding.get("required") and binding.get("installation_scope") == "user"
-                and binding.get("installer_adapter_id") == "python_venv_package"):
+        if (binding.get("required") and
+                binding.get("installation_scope") == "user" and
+                binding.get("installer_adapter_id") == "python_venv_package"):
             values.append(binding["package_identifier"])
         if role == "code_quality_tool" and binding.get("required"):
             values.append("ruff")
@@ -294,8 +321,9 @@ elif query == "venv_packages":
         print(value)
 elif query == "extensions":
     for role, binding in bindings.items():
-        if (binding.get("required") and binding.get("installation_scope") == "user"
-                and binding.get("installer_adapter_id") == "vscode_extension"):
+        if (binding.get("required") and
+                binding.get("installation_scope") == "user" and
+                binding.get("installer_adapter_id") == "vscode_extension"):
             print(f"{role}\t{binding['package_identifier']}")
 elif query == "git_settings":
     for profile_id in bindings["version_control_system"].get("settings_profile_ids", []):
@@ -399,6 +427,7 @@ try:
     lines = path.read_text(encoding="utf-8").splitlines()
 except (OSError, UnicodeError):
     raise SystemExit(1)
+
 in_desktop = False
 exec_value = None
 for line in lines:
@@ -419,8 +448,6 @@ args = [arg for arg in args if not (arg.startswith("%") and len(arg) == 2)]
 if not args or pathlib.Path(args[0]).name != "code":
     raise SystemExit(1)
 if course_root not in args:
-    raise SystemExit(1)
-if pathlib.Path(args[0]).name in {"sh", "bash", "dash"}:
     raise SystemExit(1)
 PY
 }
@@ -465,9 +492,9 @@ check_platform() {
             "Run Verify with deployment profile codio_cvd."
         return 1
     fi
-    print_info "Platform       : $PLATFORM_ID / $DEPLOYMENT_PROFILE_ID"
+    print_info "Platform        : $PLATFORM_ID / $DEPLOYMENT_PROFILE_ID"
     print_info "Operating system: ${PRETTY_NAME:-Ubuntu 24.04}"
-    print_info "Architecture   : $architecture"
+    print_info "Architecture    : $architecture"
     record_result pass "VER-PLATFORM-001" "Ubuntu 24.04 x86_64 CVD execution context is supported."
 }
 
@@ -482,7 +509,8 @@ check_manifest() {
         return 1
     fi
     IFS=$'\t' read -r MANIFEST_RELEASE MANIFEST_DTG <<< "$info"
-    record_result pass "VER-MANIFEST-001" "Manifest release $MANIFEST_RELEASE using schema $SUPPORTED_SCHEMA is valid."
+    record_result pass "VER-MANIFEST-001" \
+        "Manifest release $MANIFEST_RELEASE using schema $SUPPORTED_SCHEMA is valid."
 }
 
 check_disk_space() {
@@ -503,8 +531,10 @@ check_system_packages() {
     local -a packages=()
     mapfile -t packages < <(manifest_query os_packages)
     for package in "${packages[@]}"; do
-        if dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -Fq 'install ok installed'; then
-            record_result pass "VER-PKG-${package//[^A-Za-z0-9]/_}" "Required Ubuntu package is installed: $package."
+        if dpkg-query -W -f='${Status}' "$package" 2>/dev/null \
+                | grep -Fq 'install ok installed'; then
+            record_result pass "VER-PKG-${package//[^A-Za-z0-9]/_}" \
+                "Required Ubuntu package is installed: $package."
         else
             record_result fail "VER-PKG-${package//[^A-Za-z0-9]/_}" \
                 "Required Ubuntu package is missing: $package." \
@@ -523,7 +553,8 @@ check_system_packages() {
             fi
         done
         if [[ "$found" == true ]]; then
-            record_result pass "VER-CMD-${role}" "Required capability command is available: $role."
+            record_result pass "VER-CMD-${role}" \
+                "Required capability command is available: $role."
         else
             record_result fail "VER-CMD-${role}" \
                 "Required capability command is unavailable: $role." \
@@ -556,7 +587,8 @@ PY
     mapfile -t packages < <(manifest_query venv_packages)
     for package in "${packages[@]}"; do
         if "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1; then
-            record_result pass "VER-PYTHON-${package//[^A-Za-z0-9]/_}" "Required Python package is installed: $package."
+            record_result pass "VER-PYTHON-${package//[^A-Za-z0-9]/_}" \
+                "Required Python package is installed: $package."
         else
             record_result fail "VER-PYTHON-${package//[^A-Za-z0-9]/_}" \
                 "Required Python package is missing: $package." \
@@ -577,7 +609,8 @@ check_vscode_extensions() {
     while IFS=$'\t' read -r role extension; do
         [[ -n "$role" ]] || continue
         if grep -Fqx "${extension,,}" <<< "$installed_extensions"; then
-            record_result pass "VER-EXT-${role}" "Required VS Code extension is installed: $extension."
+            record_result pass "VER-EXT-${role}" \
+                "Required VS Code extension is installed: $extension."
         else
             record_result fail "VER-EXT-${role}" \
                 "Required VS Code extension is missing: $extension." \
@@ -603,9 +636,11 @@ check_provider_and_git() {
             "Git commit display name is not configured." \
             "Run configure_ide.sh, then rerun verify_ide.sh."
     fi
+
     email="$(git config --global --get user.email 2>/dev/null || true)"
     if [[ "$email" == *@users.noreply.github.com ]]; then
-        record_result pass "VER-GIT-IDENTITY-002" "Git uses the approved private provider email format."
+        record_result pass "VER-GIT-IDENTITY-002" \
+            "Git uses the approved private provider email format."
     else
         record_result fail "VER-GIT-IDENTITY-002" \
             "Git does not use the approved private provider email format." \
@@ -616,7 +651,8 @@ check_provider_and_git() {
         [[ -n "$key" ]] || continue
         actual="$(git config --global --get "$key" 2>/dev/null || true)"
         if [[ "$actual" == "$expected" ]]; then
-            record_result pass "VER-GIT-${key//[^A-Za-z0-9]/_}" "Managed Git setting is correct: $key."
+            record_result pass "VER-GIT-${key//[^A-Za-z0-9]/_}" \
+                "Managed Git setting is correct: $key."
         else
             record_result fail "VER-GIT-${key//[^A-Za-z0-9]/_}" \
                 "Managed Git setting is incorrect: $key." \
@@ -633,6 +669,7 @@ check_paths_and_settings() {
             "The managed PATH block is missing or incorrect in ~/.bashrc." \
             "Run configure_ide.sh, then open a fresh Terminal."
     fi
+
     if has_managed_path_block "$HOME/.profile"; then
         record_result pass "VER-PATH-002" "The managed PATH block is present in ~/.profile."
     else
@@ -640,8 +677,10 @@ check_paths_and_settings() {
             "The managed PATH block is missing or incorrect in ~/.profile." \
             "Run configure_ide.sh, then open a fresh Terminal."
     fi
+
     if has_valid_vscode_settings; then
-        record_result pass "VER-VSCODE-SETTINGS-001" "Required VS Code settings are present without requiring unrelated settings to match."
+        record_result pass "VER-VSCODE-SETTINGS-001" \
+            "Required VS Code settings are present without requiring unrelated settings to match."
     else
         record_result fail "VER-VSCODE-SETTINGS-001" \
             "Required VS Code settings are missing or invalid." \
@@ -649,8 +688,57 @@ check_paths_and_settings() {
     fi
 }
 
+check_numlock_integration() {
+    if command -v xclip >/dev/null 2>&1; then
+        record_result pass "VER-CVD-XCLIP-001" "The CVD clipboard command is available: xclip."
+    else
+        record_result fail "VER-CVD-XCLIP-001" \
+            "The required CVD clipboard command is unavailable: xclip." \
+            "Run update_ide.sh, then rerun verify_ide.sh."
+    fi
+
+    if command -v numlockx >/dev/null 2>&1; then
+        record_result pass "VER-CVD-NUMLOCK-001" "The CVD Num Lock command is available: numlockx."
+    else
+        record_result fail "VER-CVD-NUMLOCK-001" \
+            "The required CVD Num Lock command is unavailable: numlockx." \
+            "Run update_ide.sh, then rerun verify_ide.sh."
+    fi
+
+    if [[ ! -r "$NUMLOCK_AUTOSTART_PATH" ]]; then
+        record_result fail "VER-CVD-NUMLOCK-STARTUP-001" \
+            "The Xfce Num Lock desktop-startup entry is missing." \
+            "Run update_ide.sh, then rerun verify_ide.sh."
+        return
+    fi
+    if ! grep -Fqx 'Exec=/usr/bin/numlockx on' "$NUMLOCK_AUTOSTART_PATH"; then
+        record_result fail "VER-CVD-NUMLOCK-STARTUP-001" \
+            "The Xfce Num Lock desktop-startup command is incorrect." \
+            "Run update_ide.sh, then rerun verify_ide.sh."
+        return
+    fi
+    if ! grep -Fqx 'OnlyShowIn=XFCE;' "$NUMLOCK_AUTOSTART_PATH"; then
+        record_result fail "VER-CVD-NUMLOCK-STARTUP-001" \
+            "The Num Lock desktop-startup entry is not restricted to Xfce." \
+            "Run update_ide.sh, then rerun verify_ide.sh."
+        return
+    fi
+    if command -v desktop-file-validate >/dev/null 2>&1 && \
+            ! desktop-file-validate "$NUMLOCK_AUTOSTART_PATH" >/dev/null 2>&1; then
+        record_result fail "VER-CVD-NUMLOCK-STARTUP-001" \
+            "The Num Lock desktop-startup entry is invalid." \
+            "Run update_ide.sh, then rerun verify_ide.sh."
+        return
+    fi
+    record_result pass "VER-CVD-NUMLOCK-STARTUP-001" \
+        "Num Lock is configured to turn on when the CVD Xfce desktop session starts."
+}
+
 check_desktop_integrations() {
     local launcher launcher_count
+
+    check_numlock_integration
+
     launcher="$(find_vscode_launcher 2>/dev/null || true)"
     if [[ -z "$launcher" ]]; then
         record_result fail "VER-LAUNCHER-001" \
@@ -664,12 +752,14 @@ check_desktop_integrations() {
         record_result fail "VER-LAUNCHER-001" \
             "The Visual Studio Code desktop launcher does not open $COURSE_ROOT as a folder argument." \
             "Run configure_ide.sh, then rerun verify_ide.sh."
-    elif command -v desktop-file-validate >/dev/null 2>&1 && ! desktop-file-validate "$launcher" >/dev/null 2>&1; then
+    elif command -v desktop-file-validate >/dev/null 2>&1 && \
+            ! desktop-file-validate "$launcher" >/dev/null 2>&1; then
         record_result fail "VER-LAUNCHER-001" \
             "The repaired Visual Studio Code launcher is not a valid desktop entry." \
             "Run configure_ide.sh, then rerun verify_ide.sh."
     else
-        record_result pass "VER-LAUNCHER-001" "The existing Visual Studio Code launcher opens $COURSE_ROOT."
+        record_result pass "VER-LAUNCHER-001" \
+            "The existing Visual Studio Code launcher opens $COURSE_ROOT."
     fi
 
     launcher_count="$(list_vscode_launchers | sed '/^$/d' | wc -l | tr -d ' ')"
@@ -677,7 +767,8 @@ check_desktop_integrations() {
         record_result warning "VER-LAUNCHER-002" \
             "More than one Visual Studio Code desktop launcher is present; Configure did not create another launcher."
     else
-        record_result pass "VER-LAUNCHER-002" "No duplicate Visual Studio Code desktop launcher was detected."
+        record_result pass "VER-LAUNCHER-002" \
+            "No duplicate Visual Studio Code desktop launcher was detected."
     fi
 }
 
@@ -693,17 +784,20 @@ check_restart_state() {
 
 check_network_service() {
     if [[ "$SKIP_NETWORK" == true ]]; then
-        record_result not_applicable "VER-NETWORK-001" "Optional GitHub service reachability check was skipped."
+        record_result not_applicable "VER-NETWORK-001" \
+            "Optional GitHub service reachability check was skipped."
         return
     fi
     if ! gh auth status --hostname github.com >/dev/null 2>&1; then
-        record_result not_applicable "VER-NETWORK-001" "GitHub service reachability was not tested because authentication is incomplete."
+        record_result not_applicable "VER-NETWORK-001" \
+            "GitHub service reachability was not tested because authentication is incomplete."
         return
     fi
     if timeout 30 gh api rate_limit --silent >/dev/null 2>&1; then
         record_result pass "VER-NETWORK-001" "The authenticated GitHub service is reachable."
     else
-        record_result warning "VER-NETWORK-001" "GitHub could not be reached during the bounded optional check."
+        record_result warning "VER-NETWORK-001" \
+            "GitHub could not be reached during the bounded optional check."
     fi
 }
 
@@ -732,6 +826,7 @@ sanitize_log() {
 maybe_create_support_bundle() {
     [[ "$SUPPORT_BUNDLE" == true ]] || return 0
     local approved=false response bundle_name report_file facts_file
+
     if [[ "$CONFIRM_SUPPORT_BUNDLE" == true ]]; then
         approved=true
     elif [[ "$NONINTERACTIVE" == true ]]; then
@@ -743,6 +838,7 @@ maybe_create_support_bundle() {
         IFS= read -r response
         [[ "${response,,}" == y || "${response,,}" == yes ]] && approved=true
     fi
+
     [[ "$approved" == true ]] || {
         print_notice "Support-bundle creation was canceled."
         return 0
@@ -753,6 +849,7 @@ maybe_create_support_bundle() {
     sanitize_log "$LOG_FILE" "$SUPPORT_STAGING/verify_ide_sanitized.log"
     report_file="$SUPPORT_STAGING/verification_summary.txt"
     facts_file="$SUPPORT_STAGING/platform_facts.txt"
+
     {
         printf 'IT 140 CVD verification support summary\n'
         printf 'Script version: %s\n' "$SCRIPT_VERSION"
@@ -768,6 +865,7 @@ maybe_create_support_bundle() {
             grep -E '^(ID|VERSION_ID|PRETTY_NAME)=' /etc/os-release
         fi
     } > "$facts_file"
+
     bundle_name="it140_cvd_support_$(date +%Y%m%d_%H%M%S).tar.gz"
     SUPPORT_BUNDLE_PATH="$LOG_DIR/$bundle_name"
     tar -czf "$SUPPORT_BUNDLE_PATH" -C "$SUPPORT_STAGING" .
@@ -789,13 +887,9 @@ finish() {
     else
         exit_code="$EXIT_SUCCESS"
     fi
-    if ((exit_code == 0)); then
-        result="COMPLIANT"
-    else
-        result="NOT COMPLIANT"
-    fi
-    elapsed=$(( $(date +%s) - START_EPOCH ))
 
+    ((exit_code == 0)) && result="COMPLIANT" || result="NOT COMPLIANT"
+    elapsed=$(( $(date +%s) - START_EPOCH ))
     print_header "VERIFICATION SUMMARY"
     printf 'Result          : %s\n' "$result"
     printf 'Script version  : %s\n' "$SCRIPT_VERSION"
@@ -820,6 +914,7 @@ finish() {
             printf '  - %s\n' "$remediation"
         done
     fi
+
     if ((exit_code == 0)); then
         print_notice "No required remediation is needed."
     else
