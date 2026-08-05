@@ -1,6 +1,6 @@
 {
   "schema_version": "2.2",
-  "automation_release": "0.7.0",
+  "automation_release": "0.7.1",
   "course": {
     "course_id": "IT 140",
     "course_title": "Introduction to Scripting",
@@ -10,7 +10,7 @@
     "status": "draft",
     "source_repository": "https://github.com/GC-STEM/it140",
     "source_revision": "2ad2ff23346896c3e27d3a8b64a9d40d652196e4",
-    "change_summary": "Adopt minute-resolution version date-time groups for controlled artifacts and preserve profile-aware Prepare success transitions: local initialization continues to Install, while both CVD initialization workflows continue to Update."
+    "change_summary": "Add manifest-managed Noto Color Emoji support to the CVD lifecycle, including package repair, font-cache maintenance, and explicit fontconfig verification."
   },
   "policy": {
     "course_root": "${HOME}/it140",
@@ -88,26 +88,26 @@
       ]
     },
     "source_code_ide": {
-      "display_name": "Code Editor and IDE",
+      "display_name": "Source-Code IDE",
       "required": true,
-      "implementation_kind": "ide",
-      "student_use": "Design, write, test, debug, and manage assignment files."
+      "implementation_kind": "desktop_application",
+      "student_use": "Create, edit, run, and debug course source files."
     },
     "language_support": {
-      "display_name": "Programming Language Support",
+      "display_name": "Python IDE Support",
       "required": true,
       "implementation_kind": "ide_extension",
-      "student_use": "Provide Python language support within the course IDE.",
+      "student_use": "Provide Python language services, interpreter selection, testing, and debugging in the IDE.",
       "depends_on": [
         "source_code_ide",
         "programming_language_runtime"
       ]
     },
     "code_quality_tool": {
-      "display_name": "Code Linter and Formatter",
+      "display_name": "Code Quality Tool",
       "required": true,
       "implementation_kind": "ide_extension",
-      "student_use": "Identify Python style issues and format code consistently.",
+      "student_use": "Provide linting and formatting feedback for readable Python code.",
       "depends_on": [
         "source_code_ide",
         "programming_language_runtime"
@@ -117,7 +117,7 @@
       "display_name": "Diagram Support",
       "required": true,
       "implementation_kind": "ide_extension",
-      "student_use": "View, create, and edit flowcharts and game-world maps.",
+      "student_use": "Open and edit course diagrams inside the IDE.",
       "depends_on": [
         "source_code_ide"
       ]
@@ -126,25 +126,25 @@
       "display_name": "Pseudocode Support",
       "required": true,
       "implementation_kind": "ide_extension",
-      "student_use": "View, create, and edit pseudocode files with syntax highlighting.",
+      "student_use": "Open and edit course pseudocode files with appropriate language support.",
       "depends_on": [
         "source_code_ide"
       ]
     },
     "spell_checker": {
-      "display_name": "Code Spell Checker",
+      "display_name": "Spell Checker",
       "required": true,
       "implementation_kind": "ide_extension",
-      "student_use": "Check spelling in source code and documentation.",
+      "student_use": "Identify likely spelling errors in documentation, comments, and source files.",
       "depends_on": [
         "source_code_ide"
       ]
     },
     "file_viewer": {
-      "display_name": "Course File Viewers",
+      "display_name": "Course File Viewer",
       "required": true,
       "implementation_kind": "ide_extension",
-      "student_use": "View course-provided Office and PDF files within the course IDE.",
+      "student_use": "Open common office and course-document formats inside the IDE.",
       "depends_on": [
         "source_code_ide"
       ]
@@ -153,179 +153,126 @@
   "products": {
     "git": {
       "display_name": "Git",
-      "vendor_or_project": "Git project",
       "product_kind": "command_line_tool",
-      "capability_roles": [
-        "version_control_system"
-      ],
+      "homepage_uri": "https://git-scm.com/",
+      "documentation_uri": "https://git-scm.com/doc",
       "version_rule": {
         "comparison": "managed_latest"
       },
-      "student_availability": "no_cost",
-      "license_identifier": "GPL-2.0-only",
-      "open_source": true,
-      "homepage": "https://git-scm.com/",
-      "documentation_uri": "https://git-scm.com/doc"
+      "license_name": "GPL-2.0-only",
+      "open_source": true
     },
     "github_cli": {
       "display_name": "GitHub CLI",
-      "vendor_or_project": "GitHub",
-      "product_kind": "external_service_client",
-      "capability_roles": [
-        "source_hosting_client"
-      ],
+      "product_kind": "command_line_tool",
+      "homepage_uri": "https://cli.github.com/",
+      "documentation_uri": "https://cli.github.com/manual/",
       "version_rule": {
         "comparison": "managed_latest"
       },
-      "student_availability": "no_cost",
-      "license_identifier": "MIT",
-      "open_source": true,
-      "homepage": "https://cli.github.com/",
-      "documentation_uri": "https://cli.github.com/manual/"
+      "license_name": "MIT",
+      "open_source": true
     },
     "python_3_12": {
       "display_name": "Python 3.12",
-      "vendor_or_project": "Python Software Foundation",
       "product_kind": "programming_runtime",
-      "capability_roles": [
-        "programming_language_runtime"
-      ],
+      "homepage_uri": "https://www.python.org/",
+      "documentation_uri": "https://docs.python.org/3.12/",
       "version_rule": {
         "comparison": "compatible_range",
-        "value": ">=3.12,<3.13",
-        "comparison_adapter_id": "pep440_version"
+        "minimum": "3.12",
+        "maximum_exclusive": "3.13",
+        "adapter_id": "pep440_version"
       },
-      "student_availability": "no_cost",
-      "license_identifier": "PSF-2.0",
-      "open_source": true,
-      "homepage": "https://www.python.org/",
-      "documentation_uri": "https://docs.python.org/3.12/"
+      "license_name": "Python-2.0",
+      "open_source": true
     },
     "pytest": {
       "display_name": "pytest",
-      "vendor_or_project": "pytest development team",
       "product_kind": "language_package",
-      "capability_roles": [
-        "test_runner"
-      ],
+      "homepage_uri": "https://pytest.org/",
+      "documentation_uri": "https://docs.pytest.org/",
       "version_rule": {
         "comparison": "managed_latest"
       },
-      "student_availability": "no_cost",
-      "license_identifier": "MIT",
-      "open_source": true,
-      "homepage": "https://pytest.org/",
-      "documentation_uri": "https://docs.pytest.org/"
+      "license_name": "MIT",
+      "open_source": true
     },
     "pytest_cov": {
       "display_name": "pytest-cov",
-      "vendor_or_project": "pytest-cov project",
       "product_kind": "language_package",
-      "capability_roles": [
-        "coverage_reporter"
-      ],
+      "homepage_uri": "https://github.com/pytest-dev/pytest-cov",
+      "documentation_uri": "https://pytest-cov.readthedocs.io/",
       "version_rule": {
         "comparison": "managed_latest"
       },
-      "student_availability": "no_cost",
-      "license_identifier": "MIT",
-      "open_source": true,
-      "homepage": "https://github.com/pytest-dev/pytest-cov",
-      "documentation_uri": "https://pytest-cov.readthedocs.io/"
+      "license_name": "MIT",
+      "open_source": true
     },
     "visual_studio_code": {
       "display_name": "Visual Studio Code",
-      "vendor_or_project": "Microsoft",
-      "product_kind": "ide",
-      "capability_roles": [
-        "source_code_ide"
-      ],
+      "product_kind": "desktop_application",
+      "homepage_uri": "https://code.visualstudio.com/",
+      "documentation_uri": "https://code.visualstudio.com/docs",
       "version_rule": {
         "comparison": "managed_latest"
       },
-      "student_availability": "no_cost",
-      "license_identifier": "LicenseRef-Microsoft-Visual-Studio-Code",
-      "open_source": false,
-      "homepage": "https://code.visualstudio.com/",
-      "documentation_uri": "https://code.visualstudio.com/docs"
+      "license_name": "Microsoft Software License Terms",
+      "open_source": false
     },
     "vscode_python": {
       "display_name": "Python Extension for Visual Studio Code",
-      "vendor_or_project": "Microsoft",
       "product_kind": "ide_extension",
-      "capability_roles": [
-        "language_support"
-      ],
+      "homepage_uri": "https://marketplace.visualstudio.com/items?itemName=ms-python.python",
+      "documentation_uri": "https://code.visualstudio.com/docs/python/python-tutorial",
       "version_rule": {
         "comparison": "managed_latest"
-      },
-      "student_availability": "no_cost",
-      "homepage": "https://marketplace.visualstudio.com/items?itemName=ms-python.python"
+      }
     },
     "vscode_ruff": {
       "display_name": "Ruff Extension for Visual Studio Code",
-      "vendor_or_project": "Astral Software",
       "product_kind": "ide_extension",
-      "capability_roles": [
-        "code_quality_tool"
-      ],
+      "homepage_uri": "https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff",
+      "documentation_uri": "https://docs.astral.sh/ruff/editors/",
       "version_rule": {
         "comparison": "managed_latest"
-      },
-      "student_availability": "no_cost",
-      "homepage": "https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff"
+      }
     },
     "vscode_drawio": {
       "display_name": "Draw.io Integration for Visual Studio Code",
-      "vendor_or_project": "Henning Dieterichs",
       "product_kind": "ide_extension",
-      "capability_roles": [
-        "diagram_support"
-      ],
+      "homepage_uri": "https://marketplace.visualstudio.com/items?itemName=hediet.vscode-drawio",
+      "documentation_uri": "https://github.com/hediet/vscode-drawio",
       "version_rule": {
         "comparison": "managed_latest"
-      },
-      "student_availability": "no_cost",
-      "homepage": "https://marketplace.visualstudio.com/items?itemName=hediet.vscode-drawio"
+      }
     },
     "vscode_pseudo": {
-      "display_name": "Pseudocode Support for Visual Studio Code",
-      "vendor_or_project": "i2p-hub",
+      "display_name": "I2P Pseudocode Support",
       "product_kind": "ide_extension",
-      "capability_roles": [
-        "pseudocode_support"
-      ],
+      "homepage_uri": "https://marketplace.visualstudio.com/items?itemName=i2p-hub.i2p-pseudo",
+      "documentation_uri": "https://marketplace.visualstudio.com/items?itemName=i2p-hub.i2p-pseudo",
       "version_rule": {
         "comparison": "managed_latest"
-      },
-      "student_availability": "no_cost",
-      "homepage": "https://marketplace.visualstudio.com/items?itemName=i2p-hub.i2p-pseudo"
+      }
     },
     "vscode_spell_checker": {
       "display_name": "Code Spell Checker",
-      "vendor_or_project": "Street Side Software",
       "product_kind": "ide_extension",
-      "capability_roles": [
-        "spell_checker"
-      ],
+      "homepage_uri": "https://marketplace.visualstudio.com/items?itemName=streetsidesoftware.code-spell-checker",
+      "documentation_uri": "https://streetsidesoftware.com/vscode-spell-checker/",
       "version_rule": {
         "comparison": "managed_latest"
-      },
-      "student_availability": "no_cost",
-      "homepage": "https://marketplace.visualstudio.com/items?itemName=streetsidesoftware.code-spell-checker"
+      }
     },
     "vscode_office": {
       "display_name": "Office Viewer for Visual Studio Code",
-      "vendor_or_project": "cweijan",
       "product_kind": "ide_extension",
-      "capability_roles": [
-        "file_viewer"
-      ],
+      "homepage_uri": "https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-office",
+      "documentation_uri": "https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-office",
       "version_rule": {
         "comparison": "managed_latest"
-      },
-      "student_availability": "no_cost",
-      "homepage": "https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-office"
+      }
     }
   },
   "software_sources": {
@@ -333,36 +280,38 @@
       "display_name": "IT 140 Course Repository",
       "source_type": "source_repository",
       "base_uri": "https://github.com/GC-STEM/it140",
-      "adapter_id": "github_repository_source",
+      "adapter_id": "git_repository",
       "allowed_hosts": [
         "github.com",
         "raw.githubusercontent.com"
-      ],
-      "integrity": {
-        "method": "repository_signature"
-      },
-      "retry_profile_id": "bounded_default"
-    },
-    "winget_default": {
-      "display_name": "Windows Package Manager Default Source",
-      "source_type": "os_repository",
-      "base_uri": "https://cdn.winget.microsoft.com/cache",
-      "adapter_id": "winget_source",
-      "allowed_hosts": [
-        "cdn.winget.microsoft.com"
       ],
       "integrity": {
         "method": "provider_verified"
       },
       "retry_profile_id": "bounded_default"
     },
-    "microsoft_app_installer": {
-      "display_name": "Microsoft App Installer Distribution",
-      "source_type": "direct_download",
-      "base_uri": "https://aka.ms/getwinget",
-      "adapter_id": "microsoft_app_installer_source",
+    "winget_default": {
+      "display_name": "WinGet Community Source",
+      "source_type": "package_repository",
+      "base_uri": "https://cdn.winget.microsoft.com/cache",
+      "adapter_id": "winget_source",
       "allowed_hosts": [
-        "aka.ms"
+        "cdn.winget.microsoft.com",
+        "winget.azureedge.net"
+      ],
+      "integrity": {
+        "method": "package_signature"
+      },
+      "retry_profile_id": "bounded_default"
+    },
+    "microsoft_app_installer": {
+      "display_name": "Microsoft App Installer",
+      "source_type": "operating_system_service",
+      "base_uri": "ms-windows-store://pdp/?ProductId=9NBLGGH4NNS1",
+      "adapter_id": "microsoft_store",
+      "allowed_hosts": [
+        "apps.microsoft.com",
+        "store.rg-adguard.net"
       ],
       "integrity": {
         "method": "provider_verified"
@@ -371,10 +320,11 @@
     },
     "homebrew_core": {
       "display_name": "Homebrew Core",
-      "source_type": "vendor_repository",
-      "base_uri": "https://github.com/Homebrew/homebrew-core",
-      "adapter_id": "homebrew_core_source",
+      "source_type": "package_repository",
+      "base_uri": "https://formulae.brew.sh/",
+      "adapter_id": "homebrew_formula_source",
       "allowed_hosts": [
+        "formulae.brew.sh",
         "github.com",
         "ghcr.io"
       ],
@@ -385,10 +335,11 @@
     },
     "homebrew_cask": {
       "display_name": "Homebrew Cask",
-      "source_type": "vendor_repository",
-      "base_uri": "https://github.com/Homebrew/homebrew-cask",
+      "source_type": "package_repository",
+      "base_uri": "https://formulae.brew.sh/cask/",
       "adapter_id": "homebrew_cask_source",
       "allowed_hosts": [
+        "formulae.brew.sh",
         "github.com",
         "ghcr.io"
       ],
@@ -399,9 +350,9 @@
     },
     "apple_software_update": {
       "display_name": "Apple Software Update",
-      "source_type": "os_repository",
+      "source_type": "operating_system_service",
       "base_uri": "https://support.apple.com/downloads",
-      "adapter_id": "apple_software_update_source",
+      "adapter_id": "apple_software_update",
       "allowed_hosts": [
         "support.apple.com",
         "swcdn.apple.com"
@@ -413,66 +364,67 @@
     },
     "ubuntu_archive": {
       "display_name": "Ubuntu Archive",
-      "source_type": "os_repository",
-      "base_uri": "https://archive.ubuntu.com/ubuntu/",
-      "adapter_id": "apt_source",
+      "source_type": "package_repository",
+      "base_uri": "https://archive.ubuntu.com/ubuntu",
+      "adapter_id": "apt_repository",
       "allowed_hosts": [
         "archive.ubuntu.com",
-        "security.ubuntu.com"
+        "security.ubuntu.com",
+        "us-east-1.ec2.archive.ubuntu.com"
       ],
       "integrity": {
-        "method": "package_signature"
+        "method": "repository_signature"
       },
       "retry_profile_id": "bounded_default"
     },
     "github_cli_packages": {
       "display_name": "GitHub CLI Package Repository",
-      "source_type": "vendor_repository",
+      "source_type": "package_repository",
       "base_uri": "https://cli.github.com/packages",
-      "adapter_id": "apt_vendor_source",
+      "adapter_id": "apt_repository",
       "allowed_hosts": [
         "cli.github.com"
       ],
       "integrity": {
-        "method": "package_signature"
+        "method": "repository_signature"
       },
       "retry_profile_id": "bounded_default"
     },
     "microsoft_vscode_packages": {
       "display_name": "Microsoft Visual Studio Code Package Repository",
-      "source_type": "vendor_repository",
-      "base_uri": "https://packages.microsoft.com/repos/code/",
-      "adapter_id": "apt_vendor_source",
+      "source_type": "package_repository",
+      "base_uri": "https://packages.microsoft.com/repos/code",
+      "adapter_id": "apt_repository",
       "allowed_hosts": [
         "packages.microsoft.com"
       ],
       "integrity": {
-        "method": "package_signature"
+        "method": "repository_signature"
       },
       "retry_profile_id": "bounded_default"
     },
     "pypi": {
       "display_name": "Python Package Index",
-      "source_type": "language_package_index",
-      "base_uri": "https://pypi.org/simple/",
+      "source_type": "language_package_repository",
+      "base_uri": "https://pypi.org/simple",
       "adapter_id": "python_package_index",
       "allowed_hosts": [
         "pypi.org",
         "files.pythonhosted.org"
       ],
       "integrity": {
-        "method": "provider_verified"
+        "method": "package_signature"
       },
       "retry_profile_id": "bounded_default"
     },
     "vscode_marketplace": {
       "display_name": "Visual Studio Marketplace",
-      "source_type": "ide_marketplace",
+      "source_type": "extension_repository",
       "base_uri": "https://marketplace.visualstudio.com/",
-      "adapter_id": "vscode_marketplace_source",
+      "adapter_id": "vscode_marketplace",
       "allowed_hosts": [
         "marketplace.visualstudio.com",
-        "gallerycdn.vsassets.io"
+        "*.gallerycdn.vsassets.io"
       ],
       "integrity": {
         "method": "provider_verified"
@@ -484,9 +436,9 @@
     "github_com": {
       "display_name": "GitHub.com",
       "adapter_id": "github_cli_provider",
-      "service_uri": "https://github.com/",
+      "service_uri": "https://github.com",
       "client_product_id": "github_cli",
-      "api_base_uri": "https://api.github.com/",
+      "api_base_uri": "https://api.github.com",
       "authentication": {
         "method": "browser_device_flow",
         "interactive": true,
@@ -502,7 +454,7 @@
       "privacy_identity": {
         "mode": "provider_noreply_template",
         "template": "${ACCOUNT_ID}+${USERNAME}@users.noreply.github.com",
-        "allowed_placeholders": [
+        "placeholders": [
           "ACCOUNT_ID",
           "USERNAME"
         ]
@@ -525,30 +477,26 @@
       "platform_adapter_id": "windows_client",
       "os": {
         "family": "windows",
-        "name": "Microsoft Windows",
+        "display_name": "Microsoft Windows",
         "releases": [
           {
             "release_id": "26H1",
             "display_name": "Windows 11, version 26H1",
-            "security_updates_required": true,
             "support_end_date": "2028-03-14"
           },
           {
             "release_id": "25H2",
             "display_name": "Windows 11, version 25H2",
-            "security_updates_required": true,
             "support_end_date": "2027-10-12"
           },
           {
             "release_id": "24H2",
             "display_name": "Windows 11, version 24H2",
-            "security_updates_required": true,
             "support_end_date": "2026-10-13"
           },
           {
             "release_id": "22H2",
             "display_name": "Windows 10, version 22H2",
-            "security_updates_required": true,
             "minimum_build": "19045",
             "support_end_date": "2025-10-14"
           }
@@ -558,41 +506,44 @@
         ]
       },
       "script": {
-        "extension": ".ps1",
-        "interpreter_adapter_id": "windows_powershell",
+        "file_extension": ".ps1",
+        "shell_id": "windows_powershell",
         "line_ending": "lf",
-        "filename_template": "{action}_{platform}{extension}"
+        "filename_template": "{action}_ide.ps1"
       },
       "package_manager": {
-        "display_name": "Windows Package Manager",
+        "display_name": "WinGet",
         "adapter_id": "winget",
         "source_ids": [
           "winget_default",
           "microsoft_app_installer"
         ],
-        "lock_scope": "system_package_manager"
+        "mutation_scope": "system"
       },
       "os_packages": {
         "windows_app_installer": {
-          "display_name": "Microsoft App Installer",
-          "purpose": "Provide the Windows Package Manager client required to install and update approved software.",
-          "category": "package_management_support",
+          "display_name": "Windows App Installer",
+          "purpose": "Provide the WinGet package manager required by Windows lifecycle scripts.",
           "package_identifier": "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe",
           "required": true,
           "source_id": "microsoft_app_installer",
           "version_rule": {
             "comparison": "managed_latest"
           },
+          "verification": {
+            "adapter_id": "windows_appx",
+            "executable_names": [
+              "winget.exe"
+            ],
+            "package_identifiers": [
+              "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe"
+            ]
+          },
           "architectures": [
             "x86_64",
             "arm64"
           ],
-          "verification": {
-            "adapter_id": "executable_version",
-            "executable_names": [
-              "winget.exe"
-            ]
-          }
+          "category": "package_management_support"
         }
       },
       "course_ide_bindings": {
@@ -604,9 +555,12 @@
           "source_id": "winget_default",
           "package_identifier": "Git.Git",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "winget_package",
             "executable_names": [
               "git.exe"
+            ],
+            "package_identifiers": [
+              "Git.Git"
             ]
           },
           "settings_profile_ids": [
@@ -621,9 +575,12 @@
           "source_id": "winget_default",
           "package_identifier": "GitHub.cli",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "winget_package",
             "executable_names": [
               "gh.exe"
+            ],
+            "package_identifiers": [
+              "GitHub.cli"
             ]
           },
           "provider_profile_id": "github_com",
@@ -639,15 +596,14 @@
           "source_id": "winget_default",
           "package_identifier": "Python.Python.3.12",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "winget_package",
             "executable_names": [
               "python.exe"
             ],
-            "version_rule": {
-              "comparison": "compatible_range",
-              "value": ">=3.12,<3.13",
-              "comparison_adapter_id": "pep440_version"
-            }
+            "package_identifiers": [
+              "Python.Python.3.12"
+            ],
+            "version_adapter_id": "pep440_version"
           }
         },
         "test_runner": {
@@ -693,9 +649,12 @@
           "source_id": "winget_default",
           "package_identifier": "Microsoft.VisualStudioCode",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "winget_package",
             "executable_names": [
               "code.cmd"
+            ],
+            "package_identifiers": [
+              "Microsoft.VisualStudioCode"
             ]
           },
           "settings_profile_ids": [
@@ -711,7 +670,7 @@
           "package_identifier": "ms-python.python",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "ms-python.python"
             ]
           },
@@ -729,7 +688,7 @@
           "package_identifier": "charliermarsh.ruff",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "charliermarsh.ruff"
             ]
           },
@@ -747,7 +706,7 @@
           "package_identifier": "hediet.vscode-drawio",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "hediet.vscode-drawio"
             ]
           },
@@ -764,7 +723,7 @@
           "package_identifier": "i2p-hub.i2p-pseudo",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "i2p-hub.i2p-pseudo"
             ]
           },
@@ -781,7 +740,7 @@
           "package_identifier": "streetsidesoftware.code-spell-checker",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "streetsidesoftware.code-spell-checker"
             ]
           },
@@ -798,7 +757,7 @@
           "package_identifier": "cweijan.vscode-office",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "cweijan.vscode-office"
             ]
           },
@@ -807,7 +766,7 @@
           ]
         }
       },
-      "notes": "Supported local Windows targets are Windows 10 version 22H2 and manifest-listed Windows 11 releases on x86_64 hardware."
+      "notes": "Windows 10 22H2 and supported Windows 11 releases use WinGet for system-level course software. Windows S mode is not supported for the local IDE."
     },
     "macos": {
       "display_name": "Apple macOS",
@@ -817,22 +776,22 @@
       "platform_adapter_id": "macos_homebrew_apple_silicon",
       "os": {
         "family": "macos",
-        "name": "macOS",
+        "display_name": "macOS",
         "releases": [
           {
             "release_id": "26",
-            "display_name": "macOS 26 Tahoe",
-            "security_updates_required": true
+            "display_name": "macOS Tahoe 26",
+            "security_updates_supported": true
           },
           {
             "release_id": "15",
-            "display_name": "macOS 15 Sequoia",
-            "security_updates_required": true
+            "display_name": "macOS Sequoia 15",
+            "security_updates_supported": true
           },
           {
             "release_id": "14",
-            "display_name": "macOS 14 Sonoma",
-            "security_updates_required": true
+            "display_name": "macOS Sonoma 14",
+            "security_updates_supported": true
           }
         ],
         "architectures": [
@@ -840,10 +799,10 @@
         ]
       },
       "script": {
-        "extension": ".sh",
-        "interpreter_adapter_id": "macos_zsh",
+        "file_extension": ".sh",
+        "shell_id": "macos_zsh",
         "line_ending": "lf",
-        "filename_template": "{action}_{platform}{extension}"
+        "filename_template": "{action}_ide.sh"
       },
       "package_manager": {
         "display_name": "Homebrew",
@@ -852,28 +811,28 @@
           "homebrew_core",
           "homebrew_cask"
         ],
-        "lock_scope": "user_package_manager"
+        "mutation_scope": "user"
       },
       "os_packages": {
         "apple_command_line_tools": {
           "display_name": "Apple Command Line Tools",
-          "purpose": "Provide the compiler, Git prerequisites, and system headers required by Homebrew and course tooling.",
-          "category": "bootstrap_prerequisite",
+          "purpose": "Provide compilers, Git support, and system development utilities required before Homebrew installation.",
           "package_identifier": "Command Line Tools for Xcode",
           "required": true,
           "source_id": "apple_software_update",
           "version_rule": {
             "comparison": "managed_latest"
           },
-          "architectures": [
-            "arm64"
-          ],
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "apple_command_line_tools",
             "executable_names": [
               "xcrun"
             ]
-          }
+          },
+          "architectures": [
+            "arm64"
+          ],
+          "category": "bootstrap_prerequisite"
         }
       },
       "course_ide_bindings": {
@@ -885,8 +844,11 @@
           "source_id": "homebrew_core",
           "package_identifier": "git",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "homebrew_formula",
             "executable_names": [
+              "git"
+            ],
+            "package_identifiers": [
               "git"
             ]
           },
@@ -902,8 +864,11 @@
           "source_id": "homebrew_core",
           "package_identifier": "gh",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "homebrew_formula",
             "executable_names": [
+              "gh"
+            ],
+            "package_identifiers": [
               "gh"
             ]
           },
@@ -920,15 +885,14 @@
           "source_id": "homebrew_core",
           "package_identifier": "python@3.12",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "homebrew_formula",
             "executable_names": [
               "python3.12"
             ],
-            "version_rule": {
-              "comparison": "compatible_range",
-              "value": ">=3.12,<3.13",
-              "comparison_adapter_id": "pep440_version"
-            }
+            "package_identifiers": [
+              "python@3.12"
+            ],
+            "version_adapter_id": "pep440_version"
           }
         },
         "test_runner": {
@@ -974,9 +938,12 @@
           "source_id": "homebrew_cask",
           "package_identifier": "visual-studio-code",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "homebrew_cask",
             "executable_names": [
               "code"
+            ],
+            "package_identifiers": [
+              "visual-studio-code"
             ]
           },
           "settings_profile_ids": [
@@ -992,7 +959,7 @@
           "package_identifier": "ms-python.python",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "ms-python.python"
             ]
           },
@@ -1010,7 +977,7 @@
           "package_identifier": "charliermarsh.ruff",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "charliermarsh.ruff"
             ]
           },
@@ -1028,7 +995,7 @@
           "package_identifier": "hediet.vscode-drawio",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "hediet.vscode-drawio"
             ]
           },
@@ -1045,7 +1012,7 @@
           "package_identifier": "i2p-hub.i2p-pseudo",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "i2p-hub.i2p-pseudo"
             ]
           },
@@ -1062,7 +1029,7 @@
           "package_identifier": "streetsidesoftware.code-spell-checker",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "streetsidesoftware.code-spell-checker"
             ]
           },
@@ -1079,7 +1046,7 @@
           "package_identifier": "cweijan.vscode-office",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "cweijan.vscode-office"
             ]
           },
@@ -1088,7 +1055,7 @@
           ]
         }
       },
-      "notes": "This rebuilt baseline is enabled only for Apple silicon. Intel support remains disabled until a separate Intel baseline passes the complete conformance suite."
+      "notes": "Supported macOS releases on Apple silicon use Homebrew for course software. The initial bootstrap obtains Apple Command Line Tools and Homebrew when necessary."
     },
     "cvd": {
       "display_name": "Codio Virtual Desktop",
@@ -1098,39 +1065,40 @@
       "platform_adapter_id": "codio_ubuntu_apt_xfce",
       "os": {
         "family": "linux",
-        "name": "Ubuntu",
-        "desktop_environment": "Xfce",
+        "distribution": "ubuntu",
+        "display_name": "Ubuntu",
         "releases": [
           {
             "release_id": "24.04",
-            "display_name": "Ubuntu 24.04 LTS (Noble Numbat)",
-            "security_updates_required": true
+            "display_name": "Ubuntu 24.04 LTS",
+            "support_end_date": "2029-04-30"
           }
         ],
         "architectures": [
           "x86_64"
-        ]
+        ],
+        "desktop_environment": "Xfce"
       },
       "script": {
-        "extension": ".sh",
-        "interpreter_adapter_id": "ubuntu_bash",
+        "file_extension": ".sh",
+        "shell_id": "ubuntu_bash",
         "line_ending": "lf",
-        "filename_template": "{action}_{platform}{extension}"
+        "filename_template": "{action}_ide.sh"
       },
       "package_manager": {
-        "display_name": "Advanced Package Tool",
+        "display_name": "APT",
         "adapter_id": "apt",
         "source_ids": [
           "ubuntu_archive",
           "github_cli_packages",
           "microsoft_vscode_packages"
         ],
-        "lock_scope": "system_package_manager"
+        "mutation_scope": "system"
       },
       "os_packages": {
         "ca_certificates": {
           "display_name": "CA Certificates",
-          "purpose": "Provide trusted certificate authorities for encrypted package and file downloads.",
+          "purpose": "Provide trusted certificate authorities for secure package and source retrieval.",
           "package_identifier": "ca-certificates",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1146,11 +1114,11 @@
           "architectures": [
             "x86_64"
           ],
-          "category": "security_support"
+          "category": "trust_support"
         },
         "curl": {
           "display_name": "curl",
-          "purpose": "Provide reliable encrypted downloads and network diagnostics for setup and update operations.",
+          "purpose": "Provide HTTPS retrieval for repositories and controlled assets.",
           "package_identifier": "curl",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1159,6 +1127,9 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "curl"
+            ],
             "package_identifiers": [
               "curl"
             ]
@@ -1166,11 +1137,11 @@
           "architectures": [
             "x86_64"
           ],
-          "category": "diagnostic_utility"
+          "category": "transport_support"
         },
         "gpg": {
           "display_name": "GNU Privacy Guard",
-          "purpose": "Verify signed package repositories and imported signing keys.",
+          "purpose": "Verify and manage trusted package-repository signing keys.",
           "package_identifier": "gpg",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1179,6 +1150,9 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "gpg"
+            ],
             "package_identifiers": [
               "gpg"
             ]
@@ -1186,11 +1160,11 @@
           "architectures": [
             "x86_64"
           ],
-          "category": "security_support"
+          "category": "repository_support"
         },
         "python_venv_support": {
           "display_name": "Python 3.12 Virtual Environment Support",
-          "purpose": "Provide the operating-system module required to create the course Python virtual environment.",
+          "purpose": "Provide the standard-library venv module for the course-managed Python environment.",
           "package_identifier": "python3.12-venv",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1210,7 +1184,7 @@
         },
         "xdg_utils": {
           "display_name": "XDG Utilities",
-          "purpose": "Provide standards-based desktop integration helpers for launchers and default applications.",
+          "purpose": "Provide desktop integration helpers for MIME and URL handling.",
           "package_identifier": "xdg-utils",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1219,6 +1193,10 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "xdg-open",
+              "xdg-mime"
+            ],
             "package_identifiers": [
               "xdg-utils"
             ]
@@ -1230,7 +1208,7 @@
         },
         "desktop_file_utils": {
           "display_name": "Desktop File Utilities",
-          "purpose": "Validate and refresh Linux desktop launcher definitions.",
+          "purpose": "Validate and maintain desktop launcher metadata.",
           "package_identifier": "desktop-file-utils",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1239,6 +1217,10 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "desktop-file-validate",
+              "update-desktop-database"
+            ],
             "package_identifiers": [
               "desktop-file-utils"
             ]
@@ -1250,7 +1232,7 @@
         },
         "libsecret": {
           "display_name": "Secret Service Library",
-          "purpose": "Allow approved clients to use the desktop credential store without placing secrets in the manifest or logs.",
+          "purpose": "Provide secure desktop credential storage integration.",
           "package_identifier": "libsecret-1-0",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1266,11 +1248,11 @@
           "architectures": [
             "x86_64"
           ],
-          "category": "runtime_support"
+          "category": "desktop_integration"
         },
         "tree": {
           "display_name": "tree",
-          "purpose": "Provide a simple directory-tree display for course support and diagnostics.",
+          "purpose": "Display course directory structures for setup and troubleshooting.",
           "package_identifier": "tree",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1279,6 +1261,9 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "tree"
+            ],
             "package_identifiers": [
               "tree"
             ]
@@ -1286,11 +1271,11 @@
           "architectures": [
             "x86_64"
           ],
-          "category": "diagnostic_utility"
+          "category": "diagnostic_support"
         },
         "xclip": {
           "display_name": "xclip",
-          "purpose": "Provide clipboard support for browser-based GitHub authentication.",
+          "purpose": "Provide X11 clipboard integration for browser-based and desktop authentication workflows.",
           "package_identifier": "xclip",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1299,6 +1284,9 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "xclip"
+            ],
             "package_identifiers": [
               "xclip"
             ]
@@ -1310,7 +1298,7 @@
         },
         "numlockx": {
           "display_name": "numlockx",
-          "purpose": "Apply the approved Num Lock behavior when the Xfce desktop session starts.",
+          "purpose": "Enable Num Lock consistently in the Xfce desktop session.",
           "package_identifier": "numlockx",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1319,8 +1307,31 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "numlockx"
+            ],
             "package_identifiers": [
               "numlockx"
+            ]
+          },
+          "architectures": [
+            "x86_64"
+          ],
+          "category": "desktop_integration"
+        },
+        "fonts_noto_color_emoji": {
+          "display_name": "Noto Color Emoji",
+          "purpose": "Provide color emoji glyphs for Visual Studio Code Markdown previews and other graphical applications.",
+          "package_identifier": "fonts-noto-color-emoji",
+          "required": true,
+          "source_id": "ubuntu_archive",
+          "version_rule": {
+            "comparison": "managed_latest"
+          },
+          "verification": {
+            "adapter_id": "apt_package",
+            "package_identifiers": [
+              "fonts-noto-color-emoji"
             ]
           },
           "architectures": [
@@ -1338,8 +1349,11 @@
           "source_id": "ubuntu_archive",
           "package_identifier": "git",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "apt_package",
             "executable_names": [
+              "git"
+            ],
+            "package_identifiers": [
               "git"
             ]
           },
@@ -1355,8 +1369,11 @@
           "source_id": "github_cli_packages",
           "package_identifier": "gh",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "apt_package",
             "executable_names": [
+              "gh"
+            ],
+            "package_identifiers": [
               "gh"
             ]
           },
@@ -1373,15 +1390,14 @@
           "source_id": "ubuntu_archive",
           "package_identifier": "python3.12",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "apt_package",
             "executable_names": [
               "python3.12"
             ],
-            "version_rule": {
-              "comparison": "compatible_range",
-              "value": ">=3.12,<3.13",
-              "comparison_adapter_id": "pep440_version"
-            }
+            "package_identifiers": [
+              "python3.12"
+            ],
+            "version_adapter_id": "pep440_version"
           }
         },
         "test_runner": {
@@ -1427,8 +1443,11 @@
           "source_id": "microsoft_vscode_packages",
           "package_identifier": "code",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "apt_package",
             "executable_names": [
+              "code"
+            ],
+            "package_identifiers": [
               "code"
             ]
           },
@@ -1445,7 +1464,7 @@
           "package_identifier": "ms-python.python",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "ms-python.python"
             ]
           },
@@ -1463,7 +1482,7 @@
           "package_identifier": "charliermarsh.ruff",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "charliermarsh.ruff"
             ]
           },
@@ -1481,7 +1500,7 @@
           "package_identifier": "hediet.vscode-drawio",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "hediet.vscode-drawio"
             ]
           },
@@ -1498,7 +1517,7 @@
           "package_identifier": "i2p-hub.i2p-pseudo",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "i2p-hub.i2p-pseudo"
             ]
           },
@@ -1515,7 +1534,7 @@
           "package_identifier": "streetsidesoftware.code-spell-checker",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "streetsidesoftware.code-spell-checker"
             ]
           },
@@ -1532,7 +1551,7 @@
           "package_identifier": "cweijan.vscode-office",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "cweijan.vscode-office"
             ]
           },
@@ -1544,46 +1563,47 @@
       "notes": "Codio Ubuntu 24.04 LTS with Xfce remains the reference course environment."
     },
     "ubuntu_gnome": {
-      "display_name": "Ubuntu Desktop with GNOME",
+      "display_name": "Ubuntu Desktop GNOME",
       "abbreviation": "ubg",
       "enabled": true,
       "reference_platform": false,
       "platform_adapter_id": "ubuntu_apt_gnome",
       "os": {
         "family": "linux",
-        "name": "Ubuntu",
-        "desktop_environment": "GNOME",
+        "distribution": "ubuntu",
+        "display_name": "Ubuntu",
         "releases": [
           {
             "release_id": "24.04",
-            "display_name": "Ubuntu 24.04 LTS (Noble Numbat)",
-            "security_updates_required": true
+            "display_name": "Ubuntu 24.04 LTS",
+            "support_end_date": "2029-04-30"
           }
         ],
         "architectures": [
           "x86_64"
-        ]
+        ],
+        "desktop_environment": "GNOME"
       },
       "script": {
-        "extension": ".sh",
-        "interpreter_adapter_id": "ubuntu_bash",
+        "file_extension": ".sh",
+        "shell_id": "ubuntu_bash",
         "line_ending": "lf",
-        "filename_template": "{action}_{platform}{extension}"
+        "filename_template": "{action}_ide.sh"
       },
       "package_manager": {
-        "display_name": "Advanced Package Tool",
+        "display_name": "APT",
         "adapter_id": "apt",
         "source_ids": [
           "ubuntu_archive",
           "github_cli_packages",
           "microsoft_vscode_packages"
         ],
-        "lock_scope": "system_package_manager"
+        "mutation_scope": "system"
       },
       "os_packages": {
         "ca_certificates": {
           "display_name": "CA Certificates",
-          "purpose": "Provide trusted certificate authorities for encrypted package and file downloads.",
+          "purpose": "Provide trusted certificate authorities for secure package and source retrieval.",
           "package_identifier": "ca-certificates",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1599,11 +1619,11 @@
           "architectures": [
             "x86_64"
           ],
-          "category": "security_support"
+          "category": "trust_support"
         },
         "curl": {
           "display_name": "curl",
-          "purpose": "Provide reliable encrypted downloads and network diagnostics for setup and update operations.",
+          "purpose": "Provide HTTPS retrieval for repositories and controlled assets.",
           "package_identifier": "curl",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1612,6 +1632,9 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "curl"
+            ],
             "package_identifiers": [
               "curl"
             ]
@@ -1619,11 +1642,11 @@
           "architectures": [
             "x86_64"
           ],
-          "category": "diagnostic_utility"
+          "category": "transport_support"
         },
         "gpg": {
           "display_name": "GNU Privacy Guard",
-          "purpose": "Verify signed package repositories and imported signing keys.",
+          "purpose": "Verify and manage trusted package-repository signing keys.",
           "package_identifier": "gpg",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1632,6 +1655,9 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "gpg"
+            ],
             "package_identifiers": [
               "gpg"
             ]
@@ -1639,11 +1665,11 @@
           "architectures": [
             "x86_64"
           ],
-          "category": "security_support"
+          "category": "repository_support"
         },
         "python_venv_support": {
           "display_name": "Python 3.12 Virtual Environment Support",
-          "purpose": "Provide the operating-system module required to create the course Python virtual environment.",
+          "purpose": "Provide the standard-library venv module for the course-managed Python environment.",
           "package_identifier": "python3.12-venv",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1663,7 +1689,7 @@
         },
         "xdg_utils": {
           "display_name": "XDG Utilities",
-          "purpose": "Provide standards-based desktop integration helpers for launchers and default applications.",
+          "purpose": "Provide desktop integration helpers for MIME and URL handling.",
           "package_identifier": "xdg-utils",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1672,6 +1698,10 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "xdg-open",
+              "xdg-mime"
+            ],
             "package_identifiers": [
               "xdg-utils"
             ]
@@ -1683,7 +1713,7 @@
         },
         "desktop_file_utils": {
           "display_name": "Desktop File Utilities",
-          "purpose": "Validate and refresh Linux desktop launcher definitions.",
+          "purpose": "Validate and maintain desktop launcher metadata.",
           "package_identifier": "desktop-file-utils",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1692,6 +1722,10 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "desktop-file-validate",
+              "update-desktop-database"
+            ],
             "package_identifiers": [
               "desktop-file-utils"
             ]
@@ -1703,7 +1737,7 @@
         },
         "libsecret": {
           "display_name": "Secret Service Library",
-          "purpose": "Allow approved clients to use the desktop credential store without placing secrets in the manifest or logs.",
+          "purpose": "Provide secure desktop credential storage integration.",
           "package_identifier": "libsecret-1-0",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1719,11 +1753,11 @@
           "architectures": [
             "x86_64"
           ],
-          "category": "runtime_support"
+          "category": "desktop_integration"
         },
         "tree": {
           "display_name": "tree",
-          "purpose": "Provide a simple directory-tree display for course support and diagnostics.",
+          "purpose": "Display course directory structures for setup and troubleshooting.",
           "package_identifier": "tree",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1732,6 +1766,9 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "tree"
+            ],
             "package_identifiers": [
               "tree"
             ]
@@ -1739,11 +1776,11 @@
           "architectures": [
             "x86_64"
           ],
-          "category": "diagnostic_utility"
+          "category": "diagnostic_support"
         },
         "xclip": {
           "display_name": "xclip",
-          "purpose": "Provide clipboard support for browser-based GitHub authentication.",
+          "purpose": "Provide X11 clipboard integration for browser-based and desktop authentication workflows.",
           "package_identifier": "xclip",
           "required": true,
           "source_id": "ubuntu_archive",
@@ -1752,6 +1789,9 @@
           },
           "verification": {
             "adapter_id": "apt_package",
+            "executable_names": [
+              "xclip"
+            ],
             "package_identifiers": [
               "xclip"
             ]
@@ -1771,8 +1811,11 @@
           "source_id": "ubuntu_archive",
           "package_identifier": "git",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "apt_package",
             "executable_names": [
+              "git"
+            ],
+            "package_identifiers": [
               "git"
             ]
           },
@@ -1788,8 +1831,11 @@
           "source_id": "github_cli_packages",
           "package_identifier": "gh",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "apt_package",
             "executable_names": [
+              "gh"
+            ],
+            "package_identifiers": [
               "gh"
             ]
           },
@@ -1806,15 +1852,14 @@
           "source_id": "ubuntu_archive",
           "package_identifier": "python3.12",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "apt_package",
             "executable_names": [
               "python3.12"
             ],
-            "version_rule": {
-              "comparison": "compatible_range",
-              "value": ">=3.12,<3.13",
-              "comparison_adapter_id": "pep440_version"
-            }
+            "package_identifiers": [
+              "python3.12"
+            ],
+            "version_adapter_id": "pep440_version"
           }
         },
         "test_runner": {
@@ -1860,8 +1905,11 @@
           "source_id": "microsoft_vscode_packages",
           "package_identifier": "code",
           "verification": {
-            "adapter_id": "executable_version",
+            "adapter_id": "apt_package",
             "executable_names": [
+              "code"
+            ],
+            "package_identifiers": [
               "code"
             ]
           },
@@ -1878,7 +1926,7 @@
           "package_identifier": "ms-python.python",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "ms-python.python"
             ]
           },
@@ -1896,7 +1944,7 @@
           "package_identifier": "charliermarsh.ruff",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "charliermarsh.ruff"
             ]
           },
@@ -1914,7 +1962,7 @@
           "package_identifier": "hediet.vscode-drawio",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "hediet.vscode-drawio"
             ]
           },
@@ -1931,7 +1979,7 @@
           "package_identifier": "i2p-hub.i2p-pseudo",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "i2p-hub.i2p-pseudo"
             ]
           },
@@ -1948,7 +1996,7 @@
           "package_identifier": "streetsidesoftware.code-spell-checker",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "streetsidesoftware.code-spell-checker"
             ]
           },
@@ -1965,7 +2013,7 @@
           "package_identifier": "cweijan.vscode-office",
           "verification": {
             "adapter_id": "vscode_extension",
-            "extension_identifiers": [
+            "package_identifiers": [
               "cweijan.vscode-office"
             ]
           },
@@ -1974,29 +2022,27 @@
           ]
         }
       },
-      "notes": "Ubuntu 24.04 LTS with APT and GNOME is the supported local Linux desktop profile on x86_64."
+      "notes": "Ubuntu 24.04 LTS with GNOME is a supported local Linux conformance environment."
     }
   },
   "deployment_profiles": {
     "codio_cvd": {
-      "display_name": "Codio Virtual Desktop",
+      "display_name": "Codio Virtual Desktop Course Environment",
       "enabled": true,
       "reference_profile": true,
       "platform_id": "cvd",
-      "deployment_kind": "hosted_virtual_desktop",
-      "provider_name": "Codio",
+      "deployment_kind": "cloud_virtual_desktop",
       "desktop_environment": "Xfce",
-      "session_type": "remote_desktop",
+      "session_type": "browser_remote_desktop",
       "os_release_id": "24.04",
       "architecture": "x86_64",
-      "profile_adapter_id": "codio_virtual_desktop",
-      "reset_method": "provider_reset",
-      "notes": "Primary environment for course documentation, screenshots, support reproduction, development, and release acceptance testing.",
+      "reset_method": "course_master_reset",
       "allowed_workflow_ids": [
         "cvd_provider_baseline_administrator",
         "cvd_course_master_student",
         "cvd_periodic_maintenance"
-      ]
+      ],
+      "notes": "Reference deployment profile for the provider baseline master and IT 140 course master workflows."
     },
     "windows_bare_metal": {
       "display_name": "Windows Bare-Metal Computer",
@@ -2007,28 +2053,26 @@
       "session_type": "local_desktop",
       "architecture": "x86_64",
       "reset_method": "fresh_os_install",
-      "notes": "Clean supported Windows 10 version 22H2 or manifest-listed Windows 11 installation used for platform conformance testing.",
       "allowed_workflow_ids": [
         "local_initial_install",
         "local_periodic_maintenance"
-      ]
+      ],
+      "notes": "Supported Windows 10 or Windows 11 computer outside S mode."
     },
     "windows_sandbox": {
       "display_name": "Windows Sandbox",
       "enabled": true,
       "reference_profile": false,
       "platform_id": "windows",
-      "deployment_kind": "other",
-      "provider_name": "Microsoft",
+      "deployment_kind": "ephemeral_virtual_machine",
       "session_type": "local_desktop",
       "architecture": "x86_64",
-      "profile_adapter_id": "windows_sandbox",
-      "reset_method": "image_reset",
-      "notes": "Ephemeral Windows Sandbox environment used for clean setup, verification, and support reproduction.",
+      "reset_method": "close_and_reopen",
       "allowed_workflow_ids": [
         "local_initial_install",
         "local_periodic_maintenance"
-      ]
+      ],
+      "notes": "Faculty and development test profile; not a student production environment."
     },
     "macos_bare_metal": {
       "display_name": "macOS Apple Silicon Bare-Metal Computer",
@@ -2039,11 +2083,11 @@
       "session_type": "local_desktop",
       "architecture": "arm64",
       "reset_method": "fresh_os_install",
-      "notes": "Clean supported macOS installation on Apple silicon used for platform conformance testing.",
       "allowed_workflow_ids": [
         "local_initial_install",
         "local_periodic_maintenance"
-      ]
+      ],
+      "notes": "Clean supported macOS installation on Apple silicon used for platform conformance testing."
     },
     "ubuntu_gnome_bare_metal": {
       "display_name": "Ubuntu GNOME Bare-Metal Computer",
@@ -2056,11 +2100,11 @@
       "os_release_id": "24.04",
       "architecture": "x86_64",
       "reset_method": "fresh_os_install",
-      "notes": "Clean Ubuntu 24.04 LTS installation with APT and GNOME used for platform conformance testing.",
       "allowed_workflow_ids": [
         "local_initial_install",
         "local_periodic_maintenance"
-      ]
+      ],
+      "notes": "Clean Ubuntu 24.04 LTS installation with APT and GNOME used for platform conformance testing."
     }
   },
   "lifecycle_workflows": {
@@ -2072,23 +2116,28 @@
         "macos_bare_metal",
         "ubuntu_gnome_bare_metal"
       ],
-      "operating_roles": [
-        "local_user"
-      ],
-      "starting_state_id": "local_unmanaged_environment",
-      "ordered_actions": [
-        "prepare",
-        "install",
-        "configure",
-        "verify"
+      "operating_role": "student_or_faculty",
+      "starting_state": "supported_local_operating_system",
+      "actions": [
+        {
+          "action_id": "prepare"
+        },
+        {
+          "action_id": "install"
+        },
+        {
+          "action_id": "configure"
+        },
+        {
+          "action_id": "verify"
+        }
       ],
       "success_transitions": {
         "prepare": "install",
         "install": "configure",
         "configure": "verify",
         "verify": "complete"
-      },
-      "notes": "Default first-use workflow for supported local and local test deployments."
+      }
     },
     "local_periodic_maintenance": {
       "display_name": "Local Periodic Maintenance",
@@ -2098,91 +2147,104 @@
         "macos_bare_metal",
         "ubuntu_gnome_bare_metal"
       ],
-      "operating_roles": [
-        "local_user"
+      "operating_role": "student_or_faculty",
+      "starting_state": "configured_course_environment",
+      "actions": [
+        {
+          "action_id": "update",
+          "mode": "periodic_maintenance"
+        },
+        {
+          "action_id": "verify"
+        }
       ],
-      "starting_state_id": "initialized_environment",
-      "ordered_actions": [
-        "update",
-        "verify"
-      ],
-      "update_mode": "periodic_maintenance",
       "success_transitions": {
         "update": "verify",
         "verify": "complete"
-      },
-      "notes": "Maintains an already initialized local environment; Verify follows Update when indicated."
+      }
     },
     "cvd_provider_baseline_administrator": {
       "display_name": "CVD Provider Baseline Administrator Initialization",
       "deployment_profile_ids": [
         "codio_cvd"
       ],
-      "operating_roles": [
-        "cvd_administrator"
+      "operating_role": "provider_baseline_administrator",
+      "starting_state": "provider_baseline_master",
+      "actions": [
+        {
+          "action_id": "prepare"
+        },
+        {
+          "action_id": "update",
+          "mode": "initial_baseline"
+        },
+        {
+          "action_id": "install"
+        },
+        {
+          "action_id": "configure"
+        },
+        {
+          "action_id": "verify"
+        }
       ],
-      "starting_state_id": "provider_baseline_master",
-      "ordered_actions": [
-        "prepare",
-        "update",
-        "install",
-        "configure",
-        "verify"
-      ],
-      "update_mode": "initial_provider_baseline",
       "success_transitions": {
         "prepare": "update",
         "update": "install",
         "install": "configure",
         "configure": "verify",
         "verify": "complete"
-      },
-      "notes": "Authorized administrator or SME workflow for converting a clean Codio provider image into a verified IT 140 course master."
+      }
     },
     "cvd_course_master_student": {
-      "display_name": "CVD Course Master Student Initialization",
+      "display_name": "CVD IT 140 Course Master Student Initialization",
       "deployment_profile_ids": [
         "codio_cvd"
       ],
-      "operating_roles": [
-        "cvd_student"
+      "operating_role": "student",
+      "starting_state": "it140_course_master",
+      "actions": [
+        {
+          "action_id": "prepare"
+        },
+        {
+          "action_id": "update",
+          "mode": "initial_course_master"
+        },
+        {
+          "action_id": "configure"
+        },
+        {
+          "action_id": "verify"
+        }
       ],
-      "starting_state_id": "it140_course_master",
-      "ordered_actions": [
-        "prepare",
-        "update",
-        "configure",
-        "verify"
-      ],
-      "update_mode": "initial_course_master",
       "success_transitions": {
         "prepare": "update",
         "update": "configure",
         "configure": "verify",
         "verify": "complete"
-      },
-      "notes": "Student and faculty course-user workflow for an IT 140 course master on which administrator-owned installation is already complete."
+      }
     },
     "cvd_periodic_maintenance": {
       "display_name": "CVD Periodic Maintenance",
       "deployment_profile_ids": [
         "codio_cvd"
       ],
-      "operating_roles": [
-        "cvd_administrator",
-        "cvd_student"
+      "operating_role": "student_or_administrator",
+      "starting_state": "configured_course_environment",
+      "actions": [
+        {
+          "action_id": "update",
+          "mode": "periodic_maintenance"
+        },
+        {
+          "action_id": "verify"
+        }
       ],
-      "starting_state_id": "initialized_environment",
-      "ordered_actions": [
-        "update",
-        "verify"
-      ],
-      "update_mode": "periodic_maintenance",
       "success_transitions": {
         "update": "verify",
         "verify": "complete"
-      },
-      "notes": "Maintains an initialized Codio environment; Verify follows Update when indicated."
+      }
     }
   },
   "managed_settings": {
@@ -2194,6 +2256,7 @@
       "platform_ids": [
         "windows",
         "macos",
+        "cvd",
         "ubuntu_gnome"
       ],
       "merge_policy": "replace_managed_keys",
@@ -2213,6 +2276,7 @@
       "platform_ids": [
         "windows",
         "macos",
+        "cvd",
         "ubuntu_gnome"
       ],
       "merge_policy": "merge_preserve_unmanaged",
@@ -2305,5 +2369,5 @@
       ]
     }
   },
-  "automation_release_date_time_group": "2026-08-01-10-43"
+  "automation_release_date_time_group": "2026-08-05-11-39"
 }

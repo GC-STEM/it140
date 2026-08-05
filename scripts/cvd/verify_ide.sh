@@ -3,8 +3,8 @@
 # IT 140 Codio Virtual Desktop read-only verification script
 #
 # Artifact ID: IT140-CVD-VERIFY
-# Artifact version: 0.7.2-alpha.1
-# Version date-time group: 2026-08-04-15-26
+# Artifact version: 0.7.3-alpha.1
+# Version date-time group: 2026-08-05-11-39
 # Development status: Alpha Testing
 #
 # Traceability: VER-FR-001 through VER-FR-014; PKG-FR-021;
@@ -14,9 +14,8 @@
 #        requested sanitized support bundle.
 set -Eeuo pipefail
 umask 077
-
-readonly SCRIPT_VERSION="0.7.2-alpha.1"
-readonly VERSION_DTG="2026-08-04-15-26"
+readonly SCRIPT_VERSION="0.7.3-alpha.1"
+readonly VERSION_DTG="2026-08-05-11-39"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"
@@ -29,10 +28,11 @@ readonly LOG_DIR="${COURSE_ROOT}/logs"
 readonly LOG_FILE="${LOG_DIR}/verify_cvd_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="${COURSE_ROOT}/.venv"
 readonly NUMLOCK_AUTOSTART_PATH="/etc/xdg/autostart/numlockx.desktop"
+readonly EMOJI_PACKAGE="fonts-noto-color-emoji"
+readonly EMOJI_FAMILY="Noto Color Emoji"
 readonly MANAGED_PATH_START="# >>> IT 140 managed PATH >>>"
 readonly MANAGED_PATH_END="# <<< IT 140 managed PATH <<<"
 readonly MANAGED_PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/cvd:$PATH"'
-
 readonly EXIT_SUCCESS=0
 readonly EXIT_FAILURE=1
 readonly EXIT_UNSUPPORTED=2
@@ -41,7 +41,6 @@ readonly EXIT_EXTERNAL=4
 readonly EXIT_MANIFEST=5
 readonly EXIT_CANCELED=6
 readonly EXIT_PARTIAL=7
-
 NONINTERACTIVE=false
 SUPPORT_BUNDLE=false
 CONFIRM_SUPPORT_BUNDLE=false
@@ -63,7 +62,6 @@ FINALIZED=false
 
 RESULT_LINES=()
 REMEDIATION_LINES=()
-
 print_header() {
     printf '\n============================================================\n'
     printf '%s\n' "$1"
@@ -73,7 +71,6 @@ print_info() { printf '[INFO] %s\n' "$1"; }
 print_success() { printf '[SUCCESS] %s\n' "$1"; }
 print_notice() { printf '[NOTICE] %s\n' "$1"; }
 print_error() { printf '[ERROR] %s\n' "$1" >&2; }
-
 usage() {
     cat <<USAGE
 Usage: verify_ide.sh [--help] [--version] [--noninteractive]
@@ -82,7 +79,6 @@ Usage: verify_ide.sh [--help] [--version] [--noninteractive]
 
 Checks the IT 140 Codio Virtual Desktop without installing, updating, removing,
 or repairing managed software and settings.
-
 --support-bundle  Offer to create a sanitized diagnostic bundle.
 --yes             Approve support-bundle creation without an additional prompt.
 --skip-network    Record the optional network-service check as not applicable.
@@ -96,7 +92,6 @@ Exit codes:
 Logs: ~/it140/logs/
 USAGE
 }
-
 parse_options() {
     while (($#)); do
         case "$1" in
@@ -137,7 +132,6 @@ parse_options() {
         shift
     done
 }
-
 cleanup() {
     if [[ -n "${SUPPORT_STAGING:-}" && -d "$SUPPORT_STAGING" ]]; then
         rm -rf -- "$SUPPORT_STAGING"
@@ -154,14 +148,12 @@ add_remediation() {
     done
     REMEDIATION_LINES+=("$remediation")
 }
-
 record_result() {
     local status="$1"
     local check_id="$2"
     local message="$3"
     local remediation="${4:-}"
     local label
-
     case "$status" in
         pass)
             label="PASS"
@@ -188,7 +180,6 @@ record_result() {
     printf '[%s] [%s] %s\n' "$label" "$check_id" "$message"
     RESULT_LINES+=("${label}|${check_id}|${message}")
 }
-
 validate_manifest() {
     python3 - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" \
         "$REQUESTED_PROFILE" "$SUPPORTED_SCHEMA" <<'PY'
@@ -220,7 +211,6 @@ try:
     )
 except (OSError, UnicodeError, json.JSONDecodeError, DuplicateKeyError) as exc:
     raise SystemExit(f"controlled JSON validation failed: {exc}")
-
 required = {
     "schema_version", "automation_release", "automation_release_date_time_group", "course",
     "control", "policy", "capabilities", "products", "software_sources", "provider_profiles",
@@ -239,7 +229,6 @@ if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
     raise SystemExit("schema is not the approved Draft 2020-12 format")
 if manifest.get("policy", {}).get("allow_os_release_upgrade") is not False:
     raise SystemExit("manifest attempts to allow an operating-system release upgrade")
-
 platform = manifest["platforms"].get(platform_id)
 profile = manifest["deployment_profiles"].get(profile_id)
 if not platform or not platform.get("enabled"):
@@ -251,17 +240,20 @@ if "github_com" not in manifest["provider_profiles"]:
 workflow = manifest["lifecycle_workflows"].get("cvd_course_master_student")
 if not workflow or workflow.get("success_transitions", {}).get("verify") != "complete":
     raise SystemExit("CVD student workflow does not terminate after Verify")
-
-required_packages = {"xclip", "numlockx"}
+required_packages = {
+    "fonts_noto_color_emoji": "fonts-noto-color-emoji",
+    "numlockx": "numlockx",
+    "xclip": "xclip",
+}
 os_packages = platform.get("os_packages", {})
-missing_packages = sorted(required_packages - os_packages.keys())
+missing_packages = sorted(set(required_packages) - os_packages.keys())
 if missing_packages:
     raise SystemExit("CVD manifest is missing required packages: " + ", ".join(missing_packages))
-for package_id in sorted(required_packages):
+for package_id, package_identifier in sorted(required_packages.items()):
     package = os_packages[package_id]
-    if not package.get("required") or package.get("package_identifier") != package_id:
+    if (not package.get("required") or
+            package.get("package_identifier") != package_identifier):
         raise SystemExit(f"CVD package definition is invalid: {package_id}")
-
 try:
     import jsonschema  # type: ignore
 except ImportError:
@@ -278,7 +270,6 @@ version_dtg = (
 print(f"{manifest['automation_release']}\t{version_dtg}")
 PY
 }
-
 manifest_query() {
     local query="$1"
     python3 - "$MANIFEST_PATH" "$PLATFORM_ID" "$query" <<'PY'
@@ -290,7 +281,6 @@ with open(path, encoding="utf-8") as stream:
     manifest = json.load(stream)
 platform = manifest["platforms"][platform_id]
 bindings = platform["course_ide_bindings"]
-
 if query == "os_packages":
     values = []
     for package in platform.get("os_packages", {}).values():
@@ -342,7 +332,6 @@ else:
     raise SystemExit(f"unsupported manifest query: {query}")
 PY
 }
-
 has_managed_path_block() {
     local file="$1"
     [[ -r "$file" ]] || return 1
@@ -350,7 +339,6 @@ has_managed_path_block() {
         && grep -Fqx "$MANAGED_PATH_EXPORT" "$file" \
         && grep -Fqx "$MANAGED_PATH_END" "$file"
 }
-
 has_valid_vscode_settings() {
     local settings_file="$HOME/.config/Code/User/settings.json"
     local settings_json
@@ -363,7 +351,6 @@ has_valid_vscode_settings() {
 import json
 import os
 from pathlib import Path
-
 try:
     actual = json.loads(Path(os.environ["IT140_SETTINGS_FILE"]).read_text(encoding="utf-8"))
     expected = json.loads(os.environ["IT140_SETTINGS_JSON"])
@@ -372,7 +359,6 @@ except (OSError, UnicodeError, json.JSONDecodeError):
 if not isinstance(actual, dict):
     raise SystemExit(1)
 expected["python.defaultInterpreterPath"] = os.environ["IT140_VENV_PYTHON"]
-
 def contains(current, desired):
     if isinstance(desired, dict):
         return isinstance(current, dict) and all(
@@ -389,7 +375,6 @@ PY
 desktop_directory() {
     xdg-user-dir DESKTOP 2>/dev/null || printf '%s/Desktop\n' "$HOME"
 }
-
 list_vscode_launchers() {
     local desktop_dir candidate
     desktop_dir="$(desktop_directory)"
@@ -400,7 +385,6 @@ list_vscode_launchers() {
         fi
     done < <(find "$desktop_dir" -maxdepth 1 -type f -name '*.desktop' -print0)
 }
-
 find_vscode_launcher() {
     local desktop_dir candidate
     desktop_dir="$(desktop_directory)"
@@ -413,7 +397,6 @@ find_vscode_launcher() {
     done
     list_vscode_launchers | head -n 1
 }
-
 launcher_opens_course_root() {
     local launcher="$1"
     python3 - "$launcher" "$COURSE_ROOT" <<'PY'
@@ -427,7 +410,6 @@ try:
     lines = path.read_text(encoding="utf-8").splitlines()
 except (OSError, UnicodeError):
     raise SystemExit(1)
-
 in_desktop = False
 exec_value = None
 for line in lines:
@@ -451,7 +433,6 @@ if course_root not in args:
     raise SystemExit(1)
 PY
 }
-
 check_platform() {
     if [[ "$EUID" -eq 0 ]]; then
         UNSUPPORTED_FAILURE=true
@@ -497,7 +478,6 @@ check_platform() {
     print_info "Architecture    : $architecture"
     record_result pass "VER-PLATFORM-001" "Ubuntu 24.04 x86_64 CVD execution context is supported."
 }
-
 check_manifest() {
     local info
     if ! info="$(validate_manifest 2>&1)"; then
@@ -512,7 +492,6 @@ check_manifest() {
     record_result pass "VER-MANIFEST-001" \
         "Manifest release $MANIFEST_RELEASE using schema $SUPPORTED_SCHEMA is valid."
 }
-
 check_disk_space() {
     local minimum available
     minimum="$(manifest_query minimum_space)"
@@ -525,7 +504,6 @@ check_disk_space() {
             "Remove unneeded files, then rerun verify_ide.sh."
     fi
 }
-
 check_system_packages() {
     local package role package_identifier executable_names executable found
     local -a packages=()
@@ -541,7 +519,6 @@ check_system_packages() {
                 "Run update_ide.sh, then rerun verify_ide.sh."
         fi
     done
-
     while IFS=$'\t' read -r role package_identifier executable_names; do
         [[ -n "$role" ]] || continue
         found=false
@@ -562,7 +539,43 @@ check_system_packages() {
         fi
     done < <(manifest_query system_bindings)
 }
+check_emoji_font() {
+    local family font_file remediation
+    remediation="Run update_ide.sh, close and reopen Visual Studio Code, then rerun verify_ide.sh."
 
+    if ! command -v fc-match >/dev/null 2>&1; then
+        record_result fail "VER-CVD-EMOJI-MATCH-001" \
+            "The fontconfig matching command is unavailable: fc-match." \
+            "$remediation"
+    else
+        family="$(fc-match -f '%{family}\n' emoji 2>/dev/null || true)"
+        if [[ "$family" == *"$EMOJI_FAMILY"* ]]; then
+            record_result pass "VER-CVD-EMOJI-MATCH-001" \
+                "fc-match emoji resolves to $EMOJI_FAMILY."
+        else
+            record_result fail "VER-CVD-EMOJI-MATCH-001" \
+                "fc-match emoji does not resolve to $EMOJI_FAMILY; resolved family: ${family:-unavailable}." \
+                "$remediation"
+        fi
+    fi
+
+    if ! command -v fc-list >/dev/null 2>&1; then
+        record_result fail "VER-CVD-EMOJI-FILE-001" \
+            "The fontconfig listing command is unavailable: fc-list." \
+            "$remediation"
+    else
+        font_file="$(fc-list : family file 2>/dev/null \
+            | awk -F: -v family="$EMOJI_FAMILY" 'index($0, family) {print $1; exit}' || true)"
+        if [[ -n "$font_file" && -r "$font_file" ]]; then
+            record_result pass "VER-CVD-EMOJI-FILE-001" \
+                "$EMOJI_FAMILY is discoverable through fontconfig: $font_file."
+        else
+            record_result fail "VER-CVD-EMOJI-FILE-001" \
+                "$EMOJI_FAMILY is not discoverable through fontconfig." \
+                "$remediation"
+        fi
+    fi
+}
 check_python_environment() {
     local package
     local -a packages=()
@@ -583,7 +596,6 @@ PY
             "The course virtual environment does not use Python 3.12." \
             "Run configure_ide.sh, then rerun verify_ide.sh."
     fi
-
     mapfile -t packages < <(manifest_query venv_packages)
     for package in "${packages[@]}"; do
         if "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1; then
@@ -596,7 +608,6 @@ PY
         fi
     done
 }
-
 check_vscode_extensions() {
     local role extension installed_extensions
     if ! command -v code >/dev/null 2>&1; then
@@ -618,7 +629,6 @@ check_vscode_extensions() {
         fi
     done < <(manifest_query extensions)
 }
-
 check_provider_and_git() {
     local key expected actual email
     if gh auth status --hostname github.com >/dev/null 2>&1; then
@@ -628,7 +638,6 @@ check_provider_and_git() {
             "GitHub CLI is not authenticated." \
             "Run configure_ide.sh and complete the browser authentication step."
     fi
-
     if [[ -n "$(git config --global --get user.name 2>/dev/null || true)" ]]; then
         record_result pass "VER-GIT-IDENTITY-001" "Git commit display name is configured."
     else
@@ -636,7 +645,6 @@ check_provider_and_git() {
             "Git commit display name is not configured." \
             "Run configure_ide.sh, then rerun verify_ide.sh."
     fi
-
     email="$(git config --global --get user.email 2>/dev/null || true)"
     if [[ "$email" == *@users.noreply.github.com ]]; then
         record_result pass "VER-GIT-IDENTITY-002" \
@@ -646,7 +654,6 @@ check_provider_and_git() {
             "Git does not use the approved private provider email format." \
             "Run configure_ide.sh, then rerun verify_ide.sh."
     fi
-
     while IFS=$'\t' read -r key expected; do
         [[ -n "$key" ]] || continue
         actual="$(git config --global --get "$key" 2>/dev/null || true)"
@@ -660,7 +667,6 @@ check_provider_and_git() {
         fi
     done < <(manifest_query git_settings)
 }
-
 check_paths_and_settings() {
     if has_managed_path_block "$HOME/.bashrc"; then
         record_result pass "VER-PATH-001" "The managed PATH block is present in ~/.bashrc."
@@ -669,7 +675,6 @@ check_paths_and_settings() {
             "The managed PATH block is missing or incorrect in ~/.bashrc." \
             "Run configure_ide.sh, then open a fresh Terminal."
     fi
-
     if has_managed_path_block "$HOME/.profile"; then
         record_result pass "VER-PATH-002" "The managed PATH block is present in ~/.profile."
     else
@@ -677,7 +682,6 @@ check_paths_and_settings() {
             "The managed PATH block is missing or incorrect in ~/.profile." \
             "Run configure_ide.sh, then open a fresh Terminal."
     fi
-
     if has_valid_vscode_settings; then
         record_result pass "VER-VSCODE-SETTINGS-001" \
             "Required VS Code settings are present without requiring unrelated settings to match."
@@ -687,7 +691,6 @@ check_paths_and_settings() {
             "Run configure_ide.sh, then rerun verify_ide.sh."
     fi
 }
-
 check_numlock_integration() {
     if command -v xclip >/dev/null 2>&1; then
         record_result pass "VER-CVD-XCLIP-001" "The CVD clipboard command is available: xclip."
@@ -696,7 +699,6 @@ check_numlock_integration() {
             "The required CVD clipboard command is unavailable: xclip." \
             "Run update_ide.sh, then rerun verify_ide.sh."
     fi
-
     if command -v numlockx >/dev/null 2>&1; then
         record_result pass "VER-CVD-NUMLOCK-001" "The CVD Num Lock command is available: numlockx."
     else
@@ -704,7 +706,6 @@ check_numlock_integration() {
             "The required CVD Num Lock command is unavailable: numlockx." \
             "Run update_ide.sh, then rerun verify_ide.sh."
     fi
-
     if [[ ! -r "$NUMLOCK_AUTOSTART_PATH" ]]; then
         record_result fail "VER-CVD-NUMLOCK-STARTUP-001" \
             "The Xfce Num Lock desktop-startup entry is missing." \
@@ -733,12 +734,10 @@ check_numlock_integration() {
     record_result pass "VER-CVD-NUMLOCK-STARTUP-001" \
         "Num Lock is configured to turn on when the CVD Xfce desktop session starts."
 }
-
 check_desktop_integrations() {
     local launcher launcher_count
 
     check_numlock_integration
-
     launcher="$(find_vscode_launcher 2>/dev/null || true)"
     if [[ -z "$launcher" ]]; then
         record_result fail "VER-LAUNCHER-001" \
@@ -761,7 +760,6 @@ check_desktop_integrations() {
         record_result pass "VER-LAUNCHER-001" \
             "The existing Visual Studio Code launcher opens $COURSE_ROOT."
     fi
-
     launcher_count="$(list_vscode_launchers | sed '/^$/d' | wc -l | tr -d ' ')"
     if ((launcher_count > 1)); then
         record_result warning "VER-LAUNCHER-002" \
@@ -771,7 +769,6 @@ check_desktop_integrations() {
             "No duplicate Visual Studio Code desktop launcher was detected."
     fi
 }
-
 check_restart_state() {
     if [[ -e /var/run/reboot-required ]]; then
         record_result fail "VER-RESTART-001" \
@@ -781,7 +778,6 @@ check_restart_state() {
         record_result pass "VER-RESTART-001" "No pending Ubuntu restart is reported."
     fi
 }
-
 check_network_service() {
     if [[ "$SKIP_NETWORK" == true ]]; then
         record_result not_applicable "VER-NETWORK-001" \
@@ -800,7 +796,6 @@ check_network_service() {
             "GitHub could not be reached during the bounded optional check."
     fi
 }
-
 check_log_directory() {
     local probe
     probe="$LOG_DIR/.verify-write-test.$$"
@@ -813,7 +808,6 @@ check_log_directory() {
             "Repair ownership and permissions for ~/it140/logs, then rerun Verify."
     fi
 }
-
 sanitize_log() {
     local source="$1"
     local destination="$2"
@@ -826,7 +820,6 @@ sanitize_log() {
 maybe_create_support_bundle() {
     [[ "$SUPPORT_BUNDLE" == true ]] || return 0
     local approved=false response bundle_name report_file facts_file
-
     if [[ "$CONFIRM_SUPPORT_BUNDLE" == true ]]; then
         approved=true
     elif [[ "$NONINTERACTIVE" == true ]]; then
@@ -838,7 +831,6 @@ maybe_create_support_bundle() {
         IFS= read -r response
         [[ "${response,,}" == y || "${response,,}" == yes ]] && approved=true
     fi
-
     [[ "$approved" == true ]] || {
         print_notice "Support-bundle creation was canceled."
         return 0
@@ -849,7 +841,6 @@ maybe_create_support_bundle() {
     sanitize_log "$LOG_FILE" "$SUPPORT_STAGING/verify_ide_sanitized.log"
     report_file="$SUPPORT_STAGING/verification_summary.txt"
     facts_file="$SUPPORT_STAGING/platform_facts.txt"
-
     {
         printf 'IT 140 CVD verification support summary\n'
         printf 'Script version: %s\n' "$SCRIPT_VERSION"
@@ -865,7 +856,6 @@ maybe_create_support_bundle() {
             grep -E '^(ID|VERSION_ID|PRETTY_NAME)=' /etc/os-release
         fi
     } > "$facts_file"
-
     bundle_name="it140_cvd_support_$(date +%Y%m%d_%H%M%S).tar.gz"
     SUPPORT_BUNDLE_PATH="$LOG_DIR/$bundle_name"
     tar -czf "$SUPPORT_BUNDLE_PATH" -C "$SUPPORT_STAGING" .
@@ -877,7 +867,6 @@ finish() {
     local exit_code result elapsed
     [[ "$FINALIZED" == false ]] || return 0
     FINALIZED=true
-
     if [[ "$MANIFEST_FAILURE" == true ]]; then
         exit_code="$EXIT_MANIFEST"
     elif [[ "$UNSUPPORTED_FAILURE" == true ]]; then
@@ -887,7 +876,6 @@ finish() {
     else
         exit_code="$EXIT_SUCCESS"
     fi
-
     ((exit_code == 0)) && result="COMPLIANT" || result="NOT COMPLIANT"
     elapsed=$(( $(date +%s) - START_EPOCH ))
     print_header "VERIFICATION SUMMARY"
@@ -906,7 +894,6 @@ finish() {
     printf 'Log file        : %s\n' "$LOG_FILE"
     [[ -n "$SUPPORT_BUNDLE_PATH" ]] && printf 'Support bundle  : %s\n' "$SUPPORT_BUNDLE_PATH"
     printf 'Exit code       : %s\n' "$exit_code"
-
     if ((${#REMEDIATION_LINES[@]} > 0)); then
         printf '\nRemediation:\n'
         local remediation
@@ -914,7 +901,6 @@ finish() {
             printf '  - %s\n' "$remediation"
         done
     fi
-
     if ((exit_code == 0)); then
         print_notice "No required remediation is needed."
     else
@@ -925,7 +911,6 @@ finish() {
     cleanup
     return "$exit_code"
 }
-
 on_error() {
     local status=$?
     local line=${BASH_LINENO[0]:-unknown}
@@ -936,7 +921,6 @@ on_error() {
     finish
     exit $?
 }
-
 on_interrupt() {
     trap - INT TERM
     record_result fail "VER-INTERRUPT-001" \
@@ -957,7 +941,6 @@ main() {
     trap on_error ERR
     trap on_interrupt INT TERM
     trap cleanup EXIT
-
     print_header "IT 140 CODIO VIRTUAL DESKTOP VERIFY"
     print_info "Script version : $SCRIPT_VERSION"
     print_info "Version DTG    : $VERSION_DTG"
@@ -965,7 +948,6 @@ main() {
     print_info "Current user   : $(id -un)"
     print_info "Purpose        : Inspect the system and user course environment without repairing it."
     print_info "Log file       : $LOG_FILE"
-
     if ! check_platform; then
         maybe_create_support_bundle
         trap - ERR INT TERM
@@ -978,9 +960,9 @@ main() {
         finish
         exit $?
     fi
-
     check_disk_space
     check_system_packages
+    check_emoji_font
     check_python_environment
     check_vscode_extensions
     check_provider_and_git

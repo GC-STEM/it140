@@ -3,8 +3,8 @@
 # IT 140 Codio Virtual Desktop managed update and repair script
 #
 # Artifact ID: IT140-CVD-UPDATE
-# Artifact version: 0.7.2-alpha.1
-# Version date-time group: 2026-08-04-15-26
+# Artifact version: 0.7.3-alpha.1
+# Version date-time group: 2026-08-05-11-39
 # Development status: Alpha Testing
 #
 # Traceability: UPD-FR-001 through UPD-FR-016; PKG-FR-021;
@@ -15,9 +15,8 @@
 #        Ubuntu to a new release and never modifies coursework or repositories.
 set -Eeuo pipefail
 umask 077
-
-readonly SCRIPT_VERSION="0.7.2-alpha.1"
-readonly VERSION_DTG="2026-08-04-15-26"
+readonly SCRIPT_VERSION="0.7.3-alpha.1"
+readonly VERSION_DTG="2026-08-05-11-39"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"
@@ -33,10 +32,11 @@ readonly VENV_DIR="${COURSE_ROOT}/.venv"
 readonly LOCK_FILE="${HOME}/.cache/it140-${PLATFORM_ID}-mutation.lock"
 readonly ARCHIVE_URL="https://github.com/GC-STEM/it140/archive/refs/heads/main.tar.gz"
 readonly NUMLOCK_AUTOSTART_PATH="/etc/xdg/autostart/numlockx.desktop"
+readonly EMOJI_PACKAGE="fonts-noto-color-emoji"
+readonly EMOJI_FAMILY="Noto Color Emoji"
 readonly MANAGED_PATH_START="# >>> IT 140 managed PATH >>>"
 readonly MANAGED_PATH_END="# <<< IT 140 managed PATH <<<"
 readonly MANAGED_PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/cvd:$PATH"'
-
 readonly EXIT_SUCCESS=0
 readonly EXIT_FAILURE=1
 readonly EXIT_UNSUPPORTED=2
@@ -45,7 +45,6 @@ readonly EXIT_EXTERNAL=4
 readonly EXIT_MANIFEST=5
 readonly EXIT_CANCELED=6
 readonly EXIT_PARTIAL=7
-
 NONINTERACTIVE=false
 REQUESTED_PROFILE="$DEPLOYMENT_PROFILE_ID"
 CHANGED=false
@@ -61,7 +60,6 @@ STAGING_ROOT=""
 MANIFEST_RELEASE="unavailable"
 MANIFEST_DTG="unavailable"
 FINALIZED=false
-
 print_header() {
     printf '\n============================================================\n'
     printf '%s\n' "$1"
@@ -72,7 +70,6 @@ print_success() { printf '[SUCCESS] %s\n' "$1"; }
 print_notice() { printf '[NOTICE] %s\n' "$1"; }
 print_warning() { printf '[WARNING] %s\n' "$1"; WARNINGS=$((WARNINGS + 1)); }
 print_error() { printf '[ERROR] %s\n' "$1" >&2; }
-
 usage() {
     cat <<USAGE
 Usage: update_ide.sh [--help] [--version] [--noninteractive]
@@ -81,7 +78,6 @@ Usage: update_ide.sh [--help] [--version] [--noninteractive]
 Maintains the approved IT 140 Codio Virtual Desktop on Ubuntu 24.04. Run as
 its standard desktop user, not with sudo. A successful update may require a
 CVD restart before another lifecycle script is run.
-
 Exit codes:
   0  Completed successfully
   1  Required operation failed
@@ -95,7 +91,6 @@ Exit codes:
 Logs: ~/it140/logs/
 USAGE
 }
-
 parse_options() {
     while (($#)); do
         case "$1" in
@@ -127,14 +122,12 @@ parse_options() {
         shift
     done
 }
-
 cleanup() {
     if [[ -n "${STAGING_ROOT:-}" && -d "$STAGING_ROOT" ]]; then
         rm -rf -- "$STAGING_ROOT"
     fi
     STAGING_ROOT=""
 }
-
 resolve_failure_code() {
     local requested="$1"
     case "$requested" in
@@ -149,12 +142,10 @@ resolve_failure_code() {
             ;;
     esac
 }
-
 course_continuity_guidance() {
     print_notice "This issue affects the Codio Virtual Desktop (CVD)."
     print_notice "Follow the remediation above. If it continues, contact course support and include the log file."
 }
-
 summary_guidance() {
     local exit_code="$1"
     if [[ "$RESTART_REQUIRED" == true ]]; then
@@ -167,7 +158,6 @@ summary_guidance() {
         printf 'Open a fresh Terminal and run configure_ide.sh.'
     fi
 }
-
 finish() {
     local requested_code="${1:-0}"
     local message="${2:-}"
@@ -185,7 +175,6 @@ finish() {
     else
         exit_code="$(resolve_failure_code "$requested_code")"
     fi
-
     if ((exit_code == 0)); then
         result="PASS"
     elif ((exit_code == EXIT_PARTIAL)); then
@@ -193,7 +182,6 @@ finish() {
     else
         result="FAIL"
     fi
-
     elapsed=$(( $(date +%s) - START_EPOCH ))
     next_step="$(summary_guidance "$exit_code")"
     print_header "UPDATE SUMMARY"
@@ -213,7 +201,6 @@ finish() {
     printf 'Log file        : %s\n' "$LOG_FILE"
     printf 'Exit code       : %s\n' "$exit_code"
     printf 'Next step       : %s\n' "$next_step"
-
     if ((exit_code == 0)); then
         print_success "The IT 140 CVD update completed successfully."
     else
@@ -232,7 +219,6 @@ fatal() {
     finish "$requested_code" "$*"
     exit $?
 }
-
 on_error() {
     local status=$?
     local line=${BASH_LINENO[0]:-unknown}
@@ -249,7 +235,6 @@ on_interrupt() {
     finish "$EXIT_CANCELED" "Update was interrupted; rerun it to recover."
     exit $?
 }
-
 validate_manifest_pair() {
     local manifest="$1"
     local schema="$2"
@@ -282,7 +267,6 @@ try:
     )
 except (OSError, UnicodeError, json.JSONDecodeError, DuplicateKeyError) as exc:
     raise SystemExit(f"controlled JSON validation failed: {exc}")
-
 required = {
     "schema_version", "automation_release", "automation_release_date_time_group", "course",
     "control", "policy", "capabilities", "products", "software_sources", "platforms",
@@ -301,14 +285,12 @@ if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
     raise SystemExit("schema is not the approved Draft 2020-12 format")
 if manifest.get("policy", {}).get("allow_os_release_upgrade") is not False:
     raise SystemExit("manifest attempts to allow an operating-system release upgrade")
-
 platform = manifest["platforms"].get(platform_id)
 profile = manifest["deployment_profiles"].get(profile_id)
 if not platform or not platform.get("enabled"):
     raise SystemExit("CVD platform is missing or disabled")
 if not profile or not profile.get("enabled") or profile.get("platform_id") != platform_id:
     raise SystemExit("CVD deployment profile is invalid")
-
 required_workflows = {
     "cvd_provider_baseline_administrator",
     "cvd_course_master_student",
@@ -321,17 +303,20 @@ for workflow_id in required_workflows:
     workflow = manifest["lifecycle_workflows"].get(workflow_id)
     if not workflow or profile_id not in workflow.get("deployment_profile_ids", []):
         raise SystemExit(f"invalid CVD workflow binding: {workflow_id}")
-
-required_packages = {"xclip", "numlockx"}
+required_packages = {
+    "fonts_noto_color_emoji": "fonts-noto-color-emoji",
+    "numlockx": "numlockx",
+    "xclip": "xclip",
+}
 os_packages = platform.get("os_packages", {})
-missing_packages = sorted(required_packages - os_packages.keys())
+missing_packages = sorted(set(required_packages) - os_packages.keys())
 if missing_packages:
     raise SystemExit("CVD manifest is missing required packages: " + ", ".join(missing_packages))
-for package_id in sorted(required_packages):
+for package_id, package_identifier in sorted(required_packages.items()):
     package = os_packages[package_id]
-    if not package.get("required") or package.get("package_identifier") != package_id:
+    if (not package.get("required") or
+            package.get("package_identifier") != package_identifier):
         raise SystemExit(f"CVD package definition is invalid: {package_id}")
-
 try:
     import jsonschema  # type: ignore
 except ImportError:
@@ -348,7 +333,6 @@ version_dtg = (
 print(f"{manifest['automation_release']}\t{version_dtg}")
 PY
 }
-
 manifest_query() {
     local query="$1"
     python3 - "$MANIFEST_PATH" "$PLATFORM_ID" "$query" <<'PY'
@@ -360,7 +344,6 @@ with open(path, encoding="utf-8") as stream:
     manifest = json.load(stream)
 platform = manifest["platforms"][platform_id]
 bindings = platform["course_ide_bindings"]
-
 if query == "system_packages":
     values = []
     for package in platform.get("os_packages", {}).values():
@@ -403,7 +386,6 @@ else:
     raise SystemExit(f"unsupported manifest query: {query}")
 PY
 }
-
 retry_operation() {
     local description="$1"
     shift
@@ -424,7 +406,6 @@ retry_operation() {
         ((delay > maximum_delay)) && delay="$maximum_delay"
     done
 }
-
 check_platform_and_user() {
     CURRENT_STAGE="execution-context validation"
     if [[ "$EUID" -eq 0 ]]; then
@@ -451,7 +432,6 @@ check_platform_and_user() {
     print_info "Operating system: ${PRETTY_NAME:-Ubuntu 24.04}"
     print_info "Architecture    : $architecture"
 }
-
 acquire_lock() {
     CURRENT_STAGE="mutation-lock acquisition"
     command -v flock >/dev/null 2>&1 || {
@@ -463,7 +443,6 @@ acquire_lock() {
     exec 9>"$LOCK_FILE"
     flock --nonblock 9 || fatal "$EXIT_FAILURE" "Another IT 140 mutating lifecycle script is running."
 }
-
 check_prerequisites() {
     CURRENT_STAGE="prerequisite validation"
     local minimum available command_name
@@ -480,7 +459,6 @@ check_prerequisites() {
         print_notice "Visual Studio Code is open. Close and reopen it after Update."
     fi
 }
-
 refresh_controlled_manifest_assets() {
     CURRENT_STAGE="controlled manifest refresh"
     local archive_path stage_dir source_root candidate_manifest candidate_schema candidate_info validated obsolete
@@ -490,7 +468,6 @@ refresh_controlled_manifest_assets() {
     archive_path="$STAGING_ROOT/it140-main.tar.gz"
     stage_dir="$STAGING_ROOT/stage"
     mkdir -p "$stage_dir"
-
     print_info "Downloading the current controlled manifest assets."
     retry_operation "Repository archive download" \
         curl --fail --location --show-error --silent \
@@ -502,13 +479,11 @@ refresh_controlled_manifest_assets() {
     source_root="$(find "$stage_dir" -mindepth 1 -maxdepth 1 -type d -name 'it140-*' -print -quit)"
     [[ -n "$source_root" ]] \
         || fatal "$EXIT_MANIFEST" "The repository archive does not contain the expected root directory."
-
     candidate_manifest="$source_root/scripts/.manifest/it140_manifest.json"
     candidate_schema="$source_root/scripts/.manifest/it140_manifest.schema.json"
     candidate_info="$(validate_manifest_pair "$candidate_manifest" "$candidate_schema")" \
         || fatal "$EXIT_MANIFEST" "The downloaded manifest and schema failed validation."
     print_info "Downloaded controlled pair validated: ${candidate_info%%$'\t'*}."
-
     mkdir -p "$MANIFEST_DIR"
     if ! cmp -s "$candidate_manifest" "$MANIFEST_PATH"; then
         install -m 0600 "$candidate_manifest" "$MANIFEST_PATH.new"
@@ -526,11 +501,9 @@ refresh_controlled_manifest_assets() {
     else
         print_info "The manifest schema is already current."
     fi
-
     validated="$(validate_manifest_pair "$MANIFEST_PATH" "$SCHEMA_PATH")" \
         || fatal "$EXIT_MANIFEST" "The activated manifest pair failed validation."
     IFS=$'\t' read -r MANIFEST_RELEASE MANIFEST_DTG <<< "$validated"
-
     for obsolete in "$COURSE_ROOT/it140_manifest.json" "$COURSE_ROOT/it140_manifest.schema.json"; do
         if [[ -e "$obsolete" ]]; then
             rm -f -- "$obsolete"
@@ -539,19 +512,52 @@ refresh_controlled_manifest_assets() {
         fi
     done
 }
-
+package_version() {
+    dpkg-query -W -f='${Version}' "$1" 2>/dev/null || true
+}
+emoji_font_resolves() {
+    local family
+    command -v fc-match >/dev/null 2>&1 || return 1
+    family="$(fc-match -f '%{family}\n' emoji 2>/dev/null || true)"
+    [[ "$family" == *"$EMOJI_FAMILY"* ]]
+}
+emoji_font_file() {
+    command -v fc-list >/dev/null 2>&1 || return 1
+    fc-list : family file 2>/dev/null \
+        | awk -F: -v family="$EMOJI_FAMILY" 'index($0, family) {print $1; exit}'
+}
+emoji_font_file_discoverable() {
+    local font_file
+    font_file="$(emoji_font_file || true)"
+    [[ -n "$font_file" && -r "$font_file" ]]
+}
+rebuild_font_cache() {
+    CURRENT_STAGE="font-cache maintenance"
+    command -v fc-cache >/dev/null 2>&1 \
+        || fatal "$EXIT_FAILURE" "The fontconfig cache command is unavailable."
+    print_info "Rebuilding the system font cache for graphical applications."
+    sudo fc-cache -f >/dev/null \
+        || fatal "$EXIT_FAILURE" "The system font cache could not be rebuilt."
+    CHANGED=true
+    print_success "The system font cache was rebuilt."
+}
 update_system_packages() {
     CURRENT_STAGE="Ubuntu package maintenance"
+    local emoji_before_version emoji_after_version
+    local emoji_before_healthy=false
     local -a packages=()
     mapfile -t packages < <(manifest_query system_packages)
     ((${#packages[@]} > 0)) \
         || fatal "$EXIT_MANIFEST" "The manifest declares no required CVD system packages."
 
+    emoji_before_version="$(package_version "$EMOJI_PACKAGE")"
+    if emoji_font_resolves && emoji_font_file_discoverable; then
+        emoji_before_healthy=true
+    fi
     print_info "Refreshing Ubuntu package information."
     retry_operation "Ubuntu package-index refresh" \
         sudo apt-get -o Acquire::Retries=3 update \
         || fatal "$EXIT_EXTERNAL" "Ubuntu package information could not be refreshed."
-
     print_info "Applying supported Ubuntu 24.04 package updates without a release upgrade."
     if ! sudo DEBIAN_FRONTEND=noninteractive apt-get \
         -o Acquire::Retries=3 \
@@ -561,7 +567,6 @@ update_system_packages() {
         fatal "$EXIT_EXTERNAL" "Ubuntu package maintenance did not complete."
     fi
     CHANGED=true
-
     print_info "Installing or repairing manifest-required CVD packages."
     if ! sudo DEBIAN_FRONTEND=noninteractive apt-get \
         -o Acquire::Retries=3 \
@@ -571,14 +576,31 @@ update_system_packages() {
         fatal "$EXIT_EXTERNAL" "One or more required system packages could not be installed or repaired."
     fi
     CHANGED=true
-    print_success "Required Ubuntu packages, including xclip and numlockx, are current."
 
+    emoji_after_version="$(package_version "$EMOJI_PACKAGE")"
+    if [[ "$emoji_before_version" != "$emoji_after_version" ||
+          "$emoji_before_healthy" != true ]] ||
+          ! emoji_font_resolves || ! emoji_font_file_discoverable; then
+        rebuild_font_cache
+    fi
+    if ! emoji_font_resolves || ! emoji_font_file_discoverable; then
+        print_warning "Noto Color Emoji is installed but is not healthy in fontconfig; reinstalling the package."
+        if ! sudo DEBIAN_FRONTEND=noninteractive apt-get \
+            -o Acquire::Retries=3 \
+            -o Dpkg::Options::=--force-confdef \
+            -o Dpkg::Options::=--force-confold \
+            -y install --reinstall -- "$EMOJI_PACKAGE"; then
+            fatal "$EXIT_EXTERNAL" "The Noto Color Emoji package could not be repaired."
+        fi
+        CHANGED=true
+        rebuild_font_cache
+    fi
+    print_success "Required Ubuntu packages, including Noto Color Emoji, xclip, and numlockx, are current."
     sudo apt-get -y autoremove --purge \
         || print_warning "Optional obsolete-package cleanup did not complete."
     sudo apt-get clean \
         || print_warning "Optional package-cache cleanup did not complete."
 }
-
 repair_numlock_autostart() {
     CURRENT_STAGE="Num Lock startup integration maintenance"
     local staged_entry
@@ -593,7 +615,6 @@ OnlyShowIn=XFCE;
 NoDisplay=true
 X-GNOME-Autostart-enabled=true
 EOF_NUMLOCK
-
     sudo install -d -m 0755 "$(dirname "$NUMLOCK_AUTOSTART_PATH")"
     if sudo test -r "$NUMLOCK_AUTOSTART_PATH" && \
             sudo cmp -s "$staged_entry" "$NUMLOCK_AUTOSTART_PATH"; then
@@ -605,33 +626,28 @@ EOF_NUMLOCK
         print_success "The Xfce Num Lock desktop-startup integration was installed or repaired."
     fi
     rm -f -- "$staged_entry"
-
     if command -v desktop-file-validate >/dev/null 2>&1; then
         desktop-file-validate "$NUMLOCK_AUTOSTART_PATH" >/dev/null 2>&1 \
             || fatal "$EXIT_FAILURE" "The Num Lock autostart desktop entry is invalid."
     fi
 }
-
 update_python_tools() {
     CURRENT_STAGE="course Python tool maintenance"
     local -a packages=()
     mapfile -t packages < <(manifest_query venv_packages)
     command -v python3.12 >/dev/null 2>&1 \
         || fatal "$EXIT_FAILURE" "Python 3.12 is unavailable after package maintenance."
-
     if [[ ! -x "$VENV_DIR/bin/python" ]]; then
         print_info "Creating the course Python virtual environment."
         python3.12 -m venv "$VENV_DIR" \
             || fatal "$EXIT_FAILURE" "The course Python virtual environment could not be created."
         CHANGED=true
     fi
-
     retry_operation "Python packaging-tool update" \
         "$VENV_DIR/bin/python" -m pip install --disable-pip-version-check \
             --upgrade pip setuptools wheel \
         || fatal "$EXIT_EXTERNAL" "The Python packaging tools could not be updated."
     CHANGED=true
-
     if ((${#packages[@]} > 0)); then
         retry_operation "Course Python tool update" \
             "$VENV_DIR/bin/python" -m pip install --disable-pip-version-check \
@@ -641,7 +657,6 @@ update_python_tools() {
     fi
     print_success "Course Python tools are current."
 }
-
 update_vscode_extensions() {
     CURRENT_STAGE="Visual Studio Code extension maintenance"
     local extension
@@ -651,7 +666,6 @@ update_vscode_extensions() {
     mapfile -t extensions < <(manifest_query extensions)
     ((${#extensions[@]} > 0)) \
         || fatal "$EXIT_MANIFEST" "The manifest declares no required CVD extensions."
-
     for extension in "${extensions[@]}"; do
         retry_operation "VS Code extension update: $extension" \
             code --install-extension "$extension" --force \
@@ -660,7 +674,6 @@ update_vscode_extensions() {
     done
     print_success "Required Visual Studio Code extensions are current."
 }
-
 has_managed_path_block() {
     local file="$1"
     [[ -r "$file" ]] || return 1
@@ -672,7 +685,6 @@ has_managed_path_block() {
 desktop_directory() {
     xdg-user-dir DESKTOP 2>/dev/null || printf '%s/Desktop\n' "$HOME"
 }
-
 find_vscode_launcher() {
     local desktop_dir candidate
     desktop_dir="$(desktop_directory)"
@@ -691,7 +703,6 @@ find_vscode_launcher() {
     done < <(find "$desktop_dir" -maxdepth 1 -type f -name '*.desktop' -print0)
     return 1
 }
-
 launcher_opens_course_root() {
     local launcher="$1"
     python3 - "$launcher" "$COURSE_ROOT" <<'PY'
@@ -705,7 +716,6 @@ try:
     lines = path.read_text(encoding="utf-8").splitlines()
 except (OSError, UnicodeError):
     raise SystemExit(1)
-
 in_desktop = False
 exec_value = None
 for line in lines:
@@ -729,7 +739,6 @@ if course_root not in args:
     raise SystemExit(1)
 PY
 }
-
 detect_user_configuration() {
     CURRENT_STAGE="user-configuration state detection"
     local launcher
@@ -746,18 +755,26 @@ detect_user_configuration() {
     [[ -n "$launcher" ]] && launcher_opens_course_root "$launcher" \
         || USER_CONFIGURATION_COMPLETE=false
 }
-
 post_update_checks() {
     CURRENT_STAGE="post-update verification"
     local command_name extension package installed_extensions
-    local -a required_commands=(git gh python3.12 code xclip numlockx)
-    local -a extensions=() packages=()
+    local -a required_commands=(git gh python3.12 code xclip numlockx fc-cache fc-list fc-match)
+    local -a extensions=() packages=() system_packages=()
 
     for command_name in "${required_commands[@]}"; do
         command -v "$command_name" >/dev/null 2>&1 \
             || fatal "$EXIT_FAILURE" "Post-update check failed; required command is unavailable: $command_name"
     done
-
+    mapfile -t system_packages < <(manifest_query system_packages)
+    for package in "${system_packages[@]}"; do
+        dpkg-query -W -f='${Status}' "$package" 2>/dev/null \
+            | grep -Fqx 'install ok installed' \
+            || fatal "$EXIT_FAILURE" "Post-update check failed; required package is missing: $package"
+    done
+    emoji_font_resolves \
+        || fatal "$EXIT_FAILURE" "Post-update check failed; fc-match emoji does not resolve to $EMOJI_FAMILY."
+    emoji_font_file_discoverable \
+        || fatal "$EXIT_FAILURE" "Post-update check failed; the $EMOJI_FAMILY font file is not discoverable through fontconfig."
     [[ -r "$NUMLOCK_AUTOSTART_PATH" ]] \
         || fatal "$EXIT_FAILURE" "Post-update check failed; the Xfce Num Lock autostart entry is missing."
     grep -Fqx 'Exec=/usr/bin/numlockx on' "$NUMLOCK_AUTOSTART_PATH" \
@@ -768,7 +785,6 @@ post_update_checks() {
         desktop-file-validate "$NUMLOCK_AUTOSTART_PATH" >/dev/null 2>&1 \
             || fatal "$EXIT_FAILURE" "Post-update check failed; the Num Lock desktop entry is invalid."
     fi
-
     [[ -x "$VENV_DIR/bin/python" ]] \
         || fatal "$EXIT_FAILURE" "Post-update check failed; the course Python environment is unavailable."
     mapfile -t packages < <(manifest_query venv_packages)
@@ -776,14 +792,12 @@ post_update_checks() {
         "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1 \
             || fatal "$EXIT_FAILURE" "Post-update check failed; Python package is missing: $package"
     done
-
     mapfile -t extensions < <(manifest_query extensions)
     installed_extensions="$(code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')"
     for extension in "${extensions[@]}"; do
         grep -Fqx "${extension,,}" <<< "$installed_extensions" \
             || fatal "$EXIT_FAILURE" "Post-update check failed; VS Code extension is missing: $extension"
     done
-
     if [[ -e /var/run/reboot-required ]]; then
         RESTART_REQUIRED=true
         print_notice "Ubuntu reports that a CVD restart is required before the lifecycle can continue."
@@ -802,7 +816,6 @@ main() {
     trap on_error ERR
     trap on_interrupt INT TERM
     trap cleanup EXIT
-
     print_header "IT 140 CODIO VIRTUAL DESKTOP UPDATE"
     print_info "Script version : $SCRIPT_VERSION"
     print_info "Version DTG    : $VERSION_DTG"
@@ -812,7 +825,6 @@ main() {
     print_info "Log file       : $LOG_FILE"
     print_notice "Update will not upgrade Ubuntu to a different release."
     print_notice "Keep this Terminal open until the final summary appears."
-
     check_platform_and_user
 
     CURRENT_STAGE="local manifest validation"
@@ -821,7 +833,6 @@ main() {
         || fatal "$EXIT_MANIFEST" "The local controlled manifest and schema failed validation."
     IFS=$'\t' read -r MANIFEST_RELEASE MANIFEST_DTG <<< "$manifest_info"
     print_success "Manifest release $MANIFEST_RELEASE (schema $SUPPORTED_SCHEMA) validated."
-
     acquire_lock
     check_prerequisites
     refresh_controlled_manifest_assets
