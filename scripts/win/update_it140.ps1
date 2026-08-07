@@ -17,10 +17,10 @@ user settings.
 Run this script from a normal, non-elevated Windows PowerShell terminal.
 
 Artifact version:
-    0.3.0
+    0.3.1
 
-Version date:
-    2026-07-29
+Version date-time group:
+    2026-08-07-12-51
 
 Development status:
     Alpha Testing
@@ -35,6 +35,8 @@ Version basis:
 
     Version 0.3.0 adds support for Windows 10, version 22H2, while preserving
     manifest-controlled Windows 11 release validation.
+    Version 0.3.1 updates controlled-manifest compatibility from schema 2.0 to
+    schema 2.2 and validates the release date-time group.
 
 
 .NOTES
@@ -73,8 +75,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.3.0"
-$VersionDate = "2026-07-29"
+$ScriptVersion = "0.3.1"
+$VersionDateTimeGroup = "2026-08-07-12-51"
 $DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
@@ -558,12 +560,20 @@ function Read-ManifestAtPath {
     $RequiredKeys = @(
         "schema_version",
         "automation_release",
-        "automation_release_date",
+        "automation_release_date_time_group",
+        "course",
+        "control",
         "policy",
+        "capabilities",
+        "products",
+        "software_sources",
+        "provider_profiles",
         "platforms",
         "deployment_profiles",
+        "lifecycle_workflows",
         "managed_settings",
         "managed_assets",
+        "obsolete_components",
         "logging"
     )
     foreach ($RequiredKey in $RequiredKeys) {
@@ -571,7 +581,7 @@ function Read-ManifestAtPath {
             throw "The controlled manifest is missing required key: $RequiredKey"
         }
     }
-    if ([string]$Manifest.schema_version -ne "2.0") {
+    if ([string]$Manifest.schema_version -ne "2.2") {
         throw "Unsupported manifest schema version: $($Manifest.schema_version)"
     }
 
@@ -581,23 +591,29 @@ function Read-ManifestAtPath {
         throw "The manifest automation release is not strict SemVer: $AutomationRelease"
     }
 
-    $ParsedReleaseDate = [datetime]::MinValue
-    $ReleaseDateIsValid = [datetime]::TryParseExact(
-        [string]$Manifest.automation_release_date,
-        "yyyy-MM-dd",
+    $ReleaseDateTimeGroup = [string]$Manifest.automation_release_date_time_group
+    $ParsedReleaseDateTime = [datetime]::MinValue
+    $ReleaseDateTimeIsValid = [datetime]::TryParseExact(
+        $ReleaseDateTimeGroup,
+        "yyyy-MM-dd-HH-mm",
         [Globalization.CultureInfo]::InvariantCulture,
         [Globalization.DateTimeStyles]::None,
-        [ref]$ParsedReleaseDate
+        [ref]$ParsedReleaseDateTime
     )
-    if (-not $ReleaseDateIsValid) {
+    if (-not $ReleaseDateTimeIsValid) {
         throw (
-            "The manifest automation release date is not valid YYYY-MM-DD: " +
-            [string]$Manifest.automation_release_date
+            "The manifest automation release date-time group is not valid " +
+            "YYYY-MM-DD-HH-MM: $ReleaseDateTimeGroup"
         )
     }
 
     if ([string]$Schema.'$schema' -ne "https://json-schema.org/draft/2020-12/schema") {
         throw "The manifest schema is not the approved Draft 2020-12 format."
+    }
+    if ([string]$Schema.properties.schema_version.const -ne "2.2") {
+        throw (
+            "The manifest schema does not declare compatibility version 2.2."
+        )
     }
 
     $Platform = Get-PropertyValue -Object $Manifest.platforms -Name $PlatformId
@@ -1153,7 +1169,7 @@ function Invoke-SystemPhase {
     try {
         Write-Header "IT 140 WINDOWS UPDATE - ELEVATED COURSE COMPONENTS"
         Write-Info "Script version   : $ScriptVersion"
-        Write-Info "Version date     : $VersionDate"
+        Write-Info "Version DTG      : $VersionDateTimeGroup"
         Write-Info "Status           : $DevelopmentStatus"
         Write-Info "Course root      : $CourseRoot"
         Write-Info "System log       : $SystemLog"
@@ -1717,7 +1733,7 @@ if ($Help) {
 }
 if ($Version) {
     Write-Host "Artifact version   : $ScriptVersion"
-    Write-Host "Version date       : $VersionDate"
+    Write-Host "Version DTG        : $VersionDateTimeGroup"
     Write-Host "Development status : $DevelopmentStatus"
     exit 0
 }
@@ -1730,7 +1746,7 @@ try {
 
     Write-Header "IT 140 WINDOWS UPDATE"
     Write-Info "Script version   : $ScriptVersion"
-    Write-Info "Version date     : $VersionDate"
+    Write-Info "Version DTG      : $VersionDateTimeGroup"
     Write-Info "Status           : $DevelopmentStatus"
     Write-Info "Deployment       : $DeploymentProfile"
     Write-Info "Current user     : $([Environment]::UserName)"
@@ -1854,12 +1870,12 @@ try {
     Write-Header "UPDATE SUMMARY"
     Write-Info "Workflow          : $WorkflowName"
     Write-Info "Script version    : $ScriptVersion"
-    Write-Info "Version date      : $VersionDate"
+    Write-Info "Version DTG       : $VersionDateTimeGroup"
     Write-Info "Status            : $DevelopmentStatus"
     Write-Info "Windows           : $($WindowsFacts.Caption)"
     Write-Info "Release           : $($WindowsFacts.DisplayVersion)"
     Write-Info "Manifest release  : $($ActiveControlled.Manifest.automation_release)"
-    Write-Info "Manifest date     : $($ActiveControlled.Manifest.automation_release_date)"
+    Write-Info "Manifest DTG      : $($ActiveControlled.Manifest.automation_release_date_time_group)"
     Write-Info "Git               : $(Get-CommandVersionLine -CommandName 'git.exe')"
     Write-Info "GitHub CLI        : $(Get-CommandVersionLine -CommandName 'gh.exe')"
     Write-Info "Python            : $(Get-CommandVersionLine -CommandName 'python.exe')"
