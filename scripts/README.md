@@ -56,11 +56,11 @@ Each fully supported platform uses the same five-stage lifecycle:
 
 | Stage | Script | Student-facing purpose |
 | --- | --- | --- |
-| Prepare | `prepare_ide.<ext>` | Obtains or refreshes the course automation package and makes the remaining scripts available. On first use, students copy and run the provided preparation commands because the script package is not yet installed. |
-| Install | `install_ide.<ext>` | Installs or repairs the system-level software required for the course IDE. It may request permission to make approved changes to the computer. |
-| Configure | `configure_ide.<ext>` | Configures the current user's course folders, tools, IDE settings, extensions, account integrations, and course shortcuts. |
-| Verify | `verify_ide.<ext>` | Checks the system and user configuration without changing it. The report identifies passed checks, warnings, failures, and the recommended next step. |
-| Update | `update_ide.<ext>` | Maintains approved course IDE software and course-managed assets after the environment has been prepared. It does not replace Prepare or perform an operating-system release upgrade. |
+| Prepare | `prepare_it140.<ext>` | Obtains or refreshes the course automation package and makes the remaining scripts available. On first use, students copy and run the provided preparation commands because the script package is not yet installed. |
+| Install | `install_it140.<ext>` | Installs or repairs the system-level software required for the course IDE. It may request permission to make approved changes to the computer. |
+| Configure | `configure_it140.<ext>` | Configures the current user's course folders, tools, IDE settings, extensions, account integrations, and course shortcuts. |
+| Verify | `verify_it140.<ext>` | Checks the system and user configuration without changing it. The report identifies passed checks, warnings, failures, and the recommended next step. |
+| Update | `update_it140.<ext>` | Maintains approved course IDE software and course-managed assets after the environment has been prepared. It does not replace Prepare or perform an operating-system release upgrade. |
 
 The exact workflow depends on the environment's starting state. A local installation normally follows **Prepare → Install → Configure → Verify**. A student CVD begins from a course-managed image, so its initial workflow normally follows **Prepare → Update → Configure → Verify**. After setup, **Update** is used for periodic maintenance when directed by the course.
 

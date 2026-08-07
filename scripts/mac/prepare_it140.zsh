@@ -2,7 +2,7 @@
 # ==============================================================================
 # IT 140 COURSE IDE — PREPARE (macOS APPLE SILICON)
 # ==============================================================================
-# Repository path: scripts/mac/prepare_ide.zsh
+# Repository path: scripts/mac/prepare_it140.zsh
 # Purpose: Acquire or refresh the IT 140 automation package without requiring
 #          Homebrew, Git, the controlled manifest, or another lifecycle script.
 # Artifact ID: IT140-MAC-PREPARE
@@ -89,7 +89,7 @@ finish() {
     printf 'Managed changes         : %s\n' "$( [[ "$CHANGED" == true ]] && printf 'Yes' || printf 'No' )"
     printf 'Elapsed time            : %s seconds\n' "$(( $(date +%s) - START_EPOCH ))"
     printf 'Detail                  : %s\n' "$detail"
-    printf 'Next step               : %s\n' '"$HOME/it140/scripts/mac/install_ide.zsh"'
+    printf 'Next step               : %s\n' '"$HOME/it140/scripts/mac/install_it140.zsh"'
     printf 'Log file                : %s\n' "$LOG_FILE"
     printf 'Exit code               : %s\n' "$code"
     if (( code == 0 )); then
@@ -190,8 +190,8 @@ CURRENT_STAGE='Extract and validate the staged package'
 SOURCE_ROOT="$(/usr/bin/find "$STAGE_ROOT" -mindepth 1 -maxdepth 1 -type d -name 'it140-*' -print -quit)"
 [[ -n "$SOURCE_ROOT" ]] || fail 5 'The downloaded archive did not contain the expected repository root.'
 for action in prepare install configure verify update; do
-    [[ -f "$SOURCE_ROOT/scripts/mac/${action}_ide.zsh" ]] || \
-        fail 5 "The downloaded archive is missing scripts/mac/${action}_ide.zsh."
+    [[ -f "$SOURCE_ROOT/scripts/mac/${action}_it140.zsh" ]] || \
+        fail 5 "The downloaded archive is missing scripts/mac/${action}_it140.zsh."
 done
 [[ -f "$SOURCE_ROOT/scripts/.manifest/it140_manifest.json" ]] || fail 5 'The downloaded archive is missing the controlled manifest.'
 [[ -f "$SOURCE_ROOT/scripts/.manifest/it140_manifest.schema.json" ]] || fail 5 'The downloaded archive is missing the manifest schema.'
@@ -236,7 +236,7 @@ hash -r
 
 CURRENT_STAGE='Post-validate installed package'
 for action in prepare install configure verify update; do
-    [[ -x "$SCRIPT_DIR/${action}_ide.zsh" ]] || fail 7 "${action}_ide.zsh is not executable after activation."
+    [[ -x "$SCRIPT_DIR/${action}_it140.zsh" ]] || fail 7 "${action}_it140.zsh is not executable after activation."
 done
 success "The current IT 140 course package is available at: $COURSE_ROOT"
 finish 0 'PASS' 'Package retrieval, structural validation, activation, permissions, and PATH configuration completed.'

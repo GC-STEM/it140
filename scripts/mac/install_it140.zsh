@@ -2,7 +2,7 @@
 # ==============================================================================
 # IT 140 COURSE IDE — INSTALL (macOS APPLE SILICON)
 # ==============================================================================
-# Repository path: scripts/mac/install_ide.zsh
+# Repository path: scripts/mac/install_it140.zsh
 # Purpose: Install or repair the manifest-declared macOS system layer for the IT 140 course IDE.
 # Artifact ID: IT140-MAC-INSTALL
 # Artifact version: 0.6.0
@@ -83,7 +83,7 @@ it140_error() {
 
 it140_usage() {
     cat <<'USAGE'
-Usage: install_ide.zsh [--help] [--version] [--noninteractive]
+Usage: install_it140.zsh [--help] [--version] [--noninteractive]
                        [--deployment-profile macos_bare_metal]
 
 Installs or repairs Apple Command Line Tools, Homebrew, and the manifest-declared system-scoped course IDE products. It does not authenticate GitHub or configure user settings.
@@ -233,7 +233,7 @@ it140_abort() {
     it140_error "$message"
     it140_error "Failed stage: $IT140_CURRENT_STAGE"
     it140_finish "$exit_code" 'FAIL' "$message" \
-        "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_ide.zsh\""
+        "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
 }
 
 it140_on_error() {
@@ -246,7 +246,7 @@ it140_on_error() {
     it140_error "An unexpected command failure occurred near line ${line} during ${IT140_CURRENT_STAGE} (status ${status})."
     it140_finish "$exit_code" 'FAIL' \
         'An unexpected command failure stopped the script.' \
-        "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_ide.zsh\""
+        "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
 }
 
 it140_on_interrupt() {
@@ -257,7 +257,7 @@ it140_on_interrupt() {
     it140_error "The script was interrupted during ${IT140_CURRENT_STAGE}."
     it140_finish "$exit_code" 'CANCELED' \
         'The operation did not finish. Rerun the same script to recover.' \
-        "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_ide.zsh\""
+        "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
 }
 
 it140_initialize_log() {
@@ -890,11 +890,11 @@ if ! /usr/bin/xcode-select -p >/dev/null 2>&1; then
         it140_abort 3 'Apple Command Line Tools are missing and require an interactive installation.'
     fi
     it140_notice 'macOS will open the Apple Command Line Tools installer.'
-    it140_notice 'Complete the installer, then rerun install_ide.zsh in a new Terminal window.'
+    it140_notice 'Complete the installer, then rerun install_it140.zsh in a new Terminal window.'
     /usr/bin/xcode-select --install >/dev/tty 2>&1 || true
     it140_finish 7 'PARTIAL' \
         'Apple Command Line Tools installation was requested and must finish before Install can continue.' \
-        'After the installer finishes, rerun: "$HOME/it140/scripts/mac/install_ide.zsh"'
+        'After the installer finishes, rerun: "$HOME/it140/scripts/mac/install_it140.zsh"'
 fi
 it140_success 'Apple Command Line Tools are available.'
 
@@ -988,4 +988,4 @@ it140_success "Python ${PYTHON_VERSION} satisfies the course runtime requirement
 
 it140_finish 0 'PASS' \
     'The macOS system layer is installed and passed post-installation checks.' \
-    'Run next: "$HOME/it140/scripts/mac/configure_ide.zsh"'
+    'Run next: "$HOME/it140/scripts/mac/configure_it140.zsh"'

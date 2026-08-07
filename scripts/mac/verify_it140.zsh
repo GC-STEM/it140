@@ -37,7 +37,7 @@ header(){ printf '\n============================================================
 info(){ printf '[INFO] %s\n' "$1"; }
 notice(){ printf '[NOTICE] %s\n' "$1"; }
 usage(){ cat <<USAGE
-Usage: verify_ide.zsh [--help] [--version]
+Usage: verify_it140.zsh [--help] [--version]
                       [--deployment-profile macos_bare_metal] [--skip-network]
 
 Read-only verification of the macOS IT 140 course environment and ~/Repos.
@@ -47,8 +47,8 @@ USAGE
 parse_options(){ while (( $# )); do case "$1" in --help|-h) usage; exit 0;; --version) printf '%s (%s; %s)\n' "$SCRIPT_VERSION" "$VERSION_DTG" "$DEVELOPMENT_STATUS"; exit 0;; --deployment-profile) shift; (( $# )) || exit 2; REQUESTED_PROFILE="$1";; --skip-network) SKIP_NETWORK=true;; *) printf '[ERROR] Unsupported option: %s\n' "$1" >&2; exit 2;; esac; shift; done; }
 add_remediation(){ local x="$1" y; [[ -n "$x" ]] || return; for y in "${REMEDIATIONS[@]:-}"; do [[ "$x" == "$y" ]] && return; done; REMEDIATIONS+=("$x"); }
 record(){ local st="$1" id="$2" detail="$3" rem="${4:-}"; printf '%-14s %-38s %s\n' "$st" "$id" "$detail"; case "$st" in PASS) PASS_COUNT=$((PASS_COUNT+1));; WARNING) WARNING_COUNT=$((WARNING_COUNT+1)); add_remediation "$rem";; FAIL) FAIL_COUNT=$((FAIL_COUNT+1)); add_remediation "$rem";; 'NOT APPLICABLE') NA_COUNT=$((NA_COUNT+1));; esac; }
-config_remediation(){ printf 'Run configure_ide.zsh to repair current-user configuration.\n'; }
-install_remediation(){ printf 'Run install_ide.zsh to repair required system software, then rerun verify_ide.zsh.\n'; }
+config_remediation(){ printf 'Run configure_it140.zsh to repair current-user configuration.\n'; }
+install_remediation(){ printf 'Run install_it140.zsh to repair required system software, then rerun verify_it140.zsh.\n'; }
 continuity(){ notice "Course continuity: You can continue your IT 140 coursework in the Codio Virtual Desktop (CVD) while this local course IDE issue is resolved."; }
 
 validate_manifest(){ python3 - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" "$REQUESTED_PROFILE" "$SUPPORTED_SCHEMA" <<'PY'
@@ -95,8 +95,8 @@ check_platform(){
 check_system(){ local cmd; for cmd in git gh python3.12 code; do command -v "$cmd" >/dev/null 2>&1 && record PASS "verify.command.$cmd" available || record FAIL "verify.command.$cmd" missing "$(install_remediation)"; done; }
 check_network(){ [[ "$SKIP_NETWORK" == true ]] && { record WARNING verify.network "skipped by option" "Rerun without --skip-network."; return; }; curl -Is --max-time 10 https://github.com/ >/dev/null 2>&1 && record PASS verify.network "github.com reachable" || record WARNING verify.network "github.com unreachable" "Check the network and rerun Verify."; }
 check_user(){
-  [[ -d "$COURSE_ROOT" ]] && record PASS verify.course_root "$COURSE_ROOT" || record FAIL verify.course_root missing "Run prepare_ide.zsh to refresh the course automation package."
-  [[ -d "$LOG_DIR" && -w "$LOG_DIR" ]] && record PASS verify.log_directory "$LOG_DIR" || record FAIL verify.log_directory "missing or not writable" "Run prepare_ide.zsh."
+  [[ -d "$COURSE_ROOT" ]] && record PASS verify.course_root "$COURSE_ROOT" || record FAIL verify.course_root missing "Run prepare_it140.zsh to refresh the course automation package."
+  [[ -d "$LOG_DIR" && -w "$LOG_DIR" ]] && record PASS verify.log_directory "$LOG_DIR" || record FAIL verify.log_directory "missing or not writable" "Run prepare_it140.zsh."
   grep -Fqx "$MANAGED_ENV_EXPORT" "$HOME/.zprofile" 2>/dev/null && record PASS verify.path_zprofile configured || record FAIL verify.path_zprofile missing "$(config_remediation)"
   grep -Fqx "$MANAGED_ENV_EXPORT" "$HOME/.zshrc" 2>/dev/null && record PASS verify.path_zshrc configured || record FAIL verify.path_zshrc missing "$(config_remediation)"
   [[ -x "$VENV_DIR/bin/python" ]] && record PASS verify.venv "$VENV_DIR" || record FAIL verify.venv missing "$(config_remediation)"
@@ -128,7 +128,7 @@ main(){
  header "IT 140 MACOS VERIFY"; info "Script version : $SCRIPT_VERSION"; info "Version DTG    : $VERSION_DTG"; info "Course root    : $COURSE_ROOT"; info "Repository root: $REPOS_ROOT"; info "Log file       : $LOG_FILE"; notice "Verify is read-only except for this transcript."
  [[ "$REQUESTED_PROFILE" == "$DEPLOYMENT_PROFILE_ID" ]] || { record FAIL verify.profile "unsupported profile" "Use macos_bare_metal."; }
  check_platform
- if [[ -r "$MANIFEST_PATH" && -r "$SCHEMA_PATH" ]]; then if MANIFEST_RELEASE="$(validate_manifest 2>&1)"; then record PASS verify.manifest "release $MANIFEST_RELEASE"; check_network; check_system; check_user; else record FAIL verify.manifest "$MANIFEST_RELEASE" "Run prepare_ide.zsh."; fi; else record FAIL verify.manifest "manifest or schema missing" "Run prepare_ide.zsh."; fi
+ if [[ -r "$MANIFEST_PATH" && -r "$SCHEMA_PATH" ]]; then if MANIFEST_RELEASE="$(validate_manifest 2>&1)"; then record PASS verify.manifest "release $MANIFEST_RELEASE"; check_network; check_system; check_user; else record FAIL verify.manifest "$MANIFEST_RELEASE" "Run prepare_it140.zsh."; fi; else record FAIL verify.manifest "manifest or schema missing" "Run prepare_it140.zsh."; fi
  local code=0 result=COMPLIANT; (( FAIL_COUNT > 0 )) && { code=1; result='NOT COMPLIANT'; }
  header "VERIFICATION SUMMARY"; printf 'Result          : %s\nScript version  : %s\nVersion DTG     : %s\nManifest release: %s\nPassed          : %s\nWarnings        : %s\nFailed          : %s\nNot applicable  : %s\nLog file        : %s\nExit code       : %s\n' "$result" "$SCRIPT_VERSION" "$VERSION_DTG" "$MANIFEST_RELEASE" "$PASS_COUNT" "$WARNING_COUNT" "$FAIL_COUNT" "$NA_COUNT" "$LOG_FILE" "$code"
  if (( ${#REMEDIATIONS[@]} )); then printf '\nRemediation:\n'; local r; for r in "${REMEDIATIONS[@]}"; do printf -- '- %s\n' "$r"; done; fi

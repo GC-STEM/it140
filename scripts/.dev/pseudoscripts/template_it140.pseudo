@@ -3,18 +3,18 @@
 # ==============================================================================
 #
 # Repository path:
-#  scripts/.dev/pseudoscripts/template_ide.pseudo
+#  scripts/.dev/pseudoscripts/template_it140.pseudo
 #
 # Purpose:
 #  Define the common structure and writing style for the platform-agnostic
 #  IT 140 automation pseudoscripts.
 #
 # Covered artifacts:
-#  prepare_ide.pseudo
-#  install_ide.pseudo
-#  configure_ide.pseudo
-#  update_ide.pseudo
-#  verify_ide.pseudo
+#  prepare_it140.pseudo
+#  install_it140.pseudo
+#  configure_it140.pseudo
+#  update_it140.pseudo
+#  verify_it140.pseudo
 #
 # Artifact version:
 #  0.4.0
@@ -49,7 +49,7 @@
 # BOOTSTRAP COMMAND SET
 # ---------------------
 #
-# prepare_ide.pseudo represents commands that a user manually copies and
+# prepare_it140.pseudo represents commands that a user manually copies and
 # pastes before the controlled manifest and lifecycle scripts are available.
 #
 # Bootstrap:
@@ -69,7 +69,7 @@
 # MANAGED LIFECYCLE SCRIPTS
 # -------------------------
 #
-# install_ide.pseudo, configure_ide.pseudo, update_ide.pseudo, and verify_ide.pseudo
+# install_it140.pseudo, configure_it140.pseudo, update_it140.pseudo, and verify_it140.pseudo
 # use the managed lifecycle-script pattern below.
 #
 # install:
@@ -451,7 +451,7 @@ ENDPROCEDURE
 # baseline must preserve these lifecycle boundaries:
 #
 #  - bootstrap retrieves the repository but performs no IDE maintenance;
-#  - install_ide.sh is admin/SME-facing and remains outside student updates;
+#  - install_it140.sh is admin/SME-facing and remains outside student updates;
 #  - update synchronizes only the student config, update, and verify scripts;
 #  - configure owns provider identity and current-user personalization;
 #  - verify is read-only except for its transcript and an explicitly approved

@@ -54,7 +54,7 @@ print_warning(){ printf '[WARNING] %s\n' "$1"; WARNINGS=$((WARNINGS+1)); }
 print_error(){ printf '[ERROR] %s\n' "$1" >&2; }
 
 usage(){ cat <<USAGE
-Usage: configure_ide.zsh [--help] [--version] [--noninteractive]
+Usage: configure_it140.zsh [--help] [--version] [--noninteractive]
                          [--deployment-profile macos_bare_metal]
 
 Configures the current macOS user for IT 140, including ~/Repos and a Desktop
@@ -79,9 +79,9 @@ course_continuity(){
   print_notice "Course continuity: You can continue your IT 140 coursework in the Codio Virtual Desktop (CVD) while this local course IDE issue is resolved."
 }
 finish(){
-  local requested="${1:-0}" message="${2:-}" result="PASS" code=0 next="Open a new Terminal and run verify_ide.zsh."
+  local requested="${1:-0}" message="${2:-}" result="PASS" code=0 next="Open a new Terminal and run verify_it140.zsh."
   [[ "$FINALIZED" == false ]] || return "$requested"; FINALIZED=true
-  if (( requested != 0 )); then code=$requested; result="FAIL"; [[ "$CHANGED" == true ]] && code=$EXIT_PARTIAL; next="Resolve the reported issue, then rerun configure_ide.zsh."; fi
+  if (( requested != 0 )); then code=$requested; result="FAIL"; [[ "$CHANGED" == true ]] && code=$EXIT_PARTIAL; next="Resolve the reported issue, then rerun configure_it140.zsh."; fi
   print_header "CONFIGURATION SUMMARY"
   [[ -n "$message" ]] && printf 'Conclusion       : %s\n' "$message"
   printf 'Result           : %s\nScript version   : %s\nVersion DTG      : %s\nManifest release : %s\nRepository root  : %s\nWarnings         : %s\nFailures         : %s\nNext step        : %s\nLog file         : %s\nExit code        : %s\n' "$result" "$SCRIPT_VERSION" "$VERSION_DTG" "$MANIFEST_RELEASE" "$REPOS_ROOT" "$WARNINGS" "$FAILURES" "$next" "$LOG_FILE" "$code"
@@ -137,10 +137,10 @@ check_context(){
   [[ "$(uname -s)" == Darwin ]] || fatal 2 "This script supports macOS only."
   [[ "$(uname -m)" == arm64 ]] || fatal 2 "This implementation supports Apple silicon (arm64) only."
   [[ "$REQUESTED_PROFILE" == "$DEPLOYMENT_PROFILE_ID" ]] || fatal 2 "Unsupported deployment profile: $REQUESTED_PROFILE"
-  (( EUID != 0 )) || fatal 2 "Do not run configure_ide.zsh with sudo."
+  (( EUID != 0 )) || fatal 2 "Do not run configure_it140.zsh with sudo."
   local major; major="$(sw_vers -productVersion | cut -d. -f1)"
   case "$major" in 14|15|26) ;; *) fatal 2 "Unsupported macOS major release: $major";; esac
-  for cmd in git gh python3.12 code; do command -v "$cmd" >/dev/null 2>&1 || fatal 1 "Required system command is missing: $cmd. Run install_ide.zsh first."; done
+  for cmd in git gh python3.12 code; do command -v "$cmd" >/dev/null 2>&1 || fatal 1 "Required system command is missing: $cmd. Run install_it140.zsh first."; done
 }
 
 upsert_path(){

@@ -52,7 +52,7 @@ Logs are written under ~/it140/logs/.
 
 .USAGE
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-configure_ide.ps1
+configure_it140.ps1
 
 #>
 
@@ -160,10 +160,10 @@ function Show-Usage {
 IT 140 Windows configure script
 
 Usage:
-  powershell.exe -ExecutionPolicy Bypass -File .\configure_ide.ps1
-  powershell.exe -ExecutionPolicy Bypass -File .\configure_ide.ps1 -NonInteractive
-  powershell.exe -ExecutionPolicy Bypass -File .\configure_ide.ps1 -Help
-  powershell.exe -ExecutionPolicy Bypass -File .\configure_ide.ps1 -Version
+  powershell.exe -ExecutionPolicy Bypass -File .\configure_it140.ps1
+  powershell.exe -ExecutionPolicy Bypass -File .\configure_it140.ps1 -NonInteractive
+  powershell.exe -ExecutionPolicy Bypass -File .\configure_it140.ps1 -Help
+  powershell.exe -ExecutionPolicy Bypass -File .\configure_it140.ps1 -Version
 
 Use a normal, non-elevated PowerShell terminal on a regular Windows computer.
 Windows Sandbox uses its expected administrative container context. When the
@@ -800,7 +800,7 @@ function Test-SystemLayer {
 
     if ($MissingCommands.Count -gt 0) {
         throw (
-            "Required system commands are missing: {0}. Run install_ide.ps1." -f
+            "Required system commands are missing: {0}. Run install_it140.ps1." -f
             ($MissingCommands -join ", ")
         )
     }
@@ -813,7 +813,7 @@ function Test-SystemLayer {
         "import sys; print('.'.join(map(str, sys.version_info[:2])))"
     )
     if ($LASTEXITCODE -ne 0 -or [string]$PythonVersion -ne "3.12") {
-        throw "Python 3.12 is not the active Windows system runtime. Run install_ide.ps1."
+        throw "Python 3.12 is not the active Windows system runtime. Run install_it140.ps1."
     }
 
     Write-Success "Required system components are present."
@@ -1566,7 +1566,7 @@ function Test-ConfiguredUserLayer {
         }
     }
 
-    $VerifyScript = Join-Path $WindowsScriptDirectory "verify_ide.ps1"
+    $VerifyScript = Join-Path $WindowsScriptDirectory "verify_it140.ps1"
     if (-not (Test-Path -LiteralPath $VerifyScript -PathType Leaf)) {
         throw "The Windows verification script is missing: $VerifyScript"
     }
@@ -1623,7 +1623,7 @@ try {
     if ($DeploymentProfile -eq "windows_bare_metal" -and $IsAdministrator) {
         $FailureExitCode = 3
         throw (
-            "Do not run configure_ide.ps1 from an elevated terminal on a regular " +
+            "Do not run configure_it140.ps1 from an elevated terminal on a regular " +
             "Windows computer. Open a normal Windows PowerShell window under " +
             "the intended user and rerun it."
         )
@@ -1701,7 +1701,7 @@ try {
     Write-Info "Log file          : $LogPath"
     Write-Notice (
         "Next step: close this window, open a new PowerShell window, and " +
-        "run verify_ide.ps1."
+        "run verify_it140.ps1."
     )
     Write-Info "Exit code         : 0"
     Write-ClosingNotice
@@ -1713,7 +1713,7 @@ catch [OperationCanceledException] {
     if ($Changed) {
         Write-Notice (
             "Managed user state changed before configuration was canceled. " +
-            "Rerun configure_ide.ps1."
+            "Rerun configure_it140.ps1."
         )
         $ExitCode = 7
     }
@@ -1731,7 +1731,7 @@ catch {
     if ($Changed) {
         Write-Notice (
             "Managed user state changed before configuration stopped. " +
-            "Rerun configure_ide.ps1 to repair it."
+            "Rerun configure_it140.ps1 to repair it."
         )
         $ExitCode = 7
     }

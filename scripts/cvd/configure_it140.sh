@@ -79,7 +79,7 @@ print_error() { printf '[ERROR] %s\n' "$1" >&2; }
 
 usage() {
     cat <<USAGE
-Usage: configure_ide.sh [--help] [--version] [--noninteractive]
+Usage: configure_it140.sh [--help] [--version] [--noninteractive]
                         [--deployment-profile codio_cvd]
 
 Configures or repairs the current user's IT 140 CVD environment. Run as the
@@ -141,11 +141,11 @@ finish() {
     FINALIZED=true
     if ((requested_code == 0)); then exit_code=0; else exit_code="$(resolve_failure_code "$requested_code")"; fi
     if ((exit_code == 0)); then
-        result="PASS"; next_step="Open a fresh Terminal and run verify_ide.sh."
+        result="PASS"; next_step="Open a fresh Terminal and run verify_it140.sh."
     elif ((exit_code == EXIT_PARTIAL)); then
-        result="PARTIAL"; next_step="Review the errors above, then rerun configure_ide.sh."
+        result="PARTIAL"; next_step="Review the errors above, then rerun configure_it140.sh."
     else
-        result="FAIL"; next_step="Resolve the reported issue, then rerun configure_ide.sh."
+        result="FAIL"; next_step="Resolve the reported issue, then rerun configure_it140.sh."
     fi
     elapsed=$(( $(date +%s) - START_EPOCH ))
     print_header "CONFIGURATION SUMMARY"
@@ -297,7 +297,7 @@ retry_operation() {
 
 check_platform_and_user() {
     CURRENT_STAGE="execution-context validation"
-    ((EUID != 0)) || fatal "$EXIT_UNSUPPORTED" "Do not run configure_ide.sh with sudo; personal settings must belong to the standard CVD account."
+    ((EUID != 0)) || fatal "$EXIT_UNSUPPORTED" "Do not run configure_it140.sh with sudo; personal settings must belong to the standard CVD account."
     [[ -r /etc/os-release ]] || fatal "$EXIT_UNSUPPORTED" "Cannot identify the operating system."
     # shellcheck disable=SC1091
     source /etc/os-release
@@ -326,7 +326,7 @@ check_system_layer() {
         command -v "$command_name" >/dev/null 2>&1 || { print_error "Required system command is missing: $command_name"; failed=true; }
     done < <(manifest_query system_commands)
     command -v python3.12 >/dev/null 2>&1 || { print_error "Required system command is missing: python3.12"; failed=true; }
-    [[ "$failed" == false ]] || fatal "$EXIT_FAILURE" "The CVD system layer is incomplete. Rerun update_ide.sh before Configure."
+    [[ "$failed" == false ]] || fatal "$EXIT_FAILURE" "The CVD system layer is incomplete. Rerun update_it140.sh before Configure."
 }
 
 acquire_lock() {

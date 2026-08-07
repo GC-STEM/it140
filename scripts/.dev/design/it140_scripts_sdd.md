@@ -18,13 +18,13 @@ This Software Design Description (SDD) explains how the **IT 140 Course Automati
 
 The package contains five coordinated lifecycle components for each supported platform:
 
-1. `prepare_ide.<ext>` provides the platform-native first-use command set and, after first use, refreshes the local course automation package.
-2. `install_ide.<ext>` establishes or repairs system-level software and settings.
-3. `configure_ide.<ext>` establishes or repairs the current user's environment.
-4. `verify_ide.<ext>` inspects the system and user layers without changing them.
-5. `update_ide.<ext>` maintains approved course IDE software and course-managed maintenance assets over time.
+1. `prepare_it140.<ext>` provides the platform-native first-use command set and, after first use, refreshes the local course automation package.
+2. `install_it140.<ext>` establishes or repairs system-level software and settings.
+3. `configure_it140.<ext>` establishes or repairs the current user's environment.
+4. `verify_it140.<ext>` inspects the system and user layers without changing them.
+5. `update_it140.<ext>` maintains approved course IDE software and course-managed maintenance assets over time.
 
-On first use, the user copies and runs the documented `prepare_ide.<ext>` commands because the local package does not yet exist. After first use, the installed `prepare_ide.<ext>` artifact may be executed directly to refresh the lifecycle scripts and controlled package files from the authorized course repository.
+On first use, the user copies and runs the documented `prepare_it140.<ext>` commands because the local package does not yet exist. After first use, the installed `prepare_it140.<ext>` artifact may be executed directly to refresh the lifecycle scripts and controlled package files from the authorized course repository.
 
 The design follows a modified [Waterfall Model](https://www.geeksforgeeks.org/software-engineering/waterfall-model/) software development lifecycle (SDLC): requirements analysis, design, construction, and testing. **SDLC** means the organized process used to plan, build, verify, release, and maintain software.
 
@@ -75,7 +75,7 @@ Technical terms and abbreviations are defined when first introduced. The documen
 This SDD covers:
 
 - The package architecture and five-component lifecycle.
-- The special first-use and refresh behavior of `prepare_ide.<ext>`.
+- The special first-use and refresh behavior of `prepare_it140.<ext>`.
 - The logical design of the controlled manifest and its schema.
 - Shared services used by the managed lifecycle scripts.
 - Script-specific component and control-flow designs.
@@ -91,7 +91,7 @@ This SDD does not define:
 - The final syntax of every platform implementation.
 - Product and product-version selections that belong in the controlled manifest.
 - General-purpose backup, reset, uninstall, or account-recovery features.
-- A second bootstrap mechanism separate from the command set represented by `prepare_ide.<ext>`.
+- A second bootstrap mechanism separate from the command set represented by `prepare_it140.<ext>`.
 
 ### 0.6 Terms and Abbreviations
 
@@ -100,7 +100,7 @@ This SDD does not define:
 | Adapter | A component that translates a stable package operation into platform-, product-, or provider-specific actions. |
 | Artifact | A versioned file or generated record created or maintained during analysis, design, construction, logging, testing, release, or maintenance. |
 | Atomic replacement | A file update that makes the complete new file visible at once instead of exposing a partially written file. |
-| Bootstrap command set | The first-use, platform-native commands represented by `prepare_ide.<ext>` that obtain or refresh the local automation package without depending on that package. |
+| Bootstrap command set | The first-use, platform-native commands represented by `prepare_it140.<ext>` that obtain or refresh the local automation package without depending on that package. |
 | Capability role | A generic function required by the course, such as source-code editing, version control, test running, or code-quality checking. The manifest binds each role to an approved product. |
 | Check registry | The ordered collection of verification checks, including each check's requirement mapping, severity, and remediation owner. |
 | Component | A cohesive part of the design with one primary responsibility and a defined interface. |
@@ -312,11 +312,11 @@ The following supporting artifacts shall describe the same design at different l
 | `it140_scripts_sdd.md` | Package architecture, interfaces, component design, version policy, and traceability |
 | `architecture.drawio` | Editable component, data-flow, trust-boundary, and preparation-boundary diagram |
 | `lifecycle.drawio` | Editable normal, refresh, and remediation lifecycle diagram |
-| `prepare_ide.pseudo` | Platform-agnostic first-use and package-refresh control flow |
-| `install_ide.pseudo` | Platform-agnostic system-installation and repair control flow |
-| `configure_ide.pseudo` | Platform-agnostic user-configuration control flow |
-| `verify_ide.pseudo` | Platform-agnostic verification control flow |
-| `update_ide.pseudo` | Platform-agnostic maintenance control flow |
+| `prepare_it140.pseudo` | Platform-agnostic first-use and package-refresh control flow |
+| `install_it140.pseudo` | Platform-agnostic system-installation and repair control flow |
+| `configure_it140.pseudo` | Platform-agnostic user-configuration control flow |
+| `verify_it140.pseudo` | Platform-agnostic verification control flow |
+| `update_it140.pseudo` | Platform-agnostic maintenance control flow |
 | `scripts/.manifest/it140_manifest.schema.json` | Machine-readable manifest structural contract |
 | `scripts/.manifest/it140_manifest.json` | Controlled concrete product, version, source, platform, deployment-profile, desktop-integration, and maintenance-asset selections |
 | Automated and manual test artifacts | Unit, integration, safety, idempotence, interruption, acceptance, and platform-conformance evidence |
@@ -340,11 +340,11 @@ it140/
 │   │   ├── it140_manifest.json
 │   │   └── it140_manifest.schema.json
 │   ├── <platform>/
-│   │   ├── prepare_ide.<ext>
-│   │   ├── install_ide.<ext>
-│   │   ├── configure_ide.<ext>
-│   │   ├── verify_ide.<ext>
-│   │   └── update_ide.<ext>
+│   │   ├── prepare_it140.<ext>
+│   │   ├── install_it140.<ext>
+│   │   ├── configure_it140.<ext>
+│   │   ├── verify_it140.<ext>
+│   │   └── update_it140.<ext>
 │   └── .dev/
 │       ├── analysis/
 │       ├── design/
@@ -359,7 +359,7 @@ The installed package may omit `.dev/` files unless they are intentionally distr
 
 Each platform provides five entry points with two implementation profiles.
 
-The `prepare_ide.<ext>` artifact is a self-contained platform-native command set. Its source file is both the documented first-use command sequence and the executable refresh artifact installed for later use. It embeds only the minimum constants and helpers needed for trusted archive retrieval, logging, staging, validation, package refresh, permissions, `PATH`, cleanup, and next-step output. It does not require the manifest, accept advanced lifecycle options, authenticate an external account, or load another course script.
+The `prepare_it140.<ext>` artifact is a self-contained platform-native command set. Its source file is both the documented first-use command sequence and the executable refresh artifact installed for later use. It embeds only the minimum constants and helpers needed for trusted archive retrieval, logging, staging, validation, package refresh, permissions, `PATH`, cleanup, and next-step output. It does not require the manifest, accept advanced lifecycle options, authenticate an external account, or load another course script.
 
 The four managed entry points--Install, Configure, Verify, and Update--should contain only:
 
@@ -613,7 +613,7 @@ The bundle excludes assignment repositories, source files, version-control histo
 
 | Design ID | Interface rule | Planned behavior | Related SRS requirements |
 | --- | --- | --- | --- |
-| INT-DES-001 | First-use Prepare requires no installed course command. | The documented platform-native `prepare_ide.<ext>` content can be copied and run directly; after installation, the same artifact can be executed by name or approved path to refresh the package. | PRE-FR-001, PRE-FR-002, PRE-FR-003 |
+| INT-DES-001 | First-use Prepare requires no installed course command. | The documented platform-native `prepare_it140.<ext>` content can be copied and run directly; after installation, the same artifact can be executed by name or approved path to refresh the package. | PRE-FR-001, PRE-FR-002, PRE-FR-003 |
 | INT-DES-002 | Managed lifecycle invocation requires no advanced arguments. | Running Install, Configure, Verify, or Update by its installed name starts the normal student- or administrator-facing workflow. | PKG-NFR-002, PKG-NFR-010 |
 | INT-DES-003 | Managed scripts support help; Prepare remains minimal. | Help explains purpose, intended user, prerequisites, common invocation, log location, and exit-code meanings without changing state. Prepare instead uses embedded comments, opening output, and exact next-step output because it must remain copyable and dependency-free. | PKG-FR-006, PRE-FR-003, PKG-NFR-003 |
 | INT-DES-004 | Every artifact exposes its version identity. | Managed scripts provide a local version operation; Prepare displays and logs its embedded SemVer and version date-time group during every run. No external service is required to obtain version identity. | PKG-FR-006, PRE-FR-006, PKG-NFR-015, PKG-QOS-017 |
@@ -792,7 +792,7 @@ Prepare is the package bootstrap and refresh boundary. On first use, its source 
 
 | Design ID | Planned Prepare behavior | Main collaborators | Related SRS requirement |
 | --- | --- | --- | --- |
-| PRE-DES-001 | Represent the complete first-use command set in `prepare_ide.<ext>` so it can be copied and run before `~/it140/` exists. | Platform-native shell or PowerShell | PRE-FR-001 |
+| PRE-DES-001 | Represent the complete first-use command set in `prepare_it140.<ext>` so it can be copied and run before `~/it140/` exists. | Platform-native shell or PowerShell | PRE-FR-001 |
 | PRE-DES-002 | Install the Prepare artifact with the package and permit direct reruns to refresh repository-managed package files. | Package refresh logic | PRE-FR-002 |
 | PRE-DES-003 | Use only baseline platform-native facilities and embedded constants; do not load the manifest, package manager, version-control client, or another lifecycle script. | Native retrieval and archive tools | PRE-FR-003 |
 | PRE-DES-004 | Validate the OS family, required architecture, and standard-user context before replacing local package files. | Minimal native platform probes | PRE-FR-004 |
@@ -884,7 +884,7 @@ The Install orchestrator owns the shared system layer. It may use controlled pri
 | INS-DES-009 | Query before applying and compare after applying so reruns do not duplicate repositories, registrations, policies, or packages. | Package adapter, settings service | INS-FR-009 |
 | INS-DES-010 | Treat a missing managed system component as a repair plan item while leaving unrelated system configuration untouched. | Managed-boundary service | INS-FR-010 |
 | INS-DES-011 | Exclude provider authentication, personal identity, user-scoped tools, user settings, and user launchers from the Install plan. | Orchestrator boundary checks | INS-FR-011 |
-| INS-DES-012 | On successful post-validation, render the matching `configure_ide.<ext>` command as the next step. | Output service, platform metadata | INS-FR-012 |
+| INS-DES-012 | On successful post-validation, render the matching `configure_it140.<ext>` command as the next step. | Output service, platform metadata | INS-FR-012 |
 
 ### 8.1 Install Control Flow
 
@@ -940,7 +940,7 @@ The Configure orchestrator owns the current user's course environment. It runs a
 | CFG-DES-014 | Configure approved IDE settings without making the course automation root the student's default development workspace; defer profile-owned launch targets to the repository-workspace contract. | IDE adapter, settings merger | CFG-FR-014 |
 | CFG-DES-015 | Query provider status, version-control settings, runtime tools, IDE settings, extensions, course folders, repository workspace, desktop integration, and profile-owned IDE workspace launch behavior before success. | Capability adapters, desktop integration probes | CFG-FR-015 |
 | CFG-DES-016 | Use managed-key merging and query-plan-apply-verify behavior so reruns repair managed integrations while preserving optional extensions and unrelated preferences. | Settings merger, adapters | CFG-FR-016 |
-| CFG-DES-017 | Render the matching `verify_ide.<ext>` command after successful configuration. | Output service, platform metadata | CFG-FR-017 |
+| CFG-DES-017 | Render the matching `verify_it140.<ext>` command after successful configuration. | Output service, platform metadata | CFG-FR-017 |
 | CFG-DES-018 | Ensure the repository-workspace parent exists at the native `${HOME}/Repos` equivalent. Create only the parent when absent; never enumerate or mutate child repositories as part of configuration. | Path safety service, file service | CFG-FR-018 |
 | CFG-DES-019 | Create or repair the desktop item named `Repos` so it resolves exactly to the repository workspace. Preserve and report any conflicting unmanaged item rather than replacing it. | Desktop integration service, ownership probe | CFG-FR-019 |
 | CFG-DES-020 | Apply the qualified platform's development-marker adapter. CVD uses native `development` emblem metadata; Windows uses safe Explorer folder customization; Ubuntu GNOME uses safe native development metadata when supported; macOS reports the visual-only integration `NOT APPLICABLE`. | Platform desktop adapter | CFG-FR-020 |
@@ -1119,7 +1119,7 @@ The planned default ordering is:
 9. Perform safe cleanup.
 10. Run post-update checks and restart detection.
 
-Lifecycle scripts, their supporting source files, and incompatible schema transitions are not activated by Update. When the installed scripts are too old for the available manifest or maintenance release, Update stops safely and recommends `prepare_ide.<ext>` to refresh the package before maintenance continues.
+Lifecycle scripts, their supporting source files, and incompatible schema transitions are not activated by Update. When the installed scripts are too old for the available manifest or maintenance release, Update stops safely and recommends `prepare_it140.<ext>` to refresh the package before maintenance continues.
 
 ## 12. Error and Exception Handling
 
@@ -1416,11 +1416,11 @@ A range in this table is inclusive. The design elements listed for a range apply
 | PKG-FR-006 through PKG-FR-009 | ARC-DES-011, SHR-DES-001 through SHR-DES-003, SHR-DES-012, SHR-DES-017, INT-DES-001 through INT-DES-013 | Shared-output design; all five pseudoscripts |
 | PKG-FR-010 | ARC-DES-005, SHR-DES-009, SEC-DES-004, SEC-DES-010 | Safety tests; managed-path tests |
 | PKG-FR-021 | SHR-DES-002, SHR-DES-012, INT-DES-014, ERR-DES-014 | All five pseudoscripts; handled-failure and noncompliance acceptance tests |
-| PRE-FR-001 through PRE-FR-015 | PRE-DES-001 through PRE-DES-015, PLT-DES-012 | `prepare_ide.pseudo`; Prepare flowchart; first-use, refresh, interruption, and preservation tests |
-| INS-FR-001 through INS-FR-012 | INS-DES-001 through INS-DES-012 | `install_ide.pseudo`; Install flowchart; Install tests |
-| CFG-FR-001 through CFG-FR-021 | CFG-DES-001 through CFG-DES-021, SHR-DES-018, DAT-DES-017, PLT-DES-006 | `configure_ide.pseudo`; desktop-integration design; Configure tests |
-| VER-FR-001 through VER-FR-018 | VER-DES-001 through VER-DES-018, PLT-DES-006 | `verify_ide.pseudo`; check registry; Verify tests |
-| UPD-FR-001 through UPD-FR-016 | UPD-DES-001 through UPD-DES-016 | `update_ide.pseudo`; update transaction diagram; Update tests |
+| PRE-FR-001 through PRE-FR-015 | PRE-DES-001 through PRE-DES-015, PLT-DES-012 | `prepare_it140.pseudo`; Prepare flowchart; first-use, refresh, interruption, and preservation tests |
+| INS-FR-001 through INS-FR-012 | INS-DES-001 through INS-DES-012 | `install_it140.pseudo`; Install flowchart; Install tests |
+| CFG-FR-001 through CFG-FR-021 | CFG-DES-001 through CFG-DES-021, SHR-DES-018, DAT-DES-017, PLT-DES-006 | `configure_it140.pseudo`; desktop-integration design; Configure tests |
+| VER-FR-001 through VER-FR-018 | VER-DES-001 through VER-DES-018, PLT-DES-006 | `verify_it140.pseudo`; check registry; Verify tests |
+| UPD-FR-001 through UPD-FR-016 | UPD-DES-001 through UPD-DES-016 | `update_it140.pseudo`; update transaction diagram; Update tests |
 | PKG-FR-011 through PKG-FR-020 | DAT-DES-001 through DAT-DES-017, SHR-DES-009, SEC-DES-004 | Manifest schema; configuration-control procedure |
 | PKG-NFR-001 through PKG-NFR-005 | ARC-DES-003 through ARC-DES-011, SHR-DES-002, DAT-DES-011 | Architecture diagram; conformance tests |
 | PKG-NFR-006 through PKG-NFR-011 | INT-DES-005, INT-DES-009 through INT-DES-013, SHR-DES-002 | Message catalog; usability review |
@@ -1565,12 +1565,12 @@ A supplement shall not redefine shared exit codes, log fields, artifact identity
 
 - `scripts/.dev/analysis/it140_scripts_srs.md`, *IT 140 Course Automation Scripts Software Requirements Specification*, version `0.6.0`, version date-time group `2026-08-07-10-44`.
 - `scripts/.dev/README.md`, development notes and five-component lifecycle decisions.
-- `scripts/.dev/pseudoscripts/prepare_ide.pseudo`, platform-agnostic Prepare design artifact.
-- `scripts/.dev/pseudoscripts/install_ide.pseudo`, platform-agnostic Install design artifact.
-- `scripts/.dev/pseudoscripts/configure_ide.pseudo`, platform-agnostic Configure design artifact.
-- `scripts/.dev/pseudoscripts/verify_ide.pseudo`, platform-agnostic Verify design artifact.
-- `scripts/.dev/pseudoscripts/update_ide.pseudo`, platform-agnostic Update design artifact.
-- `scripts/win/prepare_ide.ps1`, current Windows first-use and package-refresh implementation reviewed for this design update.
-- `scripts/mac/prepare_ide.zsh`, current macOS first-use and package-refresh implementation reviewed for this design update.
+- `scripts/.dev/pseudoscripts/prepare_it140.pseudo`, platform-agnostic Prepare design artifact.
+- `scripts/.dev/pseudoscripts/install_it140.pseudo`, platform-agnostic Install design artifact.
+- `scripts/.dev/pseudoscripts/configure_it140.pseudo`, platform-agnostic Configure design artifact.
+- `scripts/.dev/pseudoscripts/verify_it140.pseudo`, platform-agnostic Verify design artifact.
+- `scripts/.dev/pseudoscripts/update_it140.pseudo`, platform-agnostic Update design artifact.
+- `scripts/win/prepare_it140.ps1`, current Windows first-use and package-refresh implementation reviewed for this design update.
+- `scripts/mac/prepare_it140.zsh`, current macOS first-use and package-refresh implementation reviewed for this design update.
 - `scripts/.manifest/it140_manifest.json`, controlled product, platform, deployment-profile, provider, product-version, source, desktop-integration, and maintenance-asset selections when populated and approved.
 - Repository acceptance-test and platform-script files at commit `dbde859f90b1b957b05aa03e25b867563c113bb2`.

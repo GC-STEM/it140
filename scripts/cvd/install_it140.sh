@@ -68,7 +68,7 @@ print_warning() { printf '[WARNING] %s\n' "$1"; WARNINGS=$((WARNINGS + 1)); }
 print_error() { printf '[ERROR] %s\n' "$1" >&2; }
 usage() {
     cat <<USAGE
-Usage: install_ide.sh [--help] [--version] [--noninteractive]
+Usage: install_it140.sh [--help] [--version] [--noninteractive]
                       [--deployment-profile codio_cvd]
 
 Installs or repairs the manifest-declared system layer for the IT 140 Codio
@@ -147,7 +147,7 @@ finish() {
     if ((requested_code == 0)); then
         exit_code=0
         result="PASS"
-        next_step="Open a fresh Terminal and run configure_ide.sh."
+        next_step="Open a fresh Terminal and run configure_it140.sh."
     else
         exit_code="$(resolve_failure_code "$requested_code")"
         if ((exit_code == EXIT_PARTIAL)); then
@@ -155,7 +155,7 @@ finish() {
         else
             result="FAIL"
         fi
-        next_step="Review the errors above, then rerun install_ide.sh."
+        next_step="Review the errors above, then rerun install_it140.sh."
     fi
     elapsed=$(( $(date +%s) - START_EPOCH ))
     print_header "INSTALLATION SUMMARY"
@@ -329,7 +329,7 @@ PY
 check_platform() {
     CURRENT_STAGE="execution-context validation"
     if [[ "$EUID" -eq 0 ]]; then
-        fatal "$EXIT_UNSUPPORTED" "Do not run install_ide.sh with sudo; use the standard CVD desktop account."
+        fatal "$EXIT_UNSUPPORTED" "Do not run install_it140.sh with sudo; use the standard CVD desktop account."
     fi
     [[ -r /etc/os-release ]] || fatal "$EXIT_UNSUPPORTED" "Cannot identify the operating system."
     # shellcheck disable=SC1091
@@ -626,7 +626,7 @@ PY
         fi
     fi
     if ((failed)); then
-        fatal "$EXIT_PARTIAL" "System-layer verification failed. Rerun install_ide.sh."
+        fatal "$EXIT_PARTIAL" "System-layer verification failed. Rerun install_it140.sh."
     fi
     print_success "System-layer verification passed."
 }

@@ -2,7 +2,7 @@
 # ==============================================================================
 # IT 140 COURSE IDE — PREPARE (CVD)
 # ==============================================================================
-# Repository path: scripts/cvd/prepare_ide.sh
+# Repository path: scripts/cvd/prepare_it140.sh
 # Purpose: Acquire or refresh the IT 140 automation package without requiring
 #          Git, the course manifest, or another lifecycle script.
 # Artifact version: 0.5.0
@@ -48,7 +48,7 @@ curl --fail --silent --show-error --location --retry 4 --retry-delay 2 --connect
 tar -xzf "$archive_path" -C "$stage_root"
 source_root="$(find "$stage_root" -mindepth 1 -maxdepth 1 -type d -name 'it140-*' -print -quit)"
 [[ -n "$source_root" ]]
-for script in prepare install configure verify update; do [[ -f "$source_root/scripts/cvd/${script}_ide.sh" ]]; done
+for script in prepare install configure verify update; do [[ -f "$source_root/scripts/cvd/${script}_it140.sh" ]]; done
 cp -a "$source_root/." "$course_root/"
 rm -rf -- "$course_root/.git"
 chmod +x "$course_root/scripts/cvd/"*.sh
@@ -114,7 +114,7 @@ require_standard_cvd_user() {
     CURRENT_STAGE="platform and privilege checks"
 
     if [[ "$(id -u)" -eq 0 ]]; then
-        printf 'ERROR: Run prepare_ide.sh as the normal CVD user, not as root or with sudo.\n' >&2
+        printf 'ERROR: Run prepare_it140.sh as the normal CVD user, not as root or with sudo.\n' >&2
         return 3
     fi
 
@@ -163,7 +163,7 @@ start_transcript() {
     exec > >(tee -a "$LOG_PATH") 2>&1
 
     printf 'IT 140 Course IDE — Prepare\n'
-    printf 'Script: prepare_ide.sh\n'
+    printf 'Script: prepare_it140.sh\n'
     printf 'Version: %s\n' "$SCRIPT_VERSION"
     printf 'Version date-time group: %s\n' "$VERSION_DTG"
     printf 'Status: %s\n' "$DEVELOPMENT_STATUS"
@@ -214,8 +214,8 @@ extract_and_validate_archive() {
     fi
 
     for script in prepare install configure verify update; do
-        if [[ ! -f "$source_root/scripts/cvd/${script}_ide.sh" ]]; then
-            printf 'ERROR: The archive is missing scripts/cvd/%s_ide.sh.\n' "$script" >&2
+        if [[ ! -f "$source_root/scripts/cvd/${script}_it140.sh" ]]; then
+            printf 'ERROR: The archive is missing scripts/cvd/%s_it140.sh.\n' "$script" >&2
             return 6
         fi
     done
@@ -276,7 +276,7 @@ main() {
     printf 'Starting state: CVD provider baseline or IT 140 course master.\n'
     printf 'Operating role: CVD administrator or CVD student.\n'
     printf 'Log: %s\n' "$LOG_PATH"
-    printf 'Next step: update_ide.sh\n'
+    printf 'Next step: update_it140.sh\n'
 }
 
 main "$@"

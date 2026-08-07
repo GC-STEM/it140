@@ -48,7 +48,7 @@ Logs and explicitly requested support bundles are written under
 
 .USAGE
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-verify_ide.ps1
+verify_it140.ps1
 
 #>
 
@@ -149,12 +149,12 @@ function Show-Usage {
 IT 140 Windows verification script
 
 Usage:
-  powershell.exe -ExecutionPolicy Bypass -File .\verify_ide.ps1
-  powershell.exe -ExecutionPolicy Bypass -File .\verify_ide.ps1 -SkipNetwork
-  powershell.exe -ExecutionPolicy Bypass -File .\verify_ide.ps1 -SupportBundle
-  powershell.exe -ExecutionPolicy Bypass -File .\verify_ide.ps1 -SupportBundle -Yes
-  powershell.exe -ExecutionPolicy Bypass -File .\verify_ide.ps1 -Help
-  powershell.exe -ExecutionPolicy Bypass -File .\verify_ide.ps1 -Version
+  powershell.exe -ExecutionPolicy Bypass -File .\verify_it140.ps1
+  powershell.exe -ExecutionPolicy Bypass -File .\verify_it140.ps1 -SkipNetwork
+  powershell.exe -ExecutionPolicy Bypass -File .\verify_it140.ps1 -SupportBundle
+  powershell.exe -ExecutionPolicy Bypass -File .\verify_it140.ps1 -SupportBundle -Yes
+  powershell.exe -ExecutionPolicy Bypass -File .\verify_it140.ps1 -Help
+  powershell.exe -ExecutionPolicy Bypass -File .\verify_it140.ps1 -Version
 
 This script does not elevate privilege, install, repair, update, remove, or
 rewrite managed course state. Regular Windows requires a non-elevated context;
@@ -207,26 +207,26 @@ function Resolve-DeploymentProfile {
 
 function Get-ConfigRemediation {
     if ($DeploymentProfile -eq "windows_sandbox") {
-        return "Run configure_ide.ps1 in the Windows Sandbox PowerShell window."
+        return "Run configure_it140.ps1 in the Windows Sandbox PowerShell window."
     }
-    return "Run configure_ide.ps1 from a normal PowerShell window."
+    return "Run configure_it140.ps1 from a normal PowerShell window."
 }
 
 function Get-BootstrapRemediation {
     if ($DeploymentProfile -eq "windows_sandbox") {
         return (
             "Start a fresh Windows Sandbox session with it140_wsb.wsb, then " +
-            "rerun configure_ide.ps1."
+            "rerun configure_it140.ps1."
         )
     }
-    return "Run prepare_ide.ps1 again, then configure_ide.ps1."
+    return "Run prepare_it140.ps1 again, then configure_it140.ps1."
 }
 
 function Get-SystemSetupRemediation {
     if ($DeploymentProfile -eq "windows_sandbox") {
         return "Run setup_wsb.ps1 in the Windows Sandbox PowerShell window."
     }
-    return "Run install_ide.ps1 from an elevated PowerShell window."
+    return "Run install_it140.ps1 from an elevated PowerShell window."
 }
 
 function Get-SystemRepairRemediation {
@@ -241,13 +241,13 @@ function Get-SystemRepairRemediation {
     }
     if ($CapabilityType -eq "package") {
         return (
-            "Run update_ide.ps1; if it cannot repair the package, " +
-            "run install_ide.ps1."
+            "Run update_it140.ps1; if it cannot repair the package, " +
+            "run install_it140.ps1."
         )
     }
     return (
-        "Run update_ide.ps1; if it cannot repair the command, " +
-        "run install_ide.ps1."
+        "Run update_it140.ps1; if it cannot repair the command, " +
+        "run install_it140.ps1."
     )
 }
 
@@ -255,10 +255,10 @@ function Get-ManagedAssetRemediation {
     if ($DeploymentProfile -eq "windows_sandbox") {
         return (
             "Start a fresh Windows Sandbox session with it140_wsb.wsb. " +
-            "Windows Sandbox does not use update_ide.ps1."
+            "Windows Sandbox does not use update_it140.ps1."
         )
     }
-    return "Run prepare_ide.ps1 again, then update_ide.ps1."
+    return "Run prepare_it140.ps1 again, then update_it140.ps1."
 }
 
 function Get-NormalizedPathEntry {
@@ -1066,7 +1066,7 @@ function Test-PlatformContext {
             -CheckId "verify.deployment_context" `
             -Status "FAIL" `
             -Detail "Windows Sandbox was assigned the bare-metal profile" `
-            -Remediation "Rerun verify_ide.ps1 with windows_sandbox."
+            -Remediation "Rerun verify_it140.ps1 with windows_sandbox."
     }
     else {
         Add-CheckResult `
@@ -1099,7 +1099,7 @@ function Test-PlatformContext {
             -Status "FAIL" `
             -Detail "Verification is running from an elevated terminal." `
             -Remediation (
-                "Close this window and rerun verify_ide.ps1 from a normal " +
+                "Close this window and rerun verify_it140.ps1 from a normal " +
                 "PowerShell window."
             )
     }
@@ -1194,7 +1194,7 @@ function Test-DiskAndNetwork {
             -Detail ("{0:N1} GB free" -f ($FreeBytes / 1GB)) `
             -Remediation (
                 "Remove unneeded user-owned files until at least 5 GB is " +
-                "free, then rerun verify_ide.ps1."
+                "free, then rerun verify_it140.ps1."
             )
     }
 
@@ -1374,7 +1374,7 @@ function Test-UserLayer {
             -CheckId "verify.current_path" `
             -Status "FAIL" `
             -Detail "The current PowerShell window has an outdated PATH." `
-            -Remediation "Close this PowerShell window, open a new one, and rerun verify_ide.ps1."
+            -Remediation "Close this PowerShell window, open a new one, and rerun verify_it140.ps1."
     }
 
     if (Test-Path -LiteralPath $VenvPython -PathType Leaf) {
@@ -1547,7 +1547,7 @@ function Test-UserLayer {
                 -Detail "The VS Code settings file is not a valid JSON object." `
                 -Remediation (
                     "Preserve the file and contact course or technical " +
-                    "support before rerunning configure_ide.ps1."
+                    "support before rerunning configure_it140.ps1."
                 )
         }
     }
@@ -1645,39 +1645,39 @@ function Test-UserLayer {
                 Path = Join-Path $WindowsScriptDirectory "wsb\setup_wsb.ps1"
             },
             [pscustomobject]@{
-                Name = "configure_ide.ps1"
-                Path = Join-Path $WindowsScriptDirectory "configure_ide.ps1"
+                Name = "configure_it140.ps1"
+                Path = Join-Path $WindowsScriptDirectory "configure_it140.ps1"
             },
             [pscustomobject]@{
-                Name = "verify_ide.ps1"
-                Path = Join-Path $WindowsScriptDirectory "verify_ide.ps1"
+                Name = "verify_it140.ps1"
+                Path = Join-Path $WindowsScriptDirectory "verify_it140.ps1"
             }
         )
         $LifecycleRemediation = (
             "Start a fresh Windows Sandbox session with it140_wsb.wsb. " +
-            "Windows Sandbox does not use update_ide.ps1."
+            "Windows Sandbox does not use update_it140.ps1."
         )
     }
     else {
         $LifecycleScripts = @(
             [pscustomobject]@{
-                Name = "install_ide.ps1"
-                Path = Join-Path $WindowsScriptDirectory "install_ide.ps1"
+                Name = "install_it140.ps1"
+                Path = Join-Path $WindowsScriptDirectory "install_it140.ps1"
             },
             [pscustomobject]@{
-                Name = "configure_ide.ps1"
-                Path = Join-Path $WindowsScriptDirectory "configure_ide.ps1"
+                Name = "configure_it140.ps1"
+                Path = Join-Path $WindowsScriptDirectory "configure_it140.ps1"
             },
             [pscustomobject]@{
-                Name = "update_ide.ps1"
-                Path = Join-Path $WindowsScriptDirectory "update_ide.ps1"
+                Name = "update_it140.ps1"
+                Path = Join-Path $WindowsScriptDirectory "update_it140.ps1"
             },
             [pscustomobject]@{
-                Name = "verify_ide.ps1"
-                Path = Join-Path $WindowsScriptDirectory "verify_ide.ps1"
+                Name = "verify_it140.ps1"
+                Path = Join-Path $WindowsScriptDirectory "verify_it140.ps1"
             }
         )
-        $LifecycleRemediation = "Run update_ide.ps1 from a normal PowerShell window."
+        $LifecycleRemediation = "Run update_it140.ps1 from a normal PowerShell window."
     }
 
     foreach ($LifecycleRecord in $LifecycleScripts) {
@@ -1793,7 +1793,7 @@ function Write-VerificationSummary {
     }
     else {
         Write-ErrorMessage "One or more required checks failed."
-        Write-Notice "Complete the listed remediation, then rerun verify_ide.ps1."
+        Write-Notice "Complete the listed remediation, then rerun verify_it140.ps1."
     }
     Write-Info "Exit code        : $ResolvedExitCode"
     Write-ClosingNotice
@@ -1910,32 +1910,32 @@ function New-SupportBundle {
                     Path = Join-Path $WindowsScriptDirectory "wsb\setup_wsb.ps1"
                 },
                 [pscustomobject]@{
-                    Name = "configure_ide.ps1"
-                    Path = Join-Path $WindowsScriptDirectory "configure_ide.ps1"
+                    Name = "configure_it140.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "configure_it140.ps1"
                 },
                 [pscustomobject]@{
-                    Name = "verify_ide.ps1"
-                    Path = Join-Path $WindowsScriptDirectory "verify_ide.ps1"
+                    Name = "verify_it140.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "verify_it140.ps1"
                 }
             )
         }
         else {
             $LifecycleRecords = @(
                 [pscustomobject]@{
-                    Name = "install_ide.ps1"
-                    Path = Join-Path $WindowsScriptDirectory "install_ide.ps1"
+                    Name = "install_it140.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "install_it140.ps1"
                 },
                 [pscustomobject]@{
-                    Name = "configure_ide.ps1"
-                    Path = Join-Path $WindowsScriptDirectory "configure_ide.ps1"
+                    Name = "configure_it140.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "configure_it140.ps1"
                 },
                 [pscustomobject]@{
-                    Name = "update_ide.ps1"
-                    Path = Join-Path $WindowsScriptDirectory "update_ide.ps1"
+                    Name = "update_it140.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "update_it140.ps1"
                 },
                 [pscustomobject]@{
-                    Name = "verify_ide.ps1"
-                    Path = Join-Path $WindowsScriptDirectory "verify_ide.ps1"
+                    Name = "verify_it140.ps1"
+                    Path = Join-Path $WindowsScriptDirectory "verify_it140.ps1"
                 }
             )
         }
@@ -1969,9 +1969,9 @@ function New-SupportBundle {
                 VerificationArtifactDevelopmentStatus = $DevelopmentStatus
                 BootstrapScriptVersion = $LifecycleVersionSummary["bootstrap_wsb.ps1"]
                 SetupScriptVersion = $LifecycleVersionSummary["setup_wsb.ps1"]
-                ConfigScriptVersion = $LifecycleVersionSummary["configure_ide.ps1"]
+                ConfigScriptVersion = $LifecycleVersionSummary["configure_it140.ps1"]
                 UpdateScriptVersion = "not applicable"
-                VerifyScriptVersion = $LifecycleVersionSummary["verify_ide.ps1"]
+                VerifyScriptVersion = $LifecycleVersionSummary["verify_it140.ps1"]
             } | ConvertTo-Json -Depth 5
         }
         else {
@@ -1981,10 +1981,10 @@ function New-SupportBundle {
                 VerificationArtifactVersion = $ScriptVersion
                 VerificationArtifactVersionDate = $VersionDate
                 VerificationArtifactDevelopmentStatus = $DevelopmentStatus
-                SetupScriptVersion = $LifecycleVersionSummary["install_ide.ps1"]
-                ConfigScriptVersion = $LifecycleVersionSummary["configure_ide.ps1"]
-                UpdateScriptVersion = $LifecycleVersionSummary["update_ide.ps1"]
-                VerifyScriptVersion = $LifecycleVersionSummary["verify_ide.ps1"]
+                SetupScriptVersion = $LifecycleVersionSummary["install_it140.ps1"]
+                ConfigScriptVersion = $LifecycleVersionSummary["configure_it140.ps1"]
+                UpdateScriptVersion = $LifecycleVersionSummary["update_it140.ps1"]
+                VerifyScriptVersion = $LifecycleVersionSummary["verify_it140.ps1"]
             } | ConvertTo-Json -Depth 5
         }
         Write-Utf8LfFile `
@@ -2131,7 +2131,7 @@ try {
                     "if the problem remains, contact course support."
                 }
                 else {
-                    "Run prepare_ide.ps1 again; if the problem remains, " +
+                    "Run prepare_it140.ps1 again; if the problem remains, " +
                     "contact course support."
                 }
             )

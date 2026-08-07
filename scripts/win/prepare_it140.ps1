@@ -1,7 +1,7 @@
 # IT 140 Windows bootstrap command set
 #
 # Repository path:
-#     scripts/win/prepare_ide.ps1
+#     scripts/win/prepare_it140.ps1
 #
 # Purpose:
 #     Retrieve the current course automation package and make the Windows
@@ -160,7 +160,7 @@ try {
     )
     Write-Host (
         "[NOTICE] Next step: open an elevated Windows PowerShell terminal " +
-        "and run install_ide.ps1."
+        "and run install_it140.ps1."
     )
     Write-Host "[NOTICE] Bootstrap log: $LogPath"
 }

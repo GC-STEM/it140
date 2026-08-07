@@ -2,7 +2,7 @@
 # ==============================================================================
 # IT 140 COURSE IDE — UPDATE (macOS APPLE SILICON)
 # ==============================================================================
-# Repository path: scripts/mac/update_ide.zsh
+# Repository path: scripts/mac/update_it140.zsh
 # Purpose: Maintain approved IT 140 course IDE software and controlled maintenance assets.
 # Artifact ID: IT140-MAC-UPDATE
 # Artifact version: 0.6.0
@@ -83,7 +83,7 @@ it140_error() {
 
 it140_usage() {
     cat <<'USAGE'
-Usage: update_ide.zsh [--help] [--version] [--noninteractive]
+Usage: update_it140.zsh [--help] [--version] [--noninteractive]
                        [--deployment-profile macos_bare_metal]
 
 Stages and validates the latest controlled manifest assets, updates only manifest-declared Homebrew products, course Python packages, VS Code extensions, and managed settings, and then directs the user to Verify. It does not refresh lifecycle scripts or install a major macOS upgrade.
@@ -233,7 +233,7 @@ it140_abort() {
     it140_error "$message"
     it140_error "Failed stage: $IT140_CURRENT_STAGE"
     it140_finish "$exit_code" 'FAIL' "$message" \
-        "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_ide.zsh\""
+        "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
 }
 
 it140_on_error() {
@@ -246,7 +246,7 @@ it140_on_error() {
     it140_error "An unexpected command failure occurred near line ${line} during ${IT140_CURRENT_STAGE} (status ${status})."
     it140_finish "$exit_code" 'FAIL' \
         'An unexpected command failure stopped the script.' \
-        "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_ide.zsh\""
+        "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
 }
 
 it140_on_interrupt() {
@@ -257,7 +257,7 @@ it140_on_interrupt() {
     it140_error "The script was interrupted during ${IT140_CURRENT_STAGE}."
     it140_finish "$exit_code" 'CANCELED' \
         'The operation did not finish. Rerun the same script to recover.' \
-        "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_ide.zsh\""
+        "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
 }
 
 it140_initialize_log() {
@@ -950,7 +950,7 @@ it140_header 'Stage 2: Update Manifest-Declared System Software'
 IT140_CURRENT_STAGE='Locate Homebrew'
 BREW_PATH=''
 if ! BREW_PATH="$(it140_find_brew)"; then
-    it140_abort 1 'Homebrew is unavailable. Run install_ide.zsh before Update.'
+    it140_abort 1 'Homebrew is unavailable. Run install_it140.zsh before Update.'
 fi
 it140_activate_brew_environment "$BREW_PATH"
 if ! "$BREW_PATH" update; then
@@ -962,7 +962,7 @@ while IFS= read -r package_id; do
     [[ -n "$package_id" ]] || continue
     IT140_CURRENT_STAGE="Update Homebrew formula ${package_id}"
     if ! "$BREW_PATH" list --formula "$package_id" >/dev/null 2>&1; then
-        it140_abort 1 "Required Homebrew formula is missing: ${package_id}. Run install_ide.zsh."
+        it140_abort 1 "Required Homebrew formula is missing: ${package_id}. Run install_it140.zsh."
     fi
     if "$BREW_PATH" outdated --formula "$package_id" 2>/dev/null | /usr/bin/grep -q .; then
         "$BREW_PATH" upgrade "$package_id" || it140_abort 4 "Homebrew formula could not be updated: ${package_id}."
@@ -977,7 +977,7 @@ while IFS= read -r package_id; do
     [[ -n "$package_id" ]] || continue
     IT140_CURRENT_STAGE="Update Homebrew cask ${package_id}"
     if ! "$BREW_PATH" list --cask "$package_id" >/dev/null 2>&1; then
-        it140_abort 1 "Required Homebrew cask is missing: ${package_id}. Run install_ide.zsh."
+        it140_abort 1 "Required Homebrew cask is missing: ${package_id}. Run install_it140.zsh."
     fi
     if "$BREW_PATH" outdated --cask --greedy "$package_id" 2>/dev/null | /usr/bin/grep -q .; then
         "$BREW_PATH" upgrade --cask "$package_id" || it140_abort 4 "Homebrew cask could not be updated: ${package_id}."
@@ -990,7 +990,7 @@ done < "$CASKS_FILE"
 it140_header 'Stage 3: Update User-Scoped Course Tools'
 IT140_CURRENT_STAGE='Update course Python packages'
 [[ -x "$IT140_VENV_DIR/bin/python" ]] || \
-    it140_abort 1 'The course virtual environment is missing. Run configure_ide.zsh.'
+    it140_abort 1 'The course virtual environment is missing. Run configure_it140.zsh.'
 VENV_PYTHON="$IT140_VENV_DIR/bin/python"
 "$VENV_PYTHON" -m pip install --upgrade pip || it140_abort 4 'pip could not be updated.'
 VENV_PACKAGES_FILE="$(it140_make_list_file venv_packages)"
@@ -1002,7 +1002,7 @@ while IFS= read -r package_id; do
 done < "$VENV_PACKAGES_FILE"
 
 IT140_CURRENT_STAGE='Update required Visual Studio Code extensions'
-command -v code >/dev/null 2>&1 || it140_abort 1 'The Visual Studio Code CLI is unavailable. Run install_ide.zsh.'
+command -v code >/dev/null 2>&1 || it140_abort 1 'The Visual Studio Code CLI is unavailable. Run install_it140.zsh.'
 EXTENSIONS_FILE="$(it140_make_list_file vscode_extensions)"
 while IFS= read -r extension_id; do
     [[ -n "$extension_id" ]] || continue
@@ -1033,4 +1033,4 @@ done < "$COMMANDS_FILE"
 it140_notice 'Update does not install a major macOS upgrade. Use System Settings > General > Software Update for operating-system updates.'
 it140_finish 0 'PASS' \
     'Controlled maintenance assets and all manifest-declared course IDE components were updated or confirmed current.' \
-    'Run next: "$HOME/it140/scripts/mac/verify_ide.zsh"'
+    'Run next: "$HOME/it140/scripts/mac/verify_it140.zsh"'

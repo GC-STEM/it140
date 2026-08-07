@@ -72,7 +72,7 @@ print_warning() { printf '[WARNING] %s\n' "$1"; WARNINGS=$((WARNINGS + 1)); }
 print_error() { printf '[ERROR] %s\n' "$1" >&2; }
 usage() {
     cat <<USAGE
-Usage: update_ide.sh [--help] [--version] [--noninteractive]
+Usage: update_it140.sh [--help] [--version] [--noninteractive]
                      [--deployment-profile codio_cvd]
 
 Maintains the approved IT 140 Codio Virtual Desktop on Ubuntu 24.04. Run as
@@ -149,13 +149,13 @@ course_continuity_guidance() {
 summary_guidance() {
     local exit_code="$1"
     if [[ "$RESTART_REQUIRED" == true ]]; then
-        printf 'Save your work, restart the CVD, open Terminal, and rerun update_ide.sh.'
+        printf 'Save your work, restart the CVD, open Terminal, and rerun update_it140.sh.'
     elif ((exit_code != 0)); then
-        printf 'Review the errors above, then rerun update_ide.sh.'
+        printf 'Review the errors above, then rerun update_it140.sh.'
     elif [[ "$USER_CONFIGURATION_COMPLETE" == true ]]; then
-        printf 'Open a fresh Terminal and run verify_ide.sh.'
+        printf 'Open a fresh Terminal and run verify_it140.sh.'
     else
-        printf 'Open a fresh Terminal and run configure_ide.sh.'
+        printf 'Open a fresh Terminal and run configure_it140.sh.'
     fi
 }
 finish() {
@@ -409,7 +409,7 @@ retry_operation() {
 check_platform_and_user() {
     CURRENT_STAGE="execution-context validation"
     if [[ "$EUID" -eq 0 ]]; then
-        fatal "$EXIT_UNSUPPORTED" "Do not run update_ide.sh with sudo; use the standard CVD desktop account."
+        fatal "$EXIT_UNSUPPORTED" "Do not run update_it140.sh with sudo; use the standard CVD desktop account."
     fi
     [[ -r /etc/os-release ]] || fatal "$EXIT_UNSUPPORTED" "Cannot identify the operating system."
     # shellcheck disable=SC1091

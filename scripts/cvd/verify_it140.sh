@@ -62,7 +62,7 @@ print_notice() { printf '[NOTICE] %s\n' "$1"; }
 
 usage() {
     cat <<USAGE
-Usage: verify_ide.sh [--help] [--version] [--deployment-profile codio_cvd]
+Usage: verify_it140.sh [--help] [--version] [--deployment-profile codio_cvd]
                      [--support-bundle] [--yes] [--skip-network]
 
 Verifies the IT 140 CVD system and current-user configuration without repairing
@@ -111,9 +111,9 @@ record_result() {
     esac
 }
 
-config_remediation() { printf '%s\n' "Run configure_ide.sh to repair the current-user configuration."; }
-install_remediation() { printf '%s\n' "Run update_ide.sh on the CVD to repair required system components, then rerun verify_ide.sh."; }
-prepare_remediation() { printf '%s\n' "Run prepare_ide.sh to refresh the course automation package, then rerun verify_ide.sh."; }
+config_remediation() { printf '%s\n' "Run configure_it140.sh to repair the current-user configuration."; }
+install_remediation() { printf '%s\n' "Run update_it140.sh on the CVD to repair required system components, then rerun verify_it140.sh."; }
+prepare_remediation() { printf '%s\n' "Run prepare_it140.sh to refresh the course automation package, then rerun verify_it140.sh."; }
 
 course_continuity_guidance() {
     print_notice "This issue affects the Codio Virtual Desktop (CVD)."
@@ -209,7 +209,7 @@ PY
 }
 
 check_platform_context() {
-    if ((EUID == 0)); then record_result FAIL verify.user_context "Verify must run as the standard CVD user, not root." "Run verify_ide.sh without sudo."; return; fi
+    if ((EUID == 0)); then record_result FAIL verify.user_context "Verify must run as the standard CVD user, not root." "Run verify_it140.sh without sudo."; return; fi
     [[ -r /etc/os-release ]] || { record_result FAIL verify.os "Cannot read /etc/os-release." "Contact course support."; return; }
     # shellcheck disable=SC1091
     source /etc/os-release

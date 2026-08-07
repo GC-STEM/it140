@@ -10,8 +10,8 @@ does not provide it, and installs the manifest-required Windows software. The
 script does not run Windows Update and does not configure personal GitHub, Git,
 Python-environment, or VS Code settings.
 
-After successful setup, the sandbox is ready for the tested configure_ide.ps1 and
-verify_ide.ps1 scripts. A normal PowerShell continuation shortcut is created on
+After successful setup, the sandbox is ready for the tested configure_it140.ps1 and
+verify_it140.ps1 scripts. A normal PowerShell continuation shortcut is created on
 the desktop and opened automatically for interactive runs.
 
 Artifact version:
@@ -130,7 +130,7 @@ Usage:
 
 This script installs WinGet when needed and then installs missing
 manifest-required Windows software. It does not run Windows Update or configure
-personal user settings. After setup, use configure_ide.ps1 and verify_ide.ps1.
+personal user settings. After setup, use configure_it140.ps1 and verify_it140.ps1.
 
 Deployment profile: $DeploymentProfile
 Log directory: $LogDirectory
@@ -1051,14 +1051,14 @@ function New-ContinuationShortcut {
         "System32\WindowsPowerShell\v1.0\powershell.exe"
     $VerificationMessage = (
         "After configuration, close this window, open the desktop shortcut " +
-        "again, and run verify_ide.ps1."
+        "again, and run verify_it140.ps1."
     )
     $CommandText = (
         "Set-Location -LiteralPath '$CourseRoot'; " +
         "`$env:Path = '$WindowsScriptDirectory;' + `$env:Path; " +
         "Write-Host ''; " +
         "Write-Host 'IT 140 Windows Sandbox is ready.' -ForegroundColor Green; " +
-        "Write-Host 'Run configure_ide.ps1 to configure the current user.' -ForegroundColor Cyan; " +
+        "Write-Host 'Run configure_it140.ps1 to configure the current user.' -ForegroundColor Cyan; " +
         "Write-Host '$VerificationMessage' -ForegroundColor Cyan"
     )
 
@@ -1189,7 +1189,7 @@ try {
     Write-Info "Failures         : 0"
     Write-Info ("Elapsed time     : {0:hh\:mm\:ss}" -f $Elapsed)
     Write-Info "Log file         : $LogPath"
-    Write-Notice "Next step: run configure_ide.ps1 in the continuation PowerShell window."
+    Write-Notice "Next step: run configure_it140.ps1 in the continuation PowerShell window."
     Write-Info "Exit code        : 0"
 
     if (-not $NonInteractive) {

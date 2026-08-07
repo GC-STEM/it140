@@ -8,11 +8,11 @@
 
 ## Included entry points
 
-- `prepare_ide.zsh`
-- `install_ide.zsh`
-- `configure_ide.zsh`
-- `verify_ide.zsh`
-- `update_ide.zsh`
+- `prepare_it140.zsh`
+- `install_it140.zsh`
+- `configure_it140.zsh`
+- `verify_it140.zsh`
+- `update_it140.zsh`
 
 ## Major alignment corrections
 
@@ -27,7 +27,7 @@
 
 ## Repository issue requiring separate manifest correction
 
-The current controlled manifest still identifies the macOS script extension as `.sh` and retains a legacy filename template even though the repository, SRS, SDD, pseudoscripts, and these lifecycle entry points use `.zsh` and `<action>_ide.zsh`. The scripts intentionally follow the current lifecycle artifacts and repository filenames rather than rejecting the current manifest for that known metadata inconsistency.
+The current controlled manifest still identifies the macOS script extension as `.sh` and retains a legacy filename template even though the repository, SRS, SDD, pseudoscripts, and these lifecycle entry points use `.zsh` and `<action>_it140.zsh`. The scripts intentionally follow the current lifecycle artifacts and repository filenames rather than rejecting the current manifest for that known metadata inconsistency.
 
 ## Validation performed in the build environment
 

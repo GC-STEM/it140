@@ -509,7 +509,7 @@
         "file_extension": ".ps1",
         "shell_id": "windows_powershell",
         "line_ending": "lf",
-        "filename_template": "{action}_ide.ps1"
+        "filename_template": "{action}_it140.ps1"
       },
       "package_manager": {
         "display_name": "WinGet",
@@ -802,7 +802,7 @@
         "file_extension": ".zsh",
         "shell_id": "macos_zsh",
         "line_ending": "lf",
-        "filename_template": "{action}_ide.zsh"
+        "filename_template": "{action}_it140.zsh"
       },
       "package_manager": {
         "display_name": "Homebrew",
@@ -1083,7 +1083,7 @@
         "file_extension": ".sh",
         "shell_id": "ubuntu_bash",
         "line_ending": "lf",
-        "filename_template": "{action}_ide.sh"
+        "filename_template": "{action}_it140.sh"
       },
       "package_manager": {
         "display_name": "APT",
@@ -1588,7 +1588,7 @@
         "file_extension": ".sh",
         "shell_id": "ubuntu_bash",
         "line_ending": "lf",
-        "filename_template": "{action}_ide.sh"
+        "filename_template": "{action}_it140.sh"
       },
       "package_manager": {
         "display_name": "APT",

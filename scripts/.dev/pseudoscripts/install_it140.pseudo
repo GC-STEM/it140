@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # Repository path:
-#     scripts/.dev/pseudoscripts/install_ide.pseudo
+#     scripts/.dev/pseudoscripts/install_it140.pseudo
 #
 # Purpose:
 #     Install or repair the manifest-declared system layer and approved
@@ -28,7 +28,7 @@
 #     automation root and defines Configure/Verify workspace integration ownership.
 #
 # CVD implementation target:
-#     install_ide.sh version 2026.07.27.1 (legacy calendar version)
+#     install_it140.sh version 2026.07.27.1 (legacy calendar version)
 #
 # Repository baseline:
 #     GC-STEM/it140 commit dbde859f90b1b957b05aa03e25b867563c113bb2
@@ -60,7 +60,7 @@
 #     - Operating-system release upgrades
 #
 # Normal next step:
-#     Close the terminal, open a new terminal, and run configure_ide.<ext>.
+#     Close the terminal, open a new terminal, and run configure_it140.<ext>.
 #
 # ==============================================================================
 
