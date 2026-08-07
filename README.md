@@ -32,9 +32,9 @@ Click the links below to access the repositories for each module's activity. Eac
 | **Module** | **Activity** | **Activity Repository** | **Status** | **Live ETA** |
 | ---------- | ------------ | ----------------------- | :--------: | -----------: |
 | One | Setup Tasks | [it140-m1-setup-tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | 🚧 | 8/10/2026 |
-| | &nbsp;&nbsp;- Github | [../github/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md) | 🟢 | 8/10/2026 |
-| | &nbsp;&nbsp;- Codio | [../codio/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/codio/README.md) | 🟢 | 8/10/2026 |
-| | &nbsp;&nbsp;- Local | [../local/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/local/README.md) | 🅰️ | 8/10/2026 |
+| | &nbsp;&nbsp;- Github Account | [../github/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md) | 🟢 | 8/10/2026 |
+| | &nbsp;&nbsp;- Codio Virtual Desktop | [../codio/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/codio/README.md) | 🟢 | 8/10/2026 |
+| | &nbsp;&nbsp;- Local Machine | [../local/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/local/README.md) | 🅰️ | 8/10/2026 |
 | Two | Assignment | [it140-m2-assignment](https://github.com/GC-STEM/it140-m2-assignment) | 🚧 | 8/10/2026 |
 | Three | Assignment | [it140-m3-assignment](https://github.com/GC-STEM/it140-m3-assignment) | 🚧 | 8/11/2026 |
 | Four | Assignment | [it140-m4-assignment](https://github.com/GC-STEM/it140-m4-assignment) | 🚧 | 8/12/2026 |
