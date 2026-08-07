@@ -3,8 +3,8 @@
 # IT 140 Codio Virtual Desktop read-only verification script
 #
 # Artifact ID: IT140-CVD-VERIFY
-# Artifact version: 0.8.0-alpha.1
-# Version date-time group: 2026-08-07-10-44
+# Artifact version: 0.8.0-alpha.2
+# Version date-time group: 2026-08-07-18-25
 # Development status: Alpha Testing
 #
 # Traceability: VER-FR-001 through VER-FR-018; PKG-FR-021;
@@ -17,8 +17,8 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="0.8.0-alpha.1"
-readonly VERSION_DTG="2026-08-07-10-44"
+readonly SCRIPT_VERSION="0.8.0-alpha.2"
+readonly VERSION_DTG="2026-08-07-18-25"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"
@@ -32,6 +32,8 @@ readonly SCHEMA_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.schema.json"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
 readonly LOG_FILE="${LOG_DIR}/verify_cvd_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="${COURSE_ROOT}/.venv"
+readonly NUMLOCK_AUTOSTART_PATH="/etc/xdg/autostart/numlockx.desktop"
+readonly -a CVD_BASELINE_DESKTOP_LAUNCHERS=("it140.desktop" "GitHub Login.desktop" "OneDrive Login.desktop")
 readonly MANAGED_PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/cvd:$PATH"'
 
 readonly EXIT_SUCCESS=0
@@ -154,6 +156,24 @@ if course in args: raise SystemExit(1)
 PY
 }
 
+launcher_is_xfce_trusted() {
+    local launcher="$1" current_checksum stored_checksum
+    [[ -f "$launcher" && -x "$launcher" ]] || return 1
+    current_checksum="$(sha256sum -- "$launcher" 2>/dev/null | awk '{print $1}')"
+    [[ -n "$current_checksum" ]] || return 1
+    stored_checksum="$(gio info -a metadata::xfce-exe-checksum "$launcher" 2>/dev/null \
+        | sed -n 's/^[[:space:]]*metadata::xfce-exe-checksum:[[:space:]]*//p' \
+        | head -n 1)"
+    [[ "$stored_checksum" == "$current_checksum" ]]
+}
+
+numlock_is_on() {
+    local status
+    command -v numlockx >/dev/null 2>&1 || return 1
+    status="$(numlockx status 2>&1)" || return 1
+    grep -Eiq '(^|[[:space:]])on([[:space:]]|$)' <<< "$status"
+}
+
 validate_manifest() {
     python3 - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" "$REQUESTED_PROFILE" "$SUPPORTED_SCHEMA" <<'PY'
 import json,pathlib,sys
@@ -229,14 +249,48 @@ check_system_layer() {
     local command_name failed=0
     while IFS= read -r command_name; do
         [[ -n "$command_name" ]] || continue
-        if command -v "$command_name" >/dev/null 2>&1; then record_result PASS "verify.command.$command_name" "available"; else record_result FAIL "verify.command.$command_name" "missing" "$(install_remediation)"; failed=1; fi
+        if command -v "$command_name" >/dev/null 2>&1; then
+            record_result PASS "verify.command.$command_name" "available"
+        else
+            record_result FAIL "verify.command.$command_name" "missing" "$(install_remediation)"
+            failed=1
+        fi
     done < <(manifest_query system_commands)
-    if command -v python3.12 >/dev/null 2>&1; then record_result PASS verify.python312 "python3.12 available"; else record_result FAIL verify.python312 "python3.12 missing" "$(install_remediation)"; fi
+
+    if command -v python3.12 >/dev/null 2>&1; then
+        record_result PASS verify.python312 "python3.12 available"
+    else
+        record_result FAIL verify.python312 "python3.12 missing" "$(install_remediation)"
+    fi
+
+    if dpkg-query -W -f='${Status}' numlockx 2>/dev/null | grep -Fqx 'install ok installed'; then
+        record_result PASS verify.package.numlockx "installed"
+    else
+        record_result FAIL verify.package.numlockx "missing" "$(install_remediation)"
+    fi
+    if command -v numlockx >/dev/null 2>&1; then
+        record_result PASS verify.command.numlockx "available"
+    else
+        record_result FAIL verify.command.numlockx "missing" "$(install_remediation)"
+    fi
+
+    if [[ -r "$NUMLOCK_AUTOSTART_PATH" ]] \
+            && grep -Fqx 'Exec=/usr/bin/numlockx on' "$NUMLOCK_AUTOSTART_PATH" \
+            && grep -Fqx 'OnlyShowIn=XFCE;' "$NUMLOCK_AUTOSTART_PATH"; then
+        if command -v desktop-file-validate >/dev/null 2>&1 \
+                && ! desktop-file-validate "$NUMLOCK_AUTOSTART_PATH" >/dev/null 2>&1; then
+            record_result FAIL verify.numlock_autostart "desktop entry is invalid" "$(install_remediation)"
+        else
+            record_result PASS verify.numlock_autostart "Xfce startup enables Num Lock"
+        fi
+    else
+        record_result FAIL verify.numlock_autostart "missing or incorrect" "$(install_remediation)"
+    fi
+
     [[ $failed -eq 0 ]] || true
 }
-
 check_user_layer() {
-    local package extension installed_extensions key expected actual desktop_dir shortcut marker launcher settings_json
+    local package extension installed_extensions key expected actual desktop_dir shortcut marker launcher settings_json name path
     [[ -d "$COURSE_ROOT" ]] && record_result PASS verify.course_root "$COURSE_ROOT" || record_result FAIL verify.course_root "missing" "$(prepare_remediation)"
     [[ -d "$LOG_DIR" && -w "$LOG_DIR" ]] && record_result PASS verify.log_directory "$LOG_DIR" || record_result FAIL verify.log_directory "missing or not writable" "$(prepare_remediation)"
     [[ -f "$HOME/.bashrc" && $(grep -Fxc "$MANAGED_PATH_EXPORT" "$HOME/.bashrc" 2>/dev/null || true) -ge 1 ]] && record_result PASS verify.path_bashrc "managed PATH present" || record_result FAIL verify.path_bashrc "managed PATH missing" "$(config_remediation)"
@@ -269,13 +323,62 @@ PY
     else record_result FAIL verify.vscode_settings "settings.json missing" "$(config_remediation)"; fi
 
     # Repository workspace checks are shallow and read-only by design.
-    if [[ -d "$REPOS_ROOT" && -r "$REPOS_ROOT" && -x "$REPOS_ROOT" ]]; then record_result PASS verify.repository_workspace "$REPOS_ROOT"; else record_result FAIL verify.repository_workspace "missing or inaccessible" "$(config_remediation)"; fi
+    if [[ -d "$REPOS_ROOT" && -r "$REPOS_ROOT" && -x "$REPOS_ROOT" ]]; then
+        record_result PASS verify.repository_workspace "$REPOS_ROOT"
+    else
+        record_result FAIL verify.repository_workspace "missing or inaccessible" "$(config_remediation)"
+    fi
     desktop_dir="$(desktop_directory)"; shortcut="$desktop_dir/Repos"
-    if [[ -L "$shortcut" && "$(readlink -f -- "$shortcut" 2>/dev/null || true)" == "$(readlink -f -- "$REPOS_ROOT" 2>/dev/null || true)" ]]; then record_result PASS verify.repository_workspace_desktop "Desktop/Repos -> $REPOS_ROOT"; else record_result FAIL verify.repository_workspace_desktop "desktop Repos link missing or incorrect" "$(config_remediation)"; fi
+    if [[ -L "$shortcut" && "$(readlink -f -- "$shortcut" 2>/dev/null || true)" == "$(readlink -f -- "$REPOS_ROOT" 2>/dev/null || true)" ]]; then
+        record_result PASS verify.repository_workspace_desktop "Desktop/Repos -> $REPOS_ROOT"
+    else
+        record_result FAIL verify.repository_workspace_desktop "desktop Repos link missing or incorrect" "$(config_remediation)"
+    fi
     marker="$(gio info -a metadata::emblems "$REPOS_ROOT" 2>/dev/null || true)"
-    if grep -Eq 'metadata::emblems:.*development' <<< "$marker"; then record_result PASS verify.repository_workspace_marker "Xfce development emblem present"; else record_result FAIL verify.repository_workspace_marker "Xfce development emblem missing" "$(config_remediation)"; fi
+    if grep -Eq 'metadata::emblems:.*development' <<< "$marker"; then
+        record_result PASS verify.repository_workspace_marker "Xfce development emblem present"
+    else
+        record_result FAIL verify.repository_workspace_marker "Xfce development emblem missing" "$(config_remediation)"
+    fi
+
+    for name in "${CVD_BASELINE_DESKTOP_LAUNCHERS[@]}"; do
+        path="$desktop_dir/$name"
+        if [[ ! -e "$path" && ! -L "$path" ]]; then
+            record_result PASS "verify.desktop_cleanup.${name//[^[:alnum:]]/_}" "absent"
+        else
+            record_result FAIL "verify.desktop_cleanup.${name//[^[:alnum:]]/_}" "unwanted baseline launcher remains: $name" "$(config_remediation)"
+        fi
+    done
+
     launcher="$(find_vscode_launcher 2>/dev/null || true)"
-    if [[ -n "$launcher" ]] && launcher_opens_repos_root "$launcher"; then record_result PASS verify.vscode_workspace_launcher "opens $REPOS_ROOT"; else record_result FAIL verify.vscode_workspace_launcher "existing launcher does not open $REPOS_ROOT" "$(config_remediation)"; fi
+    if [[ -n "$launcher" ]] && launcher_opens_repos_root "$launcher"; then
+        record_result PASS verify.vscode_workspace_launcher "opens $REPOS_ROOT"
+    else
+        record_result FAIL verify.vscode_workspace_launcher "existing launcher does not open $REPOS_ROOT" "$(config_remediation)"
+    fi
+    if [[ -n "$launcher" && -x "$launcher" ]]; then
+        record_result PASS verify.vscode_launcher_executable "launcher is executable"
+    else
+        record_result FAIL verify.vscode_launcher_executable "launcher is not executable" "$(config_remediation)"
+    fi
+    if [[ -n "$launcher" ]] && launcher_is_xfce_trusted "$launcher"; then
+        record_result PASS verify.vscode_launcher_trust "Xfce checksum trust is current"
+    else
+        record_result FAIL verify.vscode_launcher_trust "Xfce checksum trust is missing or stale" "$(config_remediation)"
+    fi
+    if [[ -n "$launcher" && -x "$launcher" ]] && command -v desktop-file-validate >/dev/null 2>&1; then
+        if desktop-file-validate "$launcher" >/dev/null 2>&1; then
+            record_result PASS verify.vscode_launcher_format "desktop entry is valid"
+        else
+            record_result FAIL verify.vscode_launcher_format "desktop entry is invalid" "$(config_remediation)"
+        fi
+    fi
+
+    if numlock_is_on; then
+        record_result PASS verify.numlock_session "Num Lock is ON"
+    else
+        record_result FAIL verify.numlock_session "Num Lock is not ON in the current Xfce session" "$(config_remediation)"
+    fi
 }
 
 create_support_directory() {
@@ -295,6 +398,9 @@ create_support_directory() {
         printf 'Desktop: %s\n' "${XDG_CURRENT_DESKTOP:-unknown}"
         printf 'Repos exists: %s\n' "$( [[ -d "$REPOS_ROOT" ]] && printf yes || printf no )"
         printf 'Repos desktop link valid: %s\n' "$( [[ -L "$(desktop_directory)/Repos" ]] && printf yes || printf no )"
+        printf 'Num Lock current: %s\n' "$( numlock_is_on && printf on || printf off-or-unavailable )"
+        local support_launcher; support_launcher="$(find_vscode_launcher 2>/dev/null || true)"
+        printf 'VS Code launcher trusted: %s\n' "$( [[ -n "$support_launcher" ]] && launcher_is_xfce_trusted "$support_launcher" && printf yes || printf no )"
     } > "$support_dir/system_summary.txt"
     cp -- "$LOG_FILE" "$support_dir/verification.log"
     chmod 0600 "$support_dir"/*

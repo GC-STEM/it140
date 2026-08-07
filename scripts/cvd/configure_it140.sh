@@ -3,15 +3,16 @@
 # IT 140 Codio Virtual Desktop user configuration and repair script
 #
 # Artifact ID: IT140-CVD-CONFIGURE
-# Artifact version: 0.8.0-alpha.1
-# Version date-time group: 2026-08-07-10-44
+# Artifact version: 0.8.0-alpha.2
+# Version date-time group: 2026-08-07-18-25
 # Development status: Alpha Testing
 #
 # Traceability: CFG-FR-001 through CFG-FR-021; PKG-FR-021;
 #               CFG-DES-001 through CFG-DES-021; PLT-DES-006; ERR-DES-014.
 # Scope: Current-user course configuration, separate ~/Repos development
 #        workspace, Xfce workspace emblem and desktop link, and repair of the
-#        existing CVD Visual Studio Code launcher to open ~/Repos.
+#        existing CVD Visual Studio Code launcher to open ~/Repos, removal of
+#        obsolete CVD baseline desktop launchers, and current-session Num Lock.
 #
 # Student-data boundary: this script may create ~/Repos and manage metadata on
 # that parent plus course-owned desktop integrations. It never recursively
@@ -20,8 +21,8 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="0.8.0-alpha.1"
-readonly VERSION_DTG="2026-08-07-10-44"
+readonly SCRIPT_VERSION="0.8.0-alpha.2"
+readonly VERSION_DTG="2026-08-07-18-25"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"
@@ -36,6 +37,7 @@ readonly LOG_DIR="${COURSE_ROOT}/logs"
 readonly LOG_FILE="${LOG_DIR}/configure_cvd_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="${COURSE_ROOT}/.venv"
 readonly LOCK_FILE="${HOME}/.cache/it140-${PLATFORM_ID}-mutation.lock"
+readonly -a CVD_BASELINE_DESKTOP_LAUNCHERS=("it140.desktop" "GitHub Login.desktop" "OneDrive Login.desktop")
 readonly MANAGED_PATH_START="# >>> IT 140 managed PATH >>>"
 readonly MANAGED_PATH_END="# <<< IT 140 managed PATH <<<"
 readonly MANAGED_PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/cvd:$PATH"'
@@ -418,6 +420,57 @@ ensure_repository_workspace() {
     print_success "The development repository workspace is available at $REPOS_ROOT."
 }
 
+numlock_is_on() {
+    local status
+    command -v numlockx >/dev/null 2>&1 || return 1
+    status="$(numlockx status 2>&1)" || return 1
+    grep -Eiq '(^|[[:space:]])on([[:space:]]|$)' <<< "$status"
+}
+
+configure_numlock_session() {
+    CURRENT_STAGE="Num Lock session configuration"
+    command -v numlockx >/dev/null 2>&1 \
+        || fatal "$EXIT_FAILURE" "Num Lock support is unavailable. Run update_it140.sh to install or repair numlockx before Configure."
+    if numlock_is_on; then
+        print_info "Num Lock is already enabled in the current Xfce session."
+        return 0
+    fi
+    numlockx on >/dev/null 2>&1 \
+        || fatal "$EXIT_FAILURE" "Num Lock could not be enabled in the current Xfce session."
+    CHANGED=true
+    numlock_is_on \
+        || fatal "$EXIT_FAILURE" "Num Lock did not remain enabled after configuration."
+    print_success "Num Lock is enabled in the current Xfce session."
+}
+
+remove_unwanted_baseline_desktop_launchers() {
+    CURRENT_STAGE="CVD baseline desktop-launcher cleanup"
+    local desktop_dir name path
+    desktop_dir="$(desktop_directory)"
+    for name in "${CVD_BASELINE_DESKTOP_LAUNCHERS[@]}"; do
+        path="$desktop_dir/$name"
+        if [[ -f "$path" && ! -L "$path" ]]; then
+            rm -- "$path" \
+                || fatal "$EXIT_FAILURE" "The unwanted CVD baseline desktop launcher could not be removed: $path"
+            CHANGED=true
+            print_success "Removed unwanted CVD baseline desktop launcher: $name"
+        elif [[ -e "$path" || -L "$path" ]]; then
+            fatal "$EXIT_FAILURE" "An unexpected desktop object uses the reserved CVD baseline name and was preserved: $path"
+        fi
+    done
+}
+
+launcher_is_xfce_trusted() {
+    local launcher="$1" current_checksum stored_checksum
+    [[ -f "$launcher" && -x "$launcher" ]] || return 1
+    current_checksum="$(sha256sum -- "$launcher" 2>/dev/null | awk '{print $1}')"
+    [[ -n "$current_checksum" ]] || return 1
+    stored_checksum="$(gio info -a metadata::xfce-exe-checksum "$launcher" 2>/dev/null \
+        | sed -n 's/^[[:space:]]*metadata::xfce-exe-checksum:[[:space:]]*//p' \
+        | head -n 1)"
+    [[ "$stored_checksum" == "$current_checksum" ]]
+}
+
 find_vscode_launcher() {
     local desktop_dir candidate
     desktop_dir="$(desktop_directory)"; [[ -d "$desktop_dir" ]] || return 1
@@ -463,14 +516,27 @@ try:
     tmp.write_text("\n".join(output)+"\n",encoding="utf-8",newline="\n"); tmp.replace(path)
 finally: tmp.unlink(missing_ok=True)
 PY
-    chmod 0755 "$launcher"
     if command -v desktop-file-validate >/dev/null 2>&1; then
         desktop-file-validate "$launcher" \
             || fatal "$EXIT_FAILURE" "The repaired Visual Studio Code launcher failed desktop-entry validation."
     fi
-    gio set "$launcher" metadata::trusted true >/dev/null 2>&1 || print_warning "The launcher target was repaired, but trust metadata could not be set automatically."
+
+    # Xfce/Thunar trusts launchers by storing the SHA-256 checksum of the
+    # completed .desktop file in metadata::xfce-exe-checksum. Set trust only
+    # after all content changes so the stored checksum cannot immediately stale.
+    chmod 0755 -- "$launcher" \
+        || fatal "$EXIT_FAILURE" "The Visual Studio Code launcher could not be marked executable."
+    local launcher_checksum
+    launcher_checksum="$(sha256sum -- "$launcher" | awk '{print $1}')"
+    [[ -n "$launcher_checksum" ]] \
+        || fatal "$EXIT_FAILURE" "The Visual Studio Code launcher checksum could not be calculated."
+    gio set "$launcher" metadata::xfce-exe-checksum "$launcher_checksum" >/dev/null 2>&1 \
+        || fatal "$EXIT_FAILURE" "The Visual Studio Code launcher could not be marked trusted by Xfce."
+    launcher_is_xfce_trusted "$launcher" \
+        || fatal "$EXIT_FAILURE" "The Visual Studio Code launcher trust metadata did not validate."
+
     VSCODE_LAUNCHER="$launcher"; CHANGED=true
-    print_success "The existing Visual Studio Code desktop launcher now opens $REPOS_ROOT."
+    print_success "The existing Visual Studio Code desktop launcher now opens $REPOS_ROOT and is trusted by Xfce."
 }
 
 remove_obsolete_course_folder_shortcut() {
@@ -596,7 +662,7 @@ PY
 
 validate_configuration() {
     CURRENT_STAGE="configuration validation"
-    local key expected actual package extension installed_extensions desktop_dir shortcut marker
+    local key expected actual package extension installed_extensions desktop_dir shortcut marker name path
     gh auth status --hostname github.com >/dev/null 2>&1 || fatal "$EXIT_FAILURE" "GitHub CLI is not authenticated after configuration."
     [[ "$(git config --global --get user.name 2>/dev/null || true)" == "$GIT_DISPLAY_NAME" ]] || fatal "$EXIT_FAILURE" "Git display-name validation failed."
     [[ "$(git config --global --get user.email 2>/dev/null || true)" == "$GIT_PRIVATE_EMAIL" ]] || fatal "$EXIT_FAILURE" "Git private-email validation failed."
@@ -614,6 +680,12 @@ validate_configuration() {
     marker="$(gio info -a metadata::emblems "$REPOS_ROOT" 2>/dev/null || true)"; grep -Eq 'metadata::emblems:.*development' <<< "$marker" || fatal "$EXIT_FAILURE" "The Repos development emblem is missing."
     [[ -n "$VSCODE_LAUNCHER" && -f "$VSCODE_LAUNCHER" ]] || fatal "$EXIT_FAILURE" "The repaired Visual Studio Code desktop launcher is unavailable."
     launcher_opens_repos_root "$VSCODE_LAUNCHER" || fatal "$EXIT_FAILURE" "The Visual Studio Code desktop launcher does not open $REPOS_ROOT."
+    launcher_is_xfce_trusted "$VSCODE_LAUNCHER" || fatal "$EXIT_FAILURE" "The Visual Studio Code desktop launcher is not executable and trusted by Xfce."
+    for name in "${CVD_BASELINE_DESKTOP_LAUNCHERS[@]}"; do
+        path="$desktop_dir/$name"
+        [[ ! -e "$path" && ! -L "$path" ]] || fatal "$EXIT_FAILURE" "An unwanted CVD baseline desktop launcher remains: $path"
+    done
+    numlock_is_on || fatal "$EXIT_FAILURE" "Num Lock is not enabled in the current Xfce session."
     print_success "Required user configuration passed post-configuration validation."
 }
 
@@ -641,12 +713,14 @@ main() {
     IFS=$'\t' read -r MANIFEST_RELEASE MANIFEST_DTG <<< "$manifest_info"
     check_restart_precondition; check_system_layer; acquire_lock
     configure_paths_and_folders
+    configure_numlock_session
     ensure_repository_workspace
     resolve_provider_identity
     configure_python_tools
     configure_vscode_extensions
     configure_git_settings
     configure_vscode_settings
+    remove_unwanted_baseline_desktop_launchers
     repair_vscode_launcher
     remove_obsolete_course_folder_shortcut
     configure_file_associations
