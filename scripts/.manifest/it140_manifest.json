@@ -1,6 +1,6 @@
 {
   "schema_version": "2.2",
-  "automation_release": "0.7.2",
+  "automation_release": "0.7.3",
   "course": {
     "course_id": "IT 140",
     "course_title": "Introduction to Scripting",
@@ -10,7 +10,7 @@
     "status": "draft",
     "source_repository": "https://github.com/GC-STEM/it140",
     "source_revision": "dbde859f90b1b957b05aa03e25b867563c113bb2",
-    "change_summary": "Restore the controlled manifest to the schema 2.2 contract while preserving the intended CVD Noto Color Emoji package requirement and existing lifecycle selections."
+    "change_summary": "Complete the schema 2.2 manifest-contract repair by replacing invalid runtime verification version_adapter_id fields with schema-native version_rule objects across all platform bindings."
   },
   "policy": {
     "course_root": "${HOME}/it140",
@@ -662,7 +662,11 @@
             "package_identifiers": [
               "Python.Python.3.12"
             ],
-            "version_adapter_id": "pep440_version"
+            "version_rule": {
+              "comparison": "compatible_range",
+              "value": ">=3.12,<3.13",
+              "comparison_adapter_id": "pep440_version"
+            }
           }
         },
         "test_runner": {
@@ -951,7 +955,11 @@
             "package_identifiers": [
               "python@3.12"
             ],
-            "version_adapter_id": "pep440_version"
+            "version_rule": {
+              "comparison": "compatible_range",
+              "value": ">=3.12,<3.13",
+              "comparison_adapter_id": "pep440_version"
+            }
           }
         },
         "test_runner": {
@@ -1456,7 +1464,11 @@
             "package_identifiers": [
               "python3.12"
             ],
-            "version_adapter_id": "pep440_version"
+            "version_rule": {
+              "comparison": "compatible_range",
+              "value": ">=3.12,<3.13",
+              "comparison_adapter_id": "pep440_version"
+            }
           }
         },
         "test_runner": {
@@ -1918,7 +1930,11 @@
             "package_identifiers": [
               "python3.12"
             ],
-            "version_adapter_id": "pep440_version"
+            "version_rule": {
+              "comparison": "compatible_range",
+              "value": ">=3.12,<3.13",
+              "comparison_adapter_id": "pep440_version"
+            }
           }
         },
         "test_runner": {
@@ -2409,5 +2425,5 @@
       ]
     }
   },
-  "automation_release_date_time_group": "2026-08-07-12-51"
+  "automation_release_date_time_group": "2026-08-07-13-38"
 }
