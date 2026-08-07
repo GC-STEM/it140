@@ -149,7 +149,7 @@ course_continuity_guidance() {
 summary_guidance() {
     local exit_code="$1"
     if [[ "$RESTART_REQUIRED" == true ]]; then
-        printf 'Save your work, restart the CVD, open Terminal, and rerun update_it140.sh.'
+        printf 'Save your work, click RESTART VM, open Terminal, and run configure_it140.sh.'
     elif ((exit_code != 0)); then
         printf 'Review the errors above, then rerun update_it140.sh.'
     elif [[ "$USER_CONFIGURATION_COMPLETE" == true ]]; then

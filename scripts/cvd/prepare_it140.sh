@@ -59,7 +59,7 @@ export PATH="$course_root/scripts/cvd:$PATH"
 hash -r
 trap - ERR HUP INT TERM
 cleanup
-printf 'SUCCESS: The IT 140 automation package is ready.\nNext step: Close this terminal window. \nLog: %s\n' "$log_path"
+printf "SUCCESS: The IT 140 automation package is ready.\nNext step: Close this terminal window by typing 'exit' and pressing 'Enter'.\nLog: %s\n" "$log_path"
 )
 # ----- END COPYABLE BOOTSTRAP COMMAND SET -----
 exit $?
