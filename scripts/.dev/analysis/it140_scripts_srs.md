@@ -5,9 +5,9 @@
 - **Program Name**: IT 140 Course Automation Scripts
 - **Document ID**: IT140-SRS-SCRIPTS
 - **Status**: Draft for faculty review
-- **Version**: 0.5.0
-- **Version Date-Time Group**: 2026-08-01-10-43
-- **Repository Baseline**: `GC-STEM/it140` commit `e7d3e7fc24eeefd5aafccd8939982f5c0369c3f4`
+- **Version**: 0.6.0
+- **Version Date-Time Group**: 2026-08-07-10-44
+- **Repository Baseline**: `GC-STEM/it140` commit `dbde859f90b1b957b05aa03e25b867563c113bb2`
 
 ## 0. General Description
 
@@ -67,7 +67,7 @@ The concrete reference environment used to review this SRS and design the initia
 The package shall not:
 
 - Create, solve, grade, or modify student programming assignments.
-- Overwrite student programming-language source files, assignment repositories, version-control history, or Learning Management System (LMS) submissions.
+- Overwrite student programming-language source files, assignment repositories, version-control history, or Learning Management System (LMS) submissions. The package may create and identify the parent repository workspace but shall not recursively enumerate, rewrite, delete, move, permission-reset, or otherwise manage repositories or files stored inside that workspace.
 - Store passwords, authentication tokens, browser session data, or other secrets.
 - Perform an operating-system release upgrade unless a future approved requirement explicitly adds that capability.
 - Provide general-purpose backup, reset, uninstall, or account-recovery functions.
@@ -88,6 +88,7 @@ The **bootstrap command set** is the short, platform-native sequence represented
 | Controlled configuration item | A file or data set whose changes require review, testing, approval, and release tracking. The manifest is controlled because it selects the products and versions used by the package. |
 | Course-supported deployment profile | A concrete local, virtual, or hosted environment—defined by operating-system family and release, architecture, deployment kind, desktop or session, and applicable platform implementation—that has completed required implementation, qualification testing, documentation, and approval for course use. |
 | Platform implementation | One platform-native set of lifecycle scripts and adapters that may be reused by one or more deployment profiles. |
+| Repository workspace | The current user's development workspace for assignment and project Git repositories. The standard path is `${HOME}/Repos` (or the exact native equivalent, such as `%USERPROFILE%\Repos` on Windows). Course automation owns only creation of the parent directory and explicitly defined desktop integrations; repository contents remain student-owned. |
 | Exit code | A small integer returned when a script ends. Other programs and support tools use it to determine whether the run succeeded or why it failed. |
 | GUI | Graphical User Interface. A GUI uses windows, icons, buttons, and menus rather than only typed commands. |
 | IDE | Integrated Development Environment. It combines tools used to write, run, test, debug, and manage programs. |
@@ -110,7 +111,7 @@ The **bootstrap command set** is the short, platform-native sequence represented
 | Semantic Versioning (SemVer) | A versioning scheme expressed as `MAJOR.MINOR.PATCH`. Incompatible changes increment MAJOR, backward-compatible functionality increments MINOR, and backward-compatible corrections increment PATCH. |
 | SRS | Software Requirements Specification. It defines required software behavior and constraints. |
 | Technical compatibility | Evidence that the required software stack might operate on a deployment profile. Technical compatibility does not establish implementation completeness, qualification, documentation, approval, or course support. |
-| Version date-time group-time group | The local date and 24-hour time, written as `YYYY-MM-DD-HH-MM`, at which a specific artifact version was created or approved. The date-time group supplements SemVer and does not determine version precedence. |
+| Version date-time group | The local date and 24-hour time, written as `YYYY-MM-DD-HH-MM`, at which a specific artifact version was created or approved. The date-time group supplements SemVer and does not determine version precedence. |
 | Version-control system | Software that records file changes and preserves change history so earlier versions can be reviewed or restored. |
 
 ### 0.7 Requirement Conventions
@@ -358,15 +359,15 @@ The configure script shall:
 
   **Why:** The same script must work for different account names.
 
-- **CFG-FR-013** On a supported graphical desktop, create or repair a desktop shortcut or launcher that opens the course root (`~/it140/` or its exact platform-equivalent path) in the platform file manager.
+- **CFG-FR-013** On a supported graphical desktop, preserve any existing course-root desktop integration unless it is explicitly obsolete and automation-managed; new student development navigation shall use the repository workspace integration defined by CFG-FR-019 rather than creating a new course-root shortcut.
 
-  **Why:** A direct course-folder shortcut reduces file-navigation errors for beginning users.
+  **Why:** A direct repository-workspace shortcut reduces file-navigation errors while keeping student development work separate from course-managed automation files.
 
-- **CFG-FR-014** Configure the manifest-approved IDE to use the course root as its default course folder where the IDE supports that setting, and create or repair a desktop shortcut or launcher that starts the IDE with the course root opened as the active folder or workspace.
+- **CFG-FR-014** Configure manifest-approved IDE settings without forcing the course automation root to become the student's default development workspace. Profile-owned IDE launch behavior shall follow the repository-workspace rule in CFG-FR-021 where applicable.
 
-  **Why:** Opening the approved IDE directly in the course root gives students a consistent starting location and matches the established Windows behavior.
+  **Why:** Separating IDE development work from the course automation root reduces accidental edits to course-managed files and reinforces a clear Git repository workflow.
 
-- **CFG-FR-015** Validate the resulting version-control client, source-code-hosting CLI, programming-language runtime and tools, IDE, extensions or plug-ins, course-folder configuration, desktop course-folder shortcut, and IDE course-folder launch behavior before reporting success.
+- **CFG-FR-015** Validate the resulting version-control client, source-code-hosting CLI, programming-language runtime and tools, IDE, extensions or plug-ins, course-folder configuration, repository workspace, applicable desktop integration, and profile-owned IDE launch behavior before reporting success.
 
   **Why:** Configuration is complete only when the resulting settings and managed integrations can be read and used.
 
@@ -376,7 +377,15 @@ The configure script shall:
 
 - **CFG-FR-017** Recommend running the matching `verify_ide.<ext>` script after successful configuration.
 
-  **Why:** Verification provides an independent check of both installation and configuration.
+- **CFG-FR-018** Create or preserve the current user's repository workspace at `${HOME}/Repos` or the exact platform-equivalent path. Configure shall create the parent directory when missing but shall not traverse or modify existing child repositories or files.
+
+- **CFG-FR-019** On a supported graphical desktop, create or repair a desktop shortcut or link named `Repos` that resolves to the repository workspace. If an unrelated non-managed item already uses the required shortcut name, Configure shall preserve it and report the conflict rather than overwrite it.
+
+- **CFG-FR-020** Apply a platform-appropriate development visual marker to the repository workspace when a safe native mechanism is supported. The Codio Virtual Desktop (CVD) Xfce implementation shall apply the native `development` emblem. Other qualified graphical desktop implementations shall use an approved development or code-oriented folder icon or emblem when safely available; an implementation may report this visual-only integration as `NOT APPLICABLE` when its platform supplement documents that no safe supported native mechanism exists.
+
+- **CFG-FR-021** On the CVD, repair the existing Visual Studio Code desktop launcher so that it opens the repository workspace as the active folder instead of the course automation root. Configure shall modify the existing course-provided launcher and shall not create a duplicate Visual Studio Code desktop launcher when the expected launcher is missing.
+
+  **Why:** The course-provided launcher should take students directly to the directory intended for assignment and project repositories without exposing course-managed automation files as the normal coding workspace.
 
 ### 1.5 Verify Script Requirements
 
@@ -402,7 +411,7 @@ The verify script shall:
 
   **Why:** Missing or incompatible versions can prevent course activities from working.
 
-- **VER-FR-006** Check required programming-language packages, IDE extensions or plug-ins, version-control settings, source-code-hosting authentication status, IDE settings, script permissions, course folders, the desktop course-folder shortcut, and the IDE course-folder launch target or argument on supported graphical desktops.
+- **VER-FR-006** Check required programming-language packages, IDE extensions or plug-ins, version-control settings, source-code-hosting authentication status, IDE settings, script permissions, course folders, repository-workspace integration, and any profile-owned IDE launch target or argument on supported graphical desktops.
 
   **Why:** Verification must cover both the system-level and user-specific layers.
 
@@ -435,6 +444,14 @@ The verify script shall:
   **Why:** A support bundle can speed troubleshooting, but it must not collect unnecessary personal or course data.
 
 - **VER-FR-014** Identify unsupported conditions that the scripts cannot safely repair and direct the user to the appropriate support channel.
+
+- **VER-FR-015** Check that the repository workspace exists at the required native path and is accessible to the current user without creating files or changing permissions.
+
+- **VER-FR-016** Check that the desktop `Repos` shortcut or link resolves to the repository workspace without modifying the shortcut, link, or workspace.
+
+- **VER-FR-017** Check the platform-approved development visual marker for the repository workspace when that integration is applicable; report `NOT APPLICABLE` rather than failure only when the platform design explicitly declares the visual marker unsupported.
+
+- **VER-FR-018** On the CVD, check that the existing Visual Studio Code desktop launcher opens the repository workspace and does not target the course automation root.
 
   **Why:** Some failures require platform administration rather than another script run.
 
@@ -526,7 +543,7 @@ The package shall:
 
   **Why:** The same requirements must drive installation, verification, and update.
 
-- **PKG-FR-015** Define provider profiles, required version-control and IDE settings, file associations, the course root, the desktop course-folder shortcut or launcher, the IDE course-folder shortcut or launcher, and other managed integrations and paths in the manifest. A provider profile shall identify the approved CLI or API, authentication flow, required account fields, and privacy-preserving commit identity rule.
+- **PKG-FR-015** Define provider profiles, required version-control and IDE settings, file associations, the course root, and release-selected managed integrations and paths in the manifest. Stable lifecycle-owned paths whose values are not release selections, including the `${HOME}/Repos` repository-workspace contract, may be specified by this SRS and the SDD rather than duplicated as manifest data. A provider profile shall identify the approved CLI or API, authentication flow, required account fields, and privacy-preserving commit identity rule.
 
   **Why:** User configuration and verification need one shared target state.
 
@@ -912,8 +929,10 @@ Version-control display name [PeteyPenmen]:
 > Petey Penmen
 
 [SUCCESS] Version-control identity configured with the provider-approved private commit identity.
-[SUCCESS] The desktop course-folder shortcut opens ~/it140/.
-[SUCCESS] The approved IDE shortcut opens with ~/it140/ as the active folder.
+[SUCCESS] The repository workspace is available at ~/Repos/.
+[SUCCESS] The desktop Repos shortcut opens ~/Repos/.
+[SUCCESS] The development workspace marker is configured where supported.
+[SUCCESS] The CVD Visual Studio Code launcher opens ~/Repos/ as the active folder.
 [SUCCESS] Required version-control, programming-language, IDE, extension, folder, and launcher settings are configured.
 
 Next step: Run verify_ide.sh
@@ -934,9 +953,11 @@ PASS    Operating system: approved reference release
 PASS    Programming-language runtime: required version available
 PASS    Source-code-hosting CLI: authenticated
 FAIL    IDE extension: required formatter extension is missing
-PASS    Course folder: ~/it140
-PASS    Desktop course-folder shortcut: target is correct
-PASS    IDE course-folder shortcut: opens ~/it140
+PASS    Course automation folder: ~/it140
+PASS    Repository workspace: ~/Repos
+PASS    Desktop Repos shortcut: target is correct
+PASS    Development workspace marker: correct or not applicable by platform
+PASS    CVD IDE launcher: opens ~/Repos
 PASS    Log directory: writable
 
 Remediation for failed check:
@@ -1036,14 +1057,17 @@ An **acceptance test** checks whether the completed software meets an agreed req
 
 | Test ID | Requirements | Test input or condition | Expected result and pass criteria |
 | --- | --- | --- | --- |
-| AT-CFG-001 | CFG-FR-002 through CFG-FR-015 | Run configure for a new standard user after successful install. | Required folders, PATH entry, source-code-hosting authentication, version-control identity, tools, extensions or plug-ins, settings, desktop course-folder shortcut, and IDE course-folder launch behavior are correctly established. |
+| AT-CFG-001 | CFG-FR-002 through CFG-FR-021 | Run configure for a new standard user after successful install. | Required course folders, repository workspace, PATH entry, source-code-hosting authentication, version-control identity, tools, extensions or plug-ins, settings, desktop Repos link, applicable development marker, and profile-owned IDE launch behavior are correctly established. |
 | AT-CFG-002 | CFG-FR-005 | Run configure while the manifest-approved source-code-hosting CLI is already authenticated. | The existing valid authentication is used; no unnecessary login flow starts. |
 | AT-CFG-003 | CFG-FR-006, PKG-QOS-014 | Cancel the required external-service authentication flow. | Configure reports cancellation, does not claim success, preserves prior settings, and exits with code `6`. |
 | AT-CFG-004 | CFG-FR-007, PKG-NFR-025 | Complete authentication with a known test account. | The provider-profile privacy rule produces the correct commit identity, but complete private identity data is redacted in logs and support output. |
 | AT-CFG-005 | CFG-FR-011, CFG-FR-016 | Add unrelated valid IDE settings and optional extensions or plug-ins, then run configure twice. | Required settings are merged; unrelated settings and optional extensions remain; no duplicate entries are created. |
 | AT-CFG-006 | CFG-FR-012, PKG-NFR-019 | Run configure under two different home-directory paths, including one with spaces where supported. | All managed paths are derived correctly; no hardcoded user name or home-directory dependency is present. |
-| AT-CFG-007 | CFG-FR-013 through CFG-FR-015 | Delete or corrupt the managed desktop shortcuts and the IDE default-folder setting, then rerun configure. | The course-folder shortcut opens `~/it140/` in the platform file manager; the IDE shortcut launches the approved IDE with `~/it140/` opened; the default folder is repaired where supported; unrelated desktop preferences remain unchanged. |
+| AT-CFG-007 | CFG-FR-018 through CFG-FR-021 | Populate `~/Repos/` with a test Git repository, then delete or corrupt only the course-managed workspace desktop integration and rerun Configure. | `~/Repos/` still contains the unchanged test repository; the desktop `Repos` shortcut resolves to the workspace; the approved development marker is repaired where applicable; on CVD the existing Visual Studio Code launcher opens `~/Repos/`; unrelated desktop preferences remain unchanged. |
 | AT-CFG-008 | CFG-FR-001 | Attempt to run configure directly as root or the system administrator account when not required by the platform design. | Configure stops before personal settings are written and provides the correct standard-user command. |
+
+| AT-CFG-009 | CFG-FR-018, CFG-FR-016, PKG-FR-010 | Place committed and uncommitted test files, nested directories, and Git metadata beneath `~/Repos/`, record hashes and Git status, and run Configure twice. | Configure creates or repairs only the workspace parent and course-owned integrations. All nested file hashes, Git status, repository remotes, branches, timestamps where the platform preserves them, and repository permissions remain unchanged. |
+| AT-CFG-010 | CFG-FR-019 | Place an unrelated regular file or directory at the required desktop shortcut name before Configure. | Configure preserves the conflicting unmanaged item, reports the conflict, and does not replace, rename, or delete it. |
 
 ### 6.5 Verify Acceptance Tests
 
@@ -1051,11 +1075,14 @@ An **acceptance test** checks whether the completed software meets an agreed req
 | --- | --- | --- | --- |
 | AT-VER-001 | VER-FR-003 through VER-FR-012 | Run verify on a fully compliant supported environment. | All required checks pass, summary totals are correct, result is compliant, and exit code is `0`. |
 | AT-VER-002 | VER-FR-005, VER-FR-008 through VER-FR-012 | Remove one required system application. | Verify reports `FAIL`, names the related requirement, recommends `install_ide.<ext>`, and exits with code `1`. |
-| AT-VER-003 | VER-FR-006, VER-FR-009 | Remove one required user setting, extension, desktop course-folder shortcut, or IDE course-folder launch argument. | Verify reports `FAIL`, recommends `configure_ide.<ext>`, and does not recommend install. |
+| AT-VER-003 | VER-FR-006, VER-FR-009, VER-FR-015 through VER-FR-018 | Remove one required user setting or extension, remove the desktop `Repos` link, or on CVD change the Visual Studio Code launch argument away from `~/Repos/`. | Verify reports `FAIL`, recommends `configure_ide.<ext>`, and does not recommend Install. |
 | AT-VER-004 | VER-FR-001, VER-FR-002, PKG-QOS-002 | Record checksums and modification times of managed files before and after verify. | No managed file or setting changes, and verify does not request administrative privilege. |
 | AT-VER-005 | VER-FR-008, VER-FR-010 | Omit an optional component. | Verify reports `WARNING` or `NOT APPLICABLE`, does not classify the environment as failed solely for that item, and uses the correct exit code. |
 | AT-VER-006 | VER-FR-013, PKG-QOS-021, PKG-QOS-022 | Request a support bundle from a test environment containing student source files. | The bundle is created only after explicit request and contains approved diagnostics but no student source, repository content, version-control history, or authentication data. |
 | AT-VER-007 | VER-FR-014 | Simulate an unsupported administrative condition that no lifecycle component can repair. | Verify explains the limitation and directs the user to the approved support channel. |
+
+| AT-VER-008 | VER-FR-001, VER-FR-015 through VER-FR-018 | Record hashes, Git status, and filesystem metadata for content beneath `~/Repos/`, then run Verify. | Verify reports the workspace integration state without creating, editing, deleting, moving, or permission-changing any workspace content or desktop integration. |
+| AT-VER-009 | VER-FR-017, CFG-FR-020 | Run Verify on a qualified platform whose supplement declares no safe supported native development-marker mechanism. | The visual-marker check reports `NOT APPLICABLE`; required workspace and desktop-link checks still run normally and no marker is synthesized. |
 
 ### 6.6 Update Acceptance Tests
 
@@ -1089,7 +1116,7 @@ An **acceptance test** checks whether the completed software meets an agreed req
 
 ### A.1 Purpose and Authority
 
-This appendix records the concrete environment used to review this SRS and design the initial acceptance tests at repository baseline commit `e7d3e7fc24eeefd5aafccd8939982f5c0369c3f4`. **Nonnormative** means that this appendix provides context but does not create binding requirements.
+This appendix records the concrete environment used to review this SRS and design the initial acceptance tests at repository baseline commit `dbde859f90b1b957b05aa03e25b867563c113bb2`. **Nonnormative** means that this appendix provides context but does not create binding requirements.
 
 The controlled `it140_manifest.json` file is the sole authoritative source for products, services, identifiers, versions, approved sources, provider profiles, and supported platform releases. When this appendix and the manifest differ, the manifest controls. Deployment approval requires a complete, valid, and approved manifest.
 

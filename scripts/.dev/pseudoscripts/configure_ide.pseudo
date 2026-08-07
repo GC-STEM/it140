@@ -10,10 +10,10 @@
 #     identity, user tools, IDE settings, and desktop integrations.
 #
 # Artifact version:
-#     0.5.0
+#     0.6.0
 #
-# Version date-time group-time group:
-#     2026-08-01-10-43
+# Version date-time group:
+#     2026-08-07-10-44
 #
 # Development status:
 #     Alpha Testing
@@ -22,24 +22,26 @@
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
 #     Version 0.4.0 adds the common CVD course-continuity conclusion.
-#     Version 0.5.0 adopts minute-resolution version date-time group-time groups and
+#     Version 0.5.0 adopts minute-resolution version date-time groups and
 #     profile-aware lifecycle transition reporting.
+#     Version 0.6.0 separates the student repository workspace from the course
+#     automation root and defines Configure/Verify workspace integration ownership.
 #
 # CVD implementation target:
 #     configure_ide.sh version 2026.07.26.5 (legacy calendar version)
 #
 # Repository baseline:
-#     GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
+#     GC-STEM/it140 commit dbde859f90b1b957b05aa03e25b867563c113bb2
 #
 # Manifest compatibility:
-#     Requires schema_version 2.0, a strict SemVer automation_release,
+#     Requires schema_version 2.2, a strict SemVer automation_release,
 #     and automation_release_date_time_group in YYYY-MM-DD-HH-MM format.
 #
 # SRS traceability:
-#     CFG-FR-001 through CFG-FR-017; PKG-FR-021
+#     CFG-FR-001 through CFG-FR-021; PKG-FR-021
 #
 # SDD traceability:
-#     CFG-DES-001 through CFG-DES-017; INT-DES-014; ERR-DES-014
+#     CFG-DES-001 through CFG-DES-021; PLT-DES-006; INT-DES-014; ERR-DES-014
 #
 # Intended user:
 #     The standard student or faculty account that will complete course work.
@@ -50,6 +52,7 @@
 # Explicit exclusions:
 #     - System package, repository, policy, and system application changes
 #     - Student source files, assignment repositories, and Git history
+#     - Recursive mutation, permission repair, relocation, or cleanup beneath ~/Repos
 #     - Secrets or provider credential-store contents
 #     - Removal of optional IDE extensions
 #     - Removal of unrelated valid user settings
@@ -60,8 +63,8 @@
 # ==============================================================================
 
 
-artifact_version = "0.5.0"
-version_date_time_group = "2026-08-01-10-43"
+artifact_version = "0.6.0"
+version_date_time_group = "2026-08-07-10-44"
 development_status = "Alpha Testing"
 action_id = "configure"
 may_change_state = TRUE
@@ -134,6 +137,7 @@ PROCEDURE main(arguments)
     check_required_system_layer(run_context)
 
     configure_course_folders_path_and_permissions(run_context)
+    configure_repository_workspace(run_context)
     configure_provider_authentication_and_git_identity(run_context, options)
     configure_user_tools_and_required_extensions(run_context)
     merge_course_managed_ide_settings(run_context)
@@ -147,7 +151,10 @@ PROCEDURE main(arguments)
         development status
         manifest release
         provider login = valid
-        course folder
+        course automation folder
+        repository workspace
+        desktop Repos integration
+        development marker status
         course interpreter
         warnings
         failures = 0
@@ -248,6 +255,55 @@ PROCEDURE configure_course_folders_path_and_permissions(run_context)
         platform script directory
 
     SET changed = TRUE
+
+ENDPROCEDURE
+
+
+PROCEDURE configure_repository_workspace(run_context)
+
+    workspace = canonical current-user repository-workspace path = ~/Repos
+
+    IF workspace does not exist
+        CREATE only the workspace parent directory
+        SET changed = TRUE
+    ELSE
+        REQUIRE workspace is a directory owned or writable by the current user
+    ENDIF
+
+    DO NOT recursively enumerate, chmod, chown, move, delete, clean, or rewrite
+        any child path beneath workspace
+
+    desktop_item = resolved desktop path + "Repos"
+    IF desktop_item is the course-managed link or shortcut
+        REPAIR its exact target to workspace when needed
+        SET changed = TRUE when repaired
+    ELSE IF desktop_item does not exist
+        CREATE the platform-native desktop link or shortcut to workspace
+        SET changed = TRUE
+    ELSE
+        PRESERVE the conflicting unmanaged item
+        RECORD required Configure failure for CFG-FR-019
+    ENDIF
+
+    marker_result = platform_adapter.set_repository_workspace_development_marker(workspace)
+    IF platform is CVD/Xfce
+        REQUIRE marker_result reports native emblem "development"
+    ELSE IF platform design declares no safe supported native marker mechanism
+        RECORD marker status NOT APPLICABLE without installing a cosmetic dependency
+    ELSE
+        RECORD marker result according to qualified platform adapter
+    ENDIF
+
+    IF active deployment profile is CVD
+        LOCATE the existing course-provided Visual Studio Code desktop launcher
+        IF it is missing
+            FAIL without creating a duplicate launcher
+        ENDIF
+        REPAIR only its desktop-entry working path and folder argument so both
+            resolve to workspace instead of the course automation root
+        VALIDATE the repaired desktop entry and trust metadata when supported
+        SET changed = TRUE when repaired
+    ENDIF
 
 ENDPROCEDURE
 
@@ -371,7 +427,6 @@ PROCEDURE merge_course_managed_ide_settings(run_context)
     managed_settings = manifest_required_ide_settings()
     ADD implementation-required current-user values, including:
         course interpreter path
-        course root as default folder
         course testing arguments
         course file-save and whitespace behavior
         platform terminal profile
@@ -397,36 +452,16 @@ ENDPROCEDURE
 
 PROCEDURE configure_user_desktop_integrations(run_context)
 
+    # Repository-workspace creation, marker, desktop link, and CVD IDE launcher
+    # are owned by configure_repository_workspace(). This procedure handles only
+    # remaining explicitly approved user integrations.
+
     configure_optional_numlock_convenience(run_context)
 
-    HIDE implementation-selected default desktop icons when required
-
-    CREATE OR REPAIR a trusted desktop launcher for the course folder
-
-    IF the system IDE launcher is available
-        COPY it to the user's desktop
-        VALIDATE and mark the launcher trusted when supported
-    ELSE
-        RECORD a warning
-    ENDIF
-
-    IF the desktop panel contains the implementation directory-menu component
-        SET its base directory to the course root
-    ELSE
-        RECORD a warning
-    ENDIF
-
-    CREATE OR REPAIR a managed IDE panel launcher:
-        - reuse the saved plugin identifier only when valid;
-        - otherwise allocate a new identifier;
-        - store the identifier in a current-user marker file;
-        - install the launcher file;
-        - place the launcher at the end of the selected panel.
-
     SET the IDE as default for implementation-selected text and source MIME types
+        only when the existing platform design already owns those associations
 
-    RELOAD the desktop and panel when supported
-    SET changed = TRUE
+    PRESERVE unrelated desktop launchers, panels, icons, and preferences
 
 ENDPROCEDURE
 
@@ -480,7 +515,14 @@ PROCEDURE post_validate_user_layer(run_context)
     REQUIRE the approved provider private noreply Git identity
     REQUIRE all manifest-managed Git settings
     REQUIRE required course-managed IDE settings
-    REQUIRE the managed IDE panel launcher record and launcher file
+    REQUIRE repository workspace exists at the canonical native path
+    REQUIRE desktop item named Repos resolves exactly to repository workspace
+    REQUIRE platform development marker matches the qualified adapter or is
+        explicitly NOT APPLICABLE by platform design
+    IF active deployment profile is CVD
+        REQUIRE existing Visual Studio Code desktop launcher folder argument and
+            working path resolve to repository workspace, not course root
+    ENDIF
     REQUIRE the matching verify script is present and executable
 
     IF any required check fails

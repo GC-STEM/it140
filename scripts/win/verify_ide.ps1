@@ -7,7 +7,7 @@ Verifies the Windows IT 140 Course IDE without repairing it.
 Performs read-only checks of the supported Windows release, controlled
 manifest assets, required software, course Python environment, VS Code
 extensions and settings, GitHub authentication, privacy-preserving Git
-identity, Windows PATH, desktop shortcuts, and lifecycle scripts.
+identity, Windows PATH, the separate Repos development workspace, desktop integration, and lifecycle scripts.
 
 The script never elevates privilege or repairs failed checks. It requires a
 normal, non-elevated context on a regular Windows computer and recognizes the
@@ -16,10 +16,10 @@ It creates only the required transcript and, when explicitly requested and
 confirmed, a sanitized support bundle under ~/it140/logs.
 
 Artifact version:
-    0.3.0
+    0.8.0-alpha.1
 
-Version date:
-    2026-07-29
+Version date-time group:
+    2026-08-07-10-44
 
 Development status:
     Alpha Testing
@@ -32,6 +32,8 @@ Version basis:
 
     Version 0.3.0 adds support for Windows 10, version 22H2, while preserving
     manifest-controlled Windows 11 release validation.
+    Version 0.8.0-alpha.1 adds read-only verification of the separate Repos
+    workspace, Explorer development icon metadata, and desktop Repos shortcut.
 
 
 .NOTES
@@ -67,14 +69,15 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.3.0"
-$VersionDate = "2026-07-29"
+$ScriptVersion = "0.8.0-alpha.1"
+$VersionDate = "2026-08-07-10-44"
 $DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
 $ScriptRoot = Split-Path -Parent $ScriptDirectory
 $CourseRoot = Split-Path -Parent $ScriptRoot
+$ReposRoot = Join-Path ([Environment]::GetFolderPath("UserProfile")) "Repos"
 $WindowsScriptDirectory = Join-Path $ScriptRoot $PlatformAbbreviation
 $ManifestPath = Join-Path $ScriptRoot ".manifest\it140_manifest.json"
 $SchemaPath = Join-Path $ScriptRoot ".manifest\it140_manifest.schema.json"
@@ -86,12 +89,10 @@ $VenvDirectory = Join-Path $CourseRoot ".venv"
 $VenvScriptsDirectory = Join-Path $VenvDirectory "Scripts"
 $VenvPython = Join-Path $VenvScriptsDirectory "python.exe"
 $VsCodeSettings = Join-Path $env:APPDATA "Code\User\settings.json"
-$CourseShortcutPath = Join-Path (
+$ReposShortcutPath = Join-Path (
     [Environment]::GetFolderPath("Desktop")
-) "IT 140.lnk"
-$VsCodeShortcutPath = Join-Path (
-    [Environment]::GetFolderPath("Desktop")
-) "Visual Studio Code - IT 140.lnk"
+) "Repos.lnk"
+$ReposDesktopIniPath = Join-Path $ReposRoot "desktop.ini"
 $StartTime = Get-Date
 $TranscriptStarted = $false
 $ManifestFailure = $false
@@ -615,7 +616,7 @@ function Read-ControlledManifest {
     $RequiredKeys = @(
         "schema_version",
         "automation_release",
-        "automation_release_date",
+        "automation_release_date_time_group",
         "policy",
         "platforms",
         "deployment_profiles",
@@ -629,7 +630,7 @@ function Read-ControlledManifest {
             throw "The controlled manifest is missing required key: $RequiredKey"
         }
     }
-    if ([string]$Manifest.schema_version -ne "2.0") {
+    if ([string]$Manifest.schema_version -ne "2.2") {
         throw "Unsupported manifest schema version: $($Manifest.schema_version)"
     }
 
@@ -641,16 +642,16 @@ function Read-ControlledManifest {
 
     $ParsedReleaseDate = [datetime]::MinValue
     $ReleaseDateIsValid = [datetime]::TryParseExact(
-        [string]$Manifest.automation_release_date,
-        "yyyy-MM-dd",
+        [string]$Manifest.automation_release_date_time_group,
+        "yyyy-MM-dd-HH-mm",
         [Globalization.CultureInfo]::InvariantCulture,
         [Globalization.DateTimeStyles]::None,
         [ref]$ParsedReleaseDate
     )
     if (-not $ReleaseDateIsValid) {
         throw (
-            "The manifest automation release date is not valid YYYY-MM-DD: " +
-            [string]$Manifest.automation_release_date
+            "The manifest automation release date-time group is not valid YYYY-MM-DD-HH-MM: " +
+            [string]$Manifest.automation_release_date_time_group
         )
     }
 
@@ -881,15 +882,13 @@ function Get-ManagedVsCodeSetting {
         "python.defaultInterpreterPath" = $VenvPython
         "python.testing.pytestArgs" = @(".")
         "cSpell.language" = "en"
-        "files.defaultFolder" = $CourseRoot
         "workbench.editorAssociations" = @{
             "README.md" = "vscode.markdown.preview.editor"
             "*_srs.md" = "vscode.markdown.preview.editor"
             "*_sdd.md" = "vscode.markdown.preview.editor"
         }
         "settingsSync.ignoredSettings" = @(
-            "python.defaultInterpreterPath",
-            "files.defaultFolder"
+            "python.defaultInterpreterPath"
         )
     }
     Merge-Hashtable -Target $ManagedSettings -Source $ImplementationSettings
@@ -1560,57 +1559,39 @@ function Test-UserLayer {
             -Remediation (Get-ConfigRemediation)
     }
 
-    if (Test-Path -LiteralPath $CourseShortcutPath -PathType Leaf) {
-        try {
-            $CourseShortcut = Get-ShortcutDefinition -Path $CourseShortcutPath
-            if (
-                $CourseShortcut.TargetPath -ieq "$env:SystemRoot\explorer.exe" -and
-                $CourseShortcut.Arguments -like "*$CourseRoot*"
-            ) {
-                Add-CheckResult `
-                    -CheckId "verify.desktop_shortcut.course" `
-                    -Status "PASS" `
-                    -Detail "Present and targets the IT 140 course folder"
-            }
-            else {
-                throw "The shortcut target is not the IT 140 course folder."
-            }
-        }
-        catch {
-            Add-CheckResult `
-                -CheckId "verify.desktop_shortcut.course" `
-                -Status "FAIL" `
-                -Detail $_.Exception.Message `
-                -Remediation (Get-ConfigRemediation)
-        }
+    if (Test-Path -LiteralPath $ReposRoot -PathType Container) {
+        Add-CheckResult `
+            -CheckId "verify.repository_workspace" `
+            -Status "PASS" `
+            -Detail $ReposRoot
     }
     else {
         Add-CheckResult `
-            -CheckId "verify.desktop_shortcut.course" `
+            -CheckId "verify.repository_workspace" `
             -Status "FAIL" `
-            -Detail "Missing" `
+            -Detail "The repository workspace is missing or is not a directory." `
             -Remediation (Get-ConfigRemediation)
     }
 
-    if (Test-Path -LiteralPath $VsCodeShortcutPath -PathType Leaf) {
+    if (Test-Path -LiteralPath $ReposShortcutPath -PathType Leaf) {
         try {
-            $VsCodeShortcut = Get-ShortcutDefinition -Path $VsCodeShortcutPath
+            $ReposShortcut = Get-ShortcutDefinition -Path $ReposShortcutPath
             if (
-                (Test-Path -LiteralPath $VsCodeShortcut.TargetPath -PathType Leaf) -and
-                $VsCodeShortcut.Arguments -like "*$CourseRoot*"
+                $ReposShortcut.TargetPath -ieq "$env:SystemRoot\explorer.exe" -and
+                $ReposShortcut.Arguments -like "*$ReposRoot*"
             ) {
                 Add-CheckResult `
-                    -CheckId "verify.desktop_shortcut.vscode" `
+                    -CheckId "verify.repository_workspace_desktop" `
                     -Status "PASS" `
-                    -Detail "Present and opens the IT 140 course folder"
+                    -Detail "Desktop Repos shortcut targets the repository workspace"
             }
             else {
-                throw "The VS Code shortcut target or course-folder argument is invalid."
+                throw "The desktop Repos shortcut does not target the repository workspace."
             }
         }
         catch {
             Add-CheckResult `
-                -CheckId "verify.desktop_shortcut.vscode" `
+                -CheckId "verify.repository_workspace_desktop" `
                 -Status "FAIL" `
                 -Detail $_.Exception.Message `
                 -Remediation (Get-ConfigRemediation)
@@ -1618,9 +1599,38 @@ function Test-UserLayer {
     }
     else {
         Add-CheckResult `
-            -CheckId "verify.desktop_shortcut.vscode" `
+            -CheckId "verify.repository_workspace_desktop" `
             -Status "FAIL" `
-            -Detail "Missing" `
+            -Detail "The desktop Repos shortcut is missing." `
+            -Remediation (Get-ConfigRemediation)
+    }
+
+    if (Test-Path -LiteralPath $ReposDesktopIniPath -PathType Leaf) {
+        try {
+            $DesktopIniText = Get-Content -LiteralPath $ReposDesktopIniPath -Raw
+            if ($DesktopIniText -match '(?m)^IconResource=.+,0\s*$') {
+                Add-CheckResult `
+                    -CheckId "verify.repository_workspace_marker" `
+                    -Status "PASS" `
+                    -Detail "Explorer development icon metadata is present"
+            }
+            else {
+                throw "The Repos folder icon metadata does not contain a valid IconResource."
+            }
+        }
+        catch {
+            Add-CheckResult `
+                -CheckId "verify.repository_workspace_marker" `
+                -Status "FAIL" `
+                -Detail $_.Exception.Message `
+                -Remediation (Get-ConfigRemediation)
+        }
+    }
+    else {
+        Add-CheckResult `
+            -CheckId "verify.repository_workspace_marker" `
+            -Status "FAIL" `
+            -Detail "The Repos folder development icon metadata is missing." `
             -Remediation (Get-ConfigRemediation)
     }
 
@@ -1757,11 +1767,11 @@ function Write-VerificationSummary {
 
     Write-Header "VERIFICATION SUMMARY"
     Write-Info "Script version   : $ScriptVersion"
-    Write-Info "Version date     : $VersionDate"
+    Write-Info "Version DTG      : $VersionDate"
     Write-Info "Status           : $DevelopmentStatus"
     if ($null -ne $Controlled) {
         Write-Info "Manifest release : $($Controlled.Manifest.automation_release)"
-        Write-Info "Manifest date    : $($Controlled.Manifest.automation_release_date)"
+        Write-Info "Manifest DTG     : $($Controlled.Manifest.automation_release_date_time_group)"
     }
     Write-Info "Passed           : $PassCount"
     Write-Info "Warnings         : $WarningCount"
@@ -2081,7 +2091,7 @@ if ($Help) {
 }
 if ($Version) {
     Write-Host "Artifact version   : $ScriptVersion"
-    Write-Host "Version date       : $VersionDate"
+    Write-Host "Version DTG        : $VersionDate"
     Write-Host "Development status : $DevelopmentStatus"
     exit 0
 }
@@ -2093,11 +2103,12 @@ try {
 
     Write-Header "IT 140 WINDOWS VERIFICATION"
     Write-Info "Script version   : $ScriptVersion"
-    Write-Info "Version date     : $VersionDate"
+    Write-Info "Version DTG      : $VersionDate"
     Write-Info "Status           : $DevelopmentStatus"
     Write-Info "Deployment       : $DeploymentProfile"
     Write-Info "Current user     : $([Environment]::UserName)"
     Write-Info "Course root      : $CourseRoot"
+    Write-Info "Repository root  : $ReposRoot"
     Write-Info "Log file         : $LogPath"
     Write-Notice "Verification does not elevate privilege or repair failed checks."
 

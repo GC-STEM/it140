@@ -6,7 +6,7 @@ Configures or repairs the current Windows user for the IT 140 Course IDE.
 .DESCRIPTION
 Configures the intended user's course folders and PATH, GitHub authentication,
 privacy-preserving Git identity, course Python virtual environment, required
-VS Code extensions and settings, and Windows desktop shortcuts. The script
+VS Code extensions and settings, and a separate Windows Repos development workspace with desktop access. The script
 preserves unrelated user settings and does not install or update system-level
 software.
 
@@ -15,10 +15,10 @@ regular Windows computer. Windows Sandbox intentionally uses its administrative
 container account with the windows_sandbox deployment profile.
 
 Artifact version:
-    0.4.0
+    0.8.0-alpha.1
 
-Version date:
-    2026-07-29
+Version date-time group:
+    2026-08-07-10-44
 
 Development status:
     Alpha Testing
@@ -32,6 +32,9 @@ Version basis:
 
     Version 0.4.0 adds support for Windows 10, version 22H2, while preserving
     manifest-controlled Windows 11 release validation.
+    Version 0.8.0-alpha.1 adds the separate Repos development workspace,
+    Explorer development icon, and desktop Repos shortcut while preserving
+    all repositories and files beneath the workspace.
 
 
 .NOTES
@@ -66,14 +69,15 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.4.0"
-$VersionDate = "2026-07-29"
+$ScriptVersion = "0.8.0-alpha.1"
+$VersionDate = "2026-08-07-10-44"
 $DevelopmentStatus = "Alpha Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
 $ScriptRoot = Split-Path -Parent $ScriptDirectory
 $CourseRoot = Split-Path -Parent $ScriptRoot
+$ReposRoot = Join-Path ([Environment]::GetFolderPath("UserProfile")) "Repos"
 $WindowsScriptDirectory = Join-Path $ScriptRoot $PlatformAbbreviation
 $ManifestPath = Join-Path $ScriptRoot ".manifest\it140_manifest.json"
 $SchemaPath = Join-Path $ScriptRoot ".manifest\it140_manifest.schema.json"
@@ -85,12 +89,10 @@ $VenvDirectory = Join-Path $CourseRoot ".venv"
 $VenvScriptsDirectory = Join-Path $VenvDirectory "Scripts"
 $VenvPython = Join-Path $VenvScriptsDirectory "python.exe"
 $VsCodeSettings = Join-Path $env:APPDATA "Code\User\settings.json"
-$CourseShortcutPath = Join-Path (
+$ReposShortcutPath = Join-Path (
     [Environment]::GetFolderPath("Desktop")
-) "IT 140.lnk"
-$VsCodeShortcutPath = Join-Path (
-    [Environment]::GetFolderPath("Desktop")
-) "Visual Studio Code - IT 140.lnk"
+) "Repos.lnk"
+$ReposDesktopIniPath = Join-Path $ReposRoot "desktop.ini"
 $StartTime = Get-Date
 $TranscriptStarted = $false
 $MutationMutex = $null
@@ -580,7 +582,7 @@ function Read-ControlledManifest {
     $RequiredKeys = @(
         "schema_version",
         "automation_release",
-        "automation_release_date",
+        "automation_release_date_time_group",
         "policy",
         "platforms",
         "deployment_profiles",
@@ -592,7 +594,7 @@ function Read-ControlledManifest {
             throw "The controlled manifest is missing required key: $RequiredKey"
         }
     }
-    if ([string]$Manifest.schema_version -ne "2.0") {
+    if ([string]$Manifest.schema_version -ne "2.2") {
         throw "Unsupported manifest schema version: $($Manifest.schema_version)"
     }
 
@@ -604,16 +606,16 @@ function Read-ControlledManifest {
 
     $ParsedReleaseDate = [datetime]::MinValue
     $ReleaseDateIsValid = [datetime]::TryParseExact(
-        [string]$Manifest.automation_release_date,
-        "yyyy-MM-dd",
+        [string]$Manifest.automation_release_date_time_group,
+        "yyyy-MM-dd-HH-mm",
         [Globalization.CultureInfo]::InvariantCulture,
         [Globalization.DateTimeStyles]::None,
         [ref]$ParsedReleaseDate
     )
     if (-not $ReleaseDateIsValid) {
         throw (
-            "The manifest automation release date is not valid YYYY-MM-DD: " +
-            [string]$Manifest.automation_release_date
+            "The manifest automation release date-time group is not valid YYYY-MM-DD-HH-MM: " +
+            [string]$Manifest.automation_release_date_time_group
         )
     }
 
@@ -1203,15 +1205,13 @@ function Get-ManagedVsCodeSetting {
         "python.defaultInterpreterPath" = $VenvPython
         "python.testing.pytestArgs" = @(".")
         "cSpell.language" = "en"
-        "files.defaultFolder" = $CourseRoot
         "workbench.editorAssociations" = @{
             "README.md" = "vscode.markdown.preview.editor"
             "*_srs.md" = "vscode.markdown.preview.editor"
             "*_sdd.md" = "vscode.markdown.preview.editor"
         }
         "settingsSync.ignoredSettings" = @(
-            "python.defaultInterpreterPath",
-            "files.defaultFolder"
+            "python.defaultInterpreterPath"
         )
     }
     Merge-Hashtable -Target $ManagedSettings -Source $ImplementationSettings
@@ -1325,38 +1325,103 @@ function Get-VsCodeExecutablePath {
     return $null
 }
 
-function Set-DesktopShortcut {
+function Test-ShortcutTargetsRepos {
+    param([Parameter(Mandatory = $true)][string]$ShortcutPath)
+
+    if (-not (Test-Path -LiteralPath $ShortcutPath -PathType Leaf)) {
+        return $false
+    }
+    try {
+        $ShellApplication = New-Object -ComObject WScript.Shell
+        $Shortcut = $ShellApplication.CreateShortcut($ShortcutPath)
+        $ExpectedExplorer = Join-Path $env:SystemRoot "explorer.exe"
+        return (
+            [string]::Equals(
+                [IO.Path]::GetFullPath($Shortcut.TargetPath),
+                [IO.Path]::GetFullPath($ExpectedExplorer),
+                [StringComparison]::OrdinalIgnoreCase
+            ) -and
+            $Shortcut.Arguments -like "*$ReposRoot*"
+        )
+    }
+    catch {
+        return $false
+    }
+}
+
+function Set-RepositoryWorkspace {
+    if (-not (Test-Path -LiteralPath $ReposRoot -PathType Container)) {
+        if (Test-Path -LiteralPath $ReposRoot) {
+            throw "The required repository workspace path exists but is not a directory: $ReposRoot"
+        }
+        New-Item -ItemType Directory -Path $ReposRoot | Out-Null
+        $script:Changed = $true
+    }
+
+    # The parent directory is automation-managed only for existence and its
+    # icon metadata. Never recurse into, enumerate for repair, or permission-
+    # reset student repositories stored beneath it.
+    $VsCodeExecutable = Get-VsCodeExecutablePath
+    if ([string]::IsNullOrWhiteSpace($VsCodeExecutable)) {
+        Write-WarningMessage (
+            "Visual Studio Code could not be resolved for the optional Repos " +
+            "folder icon. The development workspace itself remains usable."
+        )
+    }
+    else {
+        $DesktopIni = @(
+            "[.ShellClassInfo]"
+            "IconResource=$VsCodeExecutable,0"
+            "InfoTip=IT 140 development repositories"
+            ""
+        ) -join "`r`n"
+        Set-Content -LiteralPath $ReposDesktopIniPath -Value $DesktopIni -Encoding Unicode -Force
+        & attrib.exe +h +s $ReposDesktopIniPath 2>$null
+        & attrib.exe +r $ReposRoot 2>$null
+        $script:Changed = $true
+    }
+
     $DesktopDirectory = [Environment]::GetFolderPath("Desktop")
     if ([string]::IsNullOrWhiteSpace($DesktopDirectory)) {
         throw "The Windows Desktop directory could not be resolved."
     }
     New-Item -ItemType Directory -Path $DesktopDirectory -Force | Out-Null
 
-    $ShellApplication = New-Object -ComObject WScript.Shell
-
-    $CourseShortcut = $ShellApplication.CreateShortcut($CourseShortcutPath)
-    $CourseShortcut.TargetPath = "$env:SystemRoot\explorer.exe"
-    $CourseShortcut.Arguments = ('"{0}"' -f $CourseRoot)
-    $CourseShortcut.WorkingDirectory = $CourseRoot
-    $CourseShortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,3"
-    $CourseShortcut.Description = "Open the IT 140 course folder"
-    $CourseShortcut.Save()
-
-    $VsCodeExecutable = Get-VsCodeExecutablePath
-    if ([string]::IsNullOrWhiteSpace($VsCodeExecutable)) {
-        throw "The Visual Studio Code executable could not be located for the desktop shortcut."
+    if (Test-Path -LiteralPath $ReposShortcutPath -PathType Leaf) {
+        if (-not (Test-ShortcutTargetsRepos -ShortcutPath $ReposShortcutPath)) {
+            throw (
+                "An unmanaged desktop shortcut already uses the name Repos.lnk. " +
+                "It was preserved: $ReposShortcutPath"
+            )
+        }
+    }
+    elseif (Test-Path -LiteralPath $ReposShortcutPath) {
+        throw (
+            "An unmanaged desktop item already uses the required Repos shortcut " +
+            "name and was preserved: $ReposShortcutPath"
+        )
     }
 
-    $VsCodeShortcut = $ShellApplication.CreateShortcut($VsCodeShortcutPath)
-    $VsCodeShortcut.TargetPath = $VsCodeExecutable
-    $VsCodeShortcut.Arguments = ('"{0}"' -f $CourseRoot)
-    $VsCodeShortcut.WorkingDirectory = $CourseRoot
-    $VsCodeShortcut.IconLocation = "$VsCodeExecutable,0"
-    $VsCodeShortcut.Description = "Open the IT 140 course folder in Visual Studio Code"
-    $VsCodeShortcut.Save()
-
+    $ShellApplication = New-Object -ComObject WScript.Shell
+    $ReposShortcut = $ShellApplication.CreateShortcut($ReposShortcutPath)
+    $ReposShortcut.TargetPath = "$env:SystemRoot\explorer.exe"
+    $ReposShortcut.Arguments = ('"{0}"' -f $ReposRoot)
+    $ReposShortcut.WorkingDirectory = $ReposRoot
+    if ($VsCodeExecutable) {
+        $ReposShortcut.IconLocation = "$VsCodeExecutable,0"
+    }
+    else {
+        $ReposShortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,3"
+    }
+    $ReposShortcut.Description = "Open the IT 140 development repository workspace"
+    $ReposShortcut.Save()
     $script:Changed = $true
-    Write-Success "The IT 140 course-folder and VS Code desktop shortcuts are configured."
+
+    if (-not (Test-ShortcutTargetsRepos -ShortcutPath $ReposShortcutPath)) {
+        throw "The Repos desktop shortcut did not validate after configuration."
+    }
+
+    Write-Success "The repository workspace and desktop Repos shortcut are configured: $ReposRoot"
 }
 
 function Test-ManagedSettingValue {
@@ -1409,6 +1474,7 @@ function Test-ConfiguredUserLayer {
 
     foreach ($RequiredDirectory in @(
         $CourseRoot,
+        $ReposRoot,
         $LogDirectory,
         $WindowsScriptDirectory,
         $VenvDirectory
@@ -1489,9 +1555,14 @@ function Test-ConfiguredUserLayer {
         throw "One or more course-managed VS Code settings are missing or different."
     }
 
-    foreach ($ShortcutPath in @($CourseShortcutPath, $VsCodeShortcutPath)) {
-        if (-not (Test-Path -LiteralPath $ShortcutPath -PathType Leaf)) {
-            throw "Required desktop shortcut is missing: $ShortcutPath"
+    if (-not (Test-ShortcutTargetsRepos -ShortcutPath $ReposShortcutPath)) {
+        throw "The required desktop Repos shortcut does not target the repository workspace."
+    }
+
+    if (Test-Path -LiteralPath $ReposDesktopIniPath -PathType Leaf) {
+        $DesktopIniText = Get-Content -LiteralPath $ReposDesktopIniPath -Raw
+        if ($DesktopIniText -notmatch '(?m)^IconResource=.+,0\s*$') {
+            throw "The repository workspace development icon metadata is invalid."
         }
     }
 
@@ -1511,7 +1582,7 @@ if ($Help) {
 }
 if ($Version) {
     Write-Host "Artifact version   : $ScriptVersion"
-    Write-Host "Version date       : $VersionDate"
+    Write-Host "Version DTG        : $VersionDate"
     Write-Host "Development status : $DevelopmentStatus"
     exit 0
 }
@@ -1524,11 +1595,12 @@ try {
 
     Write-Header "IT 140 WINDOWS CONFIGURATION"
     Write-Info "Script version   : $ScriptVersion"
-    Write-Info "Version date     : $VersionDate"
+    Write-Info "Version DTG      : $VersionDate"
     Write-Info "Status           : $DevelopmentStatus"
     Write-Info "Deployment       : $DeploymentProfile"
     Write-Info "Current user     : $([Environment]::UserName)"
     Write-Info "Course root      : $CourseRoot"
+    Write-Info "Repository root  : $ReposRoot"
     Write-Info "Log file         : $LogPath"
     Write-Notice "This script changes only the current user's IT 140 environment."
     Write-Notice "It does not install or update system-wide software."
@@ -1602,8 +1674,8 @@ try {
     Install-VsCodeExtension -RequiredExtensions $RequiredExtensions
 
     $FailureExitCode = 1
+    Set-RepositoryWorkspace
     Set-VsCodeSetting -Manifest $Controlled.Manifest
-    Set-DesktopShortcut
 
     Test-ConfiguredUserLayer `
         -Manifest $Controlled.Manifest `
@@ -1615,12 +1687,13 @@ try {
     Write-Success "The current Windows user is configured for IT 140."
     Write-Info "Result            : PASS"
     Write-Info "Script version    : $ScriptVersion"
-    Write-Info "Version date      : $VersionDate"
+    Write-Info "Version DTG       : $VersionDate"
     Write-Info "Status            : $DevelopmentStatus"
     Write-Info "Manifest release  : $($Controlled.Manifest.automation_release)"
-    Write-Info "Manifest date     : $($Controlled.Manifest.automation_release_date)"
+    Write-Info "Manifest DTG      : $($Controlled.Manifest.automation_release_date_time_group)"
     Write-Info "GitHub login      : $GitHubUser"
     Write-Info "Course folder     : $CourseRoot"
+    Write-Info "Repository folder : $ReposRoot"
     Write-Info "Course interpreter: $VenvPython"
     Write-Info "Warnings          : $WarningCount"
     Write-Info "Failures          : 0"

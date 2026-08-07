@@ -17,10 +17,10 @@
 #  verify_ide.pseudo
 #
 # Artifact version:
-#  0.3.0
+#  0.4.0
 #
-# Version date:
-#  2026-08-01
+# Version date-time group:
+#  2026-08-07-10-44
 #
 # Development status:
 #  Alpha Testing
@@ -29,9 +29,10 @@
 #  Version 0.1.0 represents the initial template baseline. Version 0.2.0 adds
 #  the artifact version, version date, and development-status standard.
 #  Version 0.3.0 adds the common CVD course-continuity conclusion.
+#  Version 0.4.0 adds repository-workspace ownership and desktop-integration rules.
 #
 # Repository baseline:
-#  GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
+#  GC-STEM/it140 commit dbde859f90b1b957b05aa03e25b867563c113bb2
 #
 # Authority:
 #  The current SRS, SDD, controlled manifest, manifest schema, and tested
@@ -77,6 +78,12 @@
 #  lock_required     = TRUE
 #  privilege_model   = standard user with approved operation-level elevation
 #  normal_next_step  = configure
+#
+# Repository-workspace rule:
+#  - configure may create the ~/Repos parent and explicitly course-owned desktop integration;
+#  - configure never recursively mutates workspace children;
+#  - verify observes workspace integration read-only;
+#  - prepare, install, and update do not own repository-workspace repair.
 #
 # configure:
 #  state_scope       = current_user

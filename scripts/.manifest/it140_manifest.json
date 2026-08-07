@@ -1,6 +1,6 @@
 {
   "schema_version": "2.2",
-  "automation_release": "0.7.1",
+  "automation_release": "0.8.0",
   "course": {
     "course_id": "IT 140",
     "course_title": "Introduction to Scripting",
@@ -9,8 +9,8 @@
   "control": {
     "status": "draft",
     "source_repository": "https://github.com/GC-STEM/it140",
-    "source_revision": "2ad2ff23346896c3e27d3a8b64a9d40d652196e4",
-    "change_summary": "Add manifest-managed Noto Color Emoji support to the CVD lifecycle, including package repair, font-cache maintenance, and explicit fontconfig verification."
+    "source_revision": "dbde859f90b1b957b05aa03e25b867563c113bb2",
+    "change_summary": "Add the separate ~/Repos student development workspace, platform-appropriate desktop access and development-folder visual metadata where safely supported, and CVD Visual Studio Code launcher repair to open ~/Repos while preserving all repositories and files beneath the workspace."
   },
   "policy": {
     "course_root": "${HOME}/it140",
@@ -799,10 +799,10 @@
         ]
       },
       "script": {
-        "file_extension": ".sh",
+        "file_extension": ".zsh",
         "shell_id": "macos_zsh",
         "line_ending": "lf",
-        "filename_template": "{action}_ide.sh"
+        "filename_template": "{action}_ide.zsh"
       },
       "package_manager": {
         "display_name": "Homebrew",
@@ -2369,5 +2369,5 @@
       ]
     }
   },
-  "automation_release_date_time_group": "2026-08-05-11-39"
+  "automation_release_date_time_group": "2026-08-07-10-44"
 }

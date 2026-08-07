@@ -10,10 +10,10 @@
 #     installing, updating, removing, repairing, or rewriting managed state.
 #
 # Artifact version:
-#     0.5.0
+#     0.6.0
 #
-# Version date-time group-time group:
-#     2026-08-01-10-43
+# Version date-time group:
+#     2026-08-07-10-44
 #
 # Development status:
 #     Alpha Testing
@@ -22,24 +22,26 @@
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
 #     Version 0.4.0 adds the common CVD course-continuity conclusion.
-#     Version 0.5.0 adopts minute-resolution version date-time group-time groups and
+#     Version 0.5.0 adopts minute-resolution version date-time groups and
 #     profile-aware lifecycle transition reporting.
+#     Version 0.6.0 separates the student repository workspace from the course
+#     automation root and defines Configure/Verify workspace integration ownership.
 #
 # CVD implementation target:
 #     verify_ide.sh version 2026.07.26.4 (legacy calendar version)
 #
 # Repository baseline:
-#     GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
+#     GC-STEM/it140 commit dbde859f90b1b957b05aa03e25b867563c113bb2
 #
 # Manifest compatibility:
-#     Requires schema_version 2.0, a strict SemVer automation_release,
+#     Requires schema_version 2.2, a strict SemVer automation_release,
 #     and automation_release_date_time_group in YYYY-MM-DD-HH-MM format.
 #
 # SRS traceability:
-#     VER-FR-001 through VER-FR-014; PKG-FR-021
+#     VER-FR-001 through VER-FR-018; PKG-FR-021
 #
 # SDD traceability:
-#     VER-DES-001 through VER-DES-014; INT-DES-014; ERR-DES-014
+#     VER-DES-001 through VER-DES-018; PLT-DES-006; INT-DES-014; ERR-DES-014
 #
 # Intended user:
 #     Students, faculty, course support, or technical support.
@@ -55,12 +57,13 @@
 #     - Administrative privilege
 #     - Repairing or changing a failed check
 #     - Course work, repositories, Git history, credentials, or browser data
+#     - Creating probe files or changing metadata under ~/Repos
 #
 # ==============================================================================
 
 
-artifact_version = "0.5.0"
-version_date_time_group = "2026-08-01-10-43"
+artifact_version = "0.6.0"
+version_date_time_group = "2026-08-07-10-44"
 development_status = "Alpha Testing"
 action_id = "verify"
 workflow_context = resolve_manifest_workflow_context_read_only()
@@ -411,11 +414,27 @@ PROCEDURE check_user_layer(run_context)
     PRESERVE and ignore unrelated settings during comparison
     RECORD pass or fail verify.ide_settings with configure remediation
 
-    REQUIRE course-folder and IDE desktop launchers
-    RECORD pass or fail verify.desktop_launchers with configure remediation
+    REQUIRE repository workspace exists at the canonical native path and is
+        accessible to the current user without creating a probe file
+    RECORD pass or fail verify.repository_workspace with configure remediation
 
-    REQUIRE managed panel-launcher marker and launcher file
-    RECORD pass or fail verify.panel_launcher with configure remediation
+    RESOLVE desktop item named Repos read-only
+    REQUIRE it targets the canonical repository workspace
+    RECORD pass or fail verify.repository_workspace_desktop with configure remediation
+
+    QUERY the platform development-marker metadata read-only
+    IF qualified platform declares the marker unsupported
+        RECORD NOT APPLICABLE verify.repository_workspace_marker
+    ELSE
+        RECORD pass or fail verify.repository_workspace_marker with configure remediation
+    ENDIF
+
+    IF active deployment profile is CVD
+        PARSE the existing Visual Studio Code desktop entry read-only
+        REQUIRE its folder argument resolves to repository workspace
+        REQUIRE it is not course-root-only
+        RECORD pass or fail verify.vscode_workspace_launcher with configure remediation
+    ENDIF
 
     FOR EACH student lifecycle script:
         config_<platform>
@@ -425,6 +444,7 @@ PROCEDURE check_user_layer(run_context)
         RECORD pass or fail verify.script_permissions.<script>
     ENDFOR
 
+    DO NOT recursively enumerate or inspect repositories beneath repository workspace
     DO NOT require bootstrap to be executable
     DO NOT inspect or require administrator master/setup in the student workflow
 

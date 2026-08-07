@@ -5,10 +5,10 @@
 - **Program Name**: IT 140 Course Automation Scripts
 - **Document ID**: IT140-SDD-SCRIPTS
 - **Status**: Draft for faculty review
-- **Version**: 0.5.0
-- **Version Date-Time Group**: 2026-08-01-10-43
-- **SRS Baseline**: `IT140-SRS-SCRIPTS`, version `0.5.0`, version date-time group-time group `2026-08-01-10-43`
-- **Repository Baseline**: `GC-STEM/it140` commit `e7d3e7fc24eeefd5aafccd8939982f5c0369c3f4`
+- **Version**: 0.6.0
+- **Version Date-Time Group**: 2026-08-07-10-44
+- **SRS Baseline**: `IT140-SRS-SCRIPTS`, version `0.6.0`, version date-time group `2026-08-07-10-44`
+- **Repository Baseline**: `GC-STEM/it140` commit `dbde859f90b1b957b05aa03e25b867563c113bb2`
 
 ## 0. General Description
 
@@ -108,6 +108,7 @@ This SDD does not define:
 | Course-supported deployment profile | A deployment profile whose applicable platform implementation, bindings, qualification testing, documentation, and approval for course use are complete. |
 | Deployment profile | A concrete local, virtual, or hosted environment that uses one platform implementation and records provider, desktop, session, release, architecture, reset characteristics, and permitted lifecycle workflows. |
 | Lifecycle workflow | A manifest-selected ordered sequence of lifecycle components for a deployment profile, starting-state classification, and operating role. |
+| Repository workspace | The student development root at `${HOME}/Repos` or exact native equivalent. Configure may create the parent directory and explicitly course-owned integrations; all child repositories and files are student-owned and outside lifecycle-script mutation scope. |
 | Provider baseline master | The clean CVD provider image before IT 140-specific system provisioning. |
 | IT 140 course master | The CVD image after the administrator workflow has installed and verified the IT 140 system layer and before student-specific configuration. |
 | Dependency | A component, tool, file, service, or condition required before another operation can succeed. |
@@ -396,7 +397,7 @@ All source scripts and text configuration shall use UTF-8 encoding with Line Fee
 | SHR-DES-015 | Settings merger | Read, validate, merge, and safely write only approved settings while preserving unrelated valid content. | Existing settings and managed settings | Updated settings or unchanged result | CFG-FR-009, CFG-FR-011, CFG-FR-016 |
 | SHR-DES-016 | Restart detector | Identify application, sign-out, session, virtual-machine, or computer restart needs without performing an unsafe restart. | Platform facts and update results | Restart guidance | UPD-FR-014, REF-TC-004 |
 | SHR-DES-017 | Artifact identity service | Validate strict SemVer and `YYYY-MM-DD` values, render version output, and attach governing artifact identities to logs, tests, and support inventories. | Artifact metadata | `ArtifactIdentity` or validation failure | PKG-FR-006, PKG-NFR-015, VER-FR-003 |
-| SHR-DES-018 | Desktop integration service | Create, query, and validate the course-folder shortcut, the IDE launcher with course-root argument, and supported default-folder behavior without changing unrelated desktop preferences. | Validated integration definitions and platform paths | Integration results and probes | CFG-FR-013 through CFG-FR-016, VER-FR-006 |
+| SHR-DES-018 | Desktop integration service | Create, query, and validate the repository-workspace desktop link, platform development marker, profile-owned IDE workspace launcher, and supported file associations without changing unrelated desktop preferences or nested repository content. | Validated integration definitions and platform paths | Integration results and probes | CFG-FR-013 through CFG-FR-021, VER-FR-006, VER-FR-015 through VER-FR-018 |
 
 ### 3.4 Responsibility Boundary Rules
 
@@ -405,7 +406,7 @@ All source scripts and text configuration shall use UTF-8 encoding with Line Fee
 - Configure shall not install or change system-wide components. If system prerequisites are missing, it directs the user to Install.
 - Verify shall not call a mutating adapter method. The verify orchestrator receives read-only adapter interfaces.
 - Update may change system and user-managed maintenance state, but only through manifest-declared capability roles, managed settings, and managed paths. It shall not refresh lifecycle script source files; that responsibility belongs to Prepare.
-- Desktop integration writes are limited to the course-root shortcut, the IDE course-root launcher or equivalent argument, and explicitly declared default-folder settings.
+- Desktop integration writes are limited to the repository-workspace parent metadata, the course-created `Repos` desktop link or shortcut, the CVD course-owned IDE launcher workspace argument, and explicitly declared file-association settings. They never recurse into repository-workspace children.
 - Shared services may be reused by the four managed scripts, but they shall not silently broaden the authority of the calling script. Prepare may implement equivalent minimal helpers locally because shared modules cannot be assumed present on first use.
 
 ## 4. Data Design
@@ -433,7 +434,7 @@ The manifest is a controlled configuration item, not a program. It contains decl
 | DAT-DES-015 | Deployment profiles reference a platform implementation and record deployment kind, provider, desktop, session, release, architecture, reset method, reference status, and allowed workflow identifiers. | Distinguishes hosted, local, and test deployments without duplicating course IDE product bindings. | REF-TC-001 through REF-TC-006, PKG-FR-022, Section 3.3 of the SRS |
 | DAT-DES-018 | A top-level workflow catalog defines each workflow identifier, deployment-profile applicability, operating role, starting-state identifier, ordered actions, update mode, and exact success transitions. | Keeps lifecycle sequencing declarative and testable without allowing arbitrary commands in the manifest. | PKG-FR-022, PKG-FR-023, PRE-FR-013 |
 | DAT-DES-016 | Every controlled manifest, schema, design, construction, test, release, and maintenance record stores or is associated with an `ArtifactIdentity` containing artifact ID, SemVer, and version date-time group. | Supports exact traceability without requiring unrelated artifact versions to match. | PKG-NFR-015 |
-| DAT-DES-017 | Desktop integrations separately declare the course-folder shortcut target, the IDE executable role, the course-root launch argument or workspace behavior, optional default-folder setting, ownership scope, and validation probe. | Makes the Windows-established course-root launch behavior portable and testable without hardcoding desktop commands. | CFG-FR-013 through CFG-FR-015, VER-FR-006 |
+| DAT-DES-017 | Desktop integrations separately declare the repository-workspace target, desktop-link name, development-marker adapter, any profile-owned IDE executable role and workspace argument, ownership scope, and validation probe. | Makes the student development workspace portable and testable without hardcoding one desktop command while preserving platform-specific marker limitations. | CFG-FR-013 through CFG-FR-021, VER-FR-006, VER-FR-015 through VER-FR-018 |
 
 ### 4.2 Illustrative Logical Manifest Structure
 
@@ -544,7 +545,7 @@ The names below describe logical structures. Native implementations may use reco
 | `DeploymentProfile` | platform identifier, deployment kind, provider, desktop environment, session type, release, architecture, reset method, and reference flag | Selects environment-specific behavior and testing evidence without duplicating product bindings. |
 | `CapabilityBinding` | role ID, product ID, adapter ID, required status, package identifiers, product-version rule, probes | Connects a generic capability to the current approved implementation. |
 | `ProviderProfile` | adapter ID, authentication method, account fields, identity rule, validation rules | Controls approved external-service integration. |
-| `DesktopIntegration` | integration ID, target path, application role, launch arguments, ownership scope, query probe | Defines the course-root shortcut and IDE course-root launch behavior. |
+| `DesktopIntegration` | integration ID, workspace target path, desktop-link name, marker adapter, application role when applicable, launch arguments, ownership scope, query probe | Defines the repository-workspace desktop integration and any profile-owned IDE workspace launch behavior. |
 | `ManagedAsset` | asset ID, artifact identity, source, destination, scope, integrity, replacement policy, obsolete policy | Authorizes managed-file synchronization. |
 | `OperationResult` | operation ID, status, changed flag, message key, diagnostic details, remediation, restart flag | Represents one mutating or query operation. |
 | `CheckResult` | check ID, SRS ID, status, observed value, expected rule, remediation owner, sanitized detail | Represents one verification result. |
@@ -655,7 +656,7 @@ Prepare displays and logs its identity before network retrieval so failures can 
 | Version-control client | Query version and apply approved user settings. | Use managed keys only. | Never alter repositories or history. |
 | Source-code hosting provider | Check authentication, start approved flow, query account fields, derive privacy identity. | Use allowlisted provider adapter and provider profile. | Cancellation, provider unavailability, and invalid identity data produce distinct results. |
 | Managed-asset source | Retrieve manifest and maintenance-scope assets. | Update uses encrypted transport and integrity validation; lifecycle script refresh remains Prepare's responsibility. | Candidate data remains staged; installed valid data is preserved on failure. |
-| Desktop or session environment | Create and query the course-folder shortcut, the IDE course-root launcher, file associations, and supported default-folder behavior; detect restart needs. | Apply only declared integrations and preserve unrelated desktop preferences. | Missing required course integrations are Configure-owned failures; unsupported optional integration is `NOT APPLICABLE` or a warning. |
+| Desktop or session environment | Create and query the repository-workspace desktop link, development visual marker, profile-owned IDE workspace launcher where required, and file associations; detect restart needs. | Apply only declared integrations, preserve unrelated desktop preferences, and never traverse workspace children. | Missing required workspace integrations are Configure-owned failures; a visual marker explicitly unsupported by the qualified platform is `NOT APPLICABLE`. |
 
 ### 5.4 Provider-Profile Interface
 
@@ -935,11 +936,15 @@ The Configure orchestrator owns the current user's course environment. It runs a
 | CFG-DES-010 | Install or repair required user-scoped programming tools and IDE extensions or plug-ins through capability adapters. | Runtime and IDE adapters | CFG-FR-010 |
 | CFG-DES-011 | Parse and validate existing IDE settings, merge only managed keys, preserve unrelated valid settings, and write atomically. | Settings merger, staging service | CFG-FR-011 |
 | CFG-DES-012 | Resolve all user paths from the run context and approved variables; reject fixed-user paths in manifest data. | Path safety service | CFG-FR-012 |
-| CFG-DES-013 | Create or repair a desktop shortcut or launcher whose resolved target opens the course root in the platform file manager. | Desktop integration service, platform adapter | CFG-FR-013 |
-| CFG-DES-014 | Configure supported IDE default-folder behavior and create or repair an IDE launcher that starts the approved IDE with the course root as the active folder or workspace. | Desktop integration service, IDE adapter, settings merger | CFG-FR-014 |
-| CFG-DES-015 | Query provider status, version-control settings, runtime tools, IDE settings, extensions, folders, course-root shortcut, and IDE course-root launch behavior before success. | Capability adapters, desktop integration probes | CFG-FR-015 |
+| CFG-DES-013 | Preserve an existing course-root integration unless it is explicitly obsolete and automation-managed; new student navigation uses the repository-workspace integration. | Desktop integration service, ownership probe | CFG-FR-013 |
+| CFG-DES-014 | Configure approved IDE settings without making the course automation root the student's default development workspace; defer profile-owned launch targets to the repository-workspace contract. | IDE adapter, settings merger | CFG-FR-014 |
+| CFG-DES-015 | Query provider status, version-control settings, runtime tools, IDE settings, extensions, course folders, repository workspace, desktop integration, and profile-owned IDE workspace launch behavior before success. | Capability adapters, desktop integration probes | CFG-FR-015 |
 | CFG-DES-016 | Use managed-key merging and query-plan-apply-verify behavior so reruns repair managed integrations while preserving optional extensions and unrelated preferences. | Settings merger, adapters | CFG-FR-016 |
 | CFG-DES-017 | Render the matching `verify_ide.<ext>` command after successful configuration. | Output service, platform metadata | CFG-FR-017 |
+| CFG-DES-018 | Ensure the repository-workspace parent exists at the native `${HOME}/Repos` equivalent. Create only the parent when absent; never enumerate or mutate child repositories as part of configuration. | Path safety service, file service | CFG-FR-018 |
+| CFG-DES-019 | Create or repair the desktop item named `Repos` so it resolves exactly to the repository workspace. Preserve and report any conflicting unmanaged item rather than replacing it. | Desktop integration service, ownership probe | CFG-FR-019 |
+| CFG-DES-020 | Apply the qualified platform's development-marker adapter. CVD uses native `development` emblem metadata; Windows uses safe Explorer folder customization; Ubuntu GNOME uses safe native development metadata when supported; macOS reports the visual-only integration `NOT APPLICABLE`. | Platform desktop adapter | CFG-FR-020 |
+| CFG-DES-021 | For CVD only, locate and repair the existing Visual Studio Code desktop launcher so both its folder argument and working path resolve to the repository workspace. If the expected existing launcher is absent, report failure and do not create a duplicate. | CVD desktop adapter, IDE adapter | CFG-FR-021 |
 
 ### 9.1 Authentication Flow
 
@@ -976,18 +981,18 @@ Authentication secrets remain in the provider's approved credential store. Confi
 8. Replace the target atomically.
 9. Read the target again and verify managed keys.
 
-### 9.3 Desktop Course-Root Integration Algorithm
+### 9.3 Repository-Workspace Desktop Integration Algorithm
 
 For each supported graphical desktop:
 
-1. Resolve the exact course root and desktop folder from `PlatformFacts`.
-2. Resolve the manifest-approved file-manager and IDE interfaces without hardcoding a user name.
-3. Construct the course-folder shortcut with a target that opens the course root.
-4. Construct the IDE launcher with the course root as a separate validated argument or native workspace value, not an interpolated command string.
-5. Apply the IDE default-folder setting only when the selected IDE and platform support it.
-6. Stage or create only the declared launcher files or native shortcut objects.
-7. Query the resulting shortcut targets, IDE executable, launch argument or workspace, and default-folder setting.
-8. Repair incorrect managed values while preserving unrelated desktop layout, icons, and IDE preferences.
+1. Resolve the repository workspace as `${HOME}/Repos` (or the exact native equivalent) and resolve the desktop folder without hardcoding a user name.
+2. If the workspace path is absent, create only the parent directory. If the path exists as a non-directory, preserve it and report a conflict.
+3. Never traverse, enumerate for maintenance, recursively permission-change, move, delete, or otherwise mutate repositories or files beneath the workspace.
+4. Create or repair the course-managed desktop item named `Repos` so its target resolves exactly to the repository workspace; preserve and report any conflicting unmanaged item.
+5. Apply the platform adapter's approved development visual marker when a safe native mechanism exists. Treat the marker as visual-only and do not add a software-package dependency solely to provide it.
+6. On CVD only, locate the existing course-provided Visual Studio Code desktop launcher and set its folder argument and working path to the repository workspace using argument-safe native launcher fields. Do not create a duplicate launcher when the expected one is missing.
+7. Query the resulting workspace, desktop target, applicable marker, and CVD launcher fields and compare them with the required state.
+8. Repair only course-owned integration metadata while preserving unrelated desktop layout, icons, preferences, and all student repository content.
 
 ## 10. Verify Script Design
 
@@ -1000,7 +1005,7 @@ Verify uses read-only adapter interfaces. A platform implementation shall make m
 | VER-DES-003 | Validate the manifest and record its automation SemVer release, release date, schema identity, and Verify artifact identity as the comparison baseline. | Manifest loader, validator, artifact identity service | VER-FR-003 |
 | VER-DES-004 | Check platform, release, architecture, user context, disk space, permissions, and approved network endpoints. | Platform detector, network probe | VER-FR-004 |
 | VER-DES-005 | Iterate over required system capability bindings and compare presence and product versions with manifest rules. | Capability adapters, check registry | VER-FR-005 |
-| VER-DES-006 | Check required user tools, extensions, version-control settings, provider authentication, IDE settings, script permissions, folders, desktop course-root shortcut target, IDE executable, and course-root launch argument or workspace. | Read-only capability, provider, and desktop adapters | VER-FR-006 |
+| VER-DES-006 | Check required user tools, extensions, version-control settings, provider authentication, IDE settings, script permissions, course folders, repository-workspace integration, and profile-owned IDE workspace launch behavior. | Read-only capability, provider, and desktop adapters | VER-FR-006 |
 | VER-DES-007 | Validate managed configuration structure and safe values while redacting secrets and complete personal identifiers. | Redaction service, settings readers | VER-FR-007 |
 | VER-DES-008 | Represent each check as one `CheckResult` with `PASS`, `WARNING`, `FAIL`, or `NOT APPLICABLE`. | Check registry | VER-FR-008 |
 | VER-DES-009 | Store the owning remediation action and related SRS ID in each check definition so failures produce the correct Prepare, Install, Configure, or Update command. | Check registry, output service | VER-FR-009 |
@@ -1009,6 +1014,10 @@ Verify uses read-only adapter interfaces. A platform implementation shall make m
 | VER-DES-012 | Resolve the final exit code from the most serious observed result using the shared precedence table. | Result aggregator | VER-FR-012 |
 | VER-DES-013 | Save a sanitized transcript and, only on explicit request, prepare a versioned inventory-reviewed support bundle. | Transcript service, bundle builder, artifact identity service | VER-FR-013 |
 | VER-DES-014 | Map unrepairable or administrative conditions to a manifest- or platform-declared support channel rather than an inappropriate lifecycle script. | Check registry, output service | VER-FR-014 |
+| VER-DES-015 | Query only the repository-workspace parent path and accessibility; do not create a probe file or change permissions. | Read-only path adapter | VER-FR-015 |
+| VER-DES-016 | Resolve the desktop `Repos` shortcut or link target read-only and compare it with the canonical repository workspace. | Read-only desktop adapter | VER-FR-016 |
+| VER-DES-017 | Query the qualified development-marker metadata without writing it; map a platform-declared unsupported marker to `NOT APPLICABLE`. | Read-only desktop metadata adapter | VER-FR-017 |
+| VER-DES-018 | On CVD, parse the existing Visual Studio Code desktop entry read-only and require the repository-workspace folder argument while rejecting a course-root-only launch target. | Read-only CVD desktop-entry probe | VER-FR-018 |
 
 ### 10.1 Check Registry Structure
 
@@ -1227,7 +1236,7 @@ Prepare must carry enough trusted source and structural information to validate 
 | PLT-DES-003 | Package management | Query, refresh, install, update, repair, cleanup, and validate approved packages. | Native package-manager adapter. | INS-FR-003 through INS-FR-006, UPD-FR-006, UPD-FR-011 |
 | PLT-DES-004 | Privilege control | Determine capability and elevate one approved operation. | Native privilege mechanism. | PRE-FR-004, PKG-NFR-022, REF-TC-003 |
 | PLT-DES-005 | Path resolution | Return canonical home, desktop, temporary, configuration, and executable paths. | Native environment and folder APIs. | PRE-FR-005, PKG-NFR-019, PKG-NFR-020, REF-TC-005 |
-| PLT-DES-006 | User integration | Create or query the course-folder shortcut, IDE course-root launcher, file associations, and default-folder behavior. | Native shortcut, launcher, desktop-entry, shell, or IDE interface. | CFG-FR-013 through CFG-FR-015, REF-TC-006 |
+| PLT-DES-006 | User integration | Create or query the repository-workspace parent integration, desktop `Repos` item, development marker, profile-owned IDE workspace launcher, and file associations. | Native shortcut, launcher, desktop-entry, folder-metadata, shell, or IDE interface. | CFG-FR-013 through CFG-FR-021, VER-FR-015 through VER-FR-018, REF-TC-006 |
 | PLT-DES-007 | Restart detection | Report required application, session, virtual-machine, or computer restart. | Native update and session indicators. | UPD-FR-014, REF-TC-004 |
 | PLT-DES-008 | Provider integration | Expose stable authentication and account operations. | Allowlisted provider adapter selected by the profile. | CFG-FR-005 through CFG-FR-008 |
 | PLT-DES-009 | Equivalent outcomes | Use the same status, artifact identity, log, remediation, and acceptance semantics. | Different native commands may produce the required final state. | PKG-NFR-001, PKG-NFR-015, PKG-NFR-021 |
@@ -1236,7 +1245,20 @@ Prepare must carry enough trusted source and structural information to validate 
 | PLT-DES-012 | Prepare bootstrap profile | Implement archive retrieval, extraction, structural validation, package overlay, permission, cleanup, and user `PATH` behavior using only baseline native facilities. | PowerShell and native Windows tools, Z shell and native macOS tools, or equivalent approved baseline. | PRE-FR-001 through PRE-FR-015 |
 | PLT-DES-013 | Support-scope boundary | Reuse stable lifecycle and adapter contracts for selected new deployment profiles while representing only qualified and approved deployment profiles as course-supported. | Deployment-specific bindings and evidence are added only when course need and available resources justify the commitment. | PKG-NFR-028, PKG-TC-006, Section 3.3 of the SRS |
 
-### 14.2 Adapter Contract Rules
+### 14.2 Repository Workspace Desktop Adapter Matrix
+
+The repository workspace is a stable user-facing contract, but desktop decoration is adapter-specific. No implementation may install a package solely to satisfy the visual marker.
+
+| Qualified platform | Workspace path | Development marker | Desktop integration | IDE workspace behavior |
+| --- | --- | --- | --- | --- |
+| CVD / Xfce | `${HOME}/Repos` | Required native `development` emblem through GIO metadata | Symbolic link named `Repos` on the resolved Xfce desktop | Repair the existing course-provided Visual Studio Code desktop entry so its working path and folder argument use `${HOME}/Repos`; missing expected launcher is a Configure failure, not permission to create a duplicate |
+| Ubuntu Desktop / GNOME | `${HOME}/Repos` | Prefer a safe native development/code-oriented folder metadata value when supported; otherwise return documented warning or `NOT APPLICABLE` for the visual-only marker | Symbolic link named `Repos` on the resolved desktop | Leave the normal platform Visual Studio Code launcher unchanged |
+| Windows bare metal | `%USERPROFILE%\Repos` | Explorer folder customization using an already installed development-tool icon when a safe icon resource can be resolved | `.lnk` named `Repos` on the resolved desktop | Leave the normal platform Visual Studio Code launcher unchanged |
+| macOS bare metal | `${HOME}/Repos` | `NOT APPLICABLE`; Finder does not expose a stable supported built-in emblem interface appropriate for this automation design | Symbolic link named `Repos` on the resolved Finder Desktop | Leave the normal platform Visual Studio Code launcher unchanged |
+
+Each adapter exposes both mutation and query operations. Configure may call mutation operations only on the workspace parent and explicitly course-owned integration objects. Verify is bound exclusively to query operations. Neither interface receives a recursive workspace path operation.
+
+### 14.3 Adapter Contract Rules
 
 Every adapter method shall:
 
@@ -1249,7 +1271,7 @@ Every adapter method shall:
 - Support a query operation used for idempotence and verification.
 - Avoid product-specific logic in the orchestrator.
 
-### 14.3 Provider Adapter Rules
+### 14.4 Provider Adapter Rules
 
 A provider adapter is added only when:
 
@@ -1277,17 +1299,17 @@ A proposed deployment profile is not marked course-supported until it provides:
 - Full SRS acceptance-test evidence on a clean supported environment.
 - Idempotence evidence from repeated Prepare, Install, Configure, and Update runs.
 - Read-only evidence for Verify.
-- Course-folder shortcut and IDE course-root launch evidence on supported graphical desktops.
+- Repository-workspace desktop-link, development-marker, and profile-owned IDE workspace-launch evidence on supported graphical desktops.
 - Student-work preservation, interruption recovery, redaction, and version-traceability evidence.
 
-### 14.5 Initial Platform Conformance Test Matrix
+### 14.6 Initial Platform Conformance Test Matrix
 
 The initial release qualification uses resettable environments selected for supported-profile conformance and qualification-only testing.
 
 | Test target | Role | Required use |
 | --- | --- | --- |
 | Codio Virtual Desktop: Ubuntu 24.04 LTS, APT, Xfce, x86_64 | Reference deployment | Run the complete Prepare, Install, Configure, Verify, Update, acceptance, idempotence, interruption, support-log, desktop-integration, and student-work-preservation suites for every release candidate. |
-| Manifest-approved Windows x86_64 bare-metal deployment | Supported local deployment | Reset to a clean approved release and run the complete platform conformance suite, including desktop course-root and IDE launch targets, before approval. |
+| Manifest-approved Windows x86_64 bare-metal deployment | Supported local deployment | Reset to a clean approved release and run the complete platform conformance suite, including repository-workspace desktop and applicable IDE workspace launch targets, before approval. |
 | Windows Sandbox on x86_64 | Qualification-only deployment | Run the approved ephemeral-environment and support-reproduction tests. Passing this profile does not qualify or replace the Windows bare-metal deployment. |
 | Supported macOS on Apple Silicon bare metal | Supported local deployment | Erase or restore to a clean supported release and run the complete platform conformance suite before approval. |
 | Ubuntu 24.04 LTS with APT and GNOME on x86_64 bare metal | Supported local deployment | Reinstall or restore a clean image and run the complete platform conformance suite before approval. |
@@ -1379,7 +1401,7 @@ Logs and test results are generated records rather than source artifacts, but th
 | 11 | Use plain-text logs with stable version fields. | Students and support personnel can read them without specialized tools while identifying the exact producing artifact. | Store only structured machine logs; rejected for student usability, though structured supplemental data may be added later. |
 | 12 | Keep the reference product mapping in a nonnormative appendix. | Reviewers need concrete context, but the manifest remains the current authority. | Remove all product names; rejected because it weakens review and test context. |
 | 13 | Give each controlled artifact an independent SemVer and version date-time group. | Independent identities support exact traceability and correct compatibility decisions without forcing unrelated files to share a version. | Use one date-based package number for every artifact; rejected because dates do not express compatibility or change type. |
-| 14 | Manage both a desktop course-folder shortcut and an IDE launcher that opens the course root. | Beginning students receive a predictable starting location in both the file manager and IDE, matching the validated Windows behavior. | Provide only a generic IDE shortcut; rejected because it can open an unrelated recent folder or empty window. |
+| 14 | Separate the student repository workspace from the course automation root and provide a predictable desktop entry to the repository workspace; on CVD, repair the existing IDE launcher to open that workspace. | Beginning students receive a predictable development location without conflating student-owned repositories with course-managed automation files. | Put student repositories under the course automation root; rejected because it creates ambiguous ownership and raises the risk of automation touching student work. |
 | 15 | Design for selective extensibility instead of universal platform coverage. | Stable lifecycle orchestration and adapter contracts keep future expansion practical, while explicit qualification prevents an unbounded testing and maintenance commitment. | Promise support for every platform accepted by any upstream product; rejected because the course cannot implement, test, document, and maintain that open-ended matrix responsibly. |
 | 16 | Add profile-aware course-continuity guidance to every unsuccessful managed lifecycle conclusion. | Students can continue required coursework in CVD while a local environment issue is repaired, without misleading users when CVD itself is affected. | Provide remediation only; rejected because it can leave beginners believing they must stop coursework until local repair is complete. |
 
@@ -1396,8 +1418,8 @@ A range in this table is inclusive. The design elements listed for a range apply
 | PKG-FR-021 | SHR-DES-002, SHR-DES-012, INT-DES-014, ERR-DES-014 | All five pseudoscripts; handled-failure and noncompliance acceptance tests |
 | PRE-FR-001 through PRE-FR-015 | PRE-DES-001 through PRE-DES-015, PLT-DES-012 | `prepare_ide.pseudo`; Prepare flowchart; first-use, refresh, interruption, and preservation tests |
 | INS-FR-001 through INS-FR-012 | INS-DES-001 through INS-DES-012 | `install_ide.pseudo`; Install flowchart; Install tests |
-| CFG-FR-001 through CFG-FR-017 | CFG-DES-001 through CFG-DES-017, SHR-DES-018, DAT-DES-017 | `configure_ide.pseudo`; desktop-integration design; Configure tests |
-| VER-FR-001 through VER-FR-014 | VER-DES-001 through VER-DES-014 | `verify_ide.pseudo`; check registry; Verify tests |
+| CFG-FR-001 through CFG-FR-021 | CFG-DES-001 through CFG-DES-021, SHR-DES-018, DAT-DES-017, PLT-DES-006 | `configure_ide.pseudo`; desktop-integration design; Configure tests |
+| VER-FR-001 through VER-FR-018 | VER-DES-001 through VER-DES-018, PLT-DES-006 | `verify_ide.pseudo`; check registry; Verify tests |
 | UPD-FR-001 through UPD-FR-016 | UPD-DES-001 through UPD-DES-016 | `update_ide.pseudo`; update transaction diagram; Update tests |
 | PKG-FR-011 through PKG-FR-020 | DAT-DES-001 through DAT-DES-017, SHR-DES-009, SEC-DES-004 | Manifest schema; configuration-control procedure |
 | PKG-NFR-001 through PKG-NFR-005 | ARC-DES-003 through ARC-DES-011, SHR-DES-002, DAT-DES-011 | Architecture diagram; conformance tests |
@@ -1448,7 +1470,7 @@ Before construction or release approval, reviewers shall confirm the following e
 | Manifest safety | Manifest data cannot directly introduce arbitrary executable commands or unsafe paths. |
 | Idempotence | Query-plan-apply-verify behavior is defined for Prepare, Install, Configure, and Update. |
 | Read-only verification | Verify receives only read interfaces and cannot invoke mutating adapter methods. |
-| Desktop course-root behavior | Configure creates and validates the course-folder shortcut and IDE launcher; Verify checks their targets and course-root argument or workspace. |
+| Repository workspace behavior | Configure creates and validates the `Repos` workspace parent, desktop link, applicable development marker, and CVD IDE workspace launcher; Verify checks the same state read-only without traversing student repositories. |
 | User-data protection | Package-refresh targets, managed paths, and settings keys are explicit; other content is user-owned. |
 | Error recovery | Staging, rollback, locks, retry boundaries, interruption handling, and exit precedence are defined. |
 | Privacy and security | Least privilege, trust roots, input validation, redaction, file permissions, and bundle exclusions are defined. |
@@ -1477,6 +1499,7 @@ The reference mapping should be updated when convenient for historical clarity, 
 | System package manager | Advanced Package Tool (APT) |
 | Controlled privilege elevation | Passwordless `sudo` for approved system commands |
 | Standard course root | `$HOME/it140` |
+| Standard repository workspace | `$HOME/Repos` |
 | Standard log directory | `$HOME/it140/logs` |
 
 ### A.3 Reference Capability Bindings
@@ -1529,7 +1552,7 @@ Each supported platform may have a concise, independently versioned supplement t
 - Package-manager operations and source configuration.
 - Privilege-elevation mechanism.
 - Native path and desktop-folder discovery.
-- Course-root shortcut and IDE course-root launcher interfaces.
+- Repository-workspace desktop-link, development-marker, and profile-owned IDE workspace-launch interfaces.
 - User settings and file-association interfaces.
 - Restart detection and user instructions.
 - Capability adapter bindings that require platform-specific code.
@@ -1540,7 +1563,7 @@ A supplement shall not redefine shared exit codes, log fields, artifact identity
 
 ## Appendix C: References
 
-- `scripts/.dev/analysis/it140_scripts_srs.md`, *IT 140 Course Automation Scripts Software Requirements Specification*, version `0.5.0`, version date-time group `2026-08-01-10-43`.
+- `scripts/.dev/analysis/it140_scripts_srs.md`, *IT 140 Course Automation Scripts Software Requirements Specification*, version `0.6.0`, version date-time group `2026-08-07-10-44`.
 - `scripts/.dev/README.md`, development notes and five-component lifecycle decisions.
 - `scripts/.dev/pseudoscripts/prepare_ide.pseudo`, platform-agnostic Prepare design artifact.
 - `scripts/.dev/pseudoscripts/install_ide.pseudo`, platform-agnostic Install design artifact.
@@ -1550,4 +1573,4 @@ A supplement shall not redefine shared exit codes, log fields, artifact identity
 - `scripts/win/prepare_ide.ps1`, current Windows first-use and package-refresh implementation reviewed for this design update.
 - `scripts/mac/prepare_ide.zsh`, current macOS first-use and package-refresh implementation reviewed for this design update.
 - `scripts/.manifest/it140_manifest.json`, controlled product, platform, deployment-profile, provider, product-version, source, desktop-integration, and maintenance-asset selections when populated and approved.
-- Repository acceptance-test and platform-script files at commit `e7d3e7fc24eeefd5aafccd8939982f5c0369c3f4`.
+- Repository acceptance-test and platform-script files at commit `dbde859f90b1b957b05aa03e25b867563c113bb2`.

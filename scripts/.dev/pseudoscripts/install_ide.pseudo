@@ -10,10 +10,10 @@
 #     system-level course integrations.
 #
 # Artifact version:
-#     0.5.0
+#     0.6.0
 #
-# Version date-time group-time group:
-#     2026-08-01-10-43
+# Version date-time group:
+#     2026-08-07-10-44
 #
 # Development status:
 #     Alpha Testing
@@ -22,17 +22,19 @@
 #     Version 0.1.0 represents the initial pseudoscript baseline.
 #     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
 #     Version 0.4.0 adds the common CVD course-continuity conclusion.
-#     Version 0.5.0 adopts minute-resolution version date-time group-time groups and
+#     Version 0.5.0 adopts minute-resolution version date-time groups and
 #     profile-aware lifecycle transition reporting.
+#     Version 0.6.0 separates the student repository workspace from the course
+#     automation root and defines Configure/Verify workspace integration ownership.
 #
 # CVD implementation target:
 #     install_ide.sh version 2026.07.27.1 (legacy calendar version)
 #
 # Repository baseline:
-#     GC-STEM/it140 commit ffc0c98dc405daff52caa9e61c2f9c5f65b3ebb4
+#     GC-STEM/it140 commit dbde859f90b1b957b05aa03e25b867563c113bb2
 #
 # Manifest compatibility:
-#     Requires schema_version 2.0, a strict SemVer automation_release,
+#     Requires schema_version 2.2, a strict SemVer automation_release,
 #     and automation_release_date_time_group in YYYY-MM-DD-HH-MM format.
 #
 # SRS traceability:
@@ -49,6 +51,8 @@
 #     SYSTEM_LEVEL
 #
 # Explicit exclusions:
+#     - Repository-workspace creation or repair; Configure owns ~/Repos integrations
+#     - Recursive inspection or mutation of any repository beneath ~/Repos
 #     - Provider authentication and Git identity
 #     - User-scoped Python tools and IDE extensions
 #     - User IDE settings, launchers, panel configuration, and file associations
@@ -61,8 +65,8 @@
 # ==============================================================================
 
 
-artifact_version = "0.5.0"
-version_date_time_group = "2026-08-01-10-43"
+artifact_version = "0.6.0"
+version_date_time_group = "2026-08-07-10-44"
 development_status = "Alpha Testing"
 action_id = "install"
 may_change_state = TRUE
