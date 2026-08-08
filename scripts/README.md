@@ -7,6 +7,16 @@ This guide explains the purpose of the IT 140 Course Automation Scripts package,
 > [!IMPORTANT]
 > This README is informative and navigational. Follow the [Module One Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) for the exact commands and workflow for your course environment. Run only the scripts that match your selected platform.
 
+- **Course**: IT 140 - *Introduction to Scripting*
+- **Activity Name**: Main Course Repository | Course Automation Scripts
+- **Activity Purpose**: Prepare, install, configure, verify, and update the IT 140 course IDE in supported environments.
+- **Artifact Version**: 0.10.0-beta.1
+- **Artifact Date**: 2026-08-09
+- **Development Status**: Beta Testing
+
+> [!WARNING]
+> This repository is a work in progress. Some modules and activities may not be fully implemented yet. Please check the status of each activity in the table below for the latest updates.
+
 ## Table of Contents
 
 - [IT 140 Main Course Repository | Course Automation Scripts](#it-140-main-course-repository--course-automation-scripts)

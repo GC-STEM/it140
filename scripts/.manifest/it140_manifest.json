@@ -1,6 +1,6 @@
 {
   "schema_version": "2.2",
-  "automation_release": "0.7.3",
+  "automation_release": "0.10.0-beta.1",
   "course": {
     "course_id": "IT 140",
     "course_title": "Introduction to Scripting",

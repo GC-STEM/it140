@@ -3,9 +3,9 @@
 # IT 140 Codio Virtual Desktop user configuration and repair script
 #
 # Artifact ID: IT140-CVD-CONFIGURE
-# Artifact version: 0.8.0-alpha.2
-# Version date-time group: 2026-08-07-18-25
-# Development status: Alpha Testing
+# Artifact version: 0.10.0-beta.1
+# Version date-time group: 2026-08-09-23-59
+# Development status: Beta Testing
 #
 # Traceability: CFG-FR-001 through CFG-FR-021; PKG-FR-021;
 #               CFG-DES-001 through CFG-DES-021; PLT-DES-006; ERR-DES-014.
@@ -21,9 +21,9 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="0.8.0-alpha.2"
-readonly VERSION_DTG="2026-08-07-18-25"
-readonly DEVELOPMENT_STATUS="Alpha Testing"
+readonly SCRIPT_VERSION="0.10.0-beta.1"
+readonly VERSION_DTG="2026-08-09-23-59"
+readonly DEVELOPMENT_STATUS="Beta Testing"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"

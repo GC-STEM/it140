@@ -5,9 +5,9 @@
 # Repository path: scripts/cvd/prepare_it140.sh
 # Purpose: Acquire or refresh the IT 140 automation package without requiring
 #          Git, the course manifest, or another lifecycle script.
-# Artifact version: 0.5.3
-# Version date-time group: 2026-08-07-20-12
-# Development status: Alpha Testing
+# Artifact version: 0.10.0-beta.1
+# Version date-time group: 2026-08-09-23-59
+# Development status: Beta Testing
 # Supported platform: Codio Virtual Desktop (Ubuntu 24.04 LTS XFCE)
 # Intended user: Standard CVD user; do not run as root or with sudo.
 #
@@ -21,8 +21,8 @@ if [[ "${IT140_PREPARE_MODE:-refresh}" == "bootstrap" ]]; then
 # ----- BEGIN COPYABLE BOOTSTRAP COMMAND SET -----
 (
 set -Eeuo pipefail
-version="0.5.3"
-version_dtg="2026-08-07-20-12"
+version="0.10.0-beta.1"
+version_dtg="2026-08-09-23-59"
 course_root="$HOME/it140"
 log_dir="$course_root/logs"
 archive_url="https://github.com/GC-STEM/it140/archive/refs/heads/main.tar.gz"
@@ -70,9 +70,9 @@ fi
 # ==============================================================================
 
 set -Eeuo pipefail
-readonly SCRIPT_VERSION="0.5.3"
-readonly VERSION_DTG="2026-08-07-20-12"
-readonly DEVELOPMENT_STATUS="Alpha Testing"
+readonly SCRIPT_VERSION="0.10.0-beta.1"
+readonly VERSION_DTG="2026-08-09-23-59"
+readonly DEVELOPMENT_STATUS="Beta Testing"
 readonly COURSE_ROOT="${HOME}/it140"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
 readonly SCRIPT_DIR="${COURSE_ROOT}/scripts/cvd"

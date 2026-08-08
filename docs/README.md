@@ -6,6 +6,9 @@
 - **Module Name**: Main Course Repository
 - **Activity Name**: Course Documents
 - **Activity Description**: This folder contains course-wide reference documents related to entry-level software development as used in this course.
+- **Artifact Version**: 0.10.0-beta.1
+- **Artifact Date**: 2026-08-09
+- **Development Status**: Beta Testing
 
 > [!WARNING]
 > This README file and folder are planned. If you have any course-wide documents to add to this folder, please open a [GitHub Issue](https://github.com/GC-STEM/it140/issues) with your suggestion.

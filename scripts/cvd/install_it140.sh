@@ -3,9 +3,9 @@
 # IT 140 Codio Virtual Desktop system installation and repair script
 #
 # Artifact ID: IT140-CVD-INSTALL
-# Artifact version: 0.7.3-alpha.1
-# Version date-time group: 2026-08-05-11-39
-# Development status: Alpha Testing
+# Artifact version: 0.10.0-beta.1
+# Version date-time group: 2026-08-09-23-59
+# Development status: Beta Testing
 #
 # Traceability: INS-FR-001 through INS-FR-012; INS-DES-001 through INS-DES-012.
 # Scope: System-level software, trusted repositories, policies, and integrations.
@@ -13,9 +13,9 @@
 #           user extensions, and user launchers.
 set -Eeuo pipefail
 umask 077
-readonly SCRIPT_VERSION="0.7.3-alpha.1"
-readonly VERSION_DTG="2026-08-05-11-39"
-readonly DEVELOPMENT_STATUS="Alpha Testing"
+readonly SCRIPT_VERSION="0.10.0-beta.1"
+readonly VERSION_DTG="2026-08-09-23-59"
+readonly DEVELOPMENT_STATUS="Beta Testing"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"

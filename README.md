@@ -4,6 +4,10 @@
 
 - **Course**: IT 140 - *Introduction to Scripting*
 - **Activity Name**: Main Course Repository
+- **Activity Purpose**: Central repository for all course materials and activities.
+- **Artifact Version**: 0.10.0-beta.1
+- **Artifact Date**: 2026-08-09
+- **Development Status**: Beta Testing
 
 > [!WARNING]
 > This repository is a work in progress. Some modules and activities may not be fully implemented yet. Please check the status of each activity in the table below for the latest updates.

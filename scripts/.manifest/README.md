@@ -7,6 +7,16 @@ This guide explains the controlled configuration files in `scripts/.manifest/`, 
 > [!IMPORTANT]
 > This README is informative and navigational, not normative. It does not establish or replace requirements, design decisions, schema rules, approved configuration, qualification evidence, or release approval. The [Software Requirements Specification](../.dev/analysis/it140_scripts_srs.md) defines required behavior, the [Software Design Description](../.dev/design/it140_scripts_sdd.md) defines the approved high-level design, the [manifest schema](it140_manifest.schema.json) defines the permitted JSON structure, and the [controlled manifest](it140_manifest.json) selects the current concrete configuration.
 
+- **Course**: IT 140 - *Introduction to Scripting*
+- **Activity Name**: Main Course Repository | Controlled Manifest and Schema Guide
+- **Activity Purpose**: Explain the controlled manifest and schema, their purpose, and how maintainers should review, validate, change, and release them.
+- **Artifact Version**: 0.10.0-beta.1
+- **Artifact Date**: 2026-08-09
+- **Development Status**: Beta Testing
+
+> [!WARNING]
+> This repository is a work in progress. Some modules and activities may not be fully implemented yet. Please check the status of each activity in the table below for the latest updates.
+
 ## Table of Contents
 
 - [Controlled Manifest and Schema Guide](#controlled-manifest-and-schema-guide)
