@@ -3,7 +3,7 @@
 # IT 140 Main Course Repository | Course Documents
 
 - **Course**: IT 140 - *Introduction to Scripting*
-- **Module Name**: Main Course Repository
+- **Module Name**: Main Course Repository | Course Documents
 - **Activity Name**: Course Documents
 - **Activity Description**: This folder contains course-wide reference documents related to entry-level software development as used in this course.
 - **Artifact Version**: 0.10.0-beta.1
