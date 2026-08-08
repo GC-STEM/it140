@@ -2,10 +2,9 @@
 # ==============================================================================
 # IT 140 COURSE IDE — CVD CLEANUP
 # ==============================================================================
-# Repository path: scripts/cvd/sanitize_CVD.sh
-# Purpose: Prepare the approved Codio Virtual Desktop baseline for student use.
-# Artifact version: 0.2.1-alpha.1
-# Version date-time group: 2026-08-08-07-07
+# Repository path: scripts/cvd/sanitize_cvd.sh# Purpose: Prepare the approved Codio Virtual Desktop baseline for student use.
+# Artifact version: 0.2.2-alpha.1
+# Version date-time group: 2026-08-08-09-23
 # Development status: Alpha Testing
 # Supported platform: Codio Virtual Desktop (Ubuntu 24.04 LTS, Xfce, LightDM)
 # Intended user: Standard CVD user; do not run as root or with sudo.
@@ -23,8 +22,8 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="0.2.1-alpha.1"
-readonly VERSION_DTG="2026-08-08-07-07"
+readonly SCRIPT_VERSION="0.2.2-alpha.1"
+readonly VERSION_DTG="2026-08-08-09-23"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
 
 readonly COURSE_ROOT="${HOME}/it140"
@@ -211,6 +210,7 @@ ensure_collection_ready() {
 
 list_managed_items() {
     local result=""
+    local escaped_collection=""
 
     if ! result="$(
         gdbus call             --session             --dest "$BUS_DESTINATION"             --object-path "$COLLECTION_OBJECT"             --method "${PROPERTIES_INTERFACE}.Get"             "$COLLECTION_INTERFACE"             "Items"             2>/dev/null
@@ -218,7 +218,11 @@ list_managed_items() {
         return 1
     fi
 
-    printf '%s\n' "$result"         | grep -oE "objectpath '[^']+'"         | cut -d"'" -f2         | awk '!seen[$0]++'         || true
+    escaped_collection="${COLLECTION_OBJECT//\//\\/}"
+    printf '%s\n' "$result" \
+        | grep -oE "${escaped_collection}/[A-Za-z0-9_]+" \
+        | awk '!seen[$0]++' \
+        || true
 }
 
 remove_managed_items() {
@@ -267,11 +271,16 @@ verify_cleanup() {
     local alias_result=""
     local alias_path=""
     local remaining_text=""
+    local attempt
 
-    if ! remaining_text="$(list_managed_items)"; then
-        printf 'ERROR: Expected CVD cleanup state was not achieved.\n' >&2
-        return 1
-    fi
+    for attempt in {1..20}; do
+        if ! remaining_text="$(list_managed_items)"; then
+            printf 'ERROR: Expected CVD cleanup state was not achieved.\n' >&2
+            return 1
+        fi
+        [[ -z "$remaining_text" ]] && break
+        sleep 0.1
+    done
 
     if [[ -n "$remaining_text" ]]; then
         printf 'ERROR: Expected CVD cleanup state was not achieved.\n' >&2

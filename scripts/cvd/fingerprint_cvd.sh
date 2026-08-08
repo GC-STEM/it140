@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# IT 140 Codio Virtual Desktop (CVD) environment fingerprint
+# Linux Codio Virtual Desktop (CVD) environment fingerprint
 # Captures system, package, desktop, development-tool, and configuration state
 # for comparison with a local Ubuntu/Xfce virtual machine.
 

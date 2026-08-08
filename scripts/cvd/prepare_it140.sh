@@ -5,8 +5,8 @@
 # Repository path: scripts/cvd/prepare_it140.sh
 # Purpose: Acquire or refresh the IT 140 automation package without requiring
 #          Git, the course manifest, or another lifecycle script.
-# Artifact version: 0.5.0
-# Version date-time group: 2026-08-01-11-06
+# Artifact version: 0.5.3
+# Version date-time group: 2026-08-07-20-12
 # Development status: Alpha Testing
 # Supported platform: Codio Virtual Desktop (Ubuntu 24.04 LTS XFCE)
 # Intended user: Standard CVD user; do not run as root or with sudo.
@@ -17,13 +17,12 @@
 # When this installed artifact is executed normally, the guarded bootstrap
 # section is skipped and the direct refresh implementation below is used.
 # ==============================================================================
-
 if [[ "${IT140_PREPARE_MODE:-refresh}" == "bootstrap" ]]; then
 # ----- BEGIN COPYABLE BOOTSTRAP COMMAND SET -----
 (
 set -Eeuo pipefail
-version="0.5.1"
-version_dtg="2026-08-01-11-06"
+version="0.5.3"
+version_dtg="2026-08-07-20-12"
 course_root="$HOME/it140"
 log_dir="$course_root/logs"
 archive_url="https://github.com/GC-STEM/it140/archive/refs/heads/main.tar.gz"
@@ -49,9 +48,11 @@ tar -xzf "$archive_path" -C "$stage_root"
 source_root="$(find "$stage_root" -mindepth 1 -maxdepth 1 -type d -name 'it140-*' -print -quit)"
 [[ -n "$source_root" ]]
 for script in prepare install configure verify update; do [[ -f "$source_root/scripts/cvd/${script}_it140.sh" ]]; done
+[[ -f "$source_root/scripts/cvd/sanitize_CVD.sh" ]]
 cp -a "$source_root/." "$course_root/"
 rm -rf -- "$course_root/.git"
 chmod +x "$course_root/scripts/cvd/"*.sh
+"$course_root/scripts/cvd/sanitize_CVD.sh"
 path_line='export PATH="$HOME/it140/scripts/cvd:$PATH"'
 touch "$HOME/.bashrc"
 grep -qxF "$path_line" "$HOME/.bashrc" || printf '\n%s\n' "$path_line" >> "$HOME/.bashrc"
@@ -64,15 +65,13 @@ printf "SUCCESS: The IT 140 automation package is ready.\nNext step: Close this 
 # ----- END COPYABLE BOOTSTRAP COMMAND SET -----
 exit $?
 fi
-
 # ==============================================================================
 # DIRECT REFRESH / REPAIR IMPLEMENTATION
 # ==============================================================================
 
 set -Eeuo pipefail
-
-readonly SCRIPT_VERSION="0.5.0"
-readonly VERSION_DTG="2026-08-01-11-06"
+readonly SCRIPT_VERSION="0.5.3"
+readonly VERSION_DTG="2026-08-07-20-12"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
 readonly COURSE_ROOT="${HOME}/it140"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
@@ -92,6 +91,7 @@ cleanup() {
 
 print_failure_guidance() {
     local status="$1"
+
     printf '\nERROR: Prepare did not complete successfully.\n'
     printf 'Failed stage: %s\n' "$CURRENT_STAGE"
     printf 'Exit code: %s\n' "$status"
@@ -104,6 +104,7 @@ print_failure_guidance() {
 
 on_error() {
     local status=$?
+
     trap - ERR HUP INT TERM
     print_failure_guidance "$status"
     cleanup
@@ -117,7 +118,6 @@ require_standard_cvd_user() {
         printf 'ERROR: Run prepare_it140.sh as the normal CVD user, not as root or with sudo.\n' >&2
         return 3
     fi
-
     if [[ "$(uname -s)" != "Linux" ]]; then
         printf 'ERROR: This prepare script supports only the Linux-based CVD profile.\n' >&2
         return 4
@@ -127,7 +127,6 @@ require_standard_cvd_user() {
         printf 'ERROR: The operating-system release could not be identified.\n' >&2
         return 4
     fi
-
     # shellcheck disable=SC1091
     . /etc/os-release
     if [[ "${ID:-}" != "ubuntu" ]]; then
@@ -155,13 +154,13 @@ require_standard_cvd_user() {
 
 start_transcript() {
     CURRENT_STAGE="transcript setup"
+
     mkdir -p "$COURSE_ROOT" "$LOG_DIR"
     chmod 700 "$LOG_DIR"
     LOG_PATH="$LOG_DIR/prepare_ide_$(date +%Y%m%d_%H%M%S).log"
     : > "$LOG_PATH"
     chmod 600 "$LOG_PATH"
     exec > >(tee -a "$LOG_PATH") 2>&1
-
     printf 'IT 140 Course IDE — Prepare\n'
     printf 'Script: prepare_it140.sh\n'
     printf 'Version: %s\n' "$SCRIPT_VERSION"
@@ -207,7 +206,6 @@ extract_and_validate_archive() {
     mkdir -p "$stage_root"
     tar -xzf "$archive_path" -C "$stage_root"
     source_root="$(find "$stage_root" -mindepth 1 -maxdepth 1 -type d -name 'it140-*' -print -quit)"
-
     if [[ -z "$source_root" ]]; then
         printf 'ERROR: The downloaded archive has an unexpected top-level structure.\n' >&2
         return 6
@@ -219,6 +217,11 @@ extract_and_validate_archive() {
             return 6
         fi
     done
+
+    if [[ ! -f "$source_root/scripts/cvd/sanitize_CVD.sh" ]]; then
+        printf 'ERROR: The downloaded archive is missing a required CVD preparation component.\n' >&2
+        return 6
+    fi
 
     printf '%s\n' "$source_root" > "$TEMP_ROOT/source-root.txt"
 }
@@ -255,6 +258,17 @@ activate_scripts_and_path() {
     hash -r
 }
 
+run_cvd_cleanup() {
+    CURRENT_STAGE="CVD cleanup"
+
+    if [[ ! -x "$SCRIPT_DIR/sanitize_CVD.sh" ]]; then
+        printf 'ERROR: A required CVD preparation component is unavailable.\n' >&2
+        return 6
+    fi
+
+    "$SCRIPT_DIR/sanitize_CVD.sh"
+}
+
 main() {
     require_standard_cvd_user
     start_transcript
@@ -265,6 +279,7 @@ main() {
     extract_and_validate_archive
     refresh_managed_package
     activate_scripts_and_path
+    run_cvd_cleanup
 
     CURRENT_STAGE="cleanup"
     cleanup
