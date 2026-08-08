@@ -4,14 +4,17 @@
 # ==============================================================================
 # Repository path: scripts/cvd/sanitize_CVD.sh
 # Purpose: Prepare the approved Codio Virtual Desktop baseline for student use.
-# Artifact version: 0.2.0-alpha.1
-# Version date-time group: 2026-08-07-21-37
+# Artifact version: 0.2.1-alpha.1
+# Version date-time group: 2026-08-08-07-07
 # Development status: Alpha Testing
 # Supported platform: Codio Virtual Desktop (Ubuntu 24.04 LTS, Xfce, LightDM)
 # Intended user: Standard CVD user; do not run as root or with sudo.
 #
 # Design:
 #   * Cleanup is authorized only by exact controlled baseline fingerprints.
+#   * The active default collection is resolved dynamically.
+#   * The collection is unlocked only when the desktop service can do so without
+#     user interaction.
 #   * Managed entries are removed through the active desktop service.
 #   * The existing default collection and its desktop integration are preserved.
 #   * Nonmatching baseline state is preserved.
@@ -20,8 +23,8 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="0.2.0-alpha.1"
-readonly VERSION_DTG="2026-08-07-21-37"
+readonly SCRIPT_VERSION="0.2.1-alpha.1"
+readonly VERSION_DTG="2026-08-08-07-07"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
 
 readonly COURSE_ROOT="${HOME}/it140"
@@ -35,16 +38,17 @@ readonly BASELINE_SHA256="215619f917288eaba6849bb5899d438a7dfb6541b4519db9f4299f
 readonly SELECTOR_SHA256="4cdef49af5efb670e834e46f8c4da809a74cc0e6885c9c803de4aeb5b42d351d"
 
 readonly BUS_DESTINATION="org.freedesktop.secrets"
-readonly DEFAULT_OBJECT="/org/freedesktop/secrets/aliases/default"
+readonly SERVICE_OBJECT="/org/freedesktop/secrets"
+readonly SERVICE_INTERFACE="org.freedesktop.Secret.Service"
 readonly PROPERTIES_INTERFACE="org.freedesktop.DBus.Properties"
 readonly COLLECTION_INTERFACE="org.freedesktop.Secret.Collection"
 readonly ITEM_INTERFACE="org.freedesktop.Secret.Item"
 
 CURRENT_STAGE="initialization"
+COLLECTION_OBJECT=""
 
 print_failure_guidance() {
     local status="$1"
-
     printf '\nERROR: CVD cleanup did not complete successfully.\n' >&2
     printf 'Failed stage: %s\n' "$CURRENT_STAGE" >&2
     printf 'Exit code: %s\n' "$status" >&2
@@ -54,7 +58,6 @@ print_failure_guidance() {
 
 on_error() {
     local status=$?
-
     trap - ERR HUP INT TERM
     print_failure_guidance "$status"
     exit "$status"
@@ -62,7 +65,6 @@ on_error() {
 
 sha256_of() {
     local path="$1"
-
     sha256sum -- "$path" | awk '{print $1}'
 }
 
@@ -109,7 +111,6 @@ require_cvd_context() {
 
 start_transcript() {
     CURRENT_STAGE="transcript setup"
-
     mkdir -p "$COURSE_ROOT" "$LOG_DIR"
     chmod 700 "$LOG_DIR"
     : > "$LOG_FILE"
@@ -119,7 +120,6 @@ start_transcript() {
 
 baseline_matches() {
     CURRENT_STAGE="baseline validation"
-
     local baseline_digest
     local selector_digest
 
@@ -132,26 +132,78 @@ baseline_matches() {
        "$selector_digest" == "$SELECTOR_SHA256" ]]
 }
 
-collection_is_ready() {
-    CURRENT_STAGE="desktop service validation"
+extract_first_object_path() {
+    grep -oE "objectpath '[^']+'" | head -n 1 | cut -d"'" -f2
+}
 
+resolve_default_collection() {
+    CURRENT_STAGE="desktop service validation"
     local result=""
+    local object_path=""
 
     if ! result="$(
-        gdbus call \
-            --session \
-            --dest "$BUS_DESTINATION" \
-            --object-path "$DEFAULT_OBJECT" \
-            --method "${PROPERTIES_INTERFACE}.Get" \
-            "$COLLECTION_INTERFACE" \
-            "Locked" \
-            2>/dev/null
+        gdbus call             --session             --dest "$BUS_DESTINATION"             --object-path "$SERVICE_OBJECT"             --method "${SERVICE_INTERFACE}.ReadAlias"             "default"             2>/dev/null
     )"; then
         printf 'ERROR: CVD cleanup could not safely continue.\n' >&2
         return 1
     fi
 
-    if [[ "$result" != *"<false>"* ]]; then
+    object_path="$(printf '%s\n' "$result" | extract_first_object_path)"
+
+    if [[ -z "$object_path" ||
+          "$object_path" == "/" ||
+          "$object_path" != /org/freedesktop/secrets/collection/* ]]; then
+        printf 'ERROR: CVD cleanup could not safely continue.\n' >&2
+        return 1
+    fi
+
+    COLLECTION_OBJECT="$object_path"
+}
+
+collection_locked_state() {
+    local result=""
+
+    if ! result="$(
+        gdbus call             --session             --dest "$BUS_DESTINATION"             --object-path "$COLLECTION_OBJECT"             --method "${PROPERTIES_INTERFACE}.Get"             "$COLLECTION_INTERFACE"             "Locked"             2>/dev/null
+    )"; then
+        return 1
+    fi
+
+    if [[ "$result" == *"<true>"* ]]; then
+        printf 'locked\n'
+    elif [[ "$result" == *"<false>"* ]]; then
+        printf 'unlocked\n'
+    else
+        return 1
+    fi
+}
+
+ensure_collection_ready() {
+    CURRENT_STAGE="desktop service validation"
+    local state=""
+    local result=""
+
+    if ! state="$(collection_locked_state)"; then
+        printf 'ERROR: CVD cleanup could not safely continue.\n' >&2
+        return 1
+    fi
+
+    if [[ "$state" == "locked" ]]; then
+        if ! result="$(
+            gdbus call                 --session                 --dest "$BUS_DESTINATION"                 --object-path "$SERVICE_OBJECT"                 --method "${SERVICE_INTERFACE}.Unlock"                 "[objectpath '$COLLECTION_OBJECT']"                 2>/dev/null
+        )"; then
+            printf 'ERROR: CVD cleanup could not safely continue.\n' >&2
+            return 1
+        fi
+
+        if [[ "$result" != *"objectpath '$COLLECTION_OBJECT'"* ||
+              "$result" != *"objectpath '/'"* ]]; then
+            printf 'ERROR: CVD cleanup could not safely continue.\n' >&2
+            return 1
+        fi
+    fi
+
+    if ! state="$(collection_locked_state)" || [[ "$state" != "unlocked" ]]; then
         printf 'ERROR: CVD cleanup could not safely continue.\n' >&2
         return 1
     fi
@@ -161,31 +213,20 @@ list_managed_items() {
     local result=""
 
     if ! result="$(
-        gdbus call \
-            --session \
-            --dest "$BUS_DESTINATION" \
-            --object-path "$DEFAULT_OBJECT" \
-            --method "${PROPERTIES_INTERFACE}.Get" \
-            "$COLLECTION_INTERFACE" \
-            "Items" \
-            2>/dev/null
+        gdbus call             --session             --dest "$BUS_DESTINATION"             --object-path "$COLLECTION_OBJECT"             --method "${PROPERTIES_INTERFACE}.Get"             "$COLLECTION_INTERFACE"             "Items"             2>/dev/null
     )"; then
         return 1
     fi
 
-    printf '%s\n' "$result" \
-        | grep -oE '/org/freedesktop/secrets/(collection|aliases)/[A-Za-z0-9_/]+' \
-        | awk '!seen[$0]++' \
-        || true
+    printf '%s\n' "$result"         | grep -oE "objectpath '[^']+'"         | cut -d"'" -f2         | awk '!seen[$0]++'         || true
 }
 
 remove_managed_items() {
     CURRENT_STAGE="cleanup"
-
     local item=""
-    local -a items=()
-
+    local result=""
     local items_text=""
+    local -a items=()
 
     if ! items_text="$(list_managed_items)"; then
         printf 'ERROR: CVD cleanup could not safely continue.\n' >&2
@@ -202,18 +243,19 @@ remove_managed_items() {
     fi
 
     for item in "${items[@]}"; do
-        if [[ "$item" != /org/freedesktop/secrets/collection/* &&
-              "$item" != /org/freedesktop/secrets/aliases/default/* ]]; then
+        if [[ "$item" != "$COLLECTION_OBJECT/"* ]]; then
             printf 'ERROR: CVD cleanup could not safely continue.\n' >&2
             return 1
         fi
 
-        if ! gdbus call \
-            --session \
-            --dest "$BUS_DESTINATION" \
-            --object-path "$item" \
-            --method "${ITEM_INTERFACE}.Delete" \
-            >/dev/null 2>&1; then
+        if ! result="$(
+            gdbus call                 --session                 --dest "$BUS_DESTINATION"                 --object-path "$item"                 --method "${ITEM_INTERFACE}.Delete"                 2>/dev/null
+        )"; then
+            printf 'ERROR: CVD cleanup could not safely continue.\n' >&2
+            return 1
+        fi
+
+        if [[ "$result" != *"objectpath '/'"* ]]; then
             printf 'ERROR: CVD cleanup could not safely continue.\n' >&2
             return 1
         fi
@@ -222,10 +264,8 @@ remove_managed_items() {
 
 verify_cleanup() {
     CURRENT_STAGE="post-cleanup validation"
-
-    local item=""
-    local -a remaining=()
-
+    local alias_result=""
+    local alias_path=""
     local remaining_text=""
 
     if ! remaining_text="$(list_managed_items)"; then
@@ -234,22 +274,25 @@ verify_cleanup() {
     fi
 
     if [[ -n "$remaining_text" ]]; then
-        mapfile -t remaining <<< "$remaining_text"
+        printf 'ERROR: Expected CVD cleanup state was not achieved.\n' >&2
+        return 1
     fi
-
-    for item in "${remaining[@]}"; do
-        if [[ -n "$item" ]]; then
-            printf 'ERROR: Expected CVD cleanup state was not achieved.\n' >&2
-            return 1
-        fi
-    done
 
     if [[ ! -f "$BASELINE_PATH" || ! -f "$SELECTOR_PATH" ]]; then
         printf 'ERROR: Expected CVD cleanup state was not achieved.\n' >&2
         return 1
     fi
 
-    if [[ "$(sha256_of "$BASELINE_PATH")" == "$BASELINE_SHA256" ]]; then
+    if ! alias_result="$(
+        gdbus call             --session             --dest "$BUS_DESTINATION"             --object-path "$SERVICE_OBJECT"             --method "${SERVICE_INTERFACE}.ReadAlias"             "default"             2>/dev/null
+    )"; then
+        printf 'ERROR: Expected CVD cleanup state was not achieved.\n' >&2
+        return 1
+    fi
+
+    alias_path="$(printf '%s\n' "$alias_result" | extract_first_object_path)"
+
+    if [[ "$alias_path" != "$COLLECTION_OBJECT" ]]; then
         printf 'ERROR: Expected CVD cleanup state was not achieved.\n' >&2
         return 1
     fi
@@ -261,7 +304,8 @@ main() {
     trap on_error ERR HUP INT TERM
 
     if baseline_matches; then
-        collection_is_ready
+        resolve_default_collection
+        ensure_collection_ready
         remove_managed_items
         verify_cleanup
     fi
