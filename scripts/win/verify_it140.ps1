@@ -21,14 +21,21 @@ Development status: Beta Testing
 
 Version basis:
     Version 0.1.0 represents the initial Windows verification baseline.
+
     Version 0.2.0 adopts SemVer metadata and manifest schema 2.0.
+
     Version 0.2.1 prevents expected native-command probe failures from
     terminating Windows PowerShell 5.1.
 
     Version 0.3.0 adds support for Windows 10, version 22H2, while preserving
     manifest-controlled Windows 11 release validation.
+
     Version 0.8.0-alpha.1 adds read-only verification of the separate Repos
     workspace, Explorer development icon metadata, and desktop Repos shortcut.
+
+    Version 0.10.0-beta.1 establishes the coordinated Beta-testing baseline,
+    aligns artifact metadata with the controlled manifest and schema, and
+    incorporates fixes completed during Alpha testing.
 
 
 .NOTES

@@ -31,6 +31,10 @@ Version basis:
     Explorer development icon, and desktop Repos shortcut while preserving
     all repositories and files beneath the workspace.
 
+    Version 0.10.0-beta.1 establishes the coordinated Beta-testing baseline,
+    aligns artifact metadata with the controlled manifest and schema, and
+    incorporates fixes completed during Alpha testing.
+
 
 .NOTES
 Exit codes:

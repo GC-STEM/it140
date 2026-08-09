@@ -26,6 +26,10 @@ Version basis:
     Version 0.3.0 adds support for Windows 10, version 22H2, while preserving
     manifest-controlled Windows 11 release validation.
 
+    Version 0.10.0-beta.1 establishes the coordinated Beta-testing baseline,
+    aligns artifact metadata with the controlled manifest and schema, and
+    incorporates fixes completed during Alpha testing.
+
 
 .NOTES
 Exit codes:
@@ -59,8 +63,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.3.0"
-$VersionDate = "2026-07-29"
+$ScriptVersion = "0.10.0-beta.1"
+$VersionDate = "2026-08-09-23-59"
 $DevelopmentStatus = "Beta Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"

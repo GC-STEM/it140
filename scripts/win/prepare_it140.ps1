@@ -16,6 +16,10 @@
 #     Version 0.1.0 represents the initial Windows bootstrap baseline.
 #     Version 0.2.0 adopts SemVer metadata and transcript reporting.
 #
+#     Version 0.10.0-beta.1 establishes the coordinated Beta-testing baseline,
+#     aligns artifact metadata with the controlled manifest and schema, and
+#     incorporates fixes completed during Alpha testing.
+#
 # This file models the commands students copy and run before setup. It is not a
 # managed lifecycle script and therefore does not accept command-line options,
 # use the manifest, acquire a lifecycle lock, or display a managed summary.
@@ -30,8 +34,8 @@ Start-Transcript -Path $LogPath -Force | Out-Null
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ArtifactVersion = "0.2.0"
-$VersionDate = "2026-07-29"
+$ArtifactVersion = "0.10.0-beta.1"
+$VersionDate = "2026-08-09-23-59"
 $DevelopmentStatus = "Beta Testing"
 $PlatformAbbreviation = "win"
 $RepositoryArchive = "https://github.com/GC-STEM/it140/archive/refs/heads/main.zip"
@@ -48,7 +52,7 @@ Write-Host "============================================================"
 Write-Host "IT 140 WINDOWS BOOTSTRAP"
 Write-Host "============================================================"
 Write-Host "[INFO] Artifact version : $ArtifactVersion"
-Write-Host "[INFO] Version date     : $VersionDate"
+Write-Host "[INFO] Version DTG      : $VersionDate"
 Write-Host "[INFO] Status           : $DevelopmentStatus"
 Write-Host "[INFO] Current user     : $([Environment]::UserName)"
 Write-Host "[INFO] Purpose          : Retrieve the IT 140 automation package"

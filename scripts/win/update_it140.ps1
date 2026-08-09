@@ -33,6 +33,10 @@ Version basis:
     Version 0.3.1 updates controlled-manifest compatibility from schema 2.0 to
     schema 2.2 and validates the release date-time group.
 
+    Version 0.10.0-beta.1 establishes the coordinated Beta-testing baseline,
+    aligns artifact metadata with the controlled manifest and schema, and
+    incorporates fixes completed during Alpha testing.
+
 
 .NOTES
 Exit codes:

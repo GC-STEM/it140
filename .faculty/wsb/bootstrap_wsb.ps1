@@ -65,7 +65,7 @@ try {
     Write-Host "IT 140 WINDOWS SANDBOX BOOTSTRAP"
     Write-Host "============================================================"
     Write-Host "[INFO] Artifact version : $ArtifactVersion"
-    Write-Host "[INFO] Version date     : $VersionDate"
+    Write-Host "[INFO] Version DTG      : $VersionDate"
     Write-Host "[INFO] Status           : $DevelopmentStatus"
     Write-Host "[INFO] Current user     : $([Environment]::UserName)"
     Write-Host "[INFO] Purpose          : Retrieve and start the WSB automation package"
