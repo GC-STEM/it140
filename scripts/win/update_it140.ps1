@@ -74,8 +74,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.3.1"
-$VersionDateTimeGroup = "2026-08-07-12-51"
+$ScriptVersion = "0.10.0-beta.1"
+$VersionDateTimeGroup = "2026-08-09-23-59"
 $DevelopmentStatus = "Beta Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"

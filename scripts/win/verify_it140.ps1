@@ -1899,7 +1899,7 @@ function New-SupportBundle {
         if ($null -ne $Controlled) {
             $ManifestReleaseValue = [string]$Controlled.Manifest.automation_release
             $ManifestReleaseDateValue = [string](
-                $Controlled.Manifest.automation_release_date
+                $Controlled.Manifest.automation_release_date_time_group
             )
         }
         $LifecycleVersionSummary = @{}
