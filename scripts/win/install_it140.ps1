@@ -985,7 +985,7 @@ if ($Help) {
 }
 if ($Version) {
     Write-Host "Artifact version   : $ScriptVersion"
-    Write-Host "Version date       : $VersionDate"
+    Write-Host "Version DTG        : $VersionDate"
     Write-Host "Development status : $DevelopmentStatus"
     exit 0
 }
@@ -998,7 +998,7 @@ try {
 
     Write-Header "IT 140 WINDOWS SETUP"
     Write-Info "Script version   : $ScriptVersion"
-    Write-Info "Version date     : $VersionDate"
+    Write-Info "Version DTG      : $VersionDate"
     Write-Info "Status           : $DevelopmentStatus"
     Write-Info "Deployment       : $DeploymentProfile"
     Write-Info "Current user     : $([Environment]::UserName)"
@@ -1066,7 +1066,7 @@ try {
     Write-Success "The system-level IT 140 Course IDE is installed."
     Write-Info "Result           : PASS"
     Write-Info "Script version   : $ScriptVersion"
-    Write-Info "Version date     : $VersionDate"
+    Write-Info "Version DTG      : $VersionDate"
     Write-Info "Status           : $DevelopmentStatus"
     Write-Info "Manifest release : $($Controlled.Manifest.automation_release)"
     Write-Info "Manifest DTG     : $($Controlled.Manifest.automation_release_date_time_group)"
