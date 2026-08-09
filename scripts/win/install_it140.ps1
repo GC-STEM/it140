@@ -13,14 +13,9 @@ Python-environment, VS Code-extension, or editor settings.
 Run this script from an elevated Windows PowerShell terminal opened by the
 intended student or faculty user.
 
-Artifact version:
-    0.3.0
-
-Version date:
-    2026-07-29
-
-Development status:
-    Alpha Testing
+Artifact version: 0.10.0-beta.1
+Version date-time group: 2026-08-09-23-59
+Development status: Beta Testing
 
 Version basis:
     Version 0.1.0 represents the initial Windows setup baseline.
@@ -66,7 +61,7 @@ $ProgressPreference = "SilentlyContinue"
 
 $ScriptVersion = "0.3.0"
 $VersionDate = "2026-07-29"
-$DevelopmentStatus = "Alpha Testing"
+$DevelopmentStatus = "Beta Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
@@ -462,7 +457,7 @@ function Read-ControlledManifest {
     $RequiredKeys = @(
         "schema_version",
         "automation_release",
-        "automation_release_date",
+        "automation_release_date_time_group",
         "policy",
         "platforms",
         "deployment_profiles",
@@ -475,28 +470,28 @@ function Read-ControlledManifest {
             throw "The controlled manifest is missing required key: $RequiredKey"
         }
     }
-    if ([string]$Manifest.schema_version -ne "2.0") {
+    if ([string]$Manifest.schema_version -ne "2.2") {
         throw "Unsupported manifest schema version: $($Manifest.schema_version)"
     }
 
     $AutomationRelease = [string]$Manifest.automation_release
-    $SemVerPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
-    if ($AutomationRelease -notmatch $SemVerPattern) {
+    $SemVerPattern = [string]$Schema.'$defs'.automationRelease.pattern
+        if ($AutomationRelease -notmatch $SemVerPattern) {
         throw "The manifest automation release is not strict SemVer: $AutomationRelease"
     }
 
     $ParsedReleaseDate = [datetime]::MinValue
     $ReleaseDateIsValid = [datetime]::TryParseExact(
-        [string]$Manifest.automation_release_date,
-        "yyyy-MM-dd",
+        [string]$Manifest.automation_release_date_time_group,
+        "yyyy-MM-dd-HH-mm",
         [Globalization.CultureInfo]::InvariantCulture,
         [Globalization.DateTimeStyles]::None,
         [ref]$ParsedReleaseDate
     )
     if (-not $ReleaseDateIsValid) {
         throw (
-            "The manifest automation release date is not valid YYYY-MM-DD: " +
-            [string]$Manifest.automation_release_date
+            "The manifest automation release date-time group is not valid YYYY-MM-DD-HH-MM: " +
+            [string]$Manifest.automation_release_date_time_group
         )
     }
 
@@ -1034,7 +1029,7 @@ try {
     Write-Info "Build            : $($WindowsFacts.BuildNumber)"
     Write-Info "Architecture     : $($WindowsFacts.Architecture)"
     Write-Info "Manifest release : $($Controlled.Manifest.automation_release)"
-    Write-Info "Manifest date    : $($Controlled.Manifest.automation_release_date)"
+    Write-Info "Manifest DTG     : $($Controlled.Manifest.automation_release_date_time_group)"
 
     $SystemDriveRoot = [IO.Path]::GetPathRoot($env:SystemRoot)
     $SystemDriveInfo = [IO.DriveInfo]::new($SystemDriveRoot)
@@ -1070,7 +1065,7 @@ try {
     Write-Info "Version date     : $VersionDate"
     Write-Info "Status           : $DevelopmentStatus"
     Write-Info "Manifest release : $($Controlled.Manifest.automation_release)"
-    Write-Info "Manifest date    : $($Controlled.Manifest.automation_release_date)"
+    Write-Info "Manifest DTG     : $($Controlled.Manifest.automation_release_date_time_group)"
     Write-Info "Git              : $(Get-CommandVersionLine -CommandName 'git.exe')"
     Write-Info "GitHub CLI       : $(Get-CommandVersionLine -CommandName 'gh.exe')"
     Write-Info "Python           : $(Get-CommandVersionLine -CommandName 'python.exe')"

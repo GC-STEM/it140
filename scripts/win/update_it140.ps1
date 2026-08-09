@@ -16,14 +16,9 @@ user settings.
 
 Run this script from a normal, non-elevated Windows PowerShell terminal.
 
-Artifact version:
-    0.3.1
-
-Version date-time group:
-    2026-08-07-12-51
-
-Development status:
-    Alpha Testing
+Artifact version: 0.10.0-beta.1
+Version date-time group: 2026-08-09-23-59
+Development status: Beta Testing
 
 Version basis:
     Version 0.1.0 represents the initial Windows update baseline.
@@ -77,7 +72,7 @@ $ProgressPreference = "SilentlyContinue"
 
 $ScriptVersion = "0.3.1"
 $VersionDateTimeGroup = "2026-08-07-12-51"
-$DevelopmentStatus = "Alpha Testing"
+$DevelopmentStatus = "Beta Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 if (-not [string]::IsNullOrWhiteSpace($CourseRootOverride)) {
@@ -586,8 +581,8 @@ function Read-ManifestAtPath {
     }
 
     $AutomationRelease = [string]$Manifest.automation_release
-    $SemVerPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
-    if ($AutomationRelease -notmatch $SemVerPattern) {
+    $SemVerPattern = [string]$Schema.'$defs'.automationRelease.pattern
+        if ($AutomationRelease -notmatch $SemVerPattern) {
         throw "The manifest automation release is not strict SemVer: $AutomationRelease"
     }
 
@@ -764,14 +759,22 @@ function Get-ScriptVersion {
     $ScriptText = Get-Content -LiteralPath $Path -Raw
     $VersionMatch = [regex]::Match(
         $ScriptText,
-        '(?m)^\$ScriptVersion\s*=\s*"(?<version>' +
-        '(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))"\s*$'
+        '(?m)^\$ScriptVersion\s*=\s*"(?<version>[^"]+)"\s*$'
     )
     if (-not $VersionMatch.Success) {
-        throw "A strict SemVer script version could not be read from $Path"
+        throw "A SemVer script version could not be read from $Path"
     }
 
-    return [version]$VersionMatch.Groups["version"].Value
+    $VersionValue = $VersionMatch.Groups["version"].Value
+    $Schema = Get-Content -LiteralPath $SchemaPath -Raw | ConvertFrom-Json
+    $SemVerPattern = [string]$Schema.'$defs'.automationRelease.pattern
+
+    if ($VersionValue -notmatch $SemVerPattern) {
+        throw "A valid SemVer script version could not be read from $Path"
+    }
+
+    $CoreVersion = ($VersionValue -split '[-+]')[0]
+    return [version]$CoreVersion
 }
 
 function Copy-FileAtomically {

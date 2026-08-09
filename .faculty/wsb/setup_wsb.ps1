@@ -57,7 +57,7 @@ $ProgressPreference = "SilentlyContinue"
 
 $ScriptVersion = "0.2.0"
 $VersionDate = "2026-07-29"
-$DevelopmentStatus = "Alpha Testing"
+$DevelopmentStatus = "Beta Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "wsb"
 $ScriptDirectory = $PSScriptRoot
@@ -560,8 +560,8 @@ function Read-ControlledManifest {
     }
 
     $AutomationRelease = [string]$Manifest.automation_release
-    $SemVerPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
-    if ($AutomationRelease -notmatch $SemVerPattern) {
+    $SemVerPattern = [string]$Schema.'$defs'.automationRelease.pattern
+        if ($AutomationRelease -notmatch $SemVerPattern) {
         throw "The manifest automation release is not strict SemVer: $AutomationRelease"
     }
 

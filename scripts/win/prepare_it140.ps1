@@ -8,14 +8,9 @@
 #     lifecycle scripts available from this PowerShell session and future
 #     PowerShell sessions.
 #
-# Artifact version:
-#     0.2.0
-#
-# Version date:
-#     2026-07-29
-#
-# Development status:
-#     Alpha Testing
+# Artifact version: 0.10.0-beta.1
+# Version date-time group: 2026-08-09-23-59
+# Development status: Beta Testing
 #
 # Version basis:
 #     Version 0.1.0 represents the initial Windows bootstrap baseline.
@@ -37,7 +32,7 @@ $ProgressPreference = "SilentlyContinue"
 
 $ArtifactVersion = "0.2.0"
 $VersionDate = "2026-07-29"
-$DevelopmentStatus = "Alpha Testing"
+$DevelopmentStatus = "Beta Testing"
 $PlatformAbbreviation = "win"
 $RepositoryArchive = "https://github.com/GC-STEM/it140/archive/refs/heads/main.zip"
 $CourseRoot = Join-Path ([Environment]::GetFolderPath("UserProfile")) "it140"

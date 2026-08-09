@@ -14,14 +14,9 @@ Run this script from a normal, non-elevated Windows PowerShell terminal on a
 regular Windows computer. Windows Sandbox intentionally uses its administrative
 container account with the windows_sandbox deployment profile.
 
-Artifact version:
-    0.8.0-alpha.1
-
-Version date-time group:
-    2026-08-07-10-44
-
-Development status:
-    Alpha Testing
+Artifact version: 0.10.0-beta.1
+Version date-time group: 2026-08-09-23-59
+Development status: Beta Testing
 
 Version basis:
     Version 0.1.0 represents the initial Windows configuration baseline.
@@ -69,9 +64,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$ScriptVersion = "0.8.0-alpha.1"
-$VersionDate = "2026-08-07-10-44"
-$DevelopmentStatus = "Alpha Testing"
+$ScriptVersion = "0.10.0-beta.1"
+$VersionDate = "2026-08-09-23-59"
+$DevelopmentStatus = "Beta Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
@@ -599,8 +594,8 @@ function Read-ControlledManifest {
     }
 
     $AutomationRelease = [string]$Manifest.automation_release
-    $SemVerPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
-    if ($AutomationRelease -notmatch $SemVerPattern) {
+    $SemVerPattern = [string]$Schema.'$defs'.automationRelease.pattern
+        if ($AutomationRelease -notmatch $SemVerPattern) {
         throw "The manifest automation release is not strict SemVer: $AutomationRelease"
     }
 

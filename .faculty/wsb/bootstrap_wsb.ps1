@@ -38,7 +38,7 @@ $ProgressPreference = "SilentlyContinue"
 
 $ArtifactVersion = "0.2.0"
 $VersionDate = "2026-07-29"
-$DevelopmentStatus = "Alpha Testing"
+$DevelopmentStatus = "Beta Testing"
 $RepositoryArchive = "https://github.com/GC-STEM/it140/archive/refs/heads/main.zip"
 $CourseRoot = Join-Path ([Environment]::GetFolderPath("UserProfile")) "it140"
 $LogDirectory = Join-Path $CourseRoot "logs"
