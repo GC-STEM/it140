@@ -11,10 +11,11 @@
 # Supported profile: macos_bare_metal (Apple silicon, arm64)
 # Traceability: CFG-FR-001 through CFG-FR-021; CFG-DES-001 through CFG-DES-021.
 #
-# This script creates ~/Repos as the student development workspace and a
-# Desktop/Repos link. Finder has no supported stable built-in emblem interface
-# suitable for this automation package, so the visual-marker adapter is N/A.
-# Student repositories beneath ~/Repos are never recursively managed.
+# This script creates ~/Repos as the student development workspace, a
+# Desktop/Repos link, and a Visual Studio Code - Repos.app desktop launcher that
+# opens ~/Repos. Finder has no supported stable built-in emblem interface, so
+# the visual-marker adapter is N/A. Student repositories beneath ~/Repos are
+# never recursively managed.
 # ==============================================================================
 set -euo pipefail
 umask 077
@@ -26,6 +27,8 @@ readonly DEPLOYMENT_PROFILE_ID="macos_bare_metal"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly COURSE_ROOT="$HOME/it140"
 readonly REPOS_ROOT="$HOME/Repos"
+readonly VSCODE_REPOS_LAUNCHER="$HOME/Desktop/Visual Studio Code - Repos.app"
+readonly VSCODE_LAUNCHER_MARKER="IT140-MAC-VSCODE-REPOS-LAUNCHER-v1"
 readonly SCRIPT_ROOT="$COURSE_ROOT/scripts"
 readonly PLATFORM_SCRIPT_DIR="$SCRIPT_ROOT/mac"
 readonly MANIFEST_PATH="$SCRIPT_ROOT/.manifest/it140_manifest.json"
@@ -63,8 +66,9 @@ print_error(){ printf '[ERROR] %s\n' "$1" >&2; }
 usage(){ cat <<USAGE
 Usage: configure_it140.zsh [--help] [--version] [--noninteractive]
                            [--deployment-profile macos_bare_metal]
-Configures the current macOS user for IT 140, including ~/Repos and a Desktop
-Repos link. It does not install system software or alter repositories in ~/Repos.
+Configures the current macOS user for IT 140, including ~/Repos, a Desktop
+Repos link, and Visual Studio Code - Repos.app. It does not install system
+software or alter repositories in ~/Repos.
 Logs: ~/it140/logs/
 USAGE
 }
@@ -246,6 +250,71 @@ configure_paths(){
   print_notice "Finder development marker: NOT APPLICABLE (no safe supported built-in emblem interface is used)."
   print_success "Repository workspace configured: $REPOS_ROOT"
 }
+vscode_repos_launcher_is_managed(){
+  local launcher="${1:-$VSCODE_REPOS_LAUNCHER}" marker
+  marker="$launcher/Contents/Resources/it140-managed-launcher"
+  [[ -d "$launcher" && -f "$marker" ]] || return 1
+  [[ "$(<"$marker")" == "$VSCODE_LAUNCHER_MARKER" ]]
+}
+vscode_repos_launcher_is_valid(){
+  local launcher="${1:-$VSCODE_REPOS_LAUNCHER}" code_cli="${2:-}"
+  [[ -n "$code_cli" ]] || code_cli="$(command -v code 2>/dev/null || true)"
+  [[ -n "$code_cli" && -d "$launcher" ]] || return 1
+  IT140_LAUNCHER="$launcher" IT140_REPOS="$REPOS_ROOT" IT140_CODE="$code_cli" IT140_MARKER="$VSCODE_LAUNCHER_MARKER" python3.12 - <<'PY'
+import os, plistlib, shlex
+from pathlib import Path
+app=Path(os.environ['IT140_LAUNCHER'])
+repos=os.environ['IT140_REPOS']; code=os.environ['IT140_CODE']; marker=os.environ['IT140_MARKER']
+info=app/'Contents'/'Info.plist'; exe=app/'Contents'/'MacOS'/'open-repos'; mark=app/'Contents'/'Resources'/'it140-managed-launcher'
+if not (info.is_file() and exe.is_file() and os.access(exe,os.X_OK) and mark.is_file()): raise SystemExit(1)
+if mark.read_text(encoding='utf-8').strip()!=marker: raise SystemExit(1)
+with info.open('rb') as f: p=plistlib.load(f)
+if p.get('CFBundleIdentifier')!='edu.snhu.it140.vscode-repos' or p.get('CFBundleExecutable')!='open-repos' or p.get('CFBundlePackageType')!='APPL': raise SystemExit(1)
+expected=("#!/bin/zsh\n"+f"# {marker}\n"+"set -euo pipefail\n"+f"readonly REPOS_ROOT={shlex.quote(repos)}\n"+f"readonly CODE_CLI={shlex.quote(code)}\n"+'cd -- "$REPOS_ROOT"\n'+'exec "$CODE_CLI" --reuse-window "$REPOS_ROOT"\n')
+if exe.read_text(encoding='utf-8')!=expected: raise SystemExit(1)
+PY
+}
+configure_vscode_repos_launcher(){
+  CURRENT_STAGE="Visual Studio Code repository-workspace launcher"
+  local launcher="$VSCODE_REPOS_LAUNCHER" code_cli temp_root temp_app icon=""
+  code_cli="$(command -v code 2>/dev/null || true)"
+  [[ -n "$code_cli" ]] || fatal 1 "Visual Studio Code is required, but the code command could not be resolved for the Desktop launcher."
+  if vscode_repos_launcher_is_valid "$launcher" "$code_cli"; then
+    print_success "Visual Studio Code - Repos.app already opens $REPOS_ROOT."
+    return 0
+  fi
+  if [[ -e "$launcher" || -L "$launcher" ]]; then
+    vscode_repos_launcher_is_managed "$launcher" || fatal 1 "An unmanaged Desktop item named Visual Studio Code - Repos.app already exists and was preserved: $launcher"
+  fi
+  temp_root="$(mktemp -d "${TMPDIR:-/tmp}/it140-vscode-repos.XXXXXX")" || fatal 1 "A temporary launcher workspace could not be created."
+  temp_app="$temp_root/Visual Studio Code - Repos.app"
+  if [[ -f "/Applications/Visual Studio Code.app/Contents/Resources/Code.icns" ]]; then
+    icon="/Applications/Visual Studio Code.app/Contents/Resources/Code.icns"
+  elif [[ -f "$HOME/Applications/Visual Studio Code.app/Contents/Resources/Code.icns" ]]; then
+    icon="$HOME/Applications/Visual Studio Code.app/Contents/Resources/Code.icns"
+  fi
+  IT140_APP="$temp_app" IT140_REPOS="$REPOS_ROOT" IT140_CODE="$code_cli" IT140_MARKER="$VSCODE_LAUNCHER_MARKER" IT140_ICON="$icon" python3.12 - <<'PY'
+import os, plistlib, shlex, shutil
+from pathlib import Path
+app=Path(os.environ['IT140_APP']); repos=os.environ['IT140_REPOS']; code=os.environ['IT140_CODE']; marker=os.environ['IT140_MARKER']; icon=os.environ.get('IT140_ICON','')
+macos=app/'Contents'/'MacOS'; resources=app/'Contents'/'Resources'; macos.mkdir(parents=True); resources.mkdir(parents=True)
+exe=macos/'open-repos'
+exe.write_text("#!/bin/zsh\n"+f"# {marker}\n"+"set -euo pipefail\n"+f"readonly REPOS_ROOT={shlex.quote(repos)}\n"+f"readonly CODE_CLI={shlex.quote(code)}\n"+'cd -- "$REPOS_ROOT"\n'+'exec "$CODE_CLI" --reuse-window "$REPOS_ROOT"\n',encoding='utf-8')
+exe.chmod(0o755)
+(resources/'it140-managed-launcher').write_text(marker+'\n',encoding='utf-8')
+plist={'CFBundleDisplayName':'Visual Studio Code - Repos','CFBundleExecutable':'open-repos','CFBundleIdentifier':'edu.snhu.it140.vscode-repos','CFBundleName':'Visual Studio Code - Repos','CFBundlePackageType':'APPL','CFBundleShortVersionString':'1.0','CFBundleVersion':'1','LSUIElement':True,'NSHighResolutionCapable':True}
+if icon and Path(icon).is_file():
+    shutil.copy2(icon,resources/'Code.icns'); plist['CFBundleIconFile']='Code.icns'
+with (app/'Contents'/'Info.plist').open('wb') as f: plistlib.dump(plist,f,sort_keys=True)
+PY
+  vscode_repos_launcher_is_valid "$temp_app" "$code_cli" || { /bin/rm -rf -- "$temp_root"; fatal 1 "The staged Visual Studio Code - Repos.app launcher did not validate."; }
+  if [[ -e "$launcher" || -L "$launcher" ]]; then /bin/rm -rf -- "$launcher"; fi
+  /bin/mv -- "$temp_app" "$launcher" || { /bin/rm -rf -- "$temp_root"; fatal 1 "Visual Studio Code - Repos.app could not be installed on the Desktop."; }
+  /bin/rm -rf -- "$temp_root"
+  vscode_repos_launcher_is_valid "$launcher" "$code_cli" || fatal 1 "Visual Studio Code - Repos.app failed post-installation validation."
+  CHANGED=true
+  print_success "Visual Studio Code - Repos.app now opens $REPOS_ROOT."
+}
 configure_identity(){
   CURRENT_STAGE="GitHub authentication and Git identity"
   if ! gh auth status --hostname github.com >/dev/null 2>&1; then
@@ -307,6 +376,7 @@ validate_configuration(){
   CURRENT_STAGE="configuration validation"
   [[ -d "$REPOS_ROOT" && -w "$REPOS_ROOT" ]] || fatal 1 "Repository workspace validation failed."
   [[ -L "$HOME/Desktop/Repos" && "$(readlink "$HOME/Desktop/Repos")" == "$REPOS_ROOT" ]] || fatal 1 "Desktop Repos link validation failed."
+  vscode_repos_launcher_is_valid "$VSCODE_REPOS_LAUNCHER" "$(command -v code 2>/dev/null || true)" || fatal 1 "Visual Studio Code - Repos.app validation failed."
   gh auth status --hostname github.com >/dev/null 2>&1 || fatal 1 "GitHub authentication validation failed."
   [[ -x "$VENV_DIR/bin/python" ]] || fatal 1 "Course virtual environment validation failed."
   grep -Fqx "$MANAGED_ENV_EXPORT" "$HOME/.zprofile" || fatal 1 "Managed PATH is missing from ~/.zprofile."
@@ -338,6 +408,7 @@ main(){
   print_info "Manifest DTG    : $MANIFEST_DTG"
   acquire_lock
   configure_paths
+  configure_vscode_repos_launcher
   configure_identity
   configure_tools
   validate_configuration

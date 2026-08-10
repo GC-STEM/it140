@@ -12,6 +12,7 @@
 # Traceability: VER-FR-001 through VER-FR-018; VER-DES-001 through VER-DES-018.
 #
 # Verification does not write to ~/Repos or repair its desktop integration.
+# It verifies the Desktop/Repos link and Visual Studio Code - Repos.app launcher.
 # Finder visual-marker status is NOT APPLICABLE by approved design.
 # ==============================================================================
 set -euo pipefail
@@ -24,6 +25,8 @@ readonly DEPLOYMENT_PROFILE_ID="macos_bare_metal"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly COURSE_ROOT="$HOME/it140"
 readonly REPOS_ROOT="$HOME/Repos"
+readonly VSCODE_REPOS_LAUNCHER="$HOME/Desktop/Visual Studio Code - Repos.app"
+readonly VSCODE_LAUNCHER_MARKER="IT140-MAC-VSCODE-REPOS-LAUNCHER-v1"
 readonly SCRIPT_ROOT="$COURSE_ROOT/scripts"
 readonly MANIFEST_PATH="$SCRIPT_ROOT/.manifest/it140_manifest.json"
 readonly SCHEMA_PATH="$SCRIPT_ROOT/.manifest/it140_manifest.schema.json"
@@ -155,6 +158,24 @@ check_network(){
   if [[ "$SKIP_NETWORK" == true ]]; then record WARNING verify.network "skipped by option" "Rerun without --skip-network."; return; fi
   /usr/bin/curl -Is --max-time 10 https://github.com/ >/dev/null 2>&1 && record PASS verify.network "github.com reachable" || record WARNING verify.network "github.com unreachable" "Check the network and rerun Verify."
 }
+vscode_repos_launcher_is_valid(){
+  local launcher="$VSCODE_REPOS_LAUNCHER" code_cli
+  code_cli="$(command -v code 2>/dev/null || true)"
+  [[ -n "$code_cli" && -d "$launcher" ]] || return 1
+  IT140_LAUNCHER="$launcher" IT140_REPOS="$REPOS_ROOT" IT140_CODE="$code_cli" IT140_MARKER="$VSCODE_LAUNCHER_MARKER" python3.12 - <<'PY'
+import os, plistlib, shlex
+from pathlib import Path
+app=Path(os.environ['IT140_LAUNCHER'])
+repos=os.environ['IT140_REPOS']; code=os.environ['IT140_CODE']; marker=os.environ['IT140_MARKER']
+info=app/'Contents'/'Info.plist'; exe=app/'Contents'/'MacOS'/'open-repos'; mark=app/'Contents'/'Resources'/'it140-managed-launcher'
+if not (info.is_file() and exe.is_file() and os.access(exe,os.X_OK) and mark.is_file()): raise SystemExit(1)
+if mark.read_text(encoding='utf-8').strip()!=marker: raise SystemExit(1)
+with info.open('rb') as f: p=plistlib.load(f)
+if p.get('CFBundleIdentifier')!='edu.snhu.it140.vscode-repos' or p.get('CFBundleExecutable')!='open-repos' or p.get('CFBundlePackageType')!='APPL': raise SystemExit(1)
+expected=("#!/bin/zsh\n"+f"# {marker}\n"+"set -euo pipefail\n"+f"readonly REPOS_ROOT={shlex.quote(repos)}\n"+f"readonly CODE_CLI={shlex.quote(code)}\n"+'cd -- "$REPOS_ROOT"\n'+'exec "$CODE_CLI" --reuse-window "$REPOS_ROOT"\n')
+if exe.read_text(encoding='utf-8')!=expected: raise SystemExit(1)
+PY
+}
 check_user(){
   [[ -d "$COURSE_ROOT" ]] && record PASS verify.course_root "$COURSE_ROOT" || record FAIL verify.course_root missing "Run prepare_it140.zsh to refresh the course automation package."
   [[ -d "$LOG_DIR" && -w "$LOG_DIR" ]] && record PASS verify.log_directory "$LOG_DIR" || record FAIL verify.log_directory "missing or not writable" "Run prepare_it140.zsh."
@@ -210,7 +231,7 @@ PY
   [[ -d "$REPOS_ROOT" && -r "$REPOS_ROOT" && -x "$REPOS_ROOT" && -w "$REPOS_ROOT" ]] && record PASS verify.repository_workspace "$REPOS_ROOT" || record FAIL verify.repository_workspace "missing or inaccessible" "$(config_remediation)"
   [[ -L "$HOME/Desktop/Repos" && "$(readlink "$HOME/Desktop/Repos")" == "$REPOS_ROOT" ]] && record PASS verify.repository_workspace_desktop "Desktop/Repos -> $REPOS_ROOT" || record FAIL verify.repository_workspace_desktop incorrect "$(config_remediation)"
   record 'NOT APPLICABLE' verify.repository_workspace_marker "Finder has no approved built-in development-emblem adapter"
-  record 'NOT APPLICABLE' verify.repository_workspace_vscode_launcher "macOS uses the normal VS Code application launcher"
+  vscode_repos_launcher_is_valid && record PASS verify.repository_workspace_vscode_launcher "Visual Studio Code - Repos.app opens $REPOS_ROOT" || record FAIL verify.repository_workspace_vscode_launcher "missing, unmanaged, or incorrect" "$(config_remediation)"
 }
 main(){
   parse_options "$@"
