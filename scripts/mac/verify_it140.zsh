@@ -171,7 +171,7 @@ info=app/'Contents'/'Info.plist'; exe=app/'Contents'/'MacOS'/'open-repos'; mark=
 if not (info.is_file() and exe.is_file() and os.access(exe,os.X_OK) and mark.is_file()): raise SystemExit(1)
 if mark.read_text(encoding='utf-8').strip()!=marker: raise SystemExit(1)
 with info.open('rb') as f: p=plistlib.load(f)
-if p.get('CFBundleIdentifier')!='edu.snhu.it140.vscode-repos' or p.get('CFBundleExecutable')!='open-repos' or p.get('CFBundlePackageType')!='APPL': raise SystemExit(1)
+if p.get('CFBundleIdentifier')!='edu.snhu.it140.vscode-repos' or p.get('CFBundleExecutable')!='open-repos' or p.get('CFBundlePackageType')!='APPL' or p.get('LSArchitecturePriority')!=['arm64']: raise SystemExit(1)
 expected=("#!/bin/zsh\n"+f"# {marker}\n"+"set -euo pipefail\n"+f"readonly REPOS_ROOT={shlex.quote(repos)}\n"+f"readonly CODE_CLI={shlex.quote(code)}\n"+'cd -- "$REPOS_ROOT"\n'+'exec "$CODE_CLI" --reuse-window "$REPOS_ROOT"\n')
 if exe.read_text(encoding='utf-8')!=expected: raise SystemExit(1)
 PY
