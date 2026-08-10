@@ -48,12 +48,12 @@ Click the links below to access the repositories for each module's activity. Eac
 | | &nbsp;&nbsp;- Github Account | [../github/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md) | 🟢 | 8/10/2026 |
 | | &nbsp;&nbsp;- Codio Virtual Desktop | [../codio/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/codio/README.md) | 🟢 | 8/10/2026 |
 | | &nbsp;&nbsp;- Local Machine | [../local/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/local/README.md) | 🟢 | 8/10/2026 |
-| Two | Assignment | [it140-m2-assignment](https://github.com/GC-STEM/it140-m2-assignment) | 🚧 | 8/11/2026 |
-| Three | Assignment | [it140-m3-assignment](https://github.com/GC-STEM/it140-m3-assignment) | 🚧 | 8/12/2026 |
-| Four | Assignment | [it140-m4-assignment](https://github.com/GC-STEM/it140-m4-assignment) | 🚧 | 8/13/2026 |
-| Five | Project One | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/14/2026 |
-| Six | Milestone | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/15/2026 |
-| Seven | Project Two | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/16/2026 |
+| Two | Assignment | [it140-m2-assignment](https://github.com/GC-STEM/it140-m2-assignment) | 🚧 | 8/12/2026 |
+| Three | Assignment | [it140-m3-assignment](https://github.com/GC-STEM/it140-m3-assignment) | 🚧 | 8/13/2026 |
+| Four | Assignment | [it140-m4-assignment](https://github.com/GC-STEM/it140-m4-assignment) | 🚧 | 8/14/2026 |
+| Five | Project One | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/15/2026 |
+| Six | Milestone | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/16/2026 |
+| Seven | Project Two | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/17/2026 |
 
 ## Emoji Legend
 
