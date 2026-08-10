@@ -1,6 +1,0 @@
-actual="$(git config --global --get user.email 2>/dev/null || true)"
-aid="$(gh api user --jq .id)"
-login="$(gh api user --jq .login)"
-expected="${aid}+${login}@users.noreply.github.com"
-printf 'Configured: %s\nExpected  : %s\n' "$actual" "$expected"
-[[ "$actual" == "$expected" ]] && echo "RESULT    : MATCH" || echo "RESULT    : MISMATCH"

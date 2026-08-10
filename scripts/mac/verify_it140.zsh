@@ -161,7 +161,7 @@ check_user(){
   grep -Fqx "$MANAGED_ENV_EXPORT" "$HOME/.zprofile" 2>/dev/null && [[ "$(grep -Fxc "$MANAGED_ENV_START" "$HOME/.zprofile" 2>/dev/null || true)" == 1 ]] && record PASS verify.path_zprofile configured || record FAIL verify.path_zprofile "missing or duplicated" "$(config_remediation)"
   grep -Fqx "$MANAGED_ENV_EXPORT" "$HOME/.zshrc" 2>/dev/null && [[ "$(grep -Fxc "$MANAGED_ENV_START" "$HOME/.zshrc" 2>/dev/null || true)" == 1 ]] && record PASS verify.path_zshrc configured || record FAIL verify.path_zshrc "missing or duplicated" "$(config_remediation)"
   [[ -x "$VENV_DIR/bin/python" ]] && record PASS verify.venv "$VENV_DIR" || record FAIL verify.venv missing "$(config_remediation)"
-  local pkg ext installed key expected actual lower_ext
+  local pkg ext installed key expected actual lower_ext github_id github_login expected_email
   if [[ -x "$VENV_DIR/bin/python" ]]; then
     while IFS= read -r pkg; do
       [[ -n "$pkg" ]] || continue
@@ -176,10 +176,23 @@ check_user(){
       grep -Fqx "$lower_ext" <<< "$installed" && record PASS "verify.extension.$ext" installed || record FAIL "verify.extension.$ext" missing "$(config_remediation)"
     done < <(manifest_query extensions)
   fi
-  gh auth status --hostname github.com >/dev/null 2>&1 && record PASS verify.github_auth authenticated || record FAIL verify.github_auth missing "$(config_remediation)"
+  if gh auth status --hostname github.com >/dev/null 2>&1; then
+    record PASS verify.github_auth authenticated
+    github_id="$(gh api user --jq .id 2>/dev/null || true)"
+    github_login="$(gh api user --jq .login 2>/dev/null || true)"
+  else
+    record FAIL verify.github_auth missing "$(config_remediation)"
+    github_id=""
+    github_login=""
+  fi
   [[ -n "$(git config --global --get user.name 2>/dev/null || true)" ]] && record PASS verify.git_name configured || record FAIL verify.git_name missing "$(config_remediation)"
   actual="$(git config --global --get user.email 2>/dev/null || true)"
-  [[ "$actual" =~ ^[0-9]+\+[^@[:space:]]+@users\.noreply\.github\.com$ ]] && record PASS verify.git_email private || record FAIL verify.git_email invalid "$(config_remediation)"
+  if [[ -n "$github_id" && -n "$github_login" ]]; then
+    expected_email="${github_id}+${github_login}@users.noreply.github.com"
+    [[ "$actual" == "$expected_email" ]] && record PASS verify.git_email "$actual" || record FAIL verify.git_email "expected '$expected_email'; got '$actual'" "$(config_remediation)"
+  else
+    record FAIL verify.git_email "unable to validate without authenticated GitHub identity" "$(config_remediation)"
+  fi
   while IFS=$'\t' read -r key expected; do
     [[ -n "$key" ]] || continue
     actual="$(git config --global --get "$key" 2>/dev/null || true)"
