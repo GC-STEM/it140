@@ -173,10 +173,12 @@ CURRENT_STAGE='Download approved repository archive'
 attempt=1
 delay=5
 while (( attempt <= 5 )); do
+    CACHE_BUSTER="$(date +%s)-$$-${attempt}"
     info "Downloading the approved course archive (attempt ${attempt}/5)."
     if /usr/bin/curl --fail --silent --show-error --location \
+            --header 'Cache-Control: no-cache' --header 'Pragma: no-cache' \
             --connect-timeout 20 --max-time 300 \
-            --output "$ARCHIVE_PATH" "$ARCHIVE_URL"; then
+            --output "$ARCHIVE_PATH" "${ARCHIVE_URL}?it140=${CACHE_BUSTER}"; then
         break
     fi
     rm -f -- "$ARCHIVE_PATH"
