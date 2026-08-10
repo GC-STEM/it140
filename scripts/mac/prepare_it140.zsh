@@ -123,6 +123,26 @@ on_interrupt() {
     fi
     finish 6 'CANCELED' 'Preparation was canceled before package activation.'
 }
+validate_json_file() {
+    local json_path="$1"
+    /usr/bin/osascript -l JavaScript - "$json_path" <<'JXA' >/dev/null 2>&1
+ObjC.import('Foundation')
+function run(argv) {
+    if (argv.length !== 1) {
+        throw new Error('Expected one JSON file path.')
+    }
+    const data = $.NSData.dataWithContentsOfFile(argv[0])
+    if (!data) {
+        throw new Error('Unable to read JSON file.')
+    }
+    const text = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding)
+    if (!text) {
+        throw new Error('JSON file is not valid UTF-8.')
+    }
+    JSON.parse(ObjC.unwrap(text))
+}
+JXA
+}
 usage() {
     cat <<'USAGE'
 Usage: prepare_it140.zsh [--help] [--version]
@@ -162,6 +182,7 @@ CURRENT_STAGE='Check supported platform and user context'
 [[ "$(uname -m)" == 'arm64' ]] || fail 2 'The current IT 140 macOS implementation supports Apple silicon (arm64) only.'
 command -v /usr/bin/curl >/dev/null || fail 2 'The native curl utility is unavailable.'
 command -v /usr/bin/ditto >/dev/null || fail 2 'The native ditto utility is unavailable.'
+command -v /usr/bin/osascript >/dev/null || fail 2 'The native osascript utility is unavailable.'
 CURRENT_STAGE='Create private staging area'
 TEMP_ROOT="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/it140-prepare.XXXXXX")"
 BACKUP_ROOT="$TEMP_ROOT/backup"
@@ -200,8 +221,8 @@ for action in prepare install configure verify update; do
 done
 [[ -f "$SOURCE_ROOT/scripts/.manifest/it140_manifest.json" ]] || fail 5 'The downloaded archive is missing the controlled manifest.'
 [[ -f "$SOURCE_ROOT/scripts/.manifest/it140_manifest.schema.json" ]] || fail 5 'The downloaded archive is missing the manifest schema.'
-/usr/bin/plutil -lint "$SOURCE_ROOT/scripts/.manifest/it140_manifest.json" >/dev/null || fail 5 'The staged manifest is not valid JSON.'
-/usr/bin/plutil -lint "$SOURCE_ROOT/scripts/.manifest/it140_manifest.schema.json" >/dev/null || fail 5 'The staged manifest schema is not valid JSON.'
+validate_json_file "$SOURCE_ROOT/scripts/.manifest/it140_manifest.json" || fail 5 'The staged manifest is not valid JSON.'
+validate_json_file "$SOURCE_ROOT/scripts/.manifest/it140_manifest.schema.json" || fail 5 'The staged manifest schema is not valid JSON.'
 CURRENT_STAGE='Back up current critical automation assets'
 if [[ -d "$SCRIPT_ROOT/mac" ]]; then
     /usr/bin/ditto "$SCRIPT_ROOT/mac" "$BACKUP_ROOT/mac"
