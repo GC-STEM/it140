@@ -279,8 +279,6 @@ JXAVER
 it140_load_manifest() {
     IT140_CURRENT_STAGE='Validate controlled manifest and schema'
     [[ -r "$IT140_MANIFEST_PATH" && -r "$IT140_SCHEMA_PATH" ]] || it140_abort 5 'The controlled manifest or schema is missing or unreadable.'
-    /usr/bin/plutil -lint "$IT140_MANIFEST_PATH" >/dev/null 2>&1 || it140_abort 5 'The controlled manifest is not valid JSON.'
-    /usr/bin/plutil -lint "$IT140_SCHEMA_PATH" >/dev/null 2>&1 || it140_abort 5 'The manifest schema is not valid JSON.'
     local os_major summary key value
     os_major="$(/usr/bin/sw_vers -productVersion 2>/dev/null | /usr/bin/awk -F. '{print $1}')"
     if ! summary="$(it140_manifest_tool validate "$IT140_ACTION" "$IT140_REQUESTED_PROFILE" "$os_major" "$IT140_SUPPORTED_SCHEMA" 2>&1)"; then it140_abort 5 "Controlled manifest validation failed: ${summary}"; fi
@@ -383,8 +381,6 @@ it140_download 'https://github.com/GC-STEM/it140/archive/refs/heads/main.zip' "$
 SOURCE_ROOT="$(/usr/bin/find "$EXTRACT_ROOT" -mindepth 1 -maxdepth 1 -type d -name 'it140-*' -print -quit)"; [[ -n "$SOURCE_ROOT" ]] || it140_abort 5 'The downloaded update archive did not contain the expected repository root.'
 CANDIDATE_MANIFEST="$SOURCE_ROOT/scripts/.manifest/it140_manifest.json"; CANDIDATE_SCHEMA="$SOURCE_ROOT/scripts/.manifest/it140_manifest.schema.json"
 [[ -r "$CANDIDATE_MANIFEST" && -r "$CANDIDATE_SCHEMA" ]] || it140_abort 5 'The downloaded archive is missing a controlled manifest asset.'
-/usr/bin/plutil -lint "$CANDIDATE_MANIFEST" >/dev/null || it140_abort 5 'The staged manifest is invalid JSON.'
-/usr/bin/plutil -lint "$CANDIDATE_SCHEMA" >/dev/null || it140_abort 5 'The staged schema is invalid JSON.'
 OS_MAJOR="$(/usr/bin/sw_vers -productVersion | /usr/bin/awk -F. '{print $1}')"
 CANDIDATE_SUMMARY="$(it140_manifest_tool_at "$CANDIDATE_MANIFEST" "$CANDIDATE_SCHEMA" validate update "$IT140_REQUESTED_PROFILE" "$OS_MAJOR" "$IT140_SUPPORTED_SCHEMA" 2>&1)" || it140_abort 5 "The staged manifest and schema failed validation: ${CANDIDATE_SUMMARY}"
 CANDIDATE_RELEASE="$(printf '%s\n' "$CANDIDATE_SUMMARY" | /usr/bin/awk -F= '$1=="automation_release" {print $2}')"; CANDIDATE_DTG="$(printf '%s\n' "$CANDIDATE_SUMMARY" | /usr/bin/awk -F= '$1=="automation_release_date_time_group" {print $2}')"

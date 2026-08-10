@@ -278,8 +278,6 @@ JXAVER
 it140_load_manifest() {
     IT140_CURRENT_STAGE='Validate controlled manifest and schema'
     [[ -r "$IT140_MANIFEST_PATH" && -r "$IT140_SCHEMA_PATH" ]] || it140_abort 5 'The controlled manifest or schema is missing or unreadable.'
-    /usr/bin/plutil -lint "$IT140_MANIFEST_PATH" >/dev/null 2>&1 || it140_abort 5 'The controlled manifest is not valid JSON.'
-    /usr/bin/plutil -lint "$IT140_SCHEMA_PATH" >/dev/null 2>&1 || it140_abort 5 'The manifest schema is not valid JSON.'
     local os_major summary key value
     os_major="$(/usr/bin/sw_vers -productVersion 2>/dev/null | /usr/bin/awk -F. '{print $1}')"
     if ! summary="$(it140_manifest_tool validate "$IT140_ACTION" "$IT140_REQUESTED_PROFILE" "$os_major" "$IT140_SUPPORTED_SCHEMA" 2>&1)"; then it140_abort 5 "Controlled manifest validation failed: ${summary}"; fi
