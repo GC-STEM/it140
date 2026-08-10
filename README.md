@@ -29,7 +29,7 @@ Click the links below to access the automation scripts for Codio, Windows, MacOS
 | ------------ | :-------: | :---------: | :---------: | :--------: | :--------: | :--------: | :----------: |
 | [Codio](scripts/cvd) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 8/10/2026 |
 | [Windows](scripts/win) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 8/10/2026 |
-| [MacOS](scripts/mac) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 8/10/2026 |
+| [MacOS](scripts/mac) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 8/11/2026 |
 | [Linux](scripts/nix) | 🅰️ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | T.B.D. |
 
 - 🅱️ = Beta Testing (Staff & Faculty)
