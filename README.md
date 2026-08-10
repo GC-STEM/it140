@@ -2,75 +2,100 @@
 
 # Main Course Repository
 
-- **Course**: IT 140 - *Introduction to Scripting*
-- **Activity Name**: Main Course Repository
-- **Activity Purpose**: Central repository for all course materials and activities.
-- **Artifact Version**: 0.10.0-beta.1
-- **Artifact Date**: 2026-08-09
-- **Development Status**: Beta Testing
+* **Course**: IT 140 - *Introduction to Scripting*
+* **Activity Name**: Main Course Repository
+* **Activity Purpose**: Central hub for course automation, development status, and links to course activity repositories.
+* **Artifact Version**: 0.10.0-beta.1
+* **Artifact Date**: 2026-08-09
+* **Development Status**: Beta Testing
+
+---
+
+## About This Repository
+
+The `it140` repository is the central hub for the IT 140 course development environment. It contains the course automation scripts, development and operational status information, and links to the repositories used for individual course activities.
+
+This repository is **not an assignment repository and should not be manually cloned by faculty or students**. The course automation obtains the files it needs automatically. Students should clone only the assignment or project repositories identified in their course instructions.
+
+### Quick Links
+
+* [Module One Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks)
+* [GitHub Issues](../../issues)
+* [GitHub Discussions](../../discussions)
+* [Faculty Guide](.faculty/README.md)
 
 ---
 
 ## 🧪 Beta Testing
 
-This activity has completed **end-to-end (E2E) Alpha Testing** and is now in **Beta Testing with faculty and staff**. E2E testing verifies that the complete setup process works from start to finish.
+IT 140 has completed end-to-end (E2E) Alpha Testing of the major course IDE components and is now in **Beta Testing with faculty and staff**.
 
-The **Codio Virtual Desktop (CVD)** automation is expected to be reliable because each CVD begins from a standardized environment. The local Windows, macOS, and Linux automation scripts have been tested primarily on fresh operating system installations. Real-world computers have different software, settings, permissions, security controls, and prior configurations, so Beta Testing may uncover conditions not encountered during Alpha Testing.
+The Codio Virtual Desktop (CVD) automation is expected to be reliable because each CVD begins from a standardized environment. Local Windows, macOS, and Linux computers can have different software, settings, permissions, security controls, and prior configurations, so Beta Testing may uncover conditions that were not encountered during testing on fresh operating system installations.
 
-**Beta testers**: Please report issues and feature requests using [GitHub Issues](https://github.com/GC-STEM/it140-m1-setup-tasks/issues). An **issue** is any error, failed step, unexpected result, missing or incorrect behavior, or instruction that prevents or makes the setup difficult to complete. A **feature request** is a suggestion for improving the setup process, automation, documentation, or user experience.
+If you encounter a problem or have a suggestion:
+
+* Use this repository's **GitHub Issues** for course-wide automation, central-hub, or repository-status problems.
+* Use the **Module One Setup Tasks Issues** for problems with Module One setup instructions or platform-specific setup.
+* Use **GitHub Discussions** for questions or discussions that are appropriate for both faculty and students.
+* Faculty can find additional faculty-only communication options in the [Faculty Guide](.faculty/README.md).
 
 ---
 
 ## Course Automation Scripts
 
-Click the links below to access the automation scripts for Codio, Windows, MacOS, and Linux environments.
+The course automation creates and maintains a consistent IT 140 course IDE across supported environments.
 
-| **Platform** | **Phase** | **Prepare** | **Install** | **Config** | **Verify** | **Update** | **Live ETA** |
-| ------------ | :-------: | :---------: | :---------: | :--------: | :--------: | :--------: | :----------: |
-| [Codio](scripts/cvd) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 8/10/2026 |
-| [Windows](scripts/win) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 8/10/2026 |
-| [MacOS](scripts/mac) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 8/11/2026 |
-| [Linux](scripts/nix) | 🅰️ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | T.B.D. |
+| **Platform**           | **Phase** | **Prepare** | **Install** | **Configure** | **Verify** | **Update** |  **Live ETA** |
+| ---------------------- | :-------: | :---------: | :---------: | :-----------: | :--------: | :--------: | :-----------: |
+| [Codio](scripts/cvd)   |    🅱️     |      🟢     |      🟢     |       🟢      |     🟢     |     🟢     | Aug. 10, 2026 |
+| [Windows](scripts/win) |    🅱️     |      🟢     |      🟢     |       🟢      |     🟢     |     🟢     | Aug. 10, 2026 |
+| [macOS](scripts/mac)   |    🅱️     |      🟢     |      🟢     |       🟢      |     🟢     |     🟢     | Aug. 11, 2026 |
+| [Linux](scripts/nix)   |    🅰️     |      🟡     |      🟡     |       🟡      |     🟡     |     🟡     |      TBD      |
 
-- 🅱️ = Beta Testing (Staff & Faculty)
-  - Please report any issues or requests using [GitHub Issues](https://github.com/GC-STEM/it140/issues).
-  - Post any questions or feedback in [GitHub Discussions](https://github.com/GC-STEM/it140/discussions).
-- 🅰️ = Alpha Testing
-- 🚧 = Under construction
+* 🅱️ = Beta Testing (Staff & Faculty)
+* 🅰️ = Alpha Testing
+
+---
 
 ## Course Activity Repositories
 
-Click the links below to access the repositories for each module's activity. Each repository contains the necessary files and instructions for completing the corresponding activity.
+Course activity repositories are being published progressively during Faculty Beta Testing. **Repositories marked Not Yet Published are not expected to be available until their scheduled Live ETA.**
 
-| **Module** | **Activity** | **Activity Repository** | **Status** | **Live ETA** |
-| ---------- | ------------ | ----------------------- | :--------: | -----------: |
-| One | Setup Tasks | [it140-m1-setup-tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | 🟢 | 8/10/2026 |
-| | &nbsp;&nbsp;- Github Account | [../github/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md) | 🟢 | 8/10/2026 |
-| | &nbsp;&nbsp;- Codio Virtual Desktop | [../codio/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/codio/README.md) | 🟢 | 8/10/2026 |
-| | &nbsp;&nbsp;- Local Machine | [../local/README.md](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/local/README.md) | 🟢 | 8/11/2026 |
-| Two | Assignment | [it140-m2-assignment](https://github.com/GC-STEM/it140-m2-assignment) | 🚧 | 8/12/2026 |
-| Three | Assignment | [it140-m3-assignment](https://github.com/GC-STEM/it140-m3-assignment) | 🚧 | 8/13/2026 |
-| Four | Assignment | [it140-m4-assignment](https://github.com/GC-STEM/it140-m4-assignment) | 🚧 | 8/14/2026 |
-| Five | Project One | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/15/2026 |
-| Six | Milestone | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/16/2026 |
-| Seven | Project Two | [it140-projects](https://github.com/GC-STEM/it140-projects) | 🚧 | 8/17/2026 |
+A repository name becomes a link when that repository is live. During Beta Testing, D2L Brightspace may contain links to activities whose GitHub repositories have not yet reached their scheduled release date.
 
-## Emoji Legend
+| **Module** | **Activity**              | **Activity Repository**                                                                           |   **Availability**   |  **Live ETA** |
+| ---------- | ------------------------- | ------------------------------------------------------------------------------------------------- | :------------------: | ------------: |
+| One        | Setup Tasks               | [it140-m1-setup-tasks](https://github.com/GC-STEM/it140-m1-setup-tasks)                           |        🟢 Live       | Aug. 10, 2026 |
+|            |   - GitHub Account        | [GitHub Setup](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md)        |        🟢 Live       | Aug. 10, 2026 |
+|            |   - Codio Virtual Desktop | [CVD Setup](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/codio/README.md)            |        🟢 Live       | Aug. 10, 2026 |
+|            |   - Local Computer        | [Optional Local Setup](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/local/README.md) |        🟢 Live       | Aug. 10, 2026 |
+| Two        | Assignment                | `it140-m2-assignment`                                                                             | 🚧 Not Yet Published | Aug. 12, 2026 |
+| Three      | Assignment                | `it140-m3-assignment`                                                                             | 🚧 Not Yet Published | Aug. 13, 2026 |
+| Four       | Assignment                | `it140-m4-assignment`                                                                             | 🚧 Not Yet Published | Aug. 14, 2026 |
+| Five       | Project One               | `it140-projects`                                                                                  | 🚧 Not Yet Published | Aug. 15, 2026 |
+| Six        | Milestone                 | `it140-projects`                                                                                  | 🚧 Not Yet Published | Aug. 16, 2026 |
+| Seven      | Project Two               | `it140-projects`                                                                                  | 🚧 Not Yet Published | Aug. 17, 2026 |
+
+If a repository is still unavailable **after its Live ETA**, please report the problem using GitHub Issues.
+
+---
+
+## Status Legend
 
 ### Development Status
 
-- 🗺️ Planned
-- 🗓️ Requirements
-- 📝 Design
-- 🚧 Construction
-- 🅰️ Alpha Testing
-- 🅱️ Beta Testing (Staff & Faculty)
-- ✅ Ready for Pilot
-- 🔧 Maintenance
-- 📦 Archived
+* 🗺️ Planned
+* 🗓️ Requirements
+* 📝 Design
+* 🚧 Construction
+* 🅰️ Alpha Testing
+* 🅱️ Beta Testing (Staff & Faculty)
+* ✅ Ready for Pilot
+* 🔧 Maintenance
+* 📦 Archived
 
 ### Operational Status
 
-🟢 Live
-🟡 Known Issue
-🔴 Unavailable
+* 🟢 Live
+* 🟡 Known Issue
+* 🔴 Unavailable
