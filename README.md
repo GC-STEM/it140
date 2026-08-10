@@ -9,8 +9,17 @@
 - **Artifact Date**: 2026-08-09
 - **Development Status**: Beta Testing
 
-> [!WARNING]
-> This repository is a work in progress. Some modules and activities may not be fully implemented yet. Please check the status of each activity in the table below for the latest updates.
+---
+
+## 🧪 Beta Testing
+
+This activity has completed **end-to-end (E2E) Alpha Testing** and is now in **Beta Testing with faculty and staff**. E2E testing verifies that the complete setup process works from start to finish.
+
+The **Codio Virtual Desktop (CVD)** automation is expected to be reliable because each CVD begins from a standardized environment. The local Windows, macOS, and Linux automation scripts have been tested primarily on fresh operating system installations. Real-world computers have different software, settings, permissions, security controls, and prior configurations, so Beta Testing may uncover conditions not encountered during Alpha Testing.
+
+**Beta testers**: Please report issues and feature requests using [GitHub Issues](https://github.com/GC-STEM/it140-m1-setup-tasks/issues). An **issue** is any error, failed step, unexpected result, missing or incorrect behavior, or instruction that prevents or makes the setup difficult to complete. A **feature request** is a suggestion for improving the setup process, automation, documentation, or user experience.
+
+---
 
 ## Course Automation Scripts
 
