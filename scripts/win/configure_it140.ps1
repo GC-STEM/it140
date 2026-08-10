@@ -6,7 +6,8 @@ Configures or repairs the current Windows user for the IT 140 Course IDE.
 .DESCRIPTION
 Configures the intended user's course folders and PATH, GitHub authentication,
 privacy-preserving Git identity, course Python virtual environment, required
-VS Code extensions and settings, and a separate Windows Repos development workspace with desktop access. The script
+VS Code extensions and settings, a separate Windows Repos development workspace with desktop access,
+and a course-owned VS Code workspace shortcut on Windows bare metal. The script
 preserves unrelated user settings and does not install or update system-level
 software.
 
@@ -33,7 +34,7 @@ Version basis:
 
     Version 0.10.0-beta.1 establishes the coordinated Beta-testing baseline,
     aligns artifact metadata with the controlled manifest and schema, and
-    incorporates fixes completed during Alpha testing.
+    incorporates fixes completed during Alpha and Beta qualification testing.
 
 
 .NOTES
@@ -91,6 +92,10 @@ $VsCodeSettings = Join-Path $env:APPDATA "Code\User\settings.json"
 $ReposShortcutPath = Join-Path (
     [Environment]::GetFolderPath("Desktop")
 ) "Repos.lnk"
+$VsCodeReposShortcutPath = Join-Path (
+    [Environment]::GetFolderPath("Desktop")
+) "Visual Studio Code - IT 140.lnk"
+$VsCodeReposShortcutDescription = "Open Visual Studio Code in the IT 140 repository workspace"
 $ReposDesktopIniPath = Join-Path $ReposRoot "desktop.ini"
 $StartTime = Get-Date
 $TranscriptStarted = $false
@@ -1307,21 +1312,46 @@ function Set-VsCodeSetting {
 
 function Get-VsCodeExecutablePath {
     $CodeCommand = Get-Command code.cmd -ErrorAction SilentlyContinue
-    if ($null -eq $CodeCommand) {
-        return $null
-    }
-
-    $CodeBinDirectory = Split-Path -Parent $CodeCommand.Source
-    $CandidatePath = Join-Path (Split-Path -Parent $CodeBinDirectory) "Code.exe"
-    if (Test-Path -LiteralPath $CandidatePath -PathType Leaf) {
-        return $CandidatePath
+    if ($null -ne $CodeCommand) {
+        $CodeBinDirectory = Split-Path -Parent $CodeCommand.Source
+        $CandidatePath = Join-Path (Split-Path -Parent $CodeBinDirectory) "Code.exe"
+        if (Test-Path -LiteralPath $CandidatePath -PathType Leaf) {
+            return $CandidatePath
+        }
     }
 
     $CodeExecutable = Get-Command Code.exe -ErrorAction SilentlyContinue
     if ($null -ne $CodeExecutable) {
         return $CodeExecutable.Source
     }
+
+    foreach ($CandidatePath in @(
+        (Join-Path $env:LOCALAPPDATA "Programs\Microsoft VS Code\Code.exe"),
+        (Join-Path $env:ProgramFiles "Microsoft VS Code\Code.exe")
+    )) {
+        if (Test-Path -LiteralPath $CandidatePath -PathType Leaf) {
+            return $CandidatePath
+        }
+    }
     return $null
+}
+
+function Test-IsCourseManagedReposDesktopIni {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        return $false
+    }
+    try {
+        $DesktopIniText = Get-Content -LiteralPath $Path -Raw
+        return (
+            $DesktopIniText -match '(?m)^InfoTip=IT 140 development repositories\s*$' -and
+            $DesktopIniText -match '(?mi)^IconResource=.*Code\.exe,0\s*$'
+        )
+    }
+    catch {
+        return $false
+    }
 }
 
 function Test-ShortcutTargetsRepos {
@@ -1348,6 +1378,66 @@ function Test-ShortcutTargetsRepos {
     }
 }
 
+function Test-ShortcutTargetsVsCodeRepos {
+    param(
+        [Parameter(Mandatory = $true)][string]$ShortcutPath,
+        [Parameter(Mandatory = $true)][string]$VsCodeExecutable
+    )
+
+    if (-not (Test-Path -LiteralPath $ShortcutPath -PathType Leaf)) {
+        return $false
+    }
+    try {
+        $ShellApplication = New-Object -ComObject WScript.Shell
+        $Shortcut = $ShellApplication.CreateShortcut($ShortcutPath)
+        $ArgumentPath = $Shortcut.Arguments.Trim()
+        if (
+            $ArgumentPath.Length -ge 2 -and
+            $ArgumentPath.StartsWith('"') -and
+            $ArgumentPath.EndsWith('"')
+        ) {
+            $ArgumentPath = $ArgumentPath.Substring(1, $ArgumentPath.Length - 2)
+        }
+
+        return (
+            [string]::Equals(
+                [IO.Path]::GetFullPath($Shortcut.TargetPath),
+                [IO.Path]::GetFullPath($VsCodeExecutable),
+                [StringComparison]::OrdinalIgnoreCase
+            ) -and
+            [string]::Equals(
+                [IO.Path]::GetFullPath($ArgumentPath),
+                [IO.Path]::GetFullPath($ReposRoot),
+                [StringComparison]::OrdinalIgnoreCase
+            ) -and
+            [string]::Equals(
+                [IO.Path]::GetFullPath($Shortcut.WorkingDirectory),
+                [IO.Path]::GetFullPath($ReposRoot),
+                [StringComparison]::OrdinalIgnoreCase
+            )
+        )
+    }
+    catch {
+        return $false
+    }
+}
+
+function Test-IsCourseManagedVsCodeReposShortcut {
+    param([Parameter(Mandatory = $true)][string]$ShortcutPath)
+
+    if (-not (Test-Path -LiteralPath $ShortcutPath -PathType Leaf)) {
+        return $false
+    }
+    try {
+        $ShellApplication = New-Object -ComObject WScript.Shell
+        $Shortcut = $ShellApplication.CreateShortcut($ShortcutPath)
+        return $Shortcut.Description -eq $VsCodeReposShortcutDescription
+    }
+    catch {
+        return $false
+    }
+}
+
 function Set-RepositoryWorkspace {
     if (-not (Test-Path -LiteralPath $ReposRoot -PathType Container)) {
         if (Test-Path -LiteralPath $ReposRoot) {
@@ -1357,26 +1447,13 @@ function Set-RepositoryWorkspace {
         $script:Changed = $true
     }
 
-    # The parent directory is automation-managed only for existence and its
-    # icon metadata. Never recurse into, enumerate for repair, or permission-
-    # reset student repositories stored beneath it.
-    $VsCodeExecutable = Get-VsCodeExecutablePath
-    if ([string]::IsNullOrWhiteSpace($VsCodeExecutable)) {
-        Write-WarningMessage (
-            "Visual Studio Code could not be resolved for the optional Repos " +
-            "folder icon. The development workspace itself remains usable."
-        )
-    }
-    else {
-        $DesktopIni = @(
-            "[.ShellClassInfo]"
-            "IconResource=$VsCodeExecutable,0"
-            "InfoTip=IT 140 development repositories"
-            ""
-        ) -join "`r`n"
-        Set-Content -LiteralPath $ReposDesktopIniPath -Value $DesktopIni -Encoding Unicode -Force
-        & attrib.exe +h +s $ReposDesktopIniPath 2>$null
-        & attrib.exe +r $ReposRoot 2>$null
+    # Windows intentionally uses the normal Windows folder appearance for the
+    # repository workspace. Remove only stale course-managed icon metadata from
+    # the earlier Alpha implementation; preserve any unrelated user metadata.
+    if (Test-IsCourseManagedReposDesktopIni -Path $ReposDesktopIniPath) {
+        & attrib.exe -h -s $ReposDesktopIniPath 2>$null
+        Remove-Item -LiteralPath $ReposDesktopIniPath -Force
+        & attrib.exe -r $ReposRoot 2>$null
         $script:Changed = $true
     }
 
@@ -1406,12 +1483,7 @@ function Set-RepositoryWorkspace {
     $ReposShortcut.TargetPath = "$env:SystemRoot\explorer.exe"
     $ReposShortcut.Arguments = ('"{0}"' -f $ReposRoot)
     $ReposShortcut.WorkingDirectory = $ReposRoot
-    if ($VsCodeExecutable) {
-        $ReposShortcut.IconLocation = "$VsCodeExecutable,0"
-    }
-    else {
-        $ReposShortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,3"
-    }
+    $ReposShortcut.IconLocation = "$env:SystemRoot\explorer.exe,0"
     $ReposShortcut.Description = "Open the IT 140 development repository workspace"
     $ReposShortcut.Save()
     $script:Changed = $true
@@ -1420,7 +1492,67 @@ function Set-RepositoryWorkspace {
         throw "The Repos desktop shortcut did not validate after configuration."
     }
 
-    Write-Success "The repository workspace and desktop Repos shortcut are configured: $ReposRoot"
+    if ($DeploymentProfile -eq "windows_bare_metal") {
+        $VsCodeExecutable = Get-VsCodeExecutablePath
+        if ([string]::IsNullOrWhiteSpace($VsCodeExecutable)) {
+            throw (
+                "Visual Studio Code is required, but Code.exe could not be resolved " +
+                "for the IT 140 desktop workspace shortcut."
+            )
+        }
+
+        $WriteVsCodeShortcut = $true
+        if (Test-Path -LiteralPath $VsCodeReposShortcutPath -PathType Leaf) {
+            if (
+                Test-ShortcutTargetsVsCodeRepos `
+                    -ShortcutPath $VsCodeReposShortcutPath `
+                    -VsCodeExecutable $VsCodeExecutable
+            ) {
+                $WriteVsCodeShortcut = $false
+            }
+            elseif (-not (Test-IsCourseManagedVsCodeReposShortcut -ShortcutPath $VsCodeReposShortcutPath)) {
+                throw (
+                    "An unmanaged desktop shortcut already uses the name " +
+                    "Visual Studio Code - IT 140.lnk. It was preserved: " +
+                    $VsCodeReposShortcutPath
+                )
+            }
+        }
+        elseif (Test-Path -LiteralPath $VsCodeReposShortcutPath) {
+            throw (
+                "An unmanaged desktop item already uses the required Visual Studio " +
+                "Code - IT 140 shortcut name and was preserved: " +
+                $VsCodeReposShortcutPath
+            )
+        }
+
+        if ($WriteVsCodeShortcut) {
+            $VsCodeShortcut = $ShellApplication.CreateShortcut($VsCodeReposShortcutPath)
+            $VsCodeShortcut.TargetPath = $VsCodeExecutable
+            $VsCodeShortcut.Arguments = ('"{0}"' -f $ReposRoot)
+            $VsCodeShortcut.WorkingDirectory = $ReposRoot
+            $VsCodeShortcut.IconLocation = "$VsCodeExecutable,0"
+            $VsCodeShortcut.Description = $VsCodeReposShortcutDescription
+            $VsCodeShortcut.Save()
+            $script:Changed = $true
+        }
+
+        if (
+            -not (Test-ShortcutTargetsVsCodeRepos `
+                -ShortcutPath $VsCodeReposShortcutPath `
+                -VsCodeExecutable $VsCodeExecutable)
+        ) {
+            throw "The IT 140 Visual Studio Code desktop shortcut did not validate after configuration."
+        }
+
+        Write-Success (
+            "The repository workspace, desktop Repos shortcut, and IT 140 " +
+            "Visual Studio Code shortcut are configured: $ReposRoot"
+        )
+    }
+    else {
+        Write-Success "The repository workspace and desktop Repos shortcut are configured: $ReposRoot"
+    }
 }
 
 function Test-ManagedSettingValue {
@@ -1558,10 +1690,19 @@ function Test-ConfiguredUserLayer {
         throw "The required desktop Repos shortcut does not target the repository workspace."
     }
 
-    if (Test-Path -LiteralPath $ReposDesktopIniPath -PathType Leaf) {
-        $DesktopIniText = Get-Content -LiteralPath $ReposDesktopIniPath -Raw
-        if ($DesktopIniText -notmatch '(?m)^IconResource=.+,0\s*$') {
-            throw "The repository workspace development icon metadata is invalid."
+    if (Test-IsCourseManagedReposDesktopIni -Path $ReposDesktopIniPath) {
+        throw "Stale course-managed repository workspace icon metadata is still present."
+    }
+
+    if ($DeploymentProfile -eq "windows_bare_metal") {
+        $VsCodeExecutable = Get-VsCodeExecutablePath
+        if (
+            [string]::IsNullOrWhiteSpace($VsCodeExecutable) -or
+            -not (Test-ShortcutTargetsVsCodeRepos `
+                -ShortcutPath $VsCodeReposShortcutPath `
+                -VsCodeExecutable $VsCodeExecutable)
+        ) {
+            throw "The required IT 140 Visual Studio Code desktop shortcut does not open the repository workspace."
         }
     }
 

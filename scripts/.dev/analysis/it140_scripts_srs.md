@@ -381,11 +381,11 @@ The configure script shall:
 
 - **CFG-FR-019** On a supported graphical desktop, create or repair a desktop shortcut or link named `Repos` that resolves to the repository workspace. If an unrelated non-managed item already uses the required shortcut name, Configure shall preserve it and report the conflict rather than overwrite it.
 
-- **CFG-FR-020** Apply a platform-appropriate development visual marker to the repository workspace when a safe native mechanism is supported. The Codio Virtual Desktop (CVD) Xfce implementation shall apply the native `development` emblem. Other qualified graphical desktop implementations shall use an approved development or code-oriented folder icon or emblem when safely available; an implementation may report this visual-only integration as `NOT APPLICABLE` when its platform supplement documents that no safe supported native mechanism exists.
+- **CFG-FR-020** Apply a platform-appropriate repository-workspace visual treatment without substituting an application icon for a folder. The Codio Virtual Desktop (CVD) Xfce implementation shall apply the native `development` emblem. Windows bare metal shall retain the normal Windows folder appearance for the repository workspace and desktop `Repos` shortcut. Other qualified graphical desktop implementations may use an approved development or code-oriented folder icon or emblem when safely available; an implementation may report this visual-only integration as `NOT APPLICABLE` when its platform supplement documents that no safe supported native mechanism exists.
 
-- **CFG-FR-021** On the CVD, repair the existing Visual Studio Code desktop launcher so that it opens the repository workspace as the active folder instead of the course automation root. Configure shall modify the existing course-provided launcher and shall not create a duplicate Visual Studio Code desktop launcher when the expected launcher is missing.
+- **CFG-FR-021** Configure profile-owned Visual Studio Code desktop launch behavior so students can open the repository workspace directly. On the CVD, Configure shall repair the existing course-provided Visual Studio Code launcher to open the repository workspace as the active folder and shall not create a duplicate when the expected launcher is missing. On Windows bare metal, Configure shall create or repair a course-owned desktop shortcut named `Visual Studio Code - IT 140` that launches Visual Studio Code with `%USERPROFILE%\Repos` as both the active folder argument and working directory while preserving unrelated Visual Studio Code shortcuts.
 
-  **Why:** The course-provided launcher should take students directly to the directory intended for assignment and project repositories without exposing course-managed automation files as the normal coding workspace.
+  **Why:** Course-owned launchers should take students directly to the directory intended for assignment and project repositories without exposing course-managed automation files as the normal coding workspace or overwriting unrelated user shortcuts.
 
 ### 1.5 Verify Script Requirements
 
@@ -449,9 +449,9 @@ The verify script shall:
 
 - **VER-FR-016** Check that the desktop `Repos` shortcut or link resolves to the repository workspace without modifying the shortcut, link, or workspace.
 
-- **VER-FR-017** Check the platform-approved development visual marker for the repository workspace when that integration is applicable; report `NOT APPLICABLE` rather than failure only when the platform design explicitly declares the visual marker unsupported.
+- **VER-FR-017** Check the platform-approved repository-workspace visual treatment when that integration is applicable. On Windows bare metal, Verify shall confirm that stale course-managed application-icon metadata is not applied to the repository workspace. Report `NOT APPLICABLE` rather than failure only when the platform design explicitly declares the visual treatment unsupported.
 
-- **VER-FR-018** On the CVD, check that the existing Visual Studio Code desktop launcher opens the repository workspace and does not target the course automation root.
+- **VER-FR-018** Check profile-owned Visual Studio Code desktop launch behavior read-only. On the CVD, Verify shall check that the existing Visual Studio Code desktop launcher opens the repository workspace and does not target the course automation root. On Windows bare metal, Verify shall check that `Visual Studio Code - IT 140` launches Visual Studio Code with the repository workspace as both its active folder argument and working directory.
 
   **Why:** Some failures require platform administration rather than another script run.
 

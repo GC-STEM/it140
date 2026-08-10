@@ -30,10 +30,8 @@ $LogPath = Join-Path $LogDirectory (
 )
 New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null
 Start-Transcript -Path $LogPath -Force | Out-Null
-
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
-
 $ArtifactVersion = "0.10.0-beta.1"
 $VersionDate = "2026-08-09-23-59"
 $DevelopmentStatus = "Beta Testing"
@@ -46,7 +44,6 @@ $TemporaryRoot = Join-Path (
 $ArchivePath = Join-Path $TemporaryRoot "it140-main.zip"
 $ExtractRoot = Join-Path $TemporaryRoot "extract"
 $PlatformScriptDirectory = Join-Path $CourseRoot "scripts\$PlatformAbbreviation"
-
 Write-Host ""
 Write-Host "============================================================"
 Write-Host "IT 140 WINDOWS BOOTSTRAP"

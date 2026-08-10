@@ -9,14 +9,9 @@
 #     Inspect the supported system and current-user course layers without
 #     installing, updating, removing, repairing, or rewriting managed state.
 #
-# Artifact version:
-#     0.6.0
-#
-# Version date-time group:
-#     2026-08-07-10-44
-#
-# Development status:
-#     Alpha Testing
+# Artifact version: 0.10.0-beta.1
+# Version date-time group: 2026-08-09-23-59
+# Development status: Beta Testing
 #
 # Version basis:
 #     Version 0.1.0 represents the initial pseudoscript baseline.
@@ -422,8 +417,13 @@ PROCEDURE check_user_layer(run_context)
     REQUIRE it targets the canonical repository workspace
     RECORD pass or fail verify.repository_workspace_desktop with configure remediation
 
-    QUERY the platform development-marker metadata read-only
-    IF qualified platform declares the marker unsupported
+    QUERY the platform repository-workspace visual treatment read-only
+    IF active deployment profile is windows_bare_metal
+        REQUIRE no stale course-managed application-icon metadata remains on
+            repository workspace
+        REQUIRE desktop Repos shortcut uses the standard Windows File Explorer/folder icon
+        RECORD pass or fail verify.repository_workspace_marker with configure remediation
+    ELSE IF qualified platform declares the visual treatment unsupported
         RECORD NOT APPLICABLE verify.repository_workspace_marker
     ELSE
         RECORD pass or fail verify.repository_workspace_marker with configure remediation
@@ -433,6 +433,12 @@ PROCEDURE check_user_layer(run_context)
         PARSE the existing Visual Studio Code desktop entry read-only
         REQUIRE its folder argument resolves to repository workspace
         REQUIRE it is not course-root-only
+        RECORD pass or fail verify.vscode_workspace_launcher with configure remediation
+    ELSE IF active deployment profile is windows_bare_metal
+        PARSE desktop shortcut "Visual Studio Code - IT 140" read-only
+        REQUIRE it targets the resolved Visual Studio Code executable
+        REQUIRE its active folder argument resolves to repository workspace
+        REQUIRE its working directory resolves to repository workspace
         RECORD pass or fail verify.vscode_workspace_launcher with configure remediation
     ENDIF
 
