@@ -1118,7 +1118,7 @@ function Test-PendingRestart {
     return $false
 }
 
-function Test-WinGetPackageInstalled {
+function Test-WinGetPackageRecognized {
     param([Parameter(Mandatory = $true)][string]$PackageIdentifier)
 
     return Test-NativeCommandExitSuccess `
@@ -1341,20 +1341,34 @@ function Test-SystemLayer {
 
     $SystemBindings = Get-SystemPackageBinding -Platform $Platform
     foreach ($Binding in $SystemBindings) {
-        if (
-            (Test-CommandAvailable "winget.exe") -and
-            (Test-WinGetPackageInstalled -PackageIdentifier $Binding.PackageIdentifier)
-        ) {
+        $CapabilityAvailable = $true
+        foreach ($ExecutableName in @($Binding.ExecutableNames)) {
+            if (-not (Test-CommandAvailable $ExecutableName)) {
+                $CapabilityAvailable = $false
+                break
+            }
+        }
+
+        if ($CapabilityAvailable) {
+            $PackageDetail = if (
+                (Test-CommandAvailable "winget.exe") -and
+                (Test-WinGetPackageRecognized -PackageIdentifier $Binding.PackageIdentifier)
+            ) {
+                "PRESENT — WinGet-recognized, compatible: $($Binding.PackageIdentifier)"
+            }
+            else {
+                "PRESENT — externally installed, compatible: $($Binding.PackageIdentifier)"
+            }
             Add-CheckResult `
                 -CheckId ("verify.package.{0}" -f $Binding.Role) `
                 -Status "PASS" `
-                -Detail $Binding.PackageIdentifier
+                -Detail $PackageDetail
         }
         else {
             Add-CheckResult `
                 -CheckId ("verify.package.{0}" -f $Binding.Role) `
                 -Status "FAIL" `
-                -Detail "Missing or not reported: $($Binding.PackageIdentifier)" `
+                -Detail "Required capability is missing: $($Binding.PackageIdentifier)" `
                 -Remediation (Get-SystemRepairRemediation -CapabilityType "package")
         }
 

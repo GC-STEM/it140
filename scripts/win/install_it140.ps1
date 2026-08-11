@@ -4,8 +4,9 @@
 Installs or repairs the system-level IT 140 Course IDE on Windows.
 
 .DESCRIPTION
-Installs or repairs Windows Package Manager when required and installs or
-repairs the manifest-declared system software for IT 140. Windows updates are
+Installs or repairs Windows Package Manager when required and converges the
+manifest-declared system capabilities for IT 140 while preserving compatible
+preexisting applications regardless of package-manager provenance. Windows updates are
 completed manually before the course automation lifecycle; this script does
 not run Windows Update. It does not configure personal GitHub, Git,
 Python-environment, VS Code-extension, or editor settings.
@@ -847,7 +848,7 @@ function Get-SystemPackageBinding {
     return $Bindings
 }
 
-function Test-WinGetPackageInstalled {
+function Test-WinGetPackageRecognized {
     param([Parameter(Mandatory = $true)][string]$PackageIdentifier)
 
     & winget.exe list `
@@ -859,68 +860,111 @@ function Test-WinGetPackageInstalled {
     return $LASTEXITCODE -eq 0
 }
 
-function Install-SystemPackage {
-    param([Parameter(Mandatory = $true)]$Bindings)
+function Test-SystemPackageCapability {
+    param([Parameter(Mandatory = $true)]$Binding)
 
-    Invoke-ExternalCommand `
-        -FilePath "winget.exe" `
-        -ArgumentList @(
-            "source",
-            "update",
-            "--disable-interactivity"
-        ) `
-        -Operation "Updating WinGet package sources."
-
-    foreach ($Binding in $Bindings) {
-        $PackageIdentifier = [string]$Binding.PackageIdentifier
-        if (Test-WinGetPackageInstalled -PackageIdentifier $PackageIdentifier) {
-            Write-Info "Updating or verifying $PackageIdentifier."
-            & winget.exe upgrade `
-                --id $PackageIdentifier `
-                --exact `
-                --source winget `
-                --scope machine `
-                --silent `
-                --disable-interactivity `
-                --accept-source-agreements `
-                --accept-package-agreements `
-                --verbose-logs
-
-            if ($LASTEXITCODE -ne 0) {
-                if (Test-WinGetPackageInstalled -PackageIdentifier $PackageIdentifier) {
-                    Write-Notice (
-                        "No WinGet upgrade was applied to $PackageIdentifier; " +
-                        "the installed package remains available."
-                    )
-                }
-                else {
-                    throw "Required package is unavailable: $PackageIdentifier"
-                }
-            }
-        }
-        else {
-            Invoke-ExternalCommand `
-                -FilePath "winget.exe" `
-                -ArgumentList @(
-                    "install",
-                    "--id", $PackageIdentifier,
-                    "--exact",
-                    "--source", "winget",
-                    "--scope", "machine",
-                    "--silent",
-                    "--disable-interactivity",
-                    "--accept-source-agreements",
-                    "--accept-package-agreements",
-                    "--verbose-logs"
-                ) `
-                -Operation "Installing $PackageIdentifier."
-            $script:Changed = $true
+    foreach ($ExecutableName in @($Binding.ExecutableNames)) {
+        if ($null -eq (Get-Command $ExecutableName -ErrorAction SilentlyContinue)) {
+            return $false
         }
     }
 
-    Update-ProcessEnvironment
-    $script:Changed = $true
-    Write-Success "Manifest-required Windows software is installed."
+    if ([string]$Binding.Role -eq "programming_language_runtime") {
+        $RuntimeExecutable = [string]@($Binding.ExecutableNames)[0]
+        try {
+            $PythonVersion = & $RuntimeExecutable -c (
+                "import sys; print('.'.join(map(str, sys.version_info[:2])))"
+            )
+            if ($LASTEXITCODE -ne 0 -or [string]$PythonVersion -ne "3.12") {
+                return $false
+            }
+        }
+        catch {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+function Write-SystemPackageState {
+    param(
+        [Parameter(Mandatory = $true)][string]$State,
+        [Parameter(Mandatory = $true)]$Binding
+    )
+
+    Write-Info ("{0} — {1} ({2})" -f $State, $Binding.Role, $Binding.PackageIdentifier)
+}
+
+function Install-SystemPackage {
+    param([Parameter(Mandatory = $true)]$Bindings)
+
+    $SourcesRefreshed = $false
+    foreach ($Binding in $Bindings) {
+        Update-ProcessEnvironment
+        $PackageIdentifier = [string]$Binding.PackageIdentifier
+        $RecognizedByWinGet = Test-WinGetPackageRecognized -PackageIdentifier $PackageIdentifier
+        $CapabilityAvailable = Test-SystemPackageCapability -Binding $Binding
+
+        if ($CapabilityAvailable) {
+            if ($RecognizedByWinGet) {
+                Write-SystemPackageState -State "PRESENT — WinGet-recognized, compatible" -Binding $Binding
+            }
+            else {
+                Write-SystemPackageState -State "PRESENT — externally installed, compatible" -Binding $Binding
+            }
+            continue
+        }
+
+        if ($RecognizedByWinGet) {
+            Write-SystemPackageState -State "INCOMPATIBLE — preserved" -Binding $Binding
+            throw (
+                "WinGet recognizes $PackageIdentifier, but its required course " +
+                "capability is unavailable or incompatible. Because WinGet can " +
+                "recognize applications installed by other means, Install will " +
+                "not overwrite or repair it automatically. Repair or update the " +
+                "existing application, then rerun Install."
+            )
+        }
+
+        Write-SystemPackageState -State "MISSING" -Binding $Binding
+        if (-not $SourcesRefreshed) {
+            Invoke-ExternalCommand `
+                -FilePath "winget.exe" `
+                -ArgumentList @(
+                    "source",
+                    "update",
+                    "--disable-interactivity"
+                ) `
+                -Operation "Updating WinGet package sources."
+            $SourcesRefreshed = $true
+        }
+
+        Invoke-ExternalCommand `
+            -FilePath "winget.exe" `
+            -ArgumentList @(
+                "install",
+                "--id", $PackageIdentifier,
+                "--exact",
+                "--source", "winget",
+                "--scope", "machine",
+                "--silent",
+                "--disable-interactivity",
+                "--accept-source-agreements",
+                "--accept-package-agreements",
+                "--verbose-logs"
+            ) `
+            -Operation "Installing $PackageIdentifier."
+        $script:Changed = $true
+        Update-ProcessEnvironment
+
+        if (-not (Test-SystemPackageCapability -Binding $Binding)) {
+            throw "Required capability is unavailable after installing $PackageIdentifier."
+        }
+        Write-SystemPackageState -State "INSTALLED — by IT 140" -Binding $Binding
+    }
+
+    Write-Success "Manifest-required Windows capabilities are available."
 }
 
 function Test-SystemLayer {
@@ -956,12 +1000,18 @@ function Test-SystemLayer {
     }
 
     foreach ($Binding in $Bindings) {
-        if (-not (Test-WinGetPackageInstalled -PackageIdentifier $Binding.PackageIdentifier)) {
-            throw "WinGet does not report the required package: $($Binding.PackageIdentifier)"
+        if (-not (Test-SystemPackageCapability -Binding $Binding)) {
+            throw "Required capability is unavailable: $($Binding.Role)"
+        }
+        if (Test-WinGetPackageRecognized -PackageIdentifier $Binding.PackageIdentifier) {
+            Write-SystemPackageState -State "PRESENT — WinGet-recognized, compatible" -Binding $Binding
+        }
+        else {
+            Write-SystemPackageState -State "PRESENT — externally installed, compatible" -Binding $Binding
         }
     }
 
-    Write-Success "System-layer post-validation passed."
+    Write-Success "System-layer post-validation passed without requiring package-manager ownership of compatible preexisting applications."
 }
 
 function Get-CommandVersionLine {
@@ -1004,7 +1054,8 @@ try {
     Write-Info "Current user     : $([Environment]::UserName)"
     Write-Info "Course root      : $CourseRoot"
     Write-Info "Log file         : $LogPath"
-    Write-Notice "This script installs or repairs required course IDE software."
+    Write-Notice "This script installs missing course IDE software and preserves compatible preexisting applications."
+    Write-Notice "Package-manager ownership is diagnostic; it is not required when the approved capability is already compatible."
     Write-Notice "Windows updates are not installed by this script."
     Write-Notice "It does not configure personal GitHub, Git, Python, or VS Code settings."
 

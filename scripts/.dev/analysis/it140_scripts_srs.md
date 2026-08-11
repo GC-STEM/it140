@@ -307,6 +307,18 @@ The install script shall:
 
   **Why:** System installation alone does not complete the current user's course environment.
 
+- **INS-FR-013** On local deployment profiles, preserve and use an approved preexisting system product when its required capabilities and version constraints satisfy the manifest, regardless of whether the course-selected package manager originally installed or reports ownership of that product.
+
+  **Why:** A student's local computer is an existing mixed-ownership environment. Package-manager provenance is diagnostic information, not evidence that a compatible application must be replaced.
+
+- **INS-FR-014** During initial local installation, make only the smallest safe change needed to establish a missing required capability. Install shall not automatically upgrade, reinstall, uninstall, downgrade, force-overwrite, adopt, or transfer package-manager ownership of a compatible preexisting product. When a required product is present but incompatible or conflicts with an approved installation path, Install shall preserve it and stop with specific remediation unless a narrower approved integration repair can establish compliance without replacing the product.
+
+  **Why:** Initial setup should converge a personal computer toward course compatibility without taking ownership of unrelated software or destroying user choices. Routine maintenance of course-managed software belongs to Update.
+
+- **INS-FR-015** For each required local system product or capability evaluated by Install, record a platform-accurate state that distinguishes compatible presence, external or package-manager recognition when knowable, missing state, installation by IT 140, integration-only repair, and incompatible state preserved. The log shall not infer package-manager ownership from evidence that only proves package recognition.
+
+  **Why:** Accurate state reporting makes local-install behavior understandable to students and gives faculty and technical support useful evidence without overstating what a package manager can prove.
+
 ### 1.4 Configure Script Requirements
 
 The configure script shall:
@@ -1052,6 +1064,9 @@ An **acceptance test** checks whether the completed software meets an agreed req
 | AT-INS-005 | INS-FR-006 | Run install when maintenance updates are available but a newer OS release also exists. | Approved updates install; the OS release does not change. |
 | AT-INS-006 | INS-FR-010 | Remove one course-managed system component and rerun install. | The missing component is repaired without resetting unrelated system settings. |
 | AT-INS-007 | INS-FR-011 | Use a test account with no source-code-hosting authentication or IDE user settings, then run install. | Install does not authenticate an external source-code-hosting service, create version-control identity, or write user IDE settings. |
+| AT-INS-008 | INS-FR-013, INS-FR-015 | On each local platform, preinstall an approved required product by a supported method other than the course-selected package manager, then run Install. | Install recognizes the compatible capability, preserves the existing product, does not reinstall or take ownership of it, records an externally installed or otherwise platform-accurate compatible state, and completes successfully. |
+| AT-INS-009 | INS-FR-014, INS-FR-015 | Preinstall an approved required product at an incompatible version or place a conflicting unmanaged item at an approved installation/integration path, then run Install. | Install preserves the existing item, does not force-overwrite, adopt, downgrade, or replace it, records an incompatible-preserved state, and stops with specific remediation unless an approved integration-only repair can safely establish compliance. |
+| AT-INS-010 | INS-FR-013, INS-FR-014, INS-FR-015 | Install a compatible required product, make any required course integration absent while leaving the product intact, then run Install. | Install repairs only the missing approved integration when safe, preserves the application itself, records an integration-only repair, and post-validation succeeds. |
 
 ### 6.4 Configure Acceptance Tests
 

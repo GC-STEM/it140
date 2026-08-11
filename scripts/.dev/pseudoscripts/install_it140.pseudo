@@ -33,10 +33,10 @@
 #     and automation_release_date_time_group in YYYY-MM-DD-HH-MM format.
 #
 # SRS traceability:
-#     INS-FR-001 through INS-FR-012; PKG-FR-021
+#     INS-FR-001 through INS-FR-015; PKG-FR-021
 #
 # SDD traceability:
-#     INS-DES-001 through INS-DES-012; INT-DES-014; ERR-DES-014
+#     INS-DES-001 through INS-DES-015; INT-DES-014; ERR-DES-014
 #
 # Intended user:
 #     A reference-environment administrator or SME using the intended standard
@@ -219,24 +219,43 @@ PROCEDURE install_or_repair_system_layer(run_context)
 
     REQUIRE required_packages is not empty
 
-    REFRESH native package metadata using the approved retry policy
+    FOR EACH required system capability in dependency order
+        capability_state = probe_approved_product_identity_capability_and_version()
+        provenance = query_package_manager_registration_or_recognition_when_available()
 
-    INSTALL package-manager trust and retrieval prerequisites
+        IF run_context is a local profile AND capability_state is compliant
+            PRESERVE the existing product unchanged
+            RECORD platform-accurate PRESENT state without inferring ownership
+            CONTINUE
+        ENDIF
 
-    FOR EACH approved external software source required by the implementation
-        RETRIEVE trust material using verified transport and bounded retries
-        INSTALL trust material with system-readable permissions
-        CREATE or replace the controlled source definition
+        IF run_context is a local profile AND a narrower approved integration repair
+           can establish the missing capability without replacing the product
+            REPAIR only the approved integration
+            SET changed = TRUE
+            RECORD REPAIRED integration-only state
+            CONTINUE
+        ENDIF
+
+        IF run_context is a local profile AND an incompatible or conflicting
+           preexisting product is detected
+            PRESERVE the existing product
+            RECORD INCOMPATIBLE — preserved
+            RETURN required failure with actionable remediation
+        ENDIF
+
+        IF capability is missing
+            CONFIGURE only the approved source/trust prerequisites needed for it
+            REFRESH package metadata using the approved retry policy when needed
+            INSTALL the missing package through the approved package adapter
+            SET changed = TRUE
+            RECORD INSTALLED — by IT 140
+        ENDIF
     ENDFOR
 
-    REFRESH native package metadata using the approved retry policy
-
-    APPLY security and maintenance updates within the current supported
-        operating-system release
     NEVER invoke an operating-system release upgrade
-
-    INSTALL or repair all manifest-required system packages
-    SET changed = TRUE
+    NEVER force-overwrite, adopt, downgrade, or transfer ownership of a compatible
+        preexisting local product during initial Install
 
 ENDPROCEDURE
 
@@ -276,26 +295,24 @@ PROCEDURE post_validate_system_layer(run_context)
 
     failed = FALSE
 
-    FOR EACH manifest-required system package
-        REQUIRE the native package database reports it installed
-    ENDFOR
-
-    FOR EACH required system capability
+    FOR EACH manifest-required system capability
+        REQUIRE the approved product identity when identity is applicable
         REQUIRE at least one approved executable is discoverable
+        REQUIRE the effective version satisfies the manifest rule when one exists
+        IF the deployment profile explicitly requires package-manager ownership
+            REQUIRE the native package database reports that ownership
+        ELSE
+            RECORD package-manager registration or recognition as diagnostic provenance only
+        ENDIF
     ENDFOR
 
-    REQUIRE the required programming-language runtime satisfies its declared
-        major and minor version rule
-
-    FOR EACH structured system integration created by setup
+    FOR EACH structured system integration created by install
         REQUIRE the file exists and passes its format validator
     ENDFOR
 
-    IF any required check fails
-        DISPLAY ERROR instructing the administrator to rerun install
-        RETURN exit code 7
+    IF any required system validation fails
+        DISPLAY ERROR with the failed capability, preserved state, and remediation
+        RETURN 1 or 7 according to whether managed state changed
     ENDIF
-
-    DISPLAY SUCCESS that system-layer verification passed
 
 ENDPROCEDURE
