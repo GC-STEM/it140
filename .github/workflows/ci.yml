@@ -1,0 +1,218 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-24.04
+    outputs:
+      manifest: ${{ steps.changes.outputs.manifest }}
+      cvd: ${{ steps.changes.outputs.cvd }}
+      nix: ${{ steps.changes.outputs.nix }}
+      mac: ${{ steps.changes.outputs.mac }}
+      win: ${{ steps.changes.outputs.win }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Determine affected areas
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: >-
+          python3 tests/ci/detect_changes.py
+          --event "$EVENT_NAME"
+          --base "$BASE_SHA"
+          --head "$HEAD_SHA"
+
+  repository:
+    name: Repository validation
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Validate repository structure
+        run: python3 tests/ci/check_repo.py
+
+  manifest:
+    name: Manifest validation
+    needs: changes
+    if: needs.changes.outputs.manifest == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir --user "jsonschema[format-nongpl]==4.26.0"
+      - name: Validate manifest and schema
+        run: python3 tests/ci/check_manifest.py
+
+  cvd:
+    name: CVD shell syntax
+    needs: changes
+    if: needs.changes.outputs.cvd == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Parse CVD shell scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find scripts/cvd -maxdepth 1 -type f -name '*.sh' -print | sort)
+          ((${#files[@]} > 0)) || { echo "No CVD shell scripts found." >&2; exit 1; }
+          printf 'Checking %s\n' "${files[@]}"
+          bash -n "${files[@]}"
+
+  linux:
+    name: Linux shell syntax
+    needs: changes
+    if: needs.changes.outputs.nix == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Parse Linux shell scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find scripts/nix -type f -name '*.sh' -print | sort)
+          ((${#files[@]} > 0)) || { echo "No Linux shell scripts found." >&2; exit 1; }
+          printf 'Checking %s\n' "${files[@]}"
+          bash -n "${files[@]}"
+
+  macos:
+    name: macOS Zsh syntax
+    needs: changes
+    if: needs.changes.outputs.mac == 'true'
+    runs-on: macos-15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Parse macOS Zsh scripts
+        shell: zsh {0}
+        run: |
+          set -euo pipefail
+          files=(scripts/mac/*.zsh(N))
+          (( ${#files[@]} > 0 )) || { print -u2 "No macOS Zsh scripts found."; exit 1; }
+          print -l "Checking:" $files
+          zsh -n $files
+
+  windows:
+    name: Windows PowerShell syntax
+    needs: changes
+    if: needs.changes.outputs.win == 'true'
+    runs-on: windows-2025
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Parse Windows PowerShell scripts
+        shell: powershell
+        run: |
+          $files = Get-ChildItem -Path "scripts\win" -Filter "*.ps1" -File | Sort-Object FullName
+          if (-not $files) {
+              Write-Error "No Windows PowerShell scripts found."
+              exit 1
+          }
+
+          $failed = $false
+          foreach ($file in $files) {
+              Write-Host "Checking $($file.FullName)"
+              $tokens = $null
+              $errors = $null
+              [void][System.Management.Automation.Language.Parser]::ParseFile(
+                  $file.FullName,
+                  [ref]$tokens,
+                  [ref]$errors
+              )
+
+              if ($errors.Count -gt 0) {
+                  $failed = $true
+                  foreach ($parseError in $errors) {
+                      Write-Error "$($file.FullName): $($parseError.Message)"
+                  }
+              }
+          }
+
+          if ($failed) {
+              exit 1
+          }
+
+  gate:
+    name: CI Gate
+    if: always()
+    needs:
+      - changes
+      - repository
+      - manifest
+      - cvd
+      - linux
+      - macos
+      - windows
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require all applicable checks to pass
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          REPOSITORY_RESULT: ${{ needs.repository.result }}
+          MANIFEST_RESULT: ${{ needs.manifest.result }}
+          CVD_RESULT: ${{ needs.cvd.result }}
+          LINUX_RESULT: ${{ needs.linux.result }}
+          MACOS_RESULT: ${{ needs.macos.result }}
+          WINDOWS_RESULT: ${{ needs.windows.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+
+          for item in \
+            "changes:$CHANGES_RESULT" \
+            "repository:$REPOSITORY_RESULT" \
+            "manifest:$MANIFEST_RESULT" \
+            "cvd:$CVD_RESULT" \
+            "linux:$LINUX_RESULT" \
+            "macos:$MACOS_RESULT" \
+            "windows:$WINDOWS_RESULT"
+          do
+            job="${item%%:*}"
+            result="${item#*:}"
+            printf '%-12s %s\n' "$job" "$result"
+
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              failed=1
+            fi
+          done
+
+          if (( failed )); then
+            echo "One or more required CI jobs failed or were cancelled." >&2
+            exit 1
+          fi
