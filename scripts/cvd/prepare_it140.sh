@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# IT 140 COURSE IDE — PREPARE (CVD)
+# IT 140 COURSE IDE — PREPARE (CVD) 
 # ==============================================================================
 # Repository path: scripts/cvd/prepare_it140.sh
 # Purpose: Acquire or refresh the IT 140 automation package without requiring
