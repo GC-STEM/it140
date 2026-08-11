@@ -1354,10 +1354,10 @@ function Test-SystemLayer {
                 (Test-CommandAvailable "winget.exe") -and
                 (Test-WinGetPackageRecognized -PackageIdentifier $Binding.PackageIdentifier)
             ) {
-                "PRESENT — WinGet-recognized, compatible: $($Binding.PackageIdentifier)"
+                "PRESENT - WinGet-recognized, compatible: $($Binding.PackageIdentifier)"
             }
             else {
-                "PRESENT — externally installed, compatible: $($Binding.PackageIdentifier)"
+                "PRESENT - externally installed, compatible: $($Binding.PackageIdentifier)"
             }
             Add-CheckResult `
                 -CheckId ("verify.package.{0}" -f $Binding.Role) `

@@ -893,7 +893,7 @@ function Write-SystemPackageState {
         [Parameter(Mandatory = $true)]$Binding
     )
 
-    Write-Info ("{0} — {1} ({2})" -f $State, $Binding.Role, $Binding.PackageIdentifier)
+    Write-Info ("{0} - {1} ({2})" -f $State, $Binding.Role, $Binding.PackageIdentifier)
 }
 
 function Install-SystemPackage {
@@ -908,16 +908,16 @@ function Install-SystemPackage {
 
         if ($CapabilityAvailable) {
             if ($RecognizedByWinGet) {
-                Write-SystemPackageState -State "PRESENT — WinGet-recognized, compatible" -Binding $Binding
+                Write-SystemPackageState -State "PRESENT - WinGet-recognized, compatible" -Binding $Binding
             }
             else {
-                Write-SystemPackageState -State "PRESENT — externally installed, compatible" -Binding $Binding
+                Write-SystemPackageState -State "PRESENT - externally installed, compatible" -Binding $Binding
             }
             continue
         }
 
         if ($RecognizedByWinGet) {
-            Write-SystemPackageState -State "INCOMPATIBLE — preserved" -Binding $Binding
+            Write-SystemPackageState -State "INCOMPATIBLE - preserved" -Binding $Binding
             throw (
                 "WinGet recognizes $PackageIdentifier, but its required course " +
                 "capability is unavailable or incompatible. Because WinGet can " +
@@ -961,7 +961,7 @@ function Install-SystemPackage {
         if (-not (Test-SystemPackageCapability -Binding $Binding)) {
             throw "Required capability is unavailable after installing $PackageIdentifier."
         }
-        Write-SystemPackageState -State "INSTALLED — by IT 140" -Binding $Binding
+        Write-SystemPackageState -State "INSTALLED - by IT 140" -Binding $Binding
     }
 
     Write-Success "Manifest-required Windows capabilities are available."
@@ -1004,10 +1004,10 @@ function Test-SystemLayer {
             throw "Required capability is unavailable: $($Binding.Role)"
         }
         if (Test-WinGetPackageRecognized -PackageIdentifier $Binding.PackageIdentifier) {
-            Write-SystemPackageState -State "PRESENT — WinGet-recognized, compatible" -Binding $Binding
+            Write-SystemPackageState -State "PRESENT - WinGet-recognized, compatible" -Binding $Binding
         }
         else {
-            Write-SystemPackageState -State "PRESENT — externally installed, compatible" -Binding $Binding
+            Write-SystemPackageState -State "PRESENT - externally installed, compatible" -Binding $Binding
         }
     }
 
