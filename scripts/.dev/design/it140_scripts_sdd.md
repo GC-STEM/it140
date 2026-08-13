@@ -764,6 +764,10 @@ When a prerequisite fails, dependent operations receive `skipped_dependency`; in
 
 ### 6.3 Idempotence Strategy
 
+For local deployment profiles, idempotence is capability-first rather than package-manager-ownership-first. The adapter first probes the required product identity, executable capability, and applicable version rule. Package-manager registration or recognition is retained as diagnostic provenance only unless the manifest explicitly requires package-manager ownership. A compatible preexisting product is therefore a compliant unchanged state even when it was installed outside the course-selected package manager. Initial Install does not use an available package update as a reason to mutate an already compatible product; Update owns routine maintenance.
+
+When a required product exists but does not satisfy the capability or version rule, Install preserves the existing product and reports remediation instead of force-overwriting, adopting, downgrading, or transferring ownership. A narrower system integration repair, such as exposing an approved application's existing command-line launcher, is allowed only when it does not replace or mutate the application itself.
+
 Prepare, Install, Configure, and Update follow a **query-plan-apply-verify** principle adapted to their ownership boundaries:
 
 1. Query or stage the current and desired state using a stable probe.
@@ -885,6 +889,9 @@ The Install orchestrator owns the shared system layer. It may use controlled pri
 | INS-DES-010 | Treat a missing managed system component as a repair plan item while leaving unrelated system configuration untouched. | Managed-boundary service | INS-FR-010 |
 | INS-DES-011 | Exclude provider authentication, personal identity, user-scoped tools, user settings, and user launchers from the Install plan. | Orchestrator boundary checks | INS-FR-011 |
 | INS-DES-012 | On successful post-validation, render the matching `configure_it140.<ext>` command as the next step. | Output service, platform metadata | INS-FR-012 |
+| INS-DES-013 | On local profiles, determine compliance from approved product identity, required executable capabilities, and version constraints before consulting package-manager provenance. Treat package-manager registration or recognition as diagnostic metadata unless ownership is explicitly required by the manifest. | Capability adapters, package adapter, manifest validator | INS-FR-013 |
+| INS-DES-014 | For local initial installation, preserve a compatible preexisting product unchanged; install only when the capability is missing; permit only a narrower approved integration repair when needed; and preserve incompatible or conflicting existing products while returning actionable remediation instead of force-overwriting, adopting, downgrading, or replacing them. | Orchestrator, capability adapters, managed-boundary service | INS-FR-014 |
+| INS-DES-015 | Emit platform-accurate local product-state records for compatible presence, package-manager recognition when knowable, missing state, IT 140 installation, integration-only repair, and incompatible-preserved state without claiming ownership from recognition-only evidence. | Output service, package adapter, logging service | INS-FR-015 |
 
 ### 8.1 Install Control Flow
 
@@ -892,19 +899,25 @@ The Install orchestrator owns the shared system layer. It may use controlled pri
 validate system prerequisites
 build system capability plan
 FOR EACH plan stage in dependency order
-    query current state
-    IF compliant
-        record unchanged success
+    probe approved product identity, required capabilities, and version constraints
+    query package-manager registration or recognition as diagnostic provenance
+    IF capability is compliant
+        preserve the existing product unchanged
+        record compatible presence using platform-accurate provenance language
+    ELSE IF a narrower approved integration repair can establish compliance safely
+        repair only that integration
+        record integration-only repair
+    ELSE IF the required product/capability is missing
+        install through the approved package adapter
+        record installation by IT 140
     ELSE
-        perform the smallest approved system change
-        verify resulting state
-        IF verification fails
-            record required failure
-            skip dependent operations
-        ENDIF
+        preserve the incompatible or conflicting existing product
+        record required failure with actionable remediation
+        skip dependent operations
     ENDIF
+    verify resulting capability state
 ENDFOR
-run complete system-layer verification
+run complete system-layer capability verification
 recommend Configure when successful
 ```
 
@@ -1233,7 +1246,7 @@ Prepare must carry enough trusted source and structural information to validate 
 | --- | --- | --- | --- | --- |
 | PLT-DES-001 | Platform detection | Return normalized platform facts. | Native OS and session queries. | PKG-FR-003, PRE-FR-004, REF-TC-001 |
 | PLT-DES-002 | Native scripting | Implement the same five lifecycle outcomes and result contracts. | Approved platform-native scripting language and conventions. | PRE-FR-003, PKG-TC-001, REF-TC-002 |
-| PLT-DES-003 | Package management | Query, refresh, install, update, repair, cleanup, and validate approved packages. | Native package-manager adapter. | INS-FR-003 through INS-FR-006, UPD-FR-006, UPD-FR-011 |
+| PLT-DES-003 | Package management | Query package-manager registration or recognition, refresh metadata when needed, install missing approved packages, update course-managed packages during Update, and validate package operations. Local capability compliance is determined by capability/product probes rather than package-manager ownership alone. | Native package-manager adapter plus capability adapters. | INS-FR-003 through INS-FR-006, INS-FR-013 through INS-FR-015, UPD-FR-006, UPD-FR-011 |
 | PLT-DES-004 | Privilege control | Determine capability and elevate one approved operation. | Native privilege mechanism. | PRE-FR-004, PKG-NFR-022, REF-TC-003 |
 | PLT-DES-005 | Path resolution | Return canonical home, desktop, temporary, configuration, and executable paths. | Native environment and folder APIs. | PRE-FR-005, PKG-NFR-019, PKG-NFR-020, REF-TC-005 |
 | PLT-DES-006 | User integration | Create or query the repository-workspace parent integration, desktop `Repos` item, development marker, profile-owned IDE workspace launcher, and file associations. | Native shortcut, launcher, desktop-entry, folder-metadata, shell, or IDE interface. | CFG-FR-013 through CFG-FR-021, VER-FR-015 through VER-FR-018, REF-TC-006 |
@@ -1417,7 +1430,7 @@ A range in this table is inclusive. The design elements listed for a range apply
 | PKG-FR-010 | ARC-DES-005, SHR-DES-009, SEC-DES-004, SEC-DES-010 | Safety tests; managed-path tests |
 | PKG-FR-021 | SHR-DES-002, SHR-DES-012, INT-DES-014, ERR-DES-014 | All five pseudoscripts; handled-failure and noncompliance acceptance tests |
 | PRE-FR-001 through PRE-FR-015 | PRE-DES-001 through PRE-DES-015, PLT-DES-012 | `prepare_it140.pseudo`; Prepare flowchart; first-use, refresh, interruption, and preservation tests |
-| INS-FR-001 through INS-FR-012 | INS-DES-001 through INS-DES-012 | `install_it140.pseudo`; Install flowchart; Install tests |
+| INS-FR-001 through INS-FR-015 | INS-DES-001 through INS-DES-015 | `install_it140.pseudo`; Install flowchart; Install tests |
 | CFG-FR-001 through CFG-FR-021 | CFG-DES-001 through CFG-DES-021, SHR-DES-018, DAT-DES-017, PLT-DES-006 | `configure_it140.pseudo`; desktop-integration design; Configure tests |
 | VER-FR-001 through VER-FR-018 | VER-DES-001 through VER-DES-018, PLT-DES-006 | `verify_it140.pseudo`; check registry; Verify tests |
 | UPD-FR-001 through UPD-FR-016 | UPD-DES-001 through UPD-DES-016 | `update_it140.pseudo`; update transaction diagram; Update tests |

@@ -572,7 +572,12 @@ print(f"{aid}\t{login}\t{display}")
 PY
     ) || fatal "$EXIT_EXTERNAL" "GitHub returned incomplete account identity fields."
     if [[ "$NONINTERACTIVE" == false ]]; then
-        local requested_name; printf 'Git commit display name [%s]: ' "$GIT_DISPLAY_NAME"; IFS= read -r requested_name; [[ -z "$requested_name" ]] || GIT_DISPLAY_NAME="$requested_name"
+        print_notice "Review the Git commit display name shown below."
+        print_notice "Press Enter to keep the name in brackets, or type a different name and press Enter."
+        local requested_name
+        printf 'Git commit display name [%s]: ' "$GIT_DISPLAY_NAME"
+        IFS= read -r requested_name
+        [[ -z "$requested_name" ]] || GIT_DISPLAY_NAME="$requested_name"
     fi
     [[ -n "${GIT_DISPLAY_NAME//[[:space:]]/}" ]] || fatal "$EXIT_FAILURE" "The Git commit display name cannot be empty."
     template="$(manifest_query privacy_template)" || fatal "$EXIT_MANIFEST" "The GitHub private-email template is unavailable."
