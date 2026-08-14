@@ -19,27 +19,31 @@ Use the repository identified in your IT 140 activity instructions.
 
 | **Module** | **Activity** | **Repository** |
 | ---------- | ------------ | -------------- |
-| One | Setup Tasks | [IT 140 Module One: Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) |
-| Two | Assignment | [IT 140 Module Two Assignment](https://github.com/GC-STEM/it140-m2-assignment) |
-| Three | Assignment | [IT 140 Module Three Assignment](https://github.com/GC-STEM/it140-m3-assignment) |
-| Four | Assignment | [IT 140 Module Four Assignment](https://github.com/GC-STEM/it140-m4-assignment) |
-| Five | Project One | [IT 140 Projects](https://github.com/GC-STEM/it140-projects) |
-| Six | Project Two Milestone | [IT 140 Projects](https://github.com/GC-STEM/it140-projects) |
-| Seven | Project Two | [IT 140 Projects](https://github.com/GC-STEM/it140-projects) |
+| One | [Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | `it140-m1-setup-tasks` |
+| Two | [Assignment](https://github.com/GC-STEM/it140-m2-assignment) | `it140-m2-assignment` |
+| Three | [Assignment](https://github.com/GC-STEM/it140-m3-assignment) | `it140-m3-assignment` |
+| Four | [Assignment](https://github.com/GC-STEM/it140-m4-assignment) | `it140-m4-assignment` |
+| Five | [Project One](https://github.com/GC-STEM/it140-projects) | `it140-projects/design` |
+| Six | [Milestone](https://github.com/GC-STEM/it140-projects) | `it140-projects/prototype` |
+| Seven | [Project Two](https://github.com/GC-STEM/it140-projects) | `it140-projects/src` |
 
-Modules Five through Seven use the same project repository.
+*Note*. Modules Five through Seven use the same project repository.
 
-Follow the instructions in **D2L Brightspace** and the README for the activity you are completing. Brightspace remains the authoritative location for activity requirements, submissions, grading, and instructor feedback.
+Follow the activity *Guidelines and Rubric* page in **D2L Brightspace** and the README for the activity you are completing. Brightspace remains the authoritative location for activity requirements, submissions, grading, and instructor feedback.
 
 If an expected repository or course resource is unavailable, check [Course Status](https://github.com/GC-STEM/it140/wiki/Course-Status).
 
-## Setting Up IT 140
+## Setup Tasks
 
-If you are setting up your IT 140 development environment, start here:
+If you are setting up your IT 140 development environment for the very first time, start here:
 
 **[IT 140 Module One: Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks)**
 
-The setup process guides you through GitHub and the **Codio Virtual Desktop (CVD)**, the course reference environment. You may also configure the course IDE on a supported local Windows, macOS, or Linux computer.
+If you have just reset your Codio Virtual Desktop (CVD), select:
+
+**[Setup Tasks | Codio Virtual Desktop](https://github.com/GC-STEM/it140-m1-setup-tasks/tree/main/codio)**
+
+The setup process guides you through setting up a **GitHub account** and the **Codio Virtual Desktop (CVD)**, the course reference environment. You may also configure the course IDE on a supported local Windows, macOS, or Linux computer.
 
 ## Course Automation
 
