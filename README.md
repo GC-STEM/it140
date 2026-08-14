@@ -2,9 +2,9 @@
 
 # IT 140: Introduction to Scripting
 
-This repository is the central GitHub hub for **IT 140 - Introduction to Scripting**. Use it to find the setup, assignment, and project repositories used throughout the course.
+This repository is the central GitHub hub for **IT 140 - Introduction to Scripting**. Use it to find the setup, template, assignment, and project repositories used throughout the course.
 
-This repository also contains the automation used to prepare, configure, verify, and maintain the IT 140 course development environment.
+This repository also contains the automation scripts used to prepare, configure, verify, and maintain the IT 140 course development environment across supported platforms.
 
 > [!TIP]
 GitHub provides several ways to interact with this repository in the upper-right corner of the page. Recommended options for this repo:
@@ -15,7 +15,7 @@ GitHub provides several ways to interact with this repository in the upper-right
 
 ## Course Repositories
 
-Use the repository identified in your IT 140 activity instructions. Click the links in the **Activities** column to go to the activity repository. The **Repository** column shows the name of the repository you will clone or download to your local development environment.
+Click the desired link in the **Activity** column to go to that repository. The **Local Repos Folder** column shows the name of the repository sub-directory that will appear in your `$HOME/Repos` directory after cloning.
 
 | **Module** | **Activity** | **Local Repos Folder** |
 | ---------- | ------------ | ---------------------- |
