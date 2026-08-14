@@ -1,43 +1,82 @@
 <!-- To see this file in a clean, formatted view, right-click on the filename and choose “Open Preview.” -->
 
-# Main Course Repository
+# IT 140: Introduction to Scripting
+
+This repository is the central GitHub hub for **IT 140 - Introduction to Scripting**. Use it to find the setup, assignment, and project repositories used throughout the course.
+
+This repository also contains the automation used to prepare, configure, verify, and maintain the IT 140 course development environment.
+
+> **Students and faculty normally do not manually clone this repository.** Follow your course instructions and clone an assignment or project repository only when directed.
+
+## Course Repositories
+
+Use the repository identified in your IT 140 activity instructions.
+
+| **Module** | **Activity** | **Repository** |
+| ---------- | ------------ | -------------- |
+| One | Setup Tasks | [IT 140 Module One: Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) |
+| Two | Assignment | [IT 140 Module Two Assignment](https://github.com/GC-STEM/it140-m2-assignment) |
+| Three | Assignment | [IT 140 Module Three Assignment](https://github.com/GC-STEM/it140-m3-assignment) |
+| Four | Assignment | [IT 140 Module Four Assignment](https://github.com/GC-STEM/it140-m4-assignment) |
+| Five | Project One | [IT 140 Projects](https://github.com/GC-STEM/it140-projects) |
+| Six | Project Two Milestone | [IT 140 Projects](https://github.com/GC-STEM/it140-projects) |
+| Seven | Project Two | [IT 140 Projects](https://github.com/GC-STEM/it140-projects) |
+
+Modules Five through Seven use the same project repository.
+
+Follow the instructions in **D2L Brightspace** and the README for the activity you are completing. Brightspace remains the authoritative location for activity requirements, submissions, grading, and instructor feedback.
+
+If an expected repository or course resource is unavailable, check [Course Status](https://github.com/GC-STEM/it140/wiki/Course-Status).
+
+## Setting Up IT 140
+
+If you are setting up your IT 140 development environment, start here:
+
+**[IT 140 Module One: Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks)**
+
+The setup process guides you through GitHub and the **Codio Virtual Desktop (CVD)**, the course reference environment. You may also configure the course IDE on a supported local Windows, macOS, or Linux computer.
+
+## Course Automation
+
+This repository contains the scripts used to prepare and maintain the IT 140 course IDE across supported environments.
+
+Follow the commands provided in the Module One Setup Tasks repository or other course instructions. You do not need to manually download, clone, or run scripts simply because they appear in this repository.
+
+To learn more:
+
+* [Course Automation](https://github.com/GC-STEM/it140/wiki/Course-Automation) - Learn what the Prepare, Install, Configure, Verify, and Update stages do.
+* [Automation Scripts](scripts/README.md) - View additional technical information about the course automation.
+
+## Learn More
+
+The README files contain the instructions needed to complete course activities. The Wikis provide supplemental explanations, technical background, and opportunities to explore beyond the activity requirements.
+
+* [IT 140 Main Course Wiki](https://github.com/GC-STEM/it140/wiki)
+* [Course Repositories](https://github.com/GC-STEM/it140/wiki/Course-Repositories)
+* [Course IDE and Tools](https://github.com/GC-STEM/it140/wiki/Course-IDE-and-Tools)
+* [Course Automation](https://github.com/GC-STEM/it140/wiki/Course-Automation)
+
+## Help and Support
+
+* **Current availability or known issue:** [Course Status](https://github.com/GC-STEM/it140/wiki/Course-Status)
+* **Module One setup problem:** [Setup Problems and Support](https://github.com/GC-STEM/it140-m1-setup-tasks/wiki/Setup-Problems-and-Support)
+* **Course-wide technical problem or requested improvement:** [GitHub Issues](https://github.com/GC-STEM/it140/issues)
+* **Question or discussion:** [GitHub Discussions](https://github.com/GC-STEM/it140/discussions)
+
+Do not post passwords, authentication codes, access tokens, private identifying information, or complete solutions to graded assignments in public GitHub areas.
+
+## Faculty
+
+Faculty should also review the [IT 140 Faculty Guide](.faculty/README.md) for information about the course environment, repository model, student workflow, and faculty support resources.
+
+## Activity Metadata
 
 * **Course**: IT 140 - *Introduction to Scripting*
 * **Activity Name**: Main Course Repository
-* **Activity Purpose**: Central hub for course automation, development status, and links to course activity repositories.
+* **Activity Purpose**: Central hub for course activity repositories and course environment automation.
 * **Artifact Version**: 0.10.0-beta.1
 * **Artifact Date**: 2026-08-09
 * **Development Status**: Beta Testing
-
----
-
-## About This Repository
-
-The `it140` repository is the central hub for the IT 140 course development environment. It contains the course automation scripts, development and operational status information, and links to the repositories used for individual course activities.
-
-This repository is **not an assignment repository and should not be manually cloned by faculty or students**. The course automation obtains the files it needs automatically. Students should clone only the assignment or project repositories identified in their course instructions.
-
-### Quick Links
-
-* [Module One Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks)
-* [GitHub Issues](../../issues)
-* [GitHub Discussions](../../discussions)
-* [Faculty Guide](.faculty/README.md)
-
----
-
-## 🧪 Beta Testing
-
-IT 140 has completed end-to-end (E2E) Alpha Testing of the major course IDE components and is now in **Beta Testing with faculty and staff**.
-
-The Codio Virtual Desktop (CVD) automation is expected to be reliable because each CVD begins from a standardized environment. Local Windows, macOS, and Linux computers can have different software, settings, permissions, security controls, and prior configurations, so Beta Testing may uncover conditions that were not encountered during testing on fresh operating system installations.
-
-If you encounter a problem or have a suggestion:
-
-* Use this repository's **GitHub Issues** for course-wide automation, central-hub, or repository-status problems.
-* Use the **Module One Setup Tasks Issues** for problems with Module One setup instructions or platform-specific setup.
-* Use **GitHub Discussions** for questions or discussions that are appropriate for both faculty and students.
-* Faculty can find additional faculty-only communication options in the [Faculty Guide](.faculty/README.md).
 
 ---
 
@@ -45,12 +84,12 @@ If you encounter a problem or have a suggestion:
 
 The course automation creates and maintains a consistent IT 140 course IDE across supported environments.
 
-| **Platform**           | **Phase** | **Prepare** | **Install** | **Configure** | **Verify** | **Update** |  **Live ETA** |
-| ---------------------- | :-------: | :---------: | :---------: | :-----------: | :--------: | :--------: | :-----------: |
-| [Codio](scripts/cvd)   |    🅱️     |      🟢     |      🟢     |       🟢      |     🟢     |     🟢     | Aug. 10, 2026 |
-| [Windows](scripts/win) |    🅱️     |      🟢     |      🟢     |       🟢      |     🟢     |     🟢     | Aug. 10, 2026 |
-| [macOS](scripts/mac)   |    🅱️     |      🟢     |      🟢     |       🟢      |     🟢     |     🟢     | Aug. 11, 2026 |
-| [Linux](scripts/nix)   |    🅰️     |      🟡     |      🟡     |       🟡      |     🟡     |     🟡     |      TBD      |
+| **Platform** | **Phase** | **Prepare** | **Install** | **Configure** | **Verify** | **Update** | **Live ETA** |
+| ------------ | :-------: | :---------: | :---------: | :-----------: | :--------: | :--------: | :-----------: |
+| [Codio](scripts/cvd) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | Aug. 10, 2026 |
+| [Windows](scripts/win) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | Aug. 10, 2026 |
+| [macOS](scripts/mac) | 🅱️ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | Aug. 11, 2026 |
+| [Linux](scripts/nix) | 🅰️ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | TBD |
 
 * 🅱️ = Beta Testing (Staff & Faculty)
 * 🅰️ = Alpha Testing
@@ -63,18 +102,18 @@ Course activity repositories are being published progressively during Faculty Be
 
 A repository name becomes a link when that repository is live. During Beta Testing, D2L Brightspace may contain links to activities whose GitHub repositories have not yet reached their scheduled release date.
 
-| **Module** | **Activity**              | **Activity Repository**                                                                           |   **Availability**   |  **Live ETA** |
-| ---------- | ------------------------- | ------------------------------------------------------------------------------------------------- | :------------------: | ------------: |
-| One        | Setup Tasks               | [it140-m1-setup-tasks](https://github.com/GC-STEM/it140-m1-setup-tasks)                           |        🟢 Live       | Aug. 10, 2026 |
-|            |   - GitHub Account        | [GitHub Setup](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md)        |        🟢 Live       | Aug. 10, 2026 |
-|            |   - Codio Virtual Desktop | [CVD Setup](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/codio/README.md)            |        🟢 Live       | Aug. 10, 2026 |
-|            |   - Local Computer        | [Optional Local Setup](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/local/README.md) |        🟢 Live       | Aug. 10, 2026 |
-| Two        | Assignment                | `it140-m2-assignment`                                                                             | 🚧 Not Yet Published | Aug. 12, 2026 |
-| Three      | Assignment                | `it140-m3-assignment`                                                                             | 🚧 Not Yet Published | Aug. 13, 2026 |
-| Four       | Assignment                | `it140-m4-assignment`                                                                             | 🚧 Not Yet Published | Aug. 14, 2026 |
-| Five       | Project One               | `it140-projects`                                                                                  | 🚧 Not Yet Published | Aug. 15, 2026 |
-| Six        | Milestone                 | `it140-projects`                                                                                  | 🚧 Not Yet Published | Aug. 16, 2026 |
-| Seven      | Project Two               | `it140-projects`                                                                                  | 🚧 Not Yet Published | Aug. 17, 2026 |
+| **Module** | **Activity** | **Activity Repository** | **Availability** | **Live ETA** |
+| ---------- | ------------ | ----------------------- | :--------------: | -----------: |
+| One | Setup Tasks | [it140-m1-setup-tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | 🟢 Live | Aug. 10, 2026 |
+| |   - GitHub Account | [GitHub Setup](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/github/README.md) | 🟢 Live | Aug. 10, 2026 |
+| |   - Codio Virtual Desktop | [CVD Setup](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/codio/README.md) | 🟢 Live | Aug. 10, 2026 |
+| |   - Local Computer | [Optional Local Setup](https://github.com/GC-STEM/it140-m1-setup-tasks/blob/main/local/README.md) | 🟢 Live | Aug. 10, 2026 |
+| Two | Assignment | `it140-m2-assignment` | 🚧 Not Yet Published | Aug. 12, 2026 |
+| Three | Assignment | `it140-m3-assignment` | 🚧 Not Yet Published | Aug. 13, 2026 |
+| Four | Assignment | `it140-m4-assignment` | 🚧 Not Yet Published | Aug. 14, 2026 |
+| Five | Project One | `it140-projects` | 🚧 Not Yet Published | Aug. 15, 2026 |
+| Six | Milestone | `it140-projects` | 🚧 Not Yet Published | Aug. 16, 2026 |
+| Seven | Project Two | `it140-projects` | 🚧 Not Yet Published | Aug. 17, 2026 |
 
 If a repository is still unavailable **after its Live ETA**, please report the problem using GitHub Issues.
 
