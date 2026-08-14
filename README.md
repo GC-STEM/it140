@@ -15,11 +15,12 @@ GitHub provides several ways to interact with this repository in the upper-right
 
 ## Course Repositories
 
-Use the repository identified in your IT 140 activity instructions.
+Use the repository identified in your IT 140 activity instructions. Click the links in the **Activities** column to go to the activity repository. The **Repository** column shows the name of the repository you will clone or download to your local development environment.
 
-| **Module** | **Activity** | **Repository** |
-| ---------- | ------------ | -------------- |
-| One | [Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | `it140-m1-setup-tasks` |
+| **Module** | **Activity** | **Local Repos Folder** |
+| ---------- | ------------ | ---------------------- |
+| One | [Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | `N/A` |
+| One | [Templates](https://github.com/GC-STEM/it140-m1-templates) | `it140-m1-templates` |
 | Two | [Assignment](https://github.com/GC-STEM/it140-m2-assignment) | `it140-m2-assignment` |
 | Three | [Assignment](https://github.com/GC-STEM/it140-m3-assignment) | `it140-m3-assignment` |
 | Four | [Assignment](https://github.com/GC-STEM/it140-m4-assignment) | `it140-m4-assignment` |
