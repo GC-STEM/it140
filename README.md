@@ -6,7 +6,12 @@ This repository is the central GitHub hub for **IT 140 - Introduction to Scripti
 
 This repository also contains the automation used to prepare, configure, verify, and maintain the IT 140 course development environment.
 
-> **Students and faculty normally do not manually clone this repository.** Follow your course instructions and clone an assignment or project repository only when directed.
+> [!TIP]
+GitHub provides several ways to interact with this repository in the upper-right corner of the page. Recommended options for this repo:
+>
+> * **Star** – Click to bookmark this repo so it is easier to find later.
+> * **Watch** – Click only if you want notifications about repo activity.
+> * **Fork** – Not recommended for this repo.
 
 ## Course Repositories
 
