@@ -36,15 +36,29 @@ If an expected repository or course resource is unavailable, check [Course Statu
 
 ## Setup Tasks
 
+### First-Time/Full Setup
+
 If you are setting up your IT 140 development environment for the very first time, start here:
 
 **[IT 140 Module One: Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks)**
+
+The full setup process guides you through setting up a **GitHub account** and the **Codio Virtual Desktop (CVD)**. You may also configure the course IDE on a supported local Windows, macOS, or Linux computer.
+
+### Setup After Resetting Your CVD
 
 If you have just reset your Codio Virtual Desktop (CVD), select:
 
 **[Setup Tasks | Codio Virtual Desktop](https://github.com/GC-STEM/it140-m1-setup-tasks/tree/main/codio)**
 
-The setup process guides you through setting up a **GitHub account** and the **Codio Virtual Desktop (CVD)**, the course reference environment. You may also configure the course IDE on a supported local Windows, macOS, or Linux computer.
+The CVD setup process guides you through configuring the course IDE on your CVD. It assume you already have a GitHub Account.
+
+### Setup After Resetting Your Computer
+
+If you are setting up the course IDE on a supported local computer, select:
+
+**[Setup Tasks | Local Computer](https://github.com/GC-STEM/it140-m1-setup-tasks/tree/main/local)**
+
+The local computer setup process guides you through configuring the course IDE on your computer. It assumes you already have a GitHub Account and a functioning development environment on the Codio Virtual Desktop (CVD).
 
 ## Course Automation
 
