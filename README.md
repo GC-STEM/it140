@@ -18,10 +18,10 @@ GitHub provides several ways to interact with this repository in the upper-right
 Click the desired link in the **Activity** column to go to that repository. The **Local Repos Folder** column shows the name of the repository sub-directory that will appear in your `$HOME/Repos` directory after cloning.
 
 | **Module** | **Activity** | **Local Repos Folder** | **Status** |
-| ---------- | ------------ | ---------------------- | ---------- |
+| ---------- | ------------ | ---------------------- | :--------: |
 | One | [Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | `N/A` | 🟢 |
 | Two | [Assignment](https://github.com/GC-STEM/it140-m2-assignment) | `it140-m2-assignment` | 🟢 |
-| Three | [Assignment](https://github.com/GC-STEM/it140-m3-assignment) | `it140-m3-assignment` | 🟢 |
+| Three | [Assignment](https://github.com/GC-STEM/it140-m3-assignment) | `it140-m3-assignment` | 🟡 |
 | Four | [Assignment](https://github.com/GC-STEM/it140-m4-assignment) | `it140-m4-assignment` | 🟡 |
 | Five | [Project One](https://github.com/GC-STEM/it140-projects) | `it140-projects/design` | 🟡 |
 | Six | [Milestone](https://github.com/GC-STEM/it140-projects) | `it140-projects/prototype` | 🟡 |
