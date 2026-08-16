@@ -16,17 +16,6 @@ Local installation is optional for students. Students using unsupported operatin
 
 ---
 
-## Activity Metadata
-
-* **Course**: IT 140 - *Introduction to Scripting*
-* **Activity Title**: IT 140 Faculty Guide
-* **Activity Type**: Faculty reference
-* **Activity Purpose**: Orient faculty to the IT 140 course IDE, GitHub repository model, activity-repository release process, student workflow, and faculty support resources.
-* **Activity Description**: This guide explains how the IT 140 course repositories, automation scripts, course IDE, GitHub workflow, Codio Virtual Desktop, and D2L Brightspace fit together. It also directs faculty to the Module One setup instructions and identifies where to report questions, concerns, technical issues, and feature requests.
-* **Artifact Version**: 0.10.0-beta.1
-* **Artifact Date**: 2026-08-09-23-59
-* **Development Status**: Beta Testing
-
 ## Overview
 
 IT 140 uses a standardized course integrated development environment (**course IDE**) and a set of GitHub repositories to provide a consistent programming experience across the Codio Virtual Desktop (CVD) and supported local computers.
@@ -49,13 +38,13 @@ For first-time setup procedures, use the [Module One Setup Tasks repository](htt
 
 Several systems support IT 140, but they have different purposes.
 
-| Platform                        | Primary Role                                                                                                                                                   |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **D2L Brightspace**             | Authoritative course learning-management system for course content, assignment instructions, submissions, grading, instructor feedback, and student management |
-| **Codio Virtual Desktop (CVD)** | Reference and preferred student development environment for completing programming work                                                                        |
-| **Supported local course IDE**  | Optional alternative development environment on supported Windows, macOS, or Linux computers                                                                   |
-| **GitHub**                      | Hosts course repositories and supports the Git/GitHub development workflow                                                                                     |
-| **Visual Studio Code**          | Primary application used to create, edit, run, test, debug, and manage course files                                                                            |
+| **Platform** | **Primary Role** |
+| ------------ | ---------------- |
+| **D2L Brightspace** | Authoritative course learning-management system for course content, assignment instructions, submissions, grading, instructor feedback, and student management |
+| **Codio Virtual Desktop (CVD)** | Reference and preferred student development environment for completing programming work |
+| **Supported local course IDE** | Optional alternative development environment on supported Windows, macOS, or Linux computers |
+| **GitHub** | Hosts course repositories and supports the Git/GitHub development workflow |
+| **Visual Studio Code** | Primary application used to create, edit, run, test, debug, and manage course files |
 
 GitHub, VS Code, and Codio support the **development workflow**. They do not replace Brightspace as the course LMS.
 
@@ -65,12 +54,14 @@ GitHub, VS Code, and Codio support the **development workflow**. They do not rep
 
 IT 140 uses different repositories for different purposes.
 
-| Repository Type                                                           | Purpose                                                                                          | Should Faculty or Students Manually Clone It? |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------- |
-| [`it140`](https://github.com/GC-STEM/it140)                               | Central course hub for automation, development status, and links to course activity repositories | **No**                                        |
-| [`it140-m1-setup-tasks`](https://github.com/GC-STEM/it140-m1-setup-tasks) | Student-facing Module One instructions for setting up GitHub and the course IDE                  | **No**                                        |
-| Module assignment repositories                                            | Starter files and instructions for individual programming assignments                            | **Yes, when directed by the activity**        |
-| `it140-projects`                                                          | Starter files and instructions for course projects and milestones                                | **Yes, when directed by the activity**        |
+| **Repository Type** | **Purpose** | **Clone It?** |
+| ------------------- | ----------- | :-----------: |
+| [`it140`](https://github.com/GC-STEM/it140) | Central course hub for automation and links to other repos | No |
+| [`it140-m1-setup-tasks`](https://github.com/GC-STEM/it140-m1-setup-tasks) | Student-facing Module One instructions for setting up GitHub and the course IDE | No |
+| [`it140-m2-assignment`](https://github.com/GC-STEM/it140-m2-assignment) | Starter files and instructions for assignment | in Module 2 |
+| [`it140-m3-assignment`](https://github.com/GC-STEM/it140-m3-assignment) | Starter files and instructions for assignment | in Module 3 |
+| [`it140-m4-assignment`](https://github.com/GC-STEM/it140-m4-assignment) | Starter files and instructions for assignment | in Module 4 |
+| [`it140-projects`](https://github.com/GC-STEM/it140-projects) | Starter files and instructions for projects and milestones | in Module 5 |
 
 The `it140` and `it140-m1-setup-tasks` repositories are infrastructure and documentation repositories. The automation may retrieve files from these repositories as part of the setup process, but faculty and students should not manually clone either repository to their computers.
 
@@ -98,11 +89,11 @@ The **Codio Virtual Desktop (CVD)** is the course reference and preferred studen
 
 The CVD provides several advantages for an introductory programming course:
 
-* Each student begins from a more consistent course-managed system image.
+* Each student begins from a consistent course-managed system image.
 * Course screenshots, demonstrations, and instructions can use one reference environment.
 * Faculty and technical support can more easily reproduce student problems.
 * Students do not need administrator access to install the full course IDE on their personal computer.
-* Students with unsupported operating systems or devices can still access the supported course environment through a browser.
+* Students with unsupported operating systems or devices can still access the course environment through a browser.
 * A configured CVD provides a fallback if a local installation later stops working.
 
 Faculty should therefore encourage students to **configure and verify the CVD before relying on a local installation**, even when a student plans to complete most programming work locally.
@@ -198,30 +189,36 @@ The Module One faculty guide contains the detailed steps for completing these ta
 When helping students with the course environment:
 
 * **Start with the current README.** The README files contain the current step-by-step procedures; the wikis provide explanation, context, and troubleshooting.
+
 * **Prefer the CVD when environment choice is uncertain.** It is the course reference environment and usually provides the simplest path to a known supported configuration.
+
 * **Treat local setup as optional.** Students do not need a working local installation to complete IT 140.
+
 * **Use the supported local guide when applicable.** Students on supported Windows, macOS, or Ubuntu-GNOME systems should use the automated guide rather than manually assembling the environment.
+
 * **Direct unsupported devices to the CVD.** Chromebooks, tablets, unsupported operating-system versions, and other unsupported platforms should normally use the CVD.
+
 * **Keep coursework moving.** If a local setup problem is consuming substantial time, have the student continue in the CVD while the local issue is investigated.
+
 * **Do not improvise system repairs.** Avoid advising students to disable security controls, remove unrelated software, bypass administrator restrictions, or run unexplained system commands.
+
 * **Protect student information.** Do not ask students to post credentials, authentication codes, access tokens, private identifying information, or complete graded solutions in public GitHub areas.
+
 * **Keep academic workflow in Brightspace.** Assignment submissions, grading, and instructor feedback remain in D2L Brightspace.
 
 ## Student Workflow at a Glance
 
 The intended student workflow is:
 
-1. **Module One - GitHub:** Set up or configure a GitHub account for IT 140.
+1. **Module One - GitHub:** Set up a GitHub account for IT 140.
 
-2. **Module One - CVD:** Configure and verify the Codio Virtual Desktop, the course reference environment.
+2. **Module One - Codio:** Configure the Codio Virtual Desktop (CVD).
 
-3. **Module One - Optional Local Setup:** If desired, configure the course IDE on a supported local Windows, macOS, or Linux computer. Students using unsupported devices or operating systems should normally continue using the CVD.
+3. **Module One - Optional Local Setup:** If students desire, configure the course IDE on a supported local Windows, macOS, or Linux computer. Students using unsupported devices or operating systems should normally continue using the CVD.
 
-4. **Modules Two through Four:** Open the designated assignment repository when directed, clone it into the `Repos` folder, and complete the programming work in VS Code.
+4. **Modules Two through Seven:** Open the designated repository when directed and paste the given commands to copy the repository to their GitHub account and clone it to their local `Repos` folder. Students may complete all assignment work in the course IDE—diagrams (flowcharts and maps), pseudocode, Python code, and their IDE Features reflection.
 
-5. **Modules Five through Seven:** Use the designated project repository and continue working with project or milestone files as directed by the activity instructions.
-
-6. **Throughout the course:** Follow the activity instructions in D2L Brightspace and submit required coursework there. Faculty grading and feedback also remain in Brightspace.
+5. **Throughout the course:** Follow the activity instructions in D2L Brightspace and submit required coursework there. Faculty grading and feedback also remain in Brightspace.
 
 GitHub provides course code repositories and supports the development workflow. The CVD and local course IDE provide development environments. **D2L Brightspace remains the authoritative course learning-management system for course content, submissions, grading, feedback, and student management.**
 
@@ -235,7 +232,7 @@ Having a configured CVD gives students a known supported environment that matche
 
 ### Can students complete the course entirely in the CVD?
 
-Yes. A local installation is optional. Students can complete IT 140 using the CVD without installing the course IDE on their own computer.
+Yes. A local installation is completely optional. Students can complete IT 140 using the CVD without installing the course IDE on their own computer.
 
 ### What should I tell a student using a Chromebook, tablet, or unsupported operating system?
 
@@ -255,17 +252,17 @@ Normally, no. The standard supported course setup uses automation to install and
 
 A generic manual setup procedure is available for students who intentionally choose manual installation, but it is not the preferred path on a supported operating system.
 
-### Which options should students select in the VS Code or Python installers?
+### Which options should students select in the course IDE installers?
 
 Normally, none when using a supported automated setup. The course automation makes the supported installation and configuration choices. If a platform requires a manual choice, the platform-specific setup guide will identify it.
 
 ### Are students expected to use GitHub?
 
-Yes. GitHub is part of the recommended course development workflow. Students set up GitHub during Module One and then use GitHub with VS Code to access designated assignment and project repositories as directed by later course activities.
+Yes. GitHub is part of the recommended course development workflow. Students set up a GitHub account during Module One and then use GitHub with course IDE to access designated assignment and project repositories as directed by later course activities.
 
 ### Do students submit assignments through GitHub or Codio?
 
-No, unless an activity explicitly states otherwise. **Assignment submissions remain in D2L Brightspace.** GitHub hosts repositories and supports the development workflow; Codio provides the reference development environment.
+No. **Assignment submissions, grading, and feedback remain in D2L Brightspace.** GitHub hosts repositories and supports the development workflow; Codio provides the reference development environment.
 
 ### Where do faculty grade work and provide feedback?
 
@@ -298,3 +295,14 @@ If you encounter a technical issue with automation, repository content, document
 When reporting an issue, include the relevant platform, activity, step, expected result, actual result, and any error message or screenshot that can help reproduce the problem. Do not include passwords, authentication codes, access tokens, student information, grades, complete assignment solutions, or other private information.
 
 Questions about an individual student's submission, grade, or feedback should remain in the appropriate private Brightspace or university communication channel rather than a public GitHub area.
+
+## Activity Metadata
+
+* **Course**: IT 140 - *Introduction to Scripting*
+* **Activity Title**: IT 140 Faculty Guide
+* **Activity Type**: Faculty reference
+* **Activity Purpose**: Orient faculty to the IT 140 course IDE, GitHub repository model, activity-repository release process, student workflow, and faculty support resources.
+* **Activity Description**: This guide explains how the IT 140 course repositories, automation scripts, course IDE, GitHub workflow, Codio Virtual Desktop, and D2L Brightspace fit together. It also directs faculty to the Module One setup instructions and identifies where to report questions, concerns, technical issues, and feature requests.
+* **Artifact Version**: 0.10.0-beta.1
+* **Artifact Date**: 2026-08-09-23-59
+* **Development Status**: Beta Testing
