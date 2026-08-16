@@ -2,6 +2,8 @@
 
 # IT 140: Introduction to Scripting
 
+![IT 140 GitHub Repo card](./.github/repo-card.png)
+
 This repository is the central GitHub hub for **IT 140 - Introduction to Scripting**. Use it to find the setup, template, assignment, and project repositories used throughout the course.
 
 This repository also contains the automation scripts used to prepare, configure, verify, and maintain the IT 140 course development environment across supported platforms.
