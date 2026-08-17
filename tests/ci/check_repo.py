@@ -9,7 +9,6 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[2]
-
 REQUIRED_FILES = (
     "scripts/.manifest/it140_manifest.json",
     "scripts/.manifest/it140_manifest.schema.json",
@@ -33,6 +32,22 @@ REQUIRED_FILES = (
     "scripts/nix/ubg/config_ubg.sh",
     "scripts/nix/ubg/verify_ubg.sh",
     "scripts/nix/ubg/update_ubg.sh",
+    "tests/lifecycle/README.md",
+    "tests/lifecycle/common/__init__.py",
+    "tests/lifecycle/common/runner.py",
+    "tests/lifecycle/common/snapshot.py",
+    "tests/lifecycle/common/verify_log.py",
+    "tests/lifecycle/verify/cvd/test_verify_cvd.py",
+    "tests/lifecycle/verify/cvd/mocks/mock_command.py",
+    "tests/lifecycle/verify/cvd/fixtures/base/home/.bashrc",
+    "tests/lifecycle/verify/cvd/fixtures/base/home/.profile",
+    "tests/lifecycle/verify/cvd/fixtures/base/home/Repos/student-work/do_not_touch.py",
+    "tests/lifecycle/verify/cvd/fixtures/base/system/etc/os-release",
+    "tests/lifecycle/verify/cvd/fixtures/base/system/etc/xdg/autostart/numlockx.desktop",
+    "tests/lifecycle/verify/cvd/scenarios/compliant.json",
+    "tests/lifecycle/verify/cvd/scenarios/required_failure.json",
+    "tests/lifecycle/verify/cvd/scenarios/manifest_failure.json",
+    "tests/lifecycle/verify/cvd/scenarios/unsupported.json",
 )
 
 
@@ -56,14 +71,12 @@ def load_json(path: Path) -> dict:
 
 def main() -> int:
     errors: list[str] = []
-
     for relative in REQUIRED_FILES:
         path = ROOT / relative
         if not path.is_file():
             errors.append(f"Missing required file: {relative}")
         elif path.stat().st_size == 0:
             errors.append(f"Required file is empty: {relative}")
-
     for relative in (
         "scripts/.manifest/it140_manifest.json",
         "scripts/.manifest/it140_manifest.schema.json",
@@ -75,7 +88,6 @@ def main() -> int:
             load_json(path)
         except (OSError, UnicodeError, json.JSONDecodeError, DuplicateKeyError) as exc:
             errors.append(f"Invalid JSON in {relative}: {exc}")
-
     if errors:
         print("Repository validation failed:", file=sys.stderr)
         for error in errors:

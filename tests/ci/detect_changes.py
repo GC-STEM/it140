@@ -24,8 +24,14 @@ def git_changed_files(base: str, head: str) -> list[str]:
 
 
 def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
-    flags = {"manifest": False, "cvd": False, "nix": False, "mac": False, "win": False}
-
+    flags = {
+        "manifest": False,
+        "cvd": False,
+        "cvd_verify": False,
+        "nix": False,
+        "mac": False,
+        "win": False,
+    }
     if force_all:
         return {name: True for name in flags}
 
@@ -36,17 +42,19 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         # Changes to CI itself should exercise every CI branch.
         if posix == ".github/workflows/ci.yml" or posix.startswith("tests/ci/"):
             return {name: True for name in flags}
-
-        # Controlled manifest/schema changes affect every platform contract.
+        # Controlled manifest/schema changes affect every platform contract and
+        # the behavioral CVD Verify contract.
         if posix in {
             "scripts/.manifest/it140_manifest.json",
             "scripts/.manifest/it140_manifest.schema.json",
         }:
             return {name: True for name in flags}
-
         if posix.startswith("scripts/cvd/"):
             flags["manifest"] = True
             flags["cvd"] = True
+            flags["cvd_verify"] = True
+        elif posix.startswith("tests/lifecycle/"):
+            flags["cvd_verify"] = True
         elif posix.startswith("scripts/nix/"):
             flags["manifest"] = True
             flags["nix"] = True
@@ -86,7 +94,6 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-
     if args.files is not None:
         flags = classify(args.files)
         write_outputs(flags)
@@ -100,10 +107,9 @@ def main() -> int:
         # New branches/initial pushes do not have a usable comparison base.
         write_outputs(classify([], force_all=True))
         return 0
-
     try:
         paths = git_changed_files(args.base, args.head)
-    except subprocess.CalledProcessError as exc:
+    except subprocess.CalledProcessError:
         print(
             f"Could not calculate git diff {args.base}..{args.head}; running all checks.",
             file=sys.stderr,
@@ -117,7 +123,6 @@ def main() -> int:
             print(f"  {path}")
     else:
         print("No changed files detected.")
-
     write_outputs(classify(paths))
     return 0
 

@@ -21,6 +21,7 @@ jobs:
     outputs:
       manifest: ${{ steps.changes.outputs.manifest }}
       cvd: ${{ steps.changes.outputs.cvd }}
+      cvd_verify: ${{ steps.changes.outputs.cvd_verify }}
       nix: ${{ steps.changes.outputs.nix }}
       mac: ${{ steps.changes.outputs.mac }}
       win: ${{ steps.changes.outputs.win }}
@@ -87,6 +88,25 @@ jobs:
           printf 'Checking %s\n' "${files[@]}"
           bash -n "${files[@]}"
 
+  cvd_verify:
+    name: CVD Verify lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.cvd_verify == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir --user "jsonschema[format-nongpl]==4.26.0"
+      - name: Run CVD Verify lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/verify/cvd
+          -p 'test_*.py'
+          -v
+
   linux:
     name: Linux shell syntax
     needs: changes
@@ -143,7 +163,6 @@ jobs:
               Write-Error "No Windows PowerShell scripts found."
               exit 1
           }
-
           $failed = $false
           foreach ($file in $files) {
               Write-Host "Checking $($file.FullName)"
@@ -154,7 +173,6 @@ jobs:
                   [ref]$tokens,
                   [ref]$errors
               )
-
               if ($errors.Count -gt 0) {
                   $failed = $true
                   foreach ($parseError in $errors) {
@@ -175,6 +193,7 @@ jobs:
       - repository
       - manifest
       - cvd
+      - cvd_verify
       - linux
       - macos
       - windows
@@ -186,6 +205,7 @@ jobs:
           REPOSITORY_RESULT: ${{ needs.repository.result }}
           MANIFEST_RESULT: ${{ needs.manifest.result }}
           CVD_RESULT: ${{ needs.cvd.result }}
+          CVD_VERIFY_RESULT: ${{ needs.cvd_verify.result }}
           LINUX_RESULT: ${{ needs.linux.result }}
           MACOS_RESULT: ${{ needs.macos.result }}
           WINDOWS_RESULT: ${{ needs.windows.result }}
@@ -193,12 +213,12 @@ jobs:
         run: |
           set -euo pipefail
           failed=0
-
           for item in \
             "changes:$CHANGES_RESULT" \
             "repository:$REPOSITORY_RESULT" \
             "manifest:$MANIFEST_RESULT" \
             "cvd:$CVD_RESULT" \
+            "cvd-verify:$CVD_VERIFY_RESULT" \
             "linux:$LINUX_RESULT" \
             "macos:$MACOS_RESULT" \
             "windows:$WINDOWS_RESULT"
@@ -206,7 +226,6 @@ jobs:
             job="${item%%:*}"
             result="${item#*:}"
             printf '%-12s %s\n' "$job" "$result"
-
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               failed=1
             fi

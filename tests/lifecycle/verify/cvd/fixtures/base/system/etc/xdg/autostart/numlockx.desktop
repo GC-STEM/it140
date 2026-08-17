@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Num Lock
+Exec=/usr/bin/numlockx on
+OnlyShowIn=XFCE;
+X-GNOME-Autostart-enabled=true

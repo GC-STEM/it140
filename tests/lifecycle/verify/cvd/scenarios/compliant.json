@@ -1,0 +1,16 @@
+{
+  "id": "cvd-verify-compliant",
+  "arguments": ["--skip-network"],
+  "expected": {
+    "exit_code": 0,
+    "result": "COMPLIANT",
+    "checks": {
+      "verify.manifest": "PASS",
+      "verify.network": "WARNING",
+      "verify.github_auth": "PASS",
+      "verify.repository_workspace": "PASS",
+      "verify.vscode_workspace_launcher": "PASS"
+    },
+    "failed": 0
+  }
+}

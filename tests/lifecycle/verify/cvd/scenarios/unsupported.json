@@ -1,0 +1,12 @@
+{
+  "id": "cvd-verify-unsupported-profile",
+  "arguments": ["--deployment-profile", "not_codio", "--skip-network"],
+  "expected": {
+    "exit_code": 2,
+    "result": "NOT COMPLIANT",
+    "checks": {
+      "verify.profile": "FAIL"
+    },
+    "remediation_contains": "Use --deployment-profile codio_cvd"
+  }
+}

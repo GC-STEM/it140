@@ -13,10 +13,8 @@
 # State boundary: verification never repairs the system, desktop integration,
 # or ~/Repos. The required transcript and an explicitly requested sanitized
 # support directory are the only files this script creates.
-
 set -Eeuo pipefail
 umask 077
-
 readonly SCRIPT_VERSION="0.10.0-beta.1"
 readonly VERSION_DTG="2026-08-09-23-59"
 readonly DEVELOPMENT_STATUS="Beta Testing"
@@ -32,10 +30,20 @@ readonly SCHEMA_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.schema.json"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
 readonly LOG_FILE="${LOG_DIR}/verify_cvd_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="${COURSE_ROOT}/.venv"
-readonly NUMLOCK_AUTOSTART_PATH="/etc/xdg/autostart/numlockx.desktop"
+# Test isolation hooks are inert during normal execution. They let automated
+# lifecycle tests supply a fixture-backed /etc tree and deterministic EUID
+# without modifying the CI runner's system files.
+readonly VERIFY_TEST_ROOT="${IT140_VERIFY_TEST_ROOT:-}"
+if [[ -n "$VERIFY_TEST_ROOT" ]]; then
+    VERIFY_EFFECTIVE_UID="${IT140_VERIFY_TEST_EUID:-$EUID}"
+else
+    VERIFY_EFFECTIVE_UID="$EUID"
+fi
+readonly VERIFY_EFFECTIVE_UID
+readonly OS_RELEASE_PATH="${VERIFY_TEST_ROOT}/etc/os-release"
+readonly NUMLOCK_AUTOSTART_PATH="${VERIFY_TEST_ROOT}/etc/xdg/autostart/numlockx.desktop"
 readonly -a CVD_BASELINE_DESKTOP_LAUNCHERS=("it140.desktop" "GitHub Login.desktop" "OneDrive Login.desktop")
 readonly MANAGED_PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/cvd:$PATH"'
-
 readonly EXIT_SUCCESS=0
 readonly EXIT_FAILURE=1
 readonly EXIT_UNSUPPORTED=2
@@ -57,7 +65,6 @@ FINALIZED=false
 REMediation_FILE=""
 
 declare -a REMEDIATIONS=()
-
 print_header() { printf '\n============================================================\n%s\n============================================================\n' "$1"; }
 print_info() { printf '[INFO] %s\n' "$1"; }
 print_notice() { printf '[NOTICE] %s\n' "$1"; }
@@ -66,7 +73,6 @@ usage() {
     cat <<USAGE
 Usage: verify_it140.sh [--help] [--version] [--deployment-profile codio_cvd]
                      [--support-bundle] [--yes] [--skip-network]
-
 Verifies the IT 140 CVD system and current-user configuration without repairing
 it. The script does not create probe files or change metadata under ~/Repos.
 
@@ -79,7 +85,6 @@ Exit codes:
 Logs: ~/it140/logs/
 USAGE
 }
-
 parse_options() {
     while (($#)); do
         case "$1" in
@@ -94,14 +99,12 @@ parse_options() {
         shift
     done
 }
-
 add_remediation() {
     local text="$1" item
     [[ -n "$text" ]] || return 0
     for item in "${REMEDIATIONS[@]:-}"; do [[ "$item" == "$text" ]] && return 0; done
     REMEDIATIONS+=("$text")
 }
-
 record_result() {
     local status="$1" check_id="$2" detail="$3" remediation="${4:-}"
     printf '%-14s %-38s %s\n' "$status" "$check_id" "$detail"
@@ -112,18 +115,15 @@ record_result() {
         "NOT APPLICABLE") NA_COUNT=$((NA_COUNT + 1)) ;;
     esac
 }
-
 config_remediation() { printf '%s\n' "Run configure_it140.sh to repair the current-user configuration."; }
 install_remediation() { printf '%s\n' "Run update_it140.sh on the CVD to repair required system components, then rerun verify_it140.sh."; }
 prepare_remediation() { printf '%s\n' "Run prepare_it140.sh to refresh the course automation package, then rerun verify_it140.sh."; }
-
 course_continuity_guidance() {
     print_notice "This issue affects the Codio Virtual Desktop (CVD)."
     print_notice "Follow the remediation above. If it continues, contact course support and include the log file."
 }
 
 desktop_directory() { xdg-user-dir DESKTOP 2>/dev/null || printf '%s/Desktop\n' "$HOME"; }
-
 find_vscode_launcher() {
     local desktop_dir candidate
     desktop_dir="$(desktop_directory)"; [[ -d "$desktop_dir" ]] || return 1
@@ -135,7 +135,6 @@ find_vscode_launcher() {
     done < <(find "$desktop_dir" -maxdepth 1 -type f -name '*.desktop' -print0 2>/dev/null)
     return 1
 }
-
 launcher_opens_repos_root() {
     local launcher="$1"
     python3 - "$launcher" "$REPOS_ROOT" "$COURSE_ROOT" <<'PY'
@@ -155,7 +154,6 @@ if path_value != workspace: raise SystemExit(1)
 if course in args: raise SystemExit(1)
 PY
 }
-
 launcher_is_xfce_trusted() {
     local launcher="$1" current_checksum stored_checksum
     [[ -f "$launcher" && -x "$launcher" ]] || return 1
@@ -166,14 +164,12 @@ launcher_is_xfce_trusted() {
         | head -n 1)"
     [[ "$stored_checksum" == "$current_checksum" ]]
 }
-
 numlock_is_on() {
     local status
     command -v numlockx >/dev/null 2>&1 || return 1
     status="$(numlockx status 2>&1)" || return 1
     grep -Eiq '(^|[[:space:]])on([[:space:]]|$)' <<< "$status"
 }
-
 validate_manifest() {
     python3 - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" "$REQUESTED_PROFILE" "$SUPPORTED_SCHEMA" <<'PY'
 import json,pathlib,sys
@@ -194,7 +190,6 @@ else:
 print(f"{manifest['automation_release']}\t{manifest.get('automation_release_date_time_group') or manifest.get('automation_release_date') or 'unavailable'}")
 PY
 }
-
 manifest_query() {
     local query="$1"
     python3 - "$MANIFEST_PATH" "$PLATFORM_ID" "$query" <<'PY'
@@ -227,24 +222,21 @@ elif query=="vscode_settings":
     print(json.dumps(merged,separators=(",",":"),sort_keys=True))
 PY
 }
-
 check_platform_context() {
-    if ((EUID == 0)); then record_result FAIL verify.user_context "Verify must run as the standard CVD user, not root." "Run verify_it140.sh without sudo."; return; fi
-    [[ -r /etc/os-release ]] || { record_result FAIL verify.os "Cannot read /etc/os-release." "Contact course support."; return; }
-    # shellcheck disable=SC1091
-    source /etc/os-release
+    if ((VERIFY_EFFECTIVE_UID == 0)); then record_result FAIL verify.user_context "Verify must run as the standard CVD user, not root." "Run verify_it140.sh without sudo."; return; fi
+    [[ -r "$OS_RELEASE_PATH" ]] || { record_result FAIL verify.os "Cannot read /etc/os-release." "Contact course support."; return; }
+    # shellcheck disable=SC1090
+    source "$OS_RELEASE_PATH"
     if [[ "${ID:-}" == ubuntu && "${VERSION_ID:-}" == 24.04 ]]; then record_result PASS verify.os "${PRETTY_NAME:-Ubuntu 24.04}"; else record_result FAIL verify.os "Unsupported: ${PRETTY_NAME:-unknown}" "Use the approved IT 140 CVD."; fi
     local architecture; architecture="$(dpkg --print-architecture 2>/dev/null || uname -m)"
     if [[ "$architecture" == amd64 || "$architecture" == x86_64 ]]; then record_result PASS verify.architecture "$architecture"; else record_result FAIL verify.architecture "$architecture" "Use the approved x86_64 CVD."; fi
     command -v xfconf-query >/dev/null 2>&1 && record_result PASS verify.desktop "Xfce management interface available" || record_result FAIL verify.desktop "Xfce management interface unavailable" "$(config_remediation)"
     command -v gio >/dev/null 2>&1 && record_result PASS verify.gio "GIO metadata interface available" || record_result FAIL verify.gio "GIO metadata interface unavailable" "$(install_remediation)"
 }
-
 check_network() {
     if [[ "$SKIP_NETWORK" == true ]]; then record_result WARNING verify.network "Network check skipped by option" "Rerun Verify without --skip-network when network access is available."; return; fi
     if curl --head --silent --fail --max-time 10 https://github.com/ >/dev/null 2>&1; then record_result PASS verify.network "github.com reachable"; else record_result WARNING verify.network "github.com could not be reached" "Check network access and rerun Verify."; fi
 }
-
 check_system_layer() {
     local command_name failed=0
     while IFS= read -r command_name; do
@@ -256,13 +248,11 @@ check_system_layer() {
             failed=1
         fi
     done < <(manifest_query system_commands)
-
     if command -v python3.12 >/dev/null 2>&1; then
         record_result PASS verify.python312 "python3.12 available"
     else
         record_result FAIL verify.python312 "python3.12 missing" "$(install_remediation)"
     fi
-
     if dpkg-query -W -f='${Status}' numlockx 2>/dev/null | grep -Fqx 'install ok installed'; then
         record_result PASS verify.package.numlockx "installed"
     else
@@ -273,7 +263,6 @@ check_system_layer() {
     else
         record_result FAIL verify.command.numlockx "missing" "$(install_remediation)"
     fi
-
     if [[ -r "$NUMLOCK_AUTOSTART_PATH" ]] \
             && grep -Fqx 'Exec=/usr/bin/numlockx on' "$NUMLOCK_AUTOSTART_PATH" \
             && grep -Fqx 'OnlyShowIn=XFCE;' "$NUMLOCK_AUTOSTART_PATH"; then
@@ -286,7 +275,6 @@ check_system_layer() {
     else
         record_result FAIL verify.numlock_autostart "missing or incorrect" "$(install_remediation)"
     fi
-
     [[ $failed -eq 0 ]] || true
 }
 check_user_layer() {
@@ -295,7 +283,6 @@ check_user_layer() {
     [[ -d "$LOG_DIR" && -w "$LOG_DIR" ]] && record_result PASS verify.log_directory "$LOG_DIR" || record_result FAIL verify.log_directory "missing or not writable" "$(prepare_remediation)"
     [[ -f "$HOME/.bashrc" && $(grep -Fxc "$MANAGED_PATH_EXPORT" "$HOME/.bashrc" 2>/dev/null || true) -ge 1 ]] && record_result PASS verify.path_bashrc "managed PATH present" || record_result FAIL verify.path_bashrc "managed PATH missing" "$(config_remediation)"
     [[ -f "$HOME/.profile" && $(grep -Fxc "$MANAGED_PATH_EXPORT" "$HOME/.profile" 2>/dev/null || true) -ge 1 ]] && record_result PASS verify.path_profile "managed PATH present" || record_result FAIL verify.path_profile "managed PATH missing" "$(config_remediation)"
-
     if [[ -x "$VENV_DIR/bin/python" ]]; then record_result PASS verify.venv "$VENV_DIR"; else record_result FAIL verify.venv "missing" "$(config_remediation)"; fi
     if [[ -x "$VENV_DIR/bin/python" ]]; then
         while IFS= read -r package; do [[ -n "$package" ]] || continue; if "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1; then record_result PASS "verify.python_package.$package" "installed"; else record_result FAIL "verify.python_package.$package" "missing" "$(config_remediation)"; fi; done < <(manifest_query venv_packages)
@@ -308,7 +295,6 @@ check_user_layer() {
     [[ -n "$(git config --global --get user.name 2>/dev/null || true)" ]] && record_result PASS verify.git_name "configured" || record_result FAIL verify.git_name "missing" "$(config_remediation)"
     if [[ "$(git config --global --get user.email 2>/dev/null || true)" =~ ^[0-9]+\+[^@[:space:]]+@users\.noreply\.github\.com$ ]]; then record_result PASS verify.git_email "private GitHub noreply identity configured"; else record_result FAIL verify.git_email "privacy-preserving identity missing" "$(config_remediation)"; fi
     while IFS=$'\t' read -r key expected; do [[ -n "$key" ]] || continue; actual="$(git config --global --get "$key" 2>/dev/null || true)"; if [[ "$actual" == "$expected" ]]; then record_result PASS "verify.git_setting.$key" "$expected"; else record_result FAIL "verify.git_setting.$key" "expected '$expected'; observed '$actual'" "$(config_remediation)"; fi; done < <(manifest_query git_settings)
-
     settings_json="$(manifest_query vscode_settings 2>/dev/null || printf '{}')"
     if [[ -f "$HOME/.config/Code/User/settings.json" ]]; then
         if IT140_EXPECTED="$settings_json" IT140_SETTINGS="$HOME/.config/Code/User/settings.json" IT140_VENV="$VENV_DIR/bin/python" python3 - <<'PY'
@@ -321,7 +307,6 @@ raise SystemExit(0 if isinstance(actual,dict) and includes(actual,expected) else
 PY
         then record_result PASS verify.vscode_settings "managed settings present"; else record_result FAIL verify.vscode_settings "managed settings missing or invalid" "$(config_remediation)"; fi
     else record_result FAIL verify.vscode_settings "settings.json missing" "$(config_remediation)"; fi
-
     # Repository workspace checks are shallow and read-only by design.
     if [[ -d "$REPOS_ROOT" && -r "$REPOS_ROOT" && -x "$REPOS_ROOT" ]]; then
         record_result PASS verify.repository_workspace "$REPOS_ROOT"
@@ -340,7 +325,6 @@ PY
     else
         record_result FAIL verify.repository_workspace_marker "Xfce development emblem missing" "$(config_remediation)"
     fi
-
     for name in "${CVD_BASELINE_DESKTOP_LAUNCHERS[@]}"; do
         path="$desktop_dir/$name"
         if [[ ! -e "$path" && ! -L "$path" ]]; then
@@ -349,7 +333,6 @@ PY
             record_result FAIL "verify.desktop_cleanup.${name//[^[:alnum:]]/_}" "unwanted baseline launcher remains: $name" "$(config_remediation)"
         fi
     done
-
     launcher="$(find_vscode_launcher 2>/dev/null || true)"
     if [[ -n "$launcher" ]] && launcher_opens_repos_root "$launcher"; then
         record_result PASS verify.vscode_workspace_launcher "opens $REPOS_ROOT"
@@ -373,14 +356,12 @@ PY
             record_result FAIL verify.vscode_launcher_format "desktop entry is invalid" "$(config_remediation)"
         fi
     fi
-
     if numlock_is_on; then
         record_result PASS verify.numlock_session "Num Lock is ON"
     else
         record_result FAIL verify.numlock_session "Num Lock is not ON in the current Xfce session" "$(config_remediation)"
     fi
 }
-
 create_support_directory() {
     [[ "$SUPPORT_BUNDLE" == true ]] || return 0
     if [[ "$ASSUME_YES" == false ]]; then
@@ -393,7 +374,7 @@ create_support_directory() {
     {
         printf 'IT 140 CVD sanitized support summary\n'
         printf 'Script version: %s\nVersion DTG: %s\nManifest release: %s\n' "$SCRIPT_VERSION" "$VERSION_DTG" "$MANIFEST_RELEASE"
-        printf 'OS: '; grep '^PRETTY_NAME=' /etc/os-release | cut -d= -f2- | tr -d '"'
+        printf 'OS: '; grep '^PRETTY_NAME=' "$OS_RELEASE_PATH" | cut -d= -f2- | tr -d '"'
         printf 'Architecture: %s\n' "$(uname -m)"
         printf 'Desktop: %s\n' "${XDG_CURRENT_DESKTOP:-unknown}"
         printf 'Repos exists: %s\n' "$( [[ -d "$REPOS_ROOT" ]] && printf yes || printf no )"
@@ -407,10 +388,18 @@ create_support_directory() {
     print_notice "Sanitized support directory: $support_dir"
     print_notice "Student repository contents and Git history were not included."
 }
-
 finalize() {
-    local exit_code elapsed result
-    if ((FAIL_COUNT > 0)); then exit_code="$EXIT_FAILURE"; result="NOT COMPLIANT"; else exit_code="$EXIT_SUCCESS"; result="COMPLIANT"; fi
+    local forced_exit="${1:-}" exit_code elapsed result
+    if [[ -n "$forced_exit" ]]; then
+        exit_code="$forced_exit"
+        result="NOT COMPLIANT"
+    elif ((FAIL_COUNT > 0)); then
+        exit_code="$EXIT_FAILURE"
+        result="NOT COMPLIANT"
+    else
+        exit_code="$EXIT_SUCCESS"
+        result="COMPLIANT"
+    fi
     elapsed=$(( $(date +%s) - START_EPOCH ))
     print_header "VERIFICATION SUMMARY"
     printf 'Result          : %s\n' "$result"
@@ -431,11 +420,20 @@ finalize() {
     ((exit_code == 0)) || course_continuity_guidance
     return "$exit_code"
 }
-
 main() {
     parse_options "$@"
+    if [[ -n "$VERIFY_TEST_ROOT" && "$VERIFY_TEST_ROOT" != /* ]]; then
+        printf '[ERROR] IT140_VERIFY_TEST_ROOT must be an absolute path.\n' >&2
+        exit "$EXIT_UNSUPPORTED"
+    fi
     mkdir -p "$LOG_DIR"; chmod 0700 "$LOG_DIR"; touch "$LOG_FILE"; chmod 0600 "$LOG_FILE"
-    exec > >(tee -a "$LOG_FILE") 2>&1
+    if [[ -n "$VERIFY_TEST_ROOT" ]]; then
+        # Test isolation avoids asynchronous process substitution so a short-lived
+        # test process cannot leave tee attached after the verifier exits.
+        exec >> "$LOG_FILE" 2>&1
+    else
+        exec > >(tee -a "$LOG_FILE") 2>&1
+    fi
     print_header "IT 140 CODIO VIRTUAL DESKTOP VERIFY"
     print_info "Script version : $SCRIPT_VERSION"
     print_info "Version DTG    : $VERSION_DTG"
@@ -445,8 +443,7 @@ main() {
     print_info "Repository root: $REPOS_ROOT"
     print_info "Log file       : $LOG_FILE"
     print_notice "Verification is read-only except for this transcript and an explicitly requested sanitized support directory."
-
-    [[ "$REQUESTED_PROFILE" == "$DEPLOYMENT_PROFILE_ID" ]] || { record_result FAIL verify.profile "Unsupported deployment profile: $REQUESTED_PROFILE" "Use --deployment-profile codio_cvd."; finalize; exit $?; }
+    [[ "$REQUESTED_PROFILE" == "$DEPLOYMENT_PROFILE_ID" ]] || { record_result FAIL verify.profile "Unsupported deployment profile: $REQUESTED_PROFILE" "Use --deployment-profile codio_cvd."; finalize "$EXIT_UNSUPPORTED"; exit $?; }
     check_platform_context
     if [[ ! -r "$MANIFEST_PATH" || ! -r "$SCHEMA_PATH" ]]; then
         record_result FAIL verify.manifest "Manifest or schema missing" "$(prepare_remediation)"
@@ -465,5 +462,4 @@ main() {
     create_support_directory
     finalize
 }
-
 main "$@"
