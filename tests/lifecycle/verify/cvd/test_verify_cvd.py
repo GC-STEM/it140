@@ -17,7 +17,7 @@ LIFECYCLE_ROOT = Path(__file__).resolve().parents[2]
 if str(LIFECYCLE_ROOT) not in sys.path:
     sys.path.insert(0, str(LIFECYCLE_ROOT))
 
-from common.runner import CvdVerifyHarness, REPO_ROOT  # noqa: E402
+from common.runner import BASH_EXECUTABLE, CvdVerifyHarness, REPO_ROOT  # noqa: E402
 from common.verify_log import consistency_errors, summary_int  # noqa: E402
 
 
@@ -46,7 +46,7 @@ class CvdVerifyLifecycleTests(unittest.TestCase):
             env = os.environ.copy()
             env["HOME"] = str(home)
             completed = subprocess.run(
-                [str(VERIFY_SOURCE), argument],
+                [BASH_EXECUTABLE, str(VERIFY_SOURCE), argument],
                 cwd=home,
                 env=env,
                 text=True,
@@ -81,9 +81,12 @@ class CvdVerifyLifecycleTests(unittest.TestCase):
             run.returncode,
             run.combined_output,
         )
-        self.assertEqual([], run.protected_differences)
-        self.assertIsNotNone(run.log_file, "Verify should create exactly one transcript")
-        self.assertIsNotNone(run.transcript)
+        self.assertEqual([], run.protected_differences, run.combined_output)
+        self.assertIsNotNone(
+            run.log_file,
+            "Verify should create exactly one transcript.\n" + run.combined_output,
+        )
+        self.assertIsNotNone(run.transcript, run.combined_output)
 
         assert run.log_file is not None
         assert run.transcript is not None

@@ -23,6 +23,9 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 VERIFY_SOURCE = REPO_ROOT / "scripts" / "cvd" / "verify_it140.sh"
 MANIFEST_SOURCE = REPO_ROOT / "scripts" / ".manifest" / "it140_manifest.json"
 SCHEMA_SOURCE = REPO_ROOT / "scripts" / ".manifest" / "it140_manifest.schema.json"
+BASH_EXECUTABLE = shutil.which("bash")
+if BASH_EXECUTABLE is None:
+    raise RuntimeError("CVD lifecycle tests require Bash on PATH")
 
 
 @dataclass
@@ -41,7 +44,19 @@ class VerifyRun:
 
     @property
     def combined_output(self) -> str:
-        return self.stdout + self.stderr
+        """Return captured process output plus the verifier transcript for diagnostics."""
+
+        sections: list[str] = []
+        captured = self.stdout + self.stderr
+        if captured.strip():
+            sections.append("Captured process output:\n" + captured.rstrip())
+        if self.transcript is not None and self.transcript.text.strip():
+            sections.append("Verifier transcript:\n" + self.transcript.text.rstrip())
+        if self.trace_file.is_file():
+            trace = self.trace_file.read_text(encoding="utf-8").strip()
+            if trace:
+                sections.append("Mock command trace:\n" + trace)
+        return "\n\n".join(sections)
 
 
 class CvdVerifyHarness:
@@ -144,7 +159,6 @@ class CvdVerifyHarness:
         shutil.copy2(VERIFY_SOURCE, cvd_dir / "verify_it140.sh")
         shutil.copy2(MANIFEST_SOURCE, manifest_dir / MANIFEST_SOURCE.name)
         shutil.copy2(SCHEMA_SOURCE, manifest_dir / SCHEMA_SOURCE.name)
-        (cvd_dir / "verify_it140.sh").chmod(0o755)
 
         fixture_overrides = scenario.get("fixture_overrides", {})
         manifest_path = manifest_dir / MANIFEST_SOURCE.name
@@ -263,7 +277,7 @@ class CvdVerifyHarness:
                 "w", encoding="utf-8"
             ) as stderr_handle:
                 completed = subprocess.run(
-                    [str(verify_path), *scenario.get("arguments", [])],
+                    [BASH_EXECUTABLE, str(verify_path), *scenario.get("arguments", [])],
                     cwd=home,
                     env=env,
                     text=True,
