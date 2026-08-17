@@ -54,6 +54,28 @@ class WinVerifyHarness:
         return json.loads(path.read_text(encoding="utf-8"))
 
     @staticmethod
+    def _set_environment_variable(
+        environment: dict[str, str],
+        name: str,
+        value: str,
+    ) -> None:
+        """Set one Windows environment variable without case-duplicate keys.
+
+        ``os.environ.copy()`` returns a plain ``dict``.  Adding ``Path`` to that
+        dictionary can therefore leave the original ``PATH`` entry beside it,
+        even though Windows treats those names as the same environment variable.
+        CreateProcess does not define which duplicate wins.  Remove every
+        case-equivalent key before adding the controlled value so the verifier
+        observes the fixture PATH deterministically.
+        """
+
+        normalized_name = name.casefold()
+        for existing_name in list(environment):
+            if existing_name.casefold() == normalized_name:
+                del environment[existing_name]
+        environment[name] = value
+
+    @staticmethod
     def _bindings(manifest: dict[str, Any]) -> dict[str, Any]:
         return manifest["platforms"]["windows"]["course_ide_bindings"]
 
@@ -243,17 +265,21 @@ class WinVerifyHarness:
             protected = self._protected_paths(home)
             before = snapshot_paths(protected)
             env = os.environ.copy()
-            env.update(
-                {
-                    "IT140_VERIFY_TEST_ROOT": str(temp_root / "fixture"),
-                    "IT140_VERIFY_TEST_STATE": str(state_path),
-                    "USERPROFILE": str(home),
-                    "HOME": str(home),
-                    "APPDATA": str(home / "AppData" / "Roaming"),
-                    "LOCALAPPDATA": str(home / "AppData" / "Local"),
-                    "Path": f"{venv_scripts};{win_dir};{env.get('Path', env.get('PATH', ''))}",
-                }
+            inherited_path = next(
+                (value for key, value in env.items() if key.casefold() == "path"),
+                "",
             )
+            controlled_environment = {
+                "IT140_VERIFY_TEST_ROOT": str(temp_root / "fixture"),
+                "IT140_VERIFY_TEST_STATE": str(state_path),
+                "USERPROFILE": str(home),
+                "HOME": str(home),
+                "APPDATA": str(home / "AppData" / "Roaming"),
+                "LOCALAPPDATA": str(home / "AppData" / "Local"),
+                "Path": f"{venv_scripts};{win_dir};{inherited_path}",
+            }
+            for name, value in controlled_environment.items():
+                self._set_environment_variable(env, name, value)
             verify_path = win_dir / "verify_it140.ps1"
             completed = subprocess.run(
                 [
