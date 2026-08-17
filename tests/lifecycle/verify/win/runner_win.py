@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Black-box harness for Windows verify_it140.ps1 lifecycle tests. """
+"""Black-box harness for Windows verify_it140.ps1 lifecycle tests."""
 
 from __future__ import annotations
 
@@ -216,6 +216,12 @@ class WinVerifyHarness:
 
         venv_python = venv_scripts / "python.exe"
         venv_python.write_bytes(b"IT140 lifecycle test placeholder\n")
+        # Windows temporary directories may be exposed through an MS-DOS 8.3
+        # alias (for example, RUNNER~1) while PowerShell resolves PSScriptRoot
+        # to the long path. Verify compares the managed VS Code interpreter
+        # setting as a string, so write the canonical long path into the
+        # fixture just as the production Configure script does.
+        canonical_venv_python = Path(os.path.realpath(venv_python))
 
         repos = home / "Repos"
         repos.mkdir(parents=True, exist_ok=True)
@@ -227,7 +233,11 @@ class WinVerifyHarness:
         settings_path = home / "AppData" / "Roaming" / "Code" / "User" / "settings.json"
         settings_path.parent.mkdir(parents=True, exist_ok=True)
         settings_path.write_text(
-            json.dumps(self._vscode_settings(manifest, venv_python), indent=2, sort_keys=True) + "\n",
+            json.dumps(
+                self._vscode_settings(manifest, canonical_venv_python),
+                indent=2,
+                sort_keys=True,
+            ) + "\n",
             encoding="utf-8",
         )
 
