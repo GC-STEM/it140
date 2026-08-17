@@ -22,6 +22,7 @@ jobs:
       manifest: ${{ steps.changes.outputs.manifest }}
       cvd: ${{ steps.changes.outputs.cvd }}
       cvd_verify: ${{ steps.changes.outputs.cvd_verify }}
+      cvd_configure: ${{ steps.changes.outputs.cvd_configure }}
       nix: ${{ steps.changes.outputs.nix }}
       ubg_verify: ${{ steps.changes.outputs.ubg_verify }}
       mac: ${{ steps.changes.outputs.mac }}
@@ -107,6 +108,25 @@ jobs:
         run: >-
           python3 -m unittest discover
           -s tests/lifecycle/verify/cvd
+          -p 'test_*.py'
+          -v
+
+  cvd_configure:
+    name: CVD Configure lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.cvd_configure == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir --user "jsonschema[format-nongpl]==4.26.0"
+      - name: Run CVD Configure lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/configure/cvd
           -p 'test_*.py'
           -v
 
@@ -225,7 +245,6 @@ jobs:
                   }
               }
           }
-
           if ($failed) {
               exit 1
           }
@@ -261,6 +280,7 @@ jobs:
       - manifest
       - cvd
       - cvd_verify
+      - cvd_configure
       - linux
       - ubg_verify
       - macos
@@ -276,6 +296,7 @@ jobs:
           MANIFEST_RESULT: ${{ needs.manifest.result }}
           CVD_RESULT: ${{ needs.cvd.result }}
           CVD_VERIFY_RESULT: ${{ needs.cvd_verify.result }}
+          CVD_CONFIGURE_RESULT: ${{ needs.cvd_configure.result }}
           LINUX_RESULT: ${{ needs.linux.result }}
           UBG_VERIFY_RESULT: ${{ needs.ubg_verify.result }}
           MACOS_RESULT: ${{ needs.macos.result }}
@@ -292,6 +313,7 @@ jobs:
             "manifest:$MANIFEST_RESULT" \
             "cvd:$CVD_RESULT" \
             "cvd-verify:$CVD_VERIFY_RESULT" \
+            "cvd-configure:$CVD_CONFIGURE_RESULT" \
             "linux:$LINUX_RESULT" \
             "ubg-verify:$UBG_VERIFY_RESULT" \
             "macos:$MACOS_RESULT" \
@@ -301,12 +323,11 @@ jobs:
           do
             job="${item%%:*}"
             result="${item#*:}"
-            printf '%-12s %s\n' "$job" "$result"
+            printf '%-16s %s\n' "$job" "$result"
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               failed=1
             fi
           done
-
           if (( failed )); then
             echo "One or more required CI jobs failed or were cancelled." >&2
             exit 1

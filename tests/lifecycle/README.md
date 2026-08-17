@@ -2,20 +2,23 @@
 
 This directory contains behavioral tests for the IT 140 lifecycle scripts. These tests complement the fast structural and syntax checks under `tests/ci/`; they do not replace qualification on the actual supported course environments.
 
-The current Verify suites establish reusable conventions for later Configure, Update, Install, and Prepare tests while keeping platform-specific fixtures and mocks isolated.
+The Verify suites established the common black-box conventions. The CVD Configure suite adds the mutation-specific conventions that later Configure, Update, Install, and Prepare suites can reuse.
 
 ## Test conventions
 
 - **Black-box entry points:** Tests execute the production lifecycle entry point rather than sourcing individual functions.
-- **Fixtures describe starting state:** A known-good base filesystem is copied into an isolated temporary directory for each scenario.
-- **Mocks replace external dependencies:** External commands, operating-system observations, and desktop-integration APIs are controlled at the boundary appropriate to each platform; verifier decision logic is not mocked.
-- **Scenario files describe expected behavior:** JSON files define arguments, controlled failures, expected exit codes, key check results, and remediation text.
-- **Exit codes are API contracts:** The process exit code must match the verifier summary.
-- **Filesystem snapshots enforce state boundaries:** Protected user/course paths must not change during Verify. The verification transcript is the normal allowed filesystem output.
-- **Logs are checked semantically:** Tests parse stable check IDs and summary fields instead of comparing an entire transcript as golden text.
-- **Platform-specific harnesses stay isolated:** Shared snapshot/log behavior lives under `tests/lifecycle/common/`; platform-specific fixture construction and mocks live with each Verify suite.
+- **Fixtures describe starting state:** A known base filesystem is copied into an isolated temporary directory for each scenario.
+- **Mocks replace external dependencies:** External commands, operating-system observations, and desktop-integration APIs are controlled at the boundary appropriate to each platform; lifecycle decision logic is not mocked.
+- **Scenario files describe expected behavior:** JSON files define arguments, controlled failures, expected exit codes, summary results, and diagnostic text.
+- **Exit codes are API contracts:** The process exit code must match the lifecycle summary.
+- **Filesystem snapshots enforce state boundaries:** Verify may not modify protected state. Mutating-stage tests instead snapshot paths that are outside the stage's ownership boundary and require them to remain unchanged.
+- **Logs are checked semantically:** Tests parse stable summary fields instead of comparing an entire transcript as golden text.
+- **Platform/stage harnesses stay isolated:** Shared snapshot and transcript behavior lives under `tests/lifecycle/common/`; stage- and platform-specific fixture construction and mocks live with each suite.
+- **Idempotence is semantic:** A mutating stage may rewrite managed files or refresh metadata on a repeat run, but the resulting managed configuration and preserved user state must converge to the same semantic state.
 
 ## Current scope
+
+### Verify
 
 Behavioral Verify suites cover all supported lifecycle platform families:
 
@@ -24,7 +27,7 @@ Behavioral Verify suites cover all supported lifecycle platform families:
 - macOS Apple silicon: `scripts/mac/verify_it140.zsh`
 - Windows: `scripts/win/verify_it140.ps1`
 
-Each platform suite covers the same core behavioral contract:
+Each Verify suite covers the same core behavioral contract:
 
 - help and version output returning `0` without creating a verification log
 - a compliant fixture with the network check skipped returning `0`
@@ -37,11 +40,30 @@ Each platform suite covers the same core behavioral contract:
 
 The Ubuntu GNOME scripts currently retain their Alpha-era `*_ubg.sh` names. Keeping their lifecycle tests under `tests/lifecycle/verify/ubg/` localizes any future script rename.
 
+### Configure
+
+The first Configure behavioral suite covers CVD: `scripts/cvd/configure_it140.sh`.
+
+It establishes mutation-specific contracts for:
+
+- successful configuration (`0`)
+- unsupported context before managed changes (`2`)
+- required external-service failure (`4`)
+- malformed controlled configuration before managed changes (`5`)
+- ordinary failure after managed changes resolving to partial result (`7`)
+- preservation of student repositories and unrelated user files
+- merge-preservation behavior for shell and VS Code settings
+- convergence of Git, VS Code extension, Python venv, desktop-integration, workspace, and Num Lock state
+- semantic idempotence across two successful runs
+- Configure transcript permissions and summary/exit-code consistency
+
+See `tests/lifecycle/configure/cvd/README.md` for the CVD isolation model.
+
 ## Run locally
 
 Run a suite on its matching platform from the repository root.
 
-CVD or Ubuntu 24.04:
+CVD or Ubuntu 24.04 Verify:
 
 ```bash
 python3 -m unittest discover \
@@ -55,7 +77,16 @@ python3 -m unittest discover \
   -v
 ```
 
-macOS Apple silicon:
+CVD Configure on a non-root Ubuntu 24.04 host:
+
+```bash
+python3 -m unittest discover \
+  -s tests/lifecycle/configure/cvd \
+  -p 'test_*.py' \
+  -v
+```
+
+macOS Apple silicon Verify:
 
 ```zsh
 python3 -m unittest discover \
@@ -64,7 +95,7 @@ python3 -m unittest discover \
   -v
 ```
 
-Windows PowerShell:
+Windows PowerShell Verify:
 
 ```powershell
 python -m unittest discover `
@@ -73,9 +104,9 @@ python -m unittest discover `
   -v
 ```
 
-The harness code uses only the Python standard library. The Unix/macOS CI jobs install `jsonschema` so production shell verifiers validate the copied production manifest against its schema during behavioral tests.
+The harness code uses only the Python standard library. Unix/macOS CI jobs install `jsonschema` so production shell lifecycle scripts validate the copied production manifest against its schema during behavioral tests.
 
-## Test-isolation hooks
+## Verify test-isolation hooks
 
 Test hooks are active only when the corresponding lifecycle-test environment variables are explicitly set. Normal course execution leaves them unset.
 
@@ -102,4 +133,4 @@ The Windows verifier still executes as the production PowerShell entry point and
 
 ## Qualification boundary
 
-Passing lifecycle tests means each verifier behaves correctly for the controlled fixtures and external observations in these suites. Release qualification must still include execution on the actual supported platform/course environment.
+Passing lifecycle tests means the covered scripts behave correctly for the controlled fixtures and external observations in these suites. Release qualification must still include execution on the actual supported platform/course environment.

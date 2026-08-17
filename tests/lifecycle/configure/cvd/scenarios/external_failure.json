@@ -1,0 +1,20 @@
+{
+  "id": "cvd-configure-external-service-failure",
+  "arguments": [
+    "--noninteractive",
+    "--deployment-profile",
+    "codio_cvd"
+  ],
+  "mock_overrides": {
+    "gh_api_user_failure": true
+  },
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "Yes",
+    "failures": 1,
+    "output_contains": [
+      "The authenticated GitHub account could not be read."
+    ]
+  }
+}

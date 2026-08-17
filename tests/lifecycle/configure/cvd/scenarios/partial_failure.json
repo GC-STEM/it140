@@ -1,0 +1,20 @@
+{
+  "id": "cvd-configure-partial-after-managed-change",
+  "arguments": [
+    "--noninteractive",
+    "--deployment-profile",
+    "codio_cvd"
+  ],
+  "mock_overrides": {
+    "gh_auth": false
+  },
+  "expected": {
+    "exit_code": 7,
+    "result": "PARTIAL",
+    "managed_changes": "Yes",
+    "failures": 1,
+    "output_contains": [
+      "GitHub CLI is not authenticated; interactive authentication is required."
+    ]
+  }
+}

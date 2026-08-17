@@ -1,0 +1,19 @@
+{
+  "id": "cvd-configure-success",
+  "arguments": [
+    "--noninteractive",
+    "--deployment-profile",
+    "codio_cvd"
+  ],
+  "expected": {
+    "exit_code": 0,
+    "result": "PASS",
+    "managed_changes": "Yes",
+    "failures": 0,
+    "configured": true,
+    "output_contains": [
+      "Required user configuration passed post-configuration validation.",
+      "Required user configuration and repository-workspace operations completed."
+    ]
+  }
+}

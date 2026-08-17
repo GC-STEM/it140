@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Visual Studio Code
+Exec=code %F
+Path=/tmp
+Terminal=false

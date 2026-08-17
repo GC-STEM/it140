@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 import sys
 
-
 ROOT = Path(__file__).resolve().parents[2]
 REQUIRED_FILES = (
     "scripts/.manifest/it140_manifest.json",
@@ -34,9 +33,29 @@ REQUIRED_FILES = (
     "scripts/nix/ubg/update_ubg.sh",
     "tests/lifecycle/README.md",
     "tests/lifecycle/common/__init__.py",
+    "tests/lifecycle/common/configure_log.py",
     "tests/lifecycle/common/runner.py",
     "tests/lifecycle/common/snapshot.py",
     "tests/lifecycle/common/verify_log.py",
+    "tests/lifecycle/configure/cvd/README.md",
+    "tests/lifecycle/configure/cvd/runner_cvd.py",
+    "tests/lifecycle/configure/cvd/test_configure_cvd.py",
+    "tests/lifecycle/configure/cvd/mocks/mock_command.py",
+    "tests/lifecycle/configure/cvd/fixtures/base/home/.bashrc",
+    "tests/lifecycle/configure/cvd/fixtures/base/home/.profile",
+    "tests/lifecycle/configure/cvd/fixtures/base/home/.config/Code/User/settings.json",
+    "tests/lifecycle/configure/cvd/fixtures/base/home/.config/other-app/prefs.txt",
+    "tests/lifecycle/configure/cvd/fixtures/base/home/Desktop/visual-studio-code.desktop",
+    "tests/lifecycle/configure/cvd/fixtures/base/home/Desktop/it140.desktop",
+    "tests/lifecycle/configure/cvd/fixtures/base/home/Desktop/GitHub Login.desktop",
+    "tests/lifecycle/configure/cvd/fixtures/base/home/Desktop/OneDrive Login.desktop",
+    "tests/lifecycle/configure/cvd/fixtures/base/home/Desktop/Personal Notes.txt",
+    "tests/lifecycle/configure/cvd/fixtures/base/home/Repos/student-work/do_not_touch.py",
+    "tests/lifecycle/configure/cvd/scenarios/success.json",
+    "tests/lifecycle/configure/cvd/scenarios/manifest_failure.json",
+    "tests/lifecycle/configure/cvd/scenarios/unsupported.json",
+    "tests/lifecycle/configure/cvd/scenarios/partial_failure.json",
+    "tests/lifecycle/configure/cvd/scenarios/external_failure.json",
     "tests/lifecycle/verify/cvd/test_verify_cvd.py",
     "tests/lifecycle/verify/cvd/mocks/mock_command.py",
     "tests/lifecycle/verify/cvd/fixtures/base/home/.bashrc",
@@ -121,7 +140,6 @@ def main() -> int:
         for error in errors:
             print(f"- {error}", file=sys.stderr)
         return 1
-
     print(f"Repository validation passed: {len(REQUIRED_FILES)} required files found.")
     print("Manifest and schema are valid JSON with no duplicate object keys.")
     return 0

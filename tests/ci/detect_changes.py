@@ -9,7 +9,6 @@ import subprocess
 import sys
 from pathlib import PurePosixPath
 
-
 ZERO_SHA = "0" * 40
 
 
@@ -28,6 +27,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "manifest": False,
         "cvd": False,
         "cvd_verify": False,
+        "cvd_configure": False,
         "nix": False,
         "ubg_verify": False,
         "mac": False,
@@ -41,12 +41,11 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
     for raw_path in paths:
         path = PurePosixPath(raw_path)
         posix = path.as_posix()
-
         # Changes to CI itself should exercise every CI branch.
         if posix == ".github/workflows/ci.yml" or posix.startswith("tests/ci/"):
             return {name: True for name in flags}
         # Controlled manifest/schema changes affect every platform contract and
-        # the behavioral Verify contracts.
+        # every behavioral lifecycle contract currently implemented.
         if posix in {
             "scripts/.manifest/it140_manifest.json",
             "scripts/.manifest/it140_manifest.schema.json",
@@ -56,13 +55,18 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["manifest"] = True
             flags["cvd"] = True
             flags["cvd_verify"] = True
+            if posix == "scripts/cvd/configure_it140.sh":
+                flags["cvd_configure"] = True
         elif posix == "tests/lifecycle/README.md" or posix.startswith("tests/lifecycle/common/"):
             flags["cvd_verify"] = True
+            flags["cvd_configure"] = True
             flags["ubg_verify"] = True
             flags["mac_verify"] = True
             flags["win_verify"] = True
         elif posix.startswith("tests/lifecycle/verify/cvd/"):
             flags["cvd_verify"] = True
+        elif posix.startswith("tests/lifecycle/configure/cvd/"):
+            flags["cvd_configure"] = True
         elif posix.startswith("tests/lifecycle/verify/ubg/"):
             flags["ubg_verify"] = True
         elif posix.startswith("tests/lifecycle/verify/mac/"):
@@ -70,9 +74,10 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         elif posix.startswith("tests/lifecycle/verify/win/"):
             flags["win_verify"] = True
         elif posix.startswith("tests/lifecycle/"):
-            # Unknown/shared lifecycle test infrastructure should exercise every
-            # behavioral Verify suite until it receives explicit routing.
+            # Unknown/shared lifecycle infrastructure should exercise every
+            # behavioral suite until it receives explicit routing.
             flags["cvd_verify"] = True
+            flags["cvd_configure"] = True
             flags["ubg_verify"] = True
             flags["mac_verify"] = True
             flags["win_verify"] = True
@@ -91,7 +96,6 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["win"] = True
             if posix == "scripts/win/verify_it140.ps1":
                 flags["win_verify"] = True
-
     return flags
 
 
@@ -129,7 +133,6 @@ def main() -> int:
     if args.event == "workflow_dispatch":
         write_outputs(classify([], force_all=True))
         return 0
-
     if not args.base or args.base == ZERO_SHA:
         # New branches/initial pushes do not have a usable comparison base.
         write_outputs(classify([], force_all=True))
@@ -143,7 +146,6 @@ def main() -> int:
         )
         write_outputs(classify([], force_all=True))
         return 0
-
     if paths:
         print("Changed files:")
         for path in paths:
