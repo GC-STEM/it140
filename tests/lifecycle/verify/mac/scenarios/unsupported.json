@@ -1,0 +1,14 @@
+{
+  "id": "mac-verify-unsupported-profile",
+  "arguments": ["--deployment-profile", "unsupported"],
+  "expected": {
+    "exit_code": 2,
+    "result": "NOT COMPLIANT",
+    "checks": {
+      "verify.profile": "FAIL",
+      "verify.os": "PASS",
+      "verify.architecture": "PASS"
+    },
+    "failed": 1
+  }
+}

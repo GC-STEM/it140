@@ -12,11 +12,13 @@ The platform syntax jobs perform parsing only:
 - macOS: `zsh -n`
 - Windows: Windows PowerShell parser
 
-Behavioral lifecycle tests live under `tests/lifecycle/`. CI currently executes the production Verify entry points against isolated fixtures and mocked external commands for:
+Behavioral lifecycle tests live under `tests/lifecycle/`. CI executes the production Verify entry points against isolated fixtures and controlled external observations for:
 
 - CVD: `CVD Verify lifecycle tests`
 - Ubuntu Desktop GNOME: `Ubuntu GNOME Verify lifecycle tests`
+- macOS Apple silicon: `macOS Verify lifecycle tests`
+- Windows: `Windows Verify lifecycle tests`
 
-The change detector routes shared lifecycle infrastructure changes to both behavioral suites while platform-specific Verify test changes run only the affected suite.
+The change detector routes shared lifecycle infrastructure changes to all behavioral Verify suites. Platform-specific Verify script/test changes run the affected platform syntax and behavioral jobs without unnecessarily running unrelated behavioral suites.
 
 Neither the fast CI checks nor the behavioral lifecycle tests replace end-to-end qualification on the actual supported course environments.

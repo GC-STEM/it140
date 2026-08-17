@@ -40,7 +40,7 @@ class VerifyRun:
     log_file: Path | None
     transcript: VerifyTranscript | None
     protected_differences: list[str]
-    trace_file: Path
+    trace_file: Path | None
 
     @property
     def combined_output(self) -> str:
@@ -52,7 +52,7 @@ class VerifyRun:
             sections.append("Captured process output:\n" + captured.rstrip())
         if self.transcript is not None and self.transcript.text.strip():
             sections.append("Verifier transcript:\n" + self.transcript.text.rstrip())
-        if self.trace_file.is_file():
+        if self.trace_file is not None and self.trace_file.is_file():
             trace = self.trace_file.read_text(encoding="utf-8").strip()
             if trace:
                 sections.append("Mock command trace:\n" + trace)

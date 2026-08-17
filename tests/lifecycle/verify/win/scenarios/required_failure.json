@@ -1,0 +1,17 @@
+{
+  "id": "win-verify-required-failure",
+  "arguments": ["-DeploymentProfile", "windows_bare_metal", "-SkipNetwork"],
+  "mock_overrides": {
+    "command_exit_codes": {
+      "gh.exe auth status --hostname github.com": 1
+    }
+  },
+  "expected": {
+    "exit_code": 1,
+    "checks": {
+      "verify.github_authentication": "FAIL"
+    },
+    "failed": 1,
+    "remediation_contains": ["configure_it140.ps1"]
+  }
+}

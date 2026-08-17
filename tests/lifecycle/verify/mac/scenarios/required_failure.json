@@ -1,0 +1,16 @@
+{
+  "id": "mac-verify-required-failure",
+  "arguments": ["--skip-network"],
+  "mock_overrides": {
+    "missing_python_packages": ["pytest"]
+  },
+  "expected": {
+    "exit_code": 1,
+    "result": "NOT COMPLIANT",
+    "checks": {
+      "verify.python_package.pytest": "FAIL"
+    },
+    "failed": 1,
+    "remediation_contains": ["configure_it140.zsh"]
+  }
+}

@@ -31,7 +31,9 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "nix": False,
         "ubg_verify": False,
         "mac": False,
+        "mac_verify": False,
         "win": False,
+        "win_verify": False,
     }
     if force_all:
         return {name: True for name in flags}
@@ -57,15 +59,23 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         elif posix == "tests/lifecycle/README.md" or posix.startswith("tests/lifecycle/common/"):
             flags["cvd_verify"] = True
             flags["ubg_verify"] = True
+            flags["mac_verify"] = True
+            flags["win_verify"] = True
         elif posix.startswith("tests/lifecycle/verify/cvd/"):
             flags["cvd_verify"] = True
         elif posix.startswith("tests/lifecycle/verify/ubg/"):
             flags["ubg_verify"] = True
+        elif posix.startswith("tests/lifecycle/verify/mac/"):
+            flags["mac_verify"] = True
+        elif posix.startswith("tests/lifecycle/verify/win/"):
+            flags["win_verify"] = True
         elif posix.startswith("tests/lifecycle/"):
             # Unknown/shared lifecycle test infrastructure should exercise every
             # behavioral Verify suite until it receives explicit routing.
             flags["cvd_verify"] = True
             flags["ubg_verify"] = True
+            flags["mac_verify"] = True
+            flags["win_verify"] = True
         elif posix.startswith("scripts/nix/"):
             flags["manifest"] = True
             flags["nix"] = True
@@ -74,9 +84,13 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         elif posix.startswith("scripts/mac/"):
             flags["manifest"] = True
             flags["mac"] = True
+            if posix == "scripts/mac/verify_it140.zsh":
+                flags["mac_verify"] = True
         elif posix.startswith("scripts/win/"):
             flags["manifest"] = True
             flags["win"] = True
+            if posix == "scripts/win/verify_it140.ps1":
+                flags["win_verify"] = True
 
     return flags
 

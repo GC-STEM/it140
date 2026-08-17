@@ -71,6 +71,41 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
+# Test-only isolation seam used by tests/lifecycle/verify/win/. Production
+# execution leaves these environment variables unset and follows normal
+# Windows APIs, native commands, registry state, and shell integration.
+$VerifyTestRoot = [string]$env:IT140_VERIFY_TEST_ROOT
+$VerifyTestStatePath = [string]$env:IT140_VERIFY_TEST_STATE
+$VerifyTestState = $null
+if (-not [string]::IsNullOrWhiteSpace($VerifyTestRoot)) {
+    if (
+        [string]::IsNullOrWhiteSpace($VerifyTestStatePath) -or
+        -not (Test-Path -LiteralPath $VerifyTestStatePath -PathType Leaf)
+    ) {
+        throw "IT140_VERIFY_TEST_STATE must identify a readable JSON state file in test mode."
+    }
+    $VerifyTestState = Get-Content -LiteralPath $VerifyTestStatePath -Raw |
+        ConvertFrom-Json
+}
+$VerifyUserHome = if (-not [string]::IsNullOrWhiteSpace($VerifyTestRoot)) {
+    Join-Path $VerifyTestRoot "home"
+}
+else {
+    [Environment]::GetFolderPath("UserProfile")
+}
+$VerifyDesktop = if (-not [string]::IsNullOrWhiteSpace($VerifyTestRoot)) {
+    Join-Path $VerifyUserHome "Desktop"
+}
+else {
+    [Environment]::GetFolderPath("Desktop")
+}
+$VerifyAppData = if (-not [string]::IsNullOrWhiteSpace($VerifyTestRoot)) {
+    Join-Path $VerifyUserHome "AppData\Roaming"
+}
+else {
+    $env:APPDATA
+}
+
 $ScriptVersion = "0.10.0-beta.1"
 $VersionDate = "2026-08-09-23-59"
 $DevelopmentStatus = "Beta Testing"
@@ -79,7 +114,7 @@ $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
 $ScriptRoot = Split-Path -Parent $ScriptDirectory
 $CourseRoot = Split-Path -Parent $ScriptRoot
-$ReposRoot = Join-Path ([Environment]::GetFolderPath("UserProfile")) "Repos"
+$ReposRoot = Join-Path $VerifyUserHome "Repos"
 $WindowsScriptDirectory = Join-Path $ScriptRoot $PlatformAbbreviation
 $ManifestPath = Join-Path $ScriptRoot ".manifest\it140_manifest.json"
 $SchemaPath = Join-Path $ScriptRoot ".manifest\it140_manifest.schema.json"
@@ -90,13 +125,9 @@ $LogPath = Join-Path $LogDirectory (
 $VenvDirectory = Join-Path $CourseRoot ".venv"
 $VenvScriptsDirectory = Join-Path $VenvDirectory "Scripts"
 $VenvPython = Join-Path $VenvScriptsDirectory "python.exe"
-$VsCodeSettings = Join-Path $env:APPDATA "Code\User\settings.json"
-$ReposShortcutPath = Join-Path (
-    [Environment]::GetFolderPath("Desktop")
-) "Repos.lnk"
-$VsCodeReposShortcutPath = Join-Path (
-    [Environment]::GetFolderPath("Desktop")
-) "Visual Studio Code - IT 140.lnk"
+$VsCodeSettings = Join-Path $VerifyAppData "Code\User\settings.json"
+$ReposShortcutPath = Join-Path $VerifyDesktop "Repos.lnk"
+$VsCodeReposShortcutPath = Join-Path $VerifyDesktop "Visual Studio Code - IT 140.lnk"
 $ReposDesktopIniPath = Join-Path $ReposRoot "desktop.ini"
 $StartTime = Get-Date
 $TranscriptStarted = $false
@@ -137,6 +168,19 @@ function Test-NativeCommandExitSuccess {
         [Parameter(Mandatory = $true)][string]$FilePath,
         [string[]]$ArgumentList = @()
     )
+
+    if ($null -ne $VerifyTestState) {
+        $CommandName = [IO.Path]::GetFileName($FilePath)
+        $CommandKey = (($CommandName, ($ArgumentList -join " ")) -join " ").Trim()
+        $ExitCodes = Get-PropertyValue -Object $VerifyTestState -Name "command_exit_codes"
+        if ($null -ne $ExitCodes) {
+            $Configured = Get-PropertyValue -Object $ExitCodes -Name $CommandKey
+            if ($null -ne $Configured) {
+                return [int]$Configured -eq 0
+            }
+        }
+        return $true
+    }
 
     $PreviousErrorActionPreference = $ErrorActionPreference
     try {
@@ -186,6 +230,9 @@ function Write-ClosingNotice {
 }
 
 function Test-IsAdministrator {
+    if ($null -ne $VerifyTestState) {
+        return [bool](Get-PropertyValue -Object $VerifyTestState -Name "is_administrator")
+    }
     $Identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $Principal = [Security.Principal.WindowsPrincipal]::new($Identity)
     return $Principal.IsInRole(
@@ -194,6 +241,9 @@ function Test-IsAdministrator {
 }
 
 function Test-IsWindowsSandbox {
+    if ($null -ne $VerifyTestState) {
+        return [bool](Get-PropertyValue -Object $VerifyTestState -Name "is_windows_sandbox")
+    }
     return [Environment]::UserName -eq "WDAGUtilityAccount"
 }
 
@@ -689,6 +739,19 @@ function Read-ControlledManifest {
 }
 
 function Get-OperatingSystemFact {
+    if ($null -ne $VerifyTestState) {
+        $Facts = Get-PropertyValue -Object $VerifyTestState -Name "windows_facts"
+        if ($null -eq $Facts) {
+            throw "The Windows Verify test state does not define windows_facts."
+        }
+        return [pscustomobject]@{
+            Caption = [string]$Facts.Caption
+            Architecture = [string]$Facts.Architecture
+            DisplayVersion = [string]$Facts.DisplayVersion
+            BuildNumber = [string]$Facts.BuildNumber
+        }
+    }
+
     if (
         $DeploymentProfile -eq "windows_sandbox" -and
         (Test-IsWindowsSandbox)
@@ -739,6 +802,12 @@ function Get-OperatingSystemFact {
 
 function Test-CommandAvailable {
     param([Parameter(Mandatory = $true)][string]$CommandName)
+    if ($null -ne $VerifyTestState) {
+        $Available = @(
+            Get-PropertyValue -Object $VerifyTestState -Name "available_commands"
+        )
+        return $CommandName -in $Available
+    }
     return $null -ne (Get-Command $CommandName -ErrorAction SilentlyContinue)
 }
 
@@ -805,6 +874,18 @@ function Get-RequiredExtension {
 
 function Get-GitConfigValue {
     param([Parameter(Mandatory = $true)][string]$Key)
+
+    if ($null -ne $VerifyTestState) {
+        $GitConfig = Get-PropertyValue -Object $VerifyTestState -Name "git_config"
+        $Value = Get-PropertyValue -Object $GitConfig -Name $Key
+        if ($null -eq $Value) {
+            return ""
+        }
+        if ($Value -is [bool]) {
+            return $Value.ToString().ToLowerInvariant()
+        }
+        return [string]$Value
+    }
 
     $ObservedOutput = @(& git.exe config --global --get $Key 2>$null)
     if ($LASTEXITCODE -ne 0 -or $ObservedOutput.Count -eq 0) {
@@ -998,6 +1079,10 @@ function Get-ScriptVersion {
 }
 
 function Get-VsCodeExecutablePath {
+    if ($null -ne $VerifyTestState) {
+        return [string](Get-PropertyValue -Object $VerifyTestState -Name "vscode_executable")
+    }
+
     $CodeCommand = Get-Command code.cmd -ErrorAction SilentlyContinue
     if ($null -ne $CodeCommand) {
         $CodeBinDirectory = Split-Path -Parent $CodeCommand.Source
@@ -1043,6 +1128,26 @@ function Test-IsCourseManagedReposDesktopIni {
 
 function Get-ShortcutDefinition {
     param([Parameter(Mandatory = $true)][string]$Path)
+
+    if ($null -ne $VerifyTestState) {
+        $StateName = if ([IO.Path]::GetFileName($Path) -eq "Repos.lnk") {
+            "repos_shortcut"
+        }
+        else {
+            "vscode_shortcut"
+        }
+        $Definition = Get-PropertyValue -Object $VerifyTestState -Name $StateName
+        if ($null -eq $Definition) {
+            throw "The Windows Verify test state does not define $StateName."
+        }
+        return [pscustomobject]@{
+            TargetPath = [string]$Definition.TargetPath
+            Arguments = [string]$Definition.Arguments
+            WorkingDirectory = [string]$Definition.WorkingDirectory
+            IconLocation = [string]$Definition.IconLocation
+            Description = [string]$Definition.Description
+        }
+    }
 
     $ShellApplication = New-Object -ComObject WScript.Shell
     $Shortcut = $ShellApplication.CreateShortcut($Path)
@@ -1095,6 +1200,10 @@ function Test-VsCodeShortcutDefinition {
 }
 
 function Test-PendingRestart {
+    if ($null -ne $VerifyTestState) {
+        return [bool](Get-PropertyValue -Object $VerifyTestState -Name "pending_restart")
+    }
+
     $RestartRegistryPaths = @(
         "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending",
         "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
@@ -1271,7 +1380,12 @@ function Test-PlatformContext {
 function Test-DiskAndNetwork {
     param([Parameter(Mandatory = $true)]$Manifest)
 
-    $FreeBytes = (Get-PSDrive -Name $env:SystemDrive.TrimEnd(":")).Free
+    $FreeBytes = if ($null -ne $VerifyTestState) {
+        [int64](Get-PropertyValue -Object $VerifyTestState -Name "free_space_bytes")
+    }
+    else {
+        (Get-PSDrive -Name $env:SystemDrive.TrimEnd(":")).Free
+    }
     $MinimumBytes = [int64]$Manifest.policy.minimum_free_space_bytes
     if ($FreeBytes -ge $MinimumBytes) {
         Add-CheckResult `
@@ -1374,12 +1488,24 @@ function Test-SystemLayer {
 
         foreach ($ExecutableName in @($Binding.ExecutableNames)) {
             if (Test-CommandAvailable $ExecutableName) {
-                $VersionOutput = @(& $ExecutableName --version 2>&1)
-                $VersionDetail = if ($VersionOutput.Count -gt 0) {
-                    [string]$VersionOutput[0]
+                if ($null -ne $VerifyTestState) {
+                    $Versions = Get-PropertyValue -Object $VerifyTestState -Name "command_versions"
+                    $ConfiguredVersion = Get-PropertyValue -Object $Versions -Name $ExecutableName
+                    $VersionDetail = if ($null -ne $ConfiguredVersion) {
+                        [string]$ConfiguredVersion
+                    }
+                    else {
+                        "Available (test fixture)"
+                    }
                 }
                 else {
-                    "Available"
+                    $VersionOutput = @(& $ExecutableName --version 2>&1)
+                    $VersionDetail = if ($VersionOutput.Count -gt 0) {
+                        [string]$VersionOutput[0]
+                    }
+                    else {
+                        "Available"
+                    }
                 }
                 Add-CheckResult `
                     -CheckId ("verify.capability.{0}" -f $Binding.Role) `
@@ -1397,10 +1523,21 @@ function Test-SystemLayer {
     }
 
     if (Test-CommandAvailable "python.exe") {
-        $PythonVersion = & python.exe -c (
-            "import sys; print('.'.join(map(str, sys.version_info[:2])))"
-        )
-        if ($LASTEXITCODE -eq 0 -and [string]$PythonVersion -eq "3.12") {
+        $PythonVersion = if ($null -ne $VerifyTestState) {
+            [string](Get-PropertyValue -Object $VerifyTestState -Name "python_version")
+        }
+        else {
+            & python.exe -c (
+                "import sys; print('.'.join(map(str, sys.version_info[:2])))"
+            )
+        }
+        $PythonVersionSucceeded = if ($null -ne $VerifyTestState) {
+            $true
+        }
+        else {
+            $LASTEXITCODE -eq 0
+        }
+        if ($PythonVersionSucceeded -and [string]$PythonVersion -eq "3.12") {
             Add-CheckResult `
                 -CheckId "verify.python_version" `
                 -Status "PASS" `
@@ -1442,7 +1579,12 @@ function Test-UserLayer {
             -Remediation (Get-BootstrapRemediation)
     }
 
-    $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $UserPath = if ($null -ne $VerifyTestState) {
+        [string](Get-PropertyValue -Object $VerifyTestState -Name "user_path")
+    }
+    else {
+        [Environment]::GetEnvironmentVariable("Path", "User")
+    }
     $UserPathReady = $true
     foreach ($ManagedPath in @($VenvScriptsDirectory, $WindowsScriptDirectory)) {
         if (-not (Test-PathContainsEntry -PathValue $UserPath -ExpectedEntry $ManagedPath)) {
@@ -1484,10 +1626,21 @@ function Test-UserLayer {
     }
 
     if (Test-Path -LiteralPath $VenvPython -PathType Leaf) {
-        $VenvVersion = & $VenvPython -c (
-            "import sys; print('.'.join(map(str, sys.version_info[:2])))"
-        )
-        if ($LASTEXITCODE -eq 0 -and [string]$VenvVersion -eq "3.12") {
+        $VenvVersion = if ($null -ne $VerifyTestState) {
+            [string](Get-PropertyValue -Object $VerifyTestState -Name "venv_python_version")
+        }
+        else {
+            & $VenvPython -c (
+                "import sys; print('.'.join(map(str, sys.version_info[:2])))"
+            )
+        }
+        $VenvVersionSucceeded = if ($null -ne $VerifyTestState) {
+            $true
+        }
+        else {
+            $LASTEXITCODE -eq 0
+        }
+        if ($VenvVersionSucceeded -and [string]$VenvVersion -eq "3.12") {
             Add-CheckResult `
                 -CheckId "verify.virtual_environment" `
                 -Status "PASS" `
@@ -1531,10 +1684,18 @@ function Test-UserLayer {
     }
 
     if (Test-CommandAvailable "code.cmd") {
-        $InstalledExtensions = @(
-            & code.cmd --list-extensions 2>$null |
-                ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
-        )
+        $InstalledExtensions = if ($null -ne $VerifyTestState) {
+            @(
+                Get-PropertyValue -Object $VerifyTestState -Name "extensions" |
+                    ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
+            )
+        }
+        else {
+            @(
+                & code.cmd --list-extensions 2>$null |
+                    ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
+            )
+        }
         foreach ($ExtensionId in (Get-RequiredExtension -Platform $Platform)) {
             if ($ExtensionId.ToLowerInvariant() -in $InstalledExtensions) {
                 Add-CheckResult `

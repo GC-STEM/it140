@@ -14,6 +14,12 @@
 # Verification does not write to ~/Repos or repair its desktop integration.
 # It verifies the Desktop/Repos link and Visual Studio Code - Repos.app launcher.
 # Finder visual-marker status is NOT APPLICABLE by approved design.
+#
+# Exit codes:
+#   0 All required checks passed; warnings may be present
+#   1 One or more required checks failed
+#   2 The platform, architecture, or deployment profile is unsupported
+#   5 Controlled manifest or schema validation failed
 # ==============================================================================
 set -euo pipefail
 umask 077
@@ -35,12 +41,16 @@ readonly LOG_FILE="$LOG_DIR/verify_mac_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="$COURSE_ROOT/.venv"
 readonly MANAGED_ENV_START='# >>> IT 140 managed PATH >>>'
 readonly MANAGED_ENV_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/mac:/opt/homebrew/bin:$PATH"'
+readonly TEST_ROOT="${IT140_VERIFY_TEST_ROOT:-}"
+readonly TEST_EUID="${IT140_VERIFY_TEST_EUID:-}"
 REQUESTED_PROFILE="$DEPLOYMENT_PROFILE_ID"
 SKIP_NETWORK=false
 PASS_COUNT=0
 WARNING_COUNT=0
 FAIL_COUNT=0
 NA_COUNT=0
+MANIFEST_FAILURE=false
+UNSUPPORTED_FAILURE=false
 MANIFEST_RELEASE="unavailable"
 MANIFEST_DTG="unavailable"
 START_EPOCH="$(date +%s)"
@@ -81,6 +91,9 @@ record(){
 config_remediation(){ printf 'Run configure_it140.zsh to repair current-user configuration.\n'; }
 install_remediation(){ printf 'Run install_it140.zsh to repair required system software, then rerun verify_it140.zsh.\n'; }
 continuity(){ notice "Course continuity: You can continue your IT 140 coursework in the Codio Virtual Desktop (CVD) while this local course IDE issue is resolved."; }
+effective_euid(){
+  if [[ -n "$TEST_ROOT" && -n "$TEST_EUID" ]]; then printf '%s\n' "$TEST_EUID"; else printf '%s\n' "$EUID"; fi
+}
 validate_manifest(){
   python3.12 - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" "$REQUESTED_PROFILE" "$SUPPORTED_SCHEMA" "$(sw_vers -productVersion 2>/dev/null | cut -d. -f1 || true)" <<'PY'
 import json,pathlib,sys
@@ -138,9 +151,9 @@ elif q=='vscode_settings':
 PY
 }
 check_platform(){
-  [[ "$(uname -s)" == Darwin ]] && record PASS verify.os "macOS" || record FAIL verify.os "not macOS" "Use the approved macOS environment."
-  [[ "$(uname -m)" == arm64 ]] && record PASS verify.architecture arm64 || record FAIL verify.architecture "$(uname -m)" "Use an approved Apple silicon Mac."
-  (( EUID != 0 )) && record PASS verify.user_context "standard user" || record FAIL verify.user_context root "Run Verify without sudo."
+  if [[ "$(uname -s)" == Darwin ]]; then record PASS verify.os "macOS"; else UNSUPPORTED_FAILURE=true; record FAIL verify.os "not macOS" "Use the approved macOS environment."; fi
+  if [[ "$(uname -m)" == arm64 ]]; then record PASS verify.architecture arm64; else UNSUPPORTED_FAILURE=true; record FAIL verify.architecture "$(uname -m)" "Use an approved Apple silicon Mac."; fi
+  (( $(effective_euid) != 0 )) && record PASS verify.user_context "standard user" || record FAIL verify.user_context root "Run Verify without sudo."
 }
 check_system(){
   /usr/bin/xcode-select -p >/dev/null 2>&1 && record PASS verify.command_line_tools available || record FAIL verify.command_line_tools missing "$(install_remediation)"
@@ -233,10 +246,16 @@ PY
   record 'NOT APPLICABLE' verify.repository_workspace_marker "Finder has no approved built-in development-emblem adapter"
   vscode_repos_launcher_is_valid && record PASS verify.repository_workspace_vscode_launcher "Visual Studio Code - Repos.app opens $REPOS_ROOT" || record FAIL verify.repository_workspace_vscode_launcher "missing, unmanaged, or incorrect" "$(config_remediation)"
 }
+resolve_exit_code(){
+  if [[ "$MANIFEST_FAILURE" == true ]]; then printf '5\n'; return; fi
+  if [[ "$UNSUPPORTED_FAILURE" == true ]]; then printf '2\n'; return; fi
+  if (( FAIL_COUNT > 0 )); then printf '1\n'; return; fi
+  printf '0\n'
+}
 main(){
   parse_options "$@"
   mkdir -p "$LOG_DIR"; chmod 700 "$LOG_DIR"; : > "$LOG_FILE"; chmod 600 "$LOG_FILE"
-  exec > >(/usr/bin/tee -a "$LOG_FILE") 2>&1
+  if [[ -n "$TEST_ROOT" ]]; then exec >>"$LOG_FILE" 2>&1; else exec > >(/usr/bin/tee -a "$LOG_FILE") 2>&1; fi
   header "IT 140 macOS VERIFY"
   info "Script version : $SCRIPT_VERSION"
   info "Version DTG    : $VERSION_DTG"
@@ -247,22 +266,31 @@ main(){
   info "Repository root: $REPOS_ROOT"
   info "Log file       : $LOG_FILE"
   notice "Verify is read-only except for this transcript."
-  [[ "$REQUESTED_PROFILE" == "$DEPLOYMENT_PROFILE_ID" ]] || record FAIL verify.profile "unsupported profile" "Use macos_bare_metal."
-  check_platform
-  if [[ -r "$MANIFEST_PATH" && -r "$SCHEMA_PATH" ]] && command -v python3.12 >/dev/null 2>&1; then
-    local manifest_meta
-    if manifest_meta="$(validate_manifest 2>&1)"; then
-      IFS=$'\t' read -r MANIFEST_RELEASE MANIFEST_DTG <<< "$manifest_meta"
-      record PASS verify.manifest "release $MANIFEST_RELEASE ($MANIFEST_DTG)"
-      check_network; check_system; check_user
-    else
-      record FAIL verify.manifest "$manifest_meta" "Run prepare_it140.zsh, then install_it140.zsh."
-    fi
-  else
-    record FAIL verify.manifest "manifest/schema or Python 3.12 missing" "Run prepare_it140.zsh, then install_it140.zsh."
+  if [[ "$REQUESTED_PROFILE" != "$DEPLOYMENT_PROFILE_ID" ]]; then
+    UNSUPPORTED_FAILURE=true
+    record FAIL verify.profile "unsupported profile" "Use macos_bare_metal."
   fi
-  local code=0 result=COMPLIANT
-  (( FAIL_COUNT > 0 )) && { code=1; result='NOT COMPLIANT'; }
+  check_platform
+  if [[ "$UNSUPPORTED_FAILURE" != true ]]; then
+    if [[ -r "$MANIFEST_PATH" && -r "$SCHEMA_PATH" ]] && command -v python3.12 >/dev/null 2>&1; then
+      local manifest_meta
+      if manifest_meta="$(validate_manifest 2>&1)"; then
+        IFS=$'\t' read -r MANIFEST_RELEASE MANIFEST_DTG <<< "$manifest_meta"
+        record PASS verify.manifest "release $MANIFEST_RELEASE ($MANIFEST_DTG)"
+        check_network; check_system; check_user
+      else
+        MANIFEST_FAILURE=true
+        record FAIL verify.manifest "$manifest_meta" "Run prepare_it140.zsh, then install_it140.zsh."
+      fi
+    else
+      MANIFEST_FAILURE=true
+      record FAIL verify.manifest "manifest/schema or Python 3.12 missing" "Run prepare_it140.zsh, then install_it140.zsh."
+    fi
+  fi
+  local code result
+  code="$(resolve_exit_code)"
+  result=COMPLIANT
+  (( code == 0 )) || result='NOT COMPLIANT'
   header "VERIFICATION SUMMARY"
   printf 'Result          : %s\n' "$result"
   printf 'Script version  : %s\n' "$SCRIPT_VERSION"

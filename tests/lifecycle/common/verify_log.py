@@ -9,9 +9,25 @@ import re
 
 
 CHECK_RE = re.compile(
-    r"^(PASS|WARNING|FAIL|NOT APPLICABLE)\s+(verify\.[^\s]+)\s+(.*)$"
+    r"^(?:\[(PASS|WARNING|FAIL|NOT APPLICABLE)\]|"
+    r"(PASS|WARNING|FAIL|NOT APPLICABLE))\s+"
+    r"(verify\.[^\s]+)\s+(.*)$"
 )
 SUMMARY_RE = re.compile(r"^([A-Za-z][A-Za-z ]*?)\s*:\s*(.*)$")
+SUMMARY_KEYS = {
+    "result",
+    "script version",
+    "version dtg",
+    "manifest release",
+    "manifest dtg",
+    "passed",
+    "warnings",
+    "failed",
+    "not applicable",
+    "elapsed time",
+    "log file",
+    "exit code",
+}
 
 
 @dataclass(frozen=True)
@@ -36,40 +52,47 @@ class VerifyTranscript:
 
 
 def parse_verify_text(text: str) -> VerifyTranscript:
+    """Parse shell-style and Windows PowerShell Verify transcripts semantically."""
+
     checks: list[CheckRecord] = []
     summary: dict[str, str] = {}
 
-    for line in text.splitlines():
+    for original_line in text.splitlines():
+        line = original_line.strip()
         check_match = CHECK_RE.match(line)
         if check_match:
-            checks.append(CheckRecord(*check_match.groups()))
+            bracket_status, plain_status, check_id, detail = check_match.groups()
+            checks.append(
+                CheckRecord(bracket_status or plain_status, check_id, detail)
+            )
             continue
 
-        summary_match = SUMMARY_RE.match(line)
+        # Windows Write-Info prefixes summary records with [INFO]. Unix Verify
+        # summaries are plain text. Strip only this known presentation prefix.
+        summary_line = line[7:].lstrip() if line.startswith("[INFO] ") else line
+        summary_match = SUMMARY_RE.match(summary_line)
         if summary_match:
             key, value = summary_match.groups()
             normalized = " ".join(key.lower().split())
-            if normalized in {
-                "result",
-                "script version",
-                "version dtg",
-                "manifest release",
-                "manifest dtg",
-                "passed",
-                "warnings",
-                "failed",
-                "not applicable",
-                "elapsed time",
-                "log file",
-                "exit code",
-            }:
+            if normalized in SUMMARY_KEYS:
                 summary[normalized] = value.strip()
 
     return VerifyTranscript(tuple(checks), summary, text)
 
 
+def _decode_transcript(data: bytes) -> str:
+    """Decode Unix or Windows PowerShell transcript encodings safely."""
+
+    for encoding in ("utf-8-sig", "utf-16", "utf-16-le"):
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return data.decode("utf-8", errors="replace")
+
+
 def parse_verify_log(path: Path) -> VerifyTranscript:
-    return parse_verify_text(path.read_text(encoding="utf-8"))
+    return parse_verify_text(_decode_transcript(path.read_bytes()))
 
 
 def summary_int(transcript: VerifyTranscript, key: str) -> int | None:
@@ -112,7 +135,11 @@ def consistency_errors(
     failed = summary_int(transcript, "failed")
     result = transcript.summary.get("result")
     if failed is not None and result is not None:
-        expected_result = "COMPLIANT" if failed == 0 and process_exit_code == 0 else "NOT COMPLIANT"
+        expected_result = (
+            "COMPLIANT"
+            if failed == 0 and process_exit_code == 0
+            else "NOT COMPLIANT"
+        )
         if result != expected_result:
             errors.append(f"result {result!r} != expected {expected_result!r}")
 

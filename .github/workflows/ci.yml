@@ -25,7 +25,9 @@ jobs:
       nix: ${{ steps.changes.outputs.nix }}
       ubg_verify: ${{ steps.changes.outputs.ubg_verify }}
       mac: ${{ steps.changes.outputs.mac }}
+      mac_verify: ${{ steps.changes.outputs.mac_verify }}
       win: ${{ steps.changes.outputs.win }}
+      win_verify: ${{ steps.changes.outputs.win_verify }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4.4.0
@@ -165,6 +167,29 @@ jobs:
           print -l "Checking:" $files
           zsh -n $files
 
+  mac_verify:
+    name: macOS Verify lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.mac_verify == 'true'
+    runs-on: macos-15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir "jsonschema[format-nongpl]==4.26.0"
+      - name: Run macOS Verify lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/verify/mac
+          -p 'test_*.py'
+          -v
+
   windows:
     name: Windows PowerShell syntax
     needs: changes
@@ -205,6 +230,28 @@ jobs:
               exit 1
           }
 
+  win_verify:
+    name: Windows Verify lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.win_verify == 'true'
+    runs-on: windows-2025
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run Windows Verify lifecycle tests
+        shell: powershell
+        run: >-
+          python -m unittest discover
+          -s tests/lifecycle/verify/win
+          -p 'test_*.py'
+          -v
+
   gate:
     name: CI Gate
     if: always()
@@ -217,7 +264,9 @@ jobs:
       - linux
       - ubg_verify
       - macos
+      - mac_verify
       - windows
+      - win_verify
     runs-on: ubuntu-24.04
     steps:
       - name: Require all applicable checks to pass
@@ -230,7 +279,9 @@ jobs:
           LINUX_RESULT: ${{ needs.linux.result }}
           UBG_VERIFY_RESULT: ${{ needs.ubg_verify.result }}
           MACOS_RESULT: ${{ needs.macos.result }}
+          MAC_VERIFY_RESULT: ${{ needs.mac_verify.result }}
           WINDOWS_RESULT: ${{ needs.windows.result }}
+          WIN_VERIFY_RESULT: ${{ needs.win_verify.result }}
         shell: bash
         run: |
           set -euo pipefail
@@ -244,7 +295,9 @@ jobs:
             "linux:$LINUX_RESULT" \
             "ubg-verify:$UBG_VERIFY_RESULT" \
             "macos:$MACOS_RESULT" \
-            "windows:$WINDOWS_RESULT"
+            "mac-verify:$MAC_VERIFY_RESULT" \
+            "windows:$WINDOWS_RESULT" \
+            "win-verify:$WIN_VERIFY_RESULT"
           do
             job="${item%%:*}"
             result="${item#*:}"

@@ -1,0 +1,18 @@
+{
+  "id": "win-verify-unsupported-release",
+  "arguments": ["-DeploymentProfile", "windows_bare_metal", "-SkipNetwork"],
+  "mock_overrides": {
+    "windows_facts": {
+      "DisplayVersion": "99H9"
+    }
+  },
+  "expected": {
+    "exit_code": 2,
+    "checks": {
+      "verify.operating_system": "PASS",
+      "verify.os_release": "FAIL",
+      "verify.architecture": "PASS"
+    },
+    "failed": 1
+  }
+}

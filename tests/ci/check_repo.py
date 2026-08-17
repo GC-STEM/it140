@@ -59,6 +59,23 @@ REQUIRED_FILES = (
     "tests/lifecycle/verify/ubg/scenarios/required_failure.json",
     "tests/lifecycle/verify/ubg/scenarios/manifest_failure.json",
     "tests/lifecycle/verify/ubg/scenarios/unsupported.json",
+    "tests/lifecycle/verify/mac/runner_mac.py",
+    "tests/lifecycle/verify/mac/test_verify_mac.py",
+    "tests/lifecycle/verify/mac/mocks/mock_command.py",
+    "tests/lifecycle/verify/mac/fixtures/base/home/.zprofile",
+    "tests/lifecycle/verify/mac/fixtures/base/home/.zshrc",
+    "tests/lifecycle/verify/mac/fixtures/base/home/Repos/student-work/do_not_touch.py",
+    "tests/lifecycle/verify/mac/scenarios/compliant.json",
+    "tests/lifecycle/verify/mac/scenarios/required_failure.json",
+    "tests/lifecycle/verify/mac/scenarios/manifest_failure.json",
+    "tests/lifecycle/verify/mac/scenarios/unsupported.json",
+    "tests/lifecycle/verify/win/runner_win.py",
+    "tests/lifecycle/verify/win/test_verify_win.py",
+    "tests/lifecycle/verify/win/fixtures/base/home/Repos/student-work/do_not_touch.py",
+    "tests/lifecycle/verify/win/scenarios/compliant.json",
+    "tests/lifecycle/verify/win/scenarios/required_failure.json",
+    "tests/lifecycle/verify/win/scenarios/manifest_failure.json",
+    "tests/lifecycle/verify/win/scenarios/unsupported.json",
 )
 
 
