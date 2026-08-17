@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Black-box harness for Windows verify_it140.ps1 lifecycle tests."""
+"""Black-box harness for Windows verify_it140.ps1 lifecycle tests. """
 
 from __future__ import annotations
 
