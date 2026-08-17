@@ -1,0 +1,18 @@
+{
+  "id": "ubg-verify-unsupported-profile",
+  "arguments": [
+    "--deployment-profile",
+    "not_ubuntu_gnome",
+    "--skip-network"
+  ],
+  "expected": {
+    "exit_code": 2,
+    "result": "NOT COMPLIANT",
+    "checks": {
+      "verify.profile": "FAIL"
+    },
+    "remediation_contains": [
+      "Use --deployment-profile ubuntu_gnome_bare_metal"
+    ]
+  }
+}

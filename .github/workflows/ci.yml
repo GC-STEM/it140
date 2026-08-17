@@ -23,6 +23,7 @@ jobs:
       cvd: ${{ steps.changes.outputs.cvd }}
       cvd_verify: ${{ steps.changes.outputs.cvd_verify }}
       nix: ${{ steps.changes.outputs.nix }}
+      ubg_verify: ${{ steps.changes.outputs.ubg_verify }}
       mac: ${{ steps.changes.outputs.mac }}
       win: ${{ steps.changes.outputs.win }}
     steps:
@@ -126,6 +127,25 @@ jobs:
           printf 'Checking %s\n' "${files[@]}"
           bash -n "${files[@]}"
 
+  ubg_verify:
+    name: Ubuntu GNOME Verify lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.ubg_verify == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir --user "jsonschema[format-nongpl]==4.26.0"
+      - name: Run Ubuntu GNOME Verify lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/verify/ubg
+          -p 'test_*.py'
+          -v
+
   macos:
     name: macOS Zsh syntax
     needs: changes
@@ -195,6 +215,7 @@ jobs:
       - cvd
       - cvd_verify
       - linux
+      - ubg_verify
       - macos
       - windows
     runs-on: ubuntu-24.04
@@ -207,6 +228,7 @@ jobs:
           CVD_RESULT: ${{ needs.cvd.result }}
           CVD_VERIFY_RESULT: ${{ needs.cvd_verify.result }}
           LINUX_RESULT: ${{ needs.linux.result }}
+          UBG_VERIFY_RESULT: ${{ needs.ubg_verify.result }}
           MACOS_RESULT: ${{ needs.macos.result }}
           WINDOWS_RESULT: ${{ needs.windows.result }}
         shell: bash
@@ -220,6 +242,7 @@ jobs:
             "cvd:$CVD_RESULT" \
             "cvd-verify:$CVD_VERIFY_RESULT" \
             "linux:$LINUX_RESULT" \
+            "ubg-verify:$UBG_VERIFY_RESULT" \
             "macos:$MACOS_RESULT" \
             "windows:$WINDOWS_RESULT"
           do

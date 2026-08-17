@@ -29,6 +29,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "cvd": False,
         "cvd_verify": False,
         "nix": False,
+        "ubg_verify": False,
         "mac": False,
         "win": False,
     }
@@ -43,7 +44,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         if posix == ".github/workflows/ci.yml" or posix.startswith("tests/ci/"):
             return {name: True for name in flags}
         # Controlled manifest/schema changes affect every platform contract and
-        # the behavioral CVD Verify contract.
+        # the behavioral Verify contracts.
         if posix in {
             "scripts/.manifest/it140_manifest.json",
             "scripts/.manifest/it140_manifest.schema.json",
@@ -53,11 +54,23 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["manifest"] = True
             flags["cvd"] = True
             flags["cvd_verify"] = True
-        elif posix.startswith("tests/lifecycle/"):
+        elif posix == "tests/lifecycle/README.md" or posix.startswith("tests/lifecycle/common/"):
             flags["cvd_verify"] = True
+            flags["ubg_verify"] = True
+        elif posix.startswith("tests/lifecycle/verify/cvd/"):
+            flags["cvd_verify"] = True
+        elif posix.startswith("tests/lifecycle/verify/ubg/"):
+            flags["ubg_verify"] = True
+        elif posix.startswith("tests/lifecycle/"):
+            # Unknown/shared lifecycle test infrastructure should exercise every
+            # behavioral Verify suite until it receives explicit routing.
+            flags["cvd_verify"] = True
+            flags["ubg_verify"] = True
         elif posix.startswith("scripts/nix/"):
             flags["manifest"] = True
             flags["nix"] = True
+            if posix == "scripts/nix/ubg/verify_ubg.sh":
+                flags["ubg_verify"] = True
         elif posix.startswith("scripts/mac/"):
             flags["manifest"] = True
             flags["mac"] = True

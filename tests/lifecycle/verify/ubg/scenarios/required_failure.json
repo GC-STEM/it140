@@ -1,0 +1,19 @@
+{
+  "id": "ubg-verify-required-failure",
+  "arguments": [
+    "--skip-network"
+  ],
+  "mock_overrides": {
+    "gh_auth": false
+  },
+  "expected": {
+    "exit_code": 1,
+    "result": "NOT COMPLIANT",
+    "checks": {
+      "verify.github_auth": "FAIL"
+    },
+    "remediation_contains": [
+      "Run config_ubg.sh"
+    ]
+  }
+}

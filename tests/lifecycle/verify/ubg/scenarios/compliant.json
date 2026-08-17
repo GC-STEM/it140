@@ -1,0 +1,19 @@
+{
+  "id": "ubg-verify-compliant",
+  "arguments": [
+    "--skip-network"
+  ],
+  "expected": {
+    "exit_code": 0,
+    "result": "COMPLIANT",
+    "checks": {
+      "verify.manifest": "PASS",
+      "verify.os": "PASS",
+      "verify.network": "WARNING",
+      "verify.github_auth": "PASS",
+      "verify.repository_workspace": "PASS",
+      "verify.repository_workspace_marker": "PASS"
+    },
+    "failed": 0
+  }
+}

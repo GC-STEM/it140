@@ -1,0 +1,16 @@
+{
+  "id": "ubg-verify-manifest-failure",
+  "arguments": [
+    "--skip-network"
+  ],
+  "fixture_overrides": {
+    "manifest": "malformed"
+  },
+  "expected": {
+    "exit_code": 5,
+    "result": "NOT COMPLIANT",
+    "checks": {
+      "verify.manifest": "FAIL"
+    }
+  }
+}

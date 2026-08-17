@@ -48,6 +48,17 @@ REQUIRED_FILES = (
     "tests/lifecycle/verify/cvd/scenarios/required_failure.json",
     "tests/lifecycle/verify/cvd/scenarios/manifest_failure.json",
     "tests/lifecycle/verify/cvd/scenarios/unsupported.json",
+    "tests/lifecycle/verify/ubg/runner_ubg.py",
+    "tests/lifecycle/verify/ubg/test_verify_ubg.py",
+    "tests/lifecycle/verify/ubg/mocks/mock_command.py",
+    "tests/lifecycle/verify/ubg/fixtures/base/home/.bashrc",
+    "tests/lifecycle/verify/ubg/fixtures/base/home/.profile",
+    "tests/lifecycle/verify/ubg/fixtures/base/home/Repos/student-work/do_not_touch.py",
+    "tests/lifecycle/verify/ubg/fixtures/base/system/etc/os-release",
+    "tests/lifecycle/verify/ubg/scenarios/compliant.json",
+    "tests/lifecycle/verify/ubg/scenarios/required_failure.json",
+    "tests/lifecycle/verify/ubg/scenarios/manifest_failure.json",
+    "tests/lifecycle/verify/ubg/scenarios/unsupported.json",
 )
 
 
