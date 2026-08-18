@@ -17,10 +17,8 @@
 # Student-data boundary: this script may create ~/Repos and manage metadata on
 # that parent plus course-owned desktop integrations. It never recursively
 # enumerates, deletes, moves, chmods, chowns, cleans, or rewrites its children.
-
 set -Eeuo pipefail
 umask 077
-
 readonly SCRIPT_VERSION="0.10.0-beta.1"
 readonly VERSION_DTG="2026-08-09-23-59"
 readonly DEVELOPMENT_STATUS="Beta Testing"
@@ -41,7 +39,6 @@ readonly -a CVD_BASELINE_DESKTOP_LAUNCHERS=("it140.desktop" "GitHub Login.deskto
 readonly MANAGED_PATH_START="# >>> IT 140 managed PATH >>>"
 readonly MANAGED_PATH_END="# <<< IT 140 managed PATH <<<"
 readonly MANAGED_PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/cvd:$PATH"'
-
 readonly EXIT_SUCCESS=0
 readonly EXIT_FAILURE=1
 readonly EXIT_UNSUPPORTED=2
@@ -50,7 +47,6 @@ readonly EXIT_EXTERNAL=4
 readonly EXIT_MANIFEST=5
 readonly EXIT_CANCELED=6
 readonly EXIT_PARTIAL=7
-
 NONINTERACTIVE=false
 REQUESTED_PROFILE="$DEPLOYMENT_PROFILE_ID"
 CHANGED=false
@@ -67,7 +63,6 @@ GITHUB_ACCOUNT_ID=""
 GIT_DISPLAY_NAME=""
 GIT_PRIVATE_EMAIL=""
 VSCODE_LAUNCHER=""
-
 print_header() {
     printf '\n============================================================\n'
     printf '%s\n' "$1"
@@ -78,7 +73,6 @@ print_success() { printf '[SUCCESS] %s\n' "$1"; }
 print_notice() { printf '[NOTICE] %s\n' "$1"; }
 print_warning() { printf '[WARNING] %s\n' "$1"; WARNINGS=$((WARNINGS + 1)); }
 print_error() { printf '[ERROR] %s\n' "$1" >&2; }
-
 usage() {
     cat <<USAGE
 Usage: configure_it140.sh [--help] [--version] [--noninteractive]
@@ -87,7 +81,6 @@ Usage: configure_it140.sh [--help] [--version] [--noninteractive]
 Configures or repairs the current user's IT 140 CVD environment. Run as the
 standard desktop user, not with sudo. The script creates ~/Repos as the student
 repository workspace but never changes repositories stored inside it.
-
 Exit codes:
   0  Completed successfully
   1  Required operation or precondition failed
@@ -101,7 +94,6 @@ Exit codes:
 Logs: ~/it140/logs/
 USAGE
 }
-
 parse_options() {
     while (($#)); do
         case "$1" in
@@ -121,7 +113,6 @@ parse_options() {
         shift
     done
 }
-
 resolve_failure_code() {
     local requested="$1"
     case "$requested" in
@@ -131,12 +122,10 @@ resolve_failure_code() {
         *) [[ "$CHANGED" == true ]] && printf '%s\n' "$EXIT_PARTIAL" || printf '%s\n' "$EXIT_FAILURE" ;;
     esac
 }
-
 course_continuity_guidance() {
     print_notice "This issue affects the Codio Virtual Desktop (CVD)."
     print_notice "Follow the remediation above. If it continues, contact course support and include the log file."
 }
-
 finish() {
     local requested_code="${1:-0}" message="${2:-}" exit_code result next_step elapsed
     [[ "$FINALIZED" == false ]] || return "$requested_code"
@@ -176,32 +165,32 @@ finish() {
     print_notice "Open a new Terminal before running another IT 140 script."
     return "$exit_code"
 }
-
 fatal() {
     local requested_code="$1"; shift
+    local exit_code=0
     FAILURES=$((FAILURES + 1))
     print_error "$*"
     print_error "Failed stage: $CURRENT_STAGE"
-    finish "$requested_code" "$*"
-    exit $?
+    finish "$requested_code" "$*" || exit_code=$?
+    exit "$exit_code"
 }
 
 on_error() {
     local status=$? line=${BASH_LINENO[0]:-unknown}
+    local exit_code=0
     trap - ERR
     FAILURES=$((FAILURES + 1))
     print_error "Configuration stopped near line ${line} during ${CURRENT_STAGE} (status ${status})."
-    finish "$EXIT_FAILURE" "An unexpected command failure stopped Configure."
-    exit $?
+    finish "$EXIT_FAILURE" "An unexpected command failure stopped Configure." || exit_code=$?
+    exit "$exit_code"
 }
-
 on_interrupt() {
+    local exit_code=0
     trap - INT TERM
     print_error "Configuration was interrupted during ${CURRENT_STAGE}."
-    finish "$EXIT_CANCELED" "Configure was interrupted; rerun it to recover."
-    exit $?
+    finish "$EXIT_CANCELED" "Configure was interrupted; rerun it to recover." || exit_code=$?
+    exit "$exit_code"
 }
-
 validate_manifest() {
     python3 - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" "$REQUESTED_PROFILE" "$SUPPORTED_SCHEMA" <<'PY'
 import json, pathlib, sys
@@ -237,7 +226,6 @@ else:
 print(f"{manifest['automation_release']}\t{manifest.get('automation_release_date_time_group') or manifest.get('automation_release_date') or 'unavailable'}")
 PY
 }
-
 manifest_query() {
     local query="$1"
     python3 - "$MANIFEST_PATH" "$PLATFORM_ID" "$query" <<'PY'
@@ -283,20 +271,30 @@ else:
     raise SystemExit(f"unsupported manifest query: {query}")
 PY
 }
-
 retry_operation() {
+    local capture_var=""
+    if [[ "${1:-}" == "--capture-var" ]]; then
+        capture_var="$2"
+        shift 2
+    fi
     local description="$1"; shift
-    local retry_data attempts delay multiplier maximum_delay attempt
+    local retry_data attempts delay multiplier maximum_delay attempt command_output=""
     retry_data="$(manifest_query retry_profile 2>/dev/null || printf '5\t5\t2\t60')"
     IFS=$'\t' read -r attempts delay multiplier maximum_delay <<< "$retry_data"
     for ((attempt=1; attempt<=attempts; attempt++)); do
-        if "$@"; then return 0; fi
+        if [[ -n "$capture_var" ]]; then
+            if command_output="$("$@")"; then
+                printf -v "$capture_var" '%s' "$command_output"
+                return 0
+            fi
+        elif "$@"; then
+            return 0
+        fi
         if ((attempt == attempts)); then print_error "$description failed after $attempts attempts."; return 1; fi
         print_warning "$description failed on attempt $attempt of $attempts; retrying in $delay seconds." >&2
         sleep "$delay"; delay=$((delay * multiplier)); ((delay > maximum_delay)) && delay="$maximum_delay"
     done
 }
-
 check_platform_and_user() {
     CURRENT_STAGE="execution-context validation"
     ((EUID != 0)) || fatal "$EXIT_UNSUPPORTED" "Do not run configure_it140.sh with sudo; personal settings must belong to the standard CVD account."
@@ -314,12 +312,10 @@ check_platform_and_user() {
     print_info "Operating system: ${PRETTY_NAME:-Ubuntu 24.04}"
     print_info "Architecture    : $architecture"
 }
-
 check_restart_precondition() {
     CURRENT_STAGE="restart precondition validation"
     [[ ! -e /var/run/reboot-required ]] || fatal "$EXIT_FAILURE" "Ubuntu requires a CVD restart. Restart the CVD before running Configure."
 }
-
 check_system_layer() {
     CURRENT_STAGE="system-layer validation"
     local command_name failed=false
@@ -330,7 +326,6 @@ check_system_layer() {
     command -v python3.12 >/dev/null 2>&1 || { print_error "Required system command is missing: python3.12"; failed=true; }
     [[ "$failed" == false ]] || fatal "$EXIT_FAILURE" "The CVD system layer is incomplete. Rerun update_it140.sh before Configure."
 }
-
 acquire_lock() {
     CURRENT_STAGE="mutation-lock acquisition"
     command -v flock >/dev/null 2>&1 || { print_warning "flock is unavailable; concurrent lifecycle-script protection cannot be enforced."; return 0; }
@@ -338,7 +333,6 @@ acquire_lock() {
     exec 9>"$LOCK_FILE"
     flock --nonblock 9 || fatal "$EXIT_FAILURE" "Another IT 140 mutating lifecycle script is running."
 }
-
 upsert_managed_path_block() {
     local file="$1"
     python3 - "$file" <<'PY'
@@ -362,7 +356,6 @@ finally:
     tmp.unlink(missing_ok=True)
 PY
 }
-
 configure_paths_and_folders() {
     CURRENT_STAGE="course folders and PATH configuration"
     mkdir -p "$COURSE_ROOT" "$LOG_DIR" "$HOME/.cache"
@@ -374,7 +367,6 @@ configure_paths_and_folders() {
 }
 
 desktop_directory() { xdg-user-dir DESKTOP 2>/dev/null || printf '%s/Desktop\n' "$HOME"; }
-
 ensure_repository_workspace() {
     CURRENT_STAGE="repository workspace configuration"
     if [[ -e "$REPOS_ROOT" && ! -d "$REPOS_ROOT" ]]; then
@@ -382,7 +374,6 @@ ensure_repository_workspace() {
     fi
     if [[ ! -d "$REPOS_ROOT" ]]; then mkdir -- "$REPOS_ROOT"; CHANGED=true; fi
     [[ -w "$REPOS_ROOT" ]] || fatal "$EXIT_FAILURE" "The repository workspace is not writable by the current user: $REPOS_ROOT"
-
     # Parent metadata only. Never recurse through student repositories. Preserve
     # any other emblems the user may already have applied to the workspace.
     local emblem_info emblem_values emblem_present=false i
@@ -405,7 +396,6 @@ ensure_repository_workspace() {
     fi
     gio info -a metadata::emblems "$REPOS_ROOT" 2>/dev/null | grep -Eq 'metadata::emblems:.*development' \
         || fatal "$EXIT_FAILURE" "The Xfce development emblem did not validate on $REPOS_ROOT."
-
     local desktop_dir shortcut
     desktop_dir="$(desktop_directory)"; mkdir -p -- "$desktop_dir"; shortcut="$desktop_dir/Repos"
     if [[ -L "$shortcut" ]]; then
@@ -419,14 +409,12 @@ ensure_repository_workspace() {
     fi
     print_success "The development repository workspace is available at $REPOS_ROOT."
 }
-
 numlock_is_on() {
     local status
     command -v numlockx >/dev/null 2>&1 || return 1
     status="$(numlockx status 2>&1)" || return 1
     grep -Eiq '(^|[[:space:]])on([[:space:]]|$)' <<< "$status"
 }
-
 configure_numlock_session() {
     CURRENT_STAGE="Num Lock session configuration"
     command -v numlockx >/dev/null 2>&1 \
@@ -442,7 +430,6 @@ configure_numlock_session() {
         || fatal "$EXIT_FAILURE" "Num Lock did not remain enabled after configuration."
     print_success "Num Lock is enabled in the current Xfce session."
 }
-
 remove_unwanted_baseline_desktop_launchers() {
     CURRENT_STAGE="CVD baseline desktop-launcher cleanup"
     local desktop_dir name path
@@ -459,7 +446,6 @@ remove_unwanted_baseline_desktop_launchers() {
         fi
     done
 }
-
 launcher_is_xfce_trusted() {
     local launcher="$1" current_checksum stored_checksum
     [[ -f "$launcher" && -x "$launcher" ]] || return 1
@@ -470,7 +456,6 @@ launcher_is_xfce_trusted() {
         | head -n 1)"
     [[ "$stored_checksum" == "$current_checksum" ]]
 }
-
 find_vscode_launcher() {
     local desktop_dir candidate
     desktop_dir="$(desktop_directory)"; [[ -d "$desktop_dir" ]] || return 1
@@ -482,7 +467,6 @@ find_vscode_launcher() {
     done < <(find "$desktop_dir" -maxdepth 1 -type f -name '*.desktop' -print0)
     return 1
 }
-
 repair_vscode_launcher() {
     CURRENT_STAGE="Visual Studio Code desktop-launcher repair"
     local launcher code_path
@@ -520,7 +504,6 @@ PY
         desktop-file-validate "$launcher" \
             || fatal "$EXIT_FAILURE" "The repaired Visual Studio Code launcher failed desktop-entry validation."
     fi
-
     # Xfce/Thunar trusts launchers by storing the SHA-256 checksum of the
     # completed .desktop file in metadata::xfce-exe-checksum. Set trust only
     # after all content changes so the stored checksum cannot immediately stale.
@@ -534,11 +517,9 @@ PY
         || fatal "$EXIT_FAILURE" "The Visual Studio Code launcher could not be marked trusted by Xfce."
     launcher_is_xfce_trusted "$launcher" \
         || fatal "$EXIT_FAILURE" "The Visual Studio Code launcher trust metadata did not validate."
-
     VSCODE_LAUNCHER="$launcher"; CHANGED=true
     print_success "The existing Visual Studio Code desktop launcher now opens $REPOS_ROOT and is trusted by Xfce."
 }
-
 remove_obsolete_course_folder_shortcut() {
     CURRENT_STAGE="obsolete course-folder shortcut cleanup"
     local shortcut desktop_dir target
@@ -548,7 +529,6 @@ remove_obsolete_course_folder_shortcut() {
         if [[ "$target" == "$(readlink -f -- "$COURSE_ROOT")" ]]; then rm -- "$shortcut"; CHANGED=true; print_success "Removed the obsolete course-folder desktop link."; fi
     fi
 }
-
 resolve_provider_identity() {
     CURRENT_STAGE="GitHub authentication and identity resolution"
     if ! gh auth status --hostname github.com >/dev/null 2>&1; then
@@ -561,8 +541,8 @@ resolve_provider_identity() {
         gh auth login --hostname github.com --git-protocol https --web --clipboard || fatal "$EXIT_EXTERNAL" "GitHub authentication did not complete."
         CHANGED=true
     fi
-    local identity_json template
-    identity_json="$(retry_operation "GitHub account lookup" gh api user --jq '{id: .id, login: .login, name: .name}')" \
+    local identity_json="" template
+    retry_operation --capture-var identity_json "GitHub account lookup" gh api user --jq '{id: .id, login: .login, name: .name}' \
         || fatal "$EXIT_EXTERNAL" "The authenticated GitHub account could not be read."
     IFS=$'\t' read -r GITHUB_ACCOUNT_ID GITHUB_LOGIN GIT_DISPLAY_NAME < <(python3 - "$identity_json" <<'PY'
 import json,sys
@@ -584,7 +564,6 @@ PY
     GIT_PRIVATE_EMAIL="${template//\$\{ACCOUNT_ID\}/$GITHUB_ACCOUNT_ID}"; GIT_PRIVATE_EMAIL="${GIT_PRIVATE_EMAIL//\$\{USERNAME\}/$GITHUB_LOGIN}"
     [[ "$GIT_PRIVATE_EMAIL" == *@users.noreply.github.com ]] || fatal "$EXIT_MANIFEST" "The provider private-email template produced an invalid result."
 }
-
 configure_python_tools() {
     CURRENT_STAGE="course Python environment configuration"
     local -a packages=(); mapfile -t packages < <(manifest_query venv_packages)
@@ -595,7 +574,6 @@ configure_python_tools() {
         || fatal "$EXIT_EXTERNAL" "Required course Python tools could not be configured."
     CHANGED=true
 }
-
 configure_vscode_extensions() {
     CURRENT_STAGE="Visual Studio Code extension configuration"
     local extension
@@ -606,7 +584,6 @@ configure_vscode_extensions() {
         CHANGED=true
     done < <(manifest_query extensions)
 }
-
 configure_git_settings() {
     CURRENT_STAGE="Git configuration"
     local key value
@@ -614,7 +591,6 @@ configure_git_settings() {
     while IFS=$'\t' read -r key value; do [[ -n "$key" ]] || continue; git config --global "$key" "$value"; done < <(manifest_query git_settings)
     CHANGED=true
 }
-
 configure_vscode_settings() {
     CURRENT_STAGE="Visual Studio Code settings configuration"
     local settings_dir="$HOME/.config/Code/User" settings_file settings_json
@@ -641,13 +617,11 @@ finally: tmp.unlink(missing_ok=True)
 PY
     CHANGED=true
 }
-
 configure_file_associations() {
     CURRENT_STAGE="file-association configuration"
     command -v xdg-mime >/dev/null 2>&1 && xdg-mime default code.desktop text/x-python >/dev/null 2>&1 \
         || print_warning "The optional Python file association could not be updated."
 }
-
 launcher_opens_repos_root() {
     local launcher="$1"
     python3 - "$launcher" "$REPOS_ROOT" <<'PY'
@@ -664,7 +638,6 @@ if not args or pathlib.Path(args[0]).name != "code" or workspace not in args: ra
 if path_value != workspace: raise SystemExit(1)
 PY
 }
-
 validate_configuration() {
     CURRENT_STAGE="configuration validation"
     local key expected actual package extension installed_extensions desktop_dir shortcut marker name path
@@ -678,7 +651,6 @@ validate_configuration() {
     while IFS= read -r package; do [[ -n "$package" ]] || continue; "$VENV_DIR/bin/python" -m pip show "$package" >/dev/null 2>&1 || fatal "$EXIT_FAILURE" "Required Python package is missing after configuration: $package"; done < <(manifest_query venv_packages)
     installed_extensions="$(code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')"
     while IFS= read -r extension; do [[ -n "$extension" ]] || continue; grep -Fqx "${extension,,}" <<< "$installed_extensions" || fatal "$EXIT_FAILURE" "Required VS Code extension is missing after configuration: $extension"; done < <(manifest_query extensions)
-
     [[ -d "$REPOS_ROOT" && -w "$REPOS_ROOT" ]] || fatal "$EXIT_FAILURE" "The repository workspace is unavailable after configuration."
     desktop_dir="$(desktop_directory)"; shortcut="$desktop_dir/Repos"
     [[ -L "$shortcut" && "$(readlink -f -- "$shortcut")" == "$(readlink -f -- "$REPOS_ROOT")" ]] || fatal "$EXIT_FAILURE" "The desktop Repos link does not target $REPOS_ROOT."
@@ -693,13 +665,11 @@ validate_configuration() {
     numlock_is_on || fatal "$EXIT_FAILURE" "Num Lock is not enabled in the current Xfce session."
     print_success "Required user configuration passed post-configuration validation."
 }
-
 main() {
     parse_options "$@"
     mkdir -p "$LOG_DIR"; chmod 0700 "$LOG_DIR"; touch "$LOG_FILE"; chmod 0600 "$LOG_FILE"
     exec > >(tee -a "$LOG_FILE") 2>&1
     trap on_error ERR; trap on_interrupt INT TERM
-
     print_header "IT 140 CODIO VIRTUAL DESKTOP CONFIGURE"
     print_info "Script version : $SCRIPT_VERSION"
     print_info "Version DTG    : $VERSION_DTG"
@@ -710,7 +680,6 @@ main() {
     print_info "Repository root: $REPOS_ROOT"
     print_info "Log file       : $LOG_FILE"
     print_notice "Keep this Terminal open until the final summary appears."
-
     check_platform_and_user
     CURRENT_STAGE="controlled manifest validation"
     local manifest_info
@@ -733,5 +702,4 @@ main() {
     validate_configuration
     finish "$EXIT_SUCCESS" "Required user configuration and repository-workspace operations completed."
 }
-
 main "$@"

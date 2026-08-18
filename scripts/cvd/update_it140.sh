@@ -17,10 +17,8 @@
 # User-data boundary: Update may inspect the shallow state of ~/Repos and
 # course-managed desktop integrations only to choose the correct next lifecycle
 # step. It never modifies ~/Repos or any repository stored inside it.
-
 set -Eeuo pipefail
 umask 077
-
 readonly SCRIPT_VERSION="0.10.0-beta.1"
 readonly VERSION_DTG="2026-08-09-23-59"
 readonly DEVELOPMENT_STATUS="Beta Testing"
@@ -45,7 +43,6 @@ readonly MANAGED_PATH_START="# >>> IT 140 managed PATH >>>"
 readonly MANAGED_PATH_END="# <<< IT 140 managed PATH <<<"
 readonly MANAGED_PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/cvd:$PATH"'
 readonly -a CVD_BASELINE_DESKTOP_LAUNCHERS=("it140.desktop" "GitHub Login.desktop" "OneDrive Login.desktop")
-
 readonly EXIT_SUCCESS=0
 readonly EXIT_FAILURE=1
 readonly EXIT_UNSUPPORTED=2
@@ -54,7 +51,6 @@ readonly EXIT_EXTERNAL=4
 readonly EXIT_MANIFEST=5
 readonly EXIT_CANCELED=6
 readonly EXIT_PARTIAL=7
-
 NONINTERACTIVE=false
 REQUESTED_PROFILE="$DEPLOYMENT_PROFILE_ID"
 CHANGED=false
@@ -70,7 +66,6 @@ STAGING_ROOT=""
 MANIFEST_RELEASE="unavailable"
 MANIFEST_DTG="unavailable"
 FINALIZED=false
-
 print_header() {
     printf '\n============================================================\n'
     printf '%s\n' "$1"
@@ -81,7 +76,6 @@ print_success() { printf '[SUCCESS] %s\n' "$1"; }
 print_notice() { printf '[NOTICE] %s\n' "$1"; }
 print_warning() { printf '[WARNING] %s\n' "$1"; WARNINGS=$((WARNINGS + 1)); }
 print_error() { printf '[ERROR] %s\n' "$1" >&2; }
-
 usage() {
     cat <<USAGE
 Usage: update_it140.sh [--help] [--version] [--noninteractive]
@@ -90,7 +84,6 @@ Usage: update_it140.sh [--help] [--version] [--noninteractive]
 Maintains the approved IT 140 Codio Virtual Desktop on Ubuntu 24.04. Run as
 its standard desktop user, not with sudo. A successful update may require a
 CVD restart before another lifecycle script is run.
-
 Exit codes:
   0  Completed successfully
   1  Required operation failed
@@ -104,7 +97,6 @@ Exit codes:
 Logs: ~/it140/logs/
 USAGE
 }
-
 parse_options() {
     while (($#)); do
         case "$1" in
@@ -136,14 +128,12 @@ parse_options() {
         shift
     done
 }
-
 cleanup() {
     if [[ -n "${STAGING_ROOT:-}" && -d "$STAGING_ROOT" ]]; then
         rm -rf -- "$STAGING_ROOT"
     fi
     STAGING_ROOT=""
 }
-
 resolve_failure_code() {
     local requested="$1"
     case "$requested" in
@@ -158,7 +148,6 @@ resolve_failure_code() {
             ;;
     esac
 }
-
 course_continuity_guidance() {
     print_notice "This issue affects the Codio Virtual Desktop (CVD)."
     print_notice "Rerun update_it140.sh no more than once after a failure."
@@ -166,7 +155,6 @@ course_continuity_guidance() {
     print_notice "Include this log file with the support request: $LOG_FILE"
     print_notice "Do not use manual sudo, APT, or file-repair commands unless course support directs you to do so."
 }
-
 summary_guidance() {
     local exit_code="$1"
     if [[ "$RESTART_REQUIRED" == true ]]; then
@@ -179,7 +167,6 @@ summary_guidance() {
         printf 'Open a fresh Terminal and run configure_it140.sh.'
     fi
 }
-
 finish() {
     local requested_code="${1:-0}"
     local message="${2:-}"
@@ -229,32 +216,33 @@ finish() {
     print_notice "Review the summary and log before closing this Terminal."
     return "$exit_code"
 }
-
 fatal() {
     local requested_code="$1"
     shift
+    local exit_code=0
     FAILURES=$((FAILURES + 1))
     print_error "$*"
     print_error "Failed stage: $CURRENT_STAGE"
-    finish "$requested_code" "$*"
-    exit $?
+    finish "$requested_code" "$*" || exit_code=$?
+    exit "$exit_code"
 }
 
 on_error() {
     local status=$?
     local line=${BASH_LINENO[0]:-unknown}
+    local exit_code=0
     trap - ERR
     FAILURES=$((FAILURES + 1))
     print_error "Update stopped near line ${line} during ${CURRENT_STAGE} (status ${status})."
-    finish "$EXIT_FAILURE" "An unexpected command failure stopped Update."
-    exit $?
+    finish "$EXIT_FAILURE" "An unexpected command failure stopped Update." || exit_code=$?
+    exit "$exit_code"
 }
-
 on_interrupt() {
+    local exit_code=0
     trap - INT TERM
     print_error "Update was interrupted during ${CURRENT_STAGE}."
-    finish "$EXIT_CANCELED" "Update was interrupted; rerun it to recover."
-    exit $?
+    finish "$EXIT_CANCELED" "Update was interrupted; rerun it to recover." || exit_code=$?
+    exit "$exit_code"
 }
 
 validate_manifest_pair() {
@@ -266,7 +254,6 @@ import pathlib
 import sys
 
 manifest_path, schema_path, platform_id, profile_id, supported_schema = sys.argv[1:]
-
 class DuplicateKeyError(ValueError):
     pass
 
@@ -277,7 +264,6 @@ def no_duplicates(pairs):
             raise DuplicateKeyError(f"duplicate key: {key}")
         result[key] = value
     return result
-
 try:
     manifest = json.loads(
         pathlib.Path(manifest_path).read_text(encoding="utf-8"),
@@ -289,7 +275,6 @@ try:
     )
 except (OSError, UnicodeError, json.JSONDecodeError, DuplicateKeyError) as exc:
     raise SystemExit(f"controlled JSON validation failed: {exc}")
-
 required = {
     "schema_version", "automation_release", "automation_release_date_time_group", "course",
     "control", "policy", "capabilities", "products", "software_sources", "platforms",
@@ -308,14 +293,12 @@ if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
     raise SystemExit("schema is not the approved Draft 2020-12 format")
 if manifest.get("policy", {}).get("allow_os_release_upgrade") is not False:
     raise SystemExit("manifest attempts to allow an operating-system release upgrade")
-
 platform = manifest["platforms"].get(platform_id)
 profile = manifest["deployment_profiles"].get(profile_id)
 if not platform or not platform.get("enabled"):
     raise SystemExit("CVD platform is missing or disabled")
 if not profile or not profile.get("enabled") or profile.get("platform_id") != platform_id:
     raise SystemExit("CVD deployment profile is invalid")
-
 required_workflows = {
     "cvd_provider_baseline_administrator",
     "cvd_course_master_student",
@@ -328,7 +311,6 @@ for workflow_id in required_workflows:
     workflow = manifest["lifecycle_workflows"].get(workflow_id)
     if not workflow or profile_id not in workflow.get("deployment_profile_ids", []):
         raise SystemExit(f"invalid CVD workflow binding: {workflow_id}")
-
 required_packages = {
     "fonts_noto_color_emoji": "fonts-noto-color-emoji",
     "numlockx": "numlockx",
@@ -343,7 +325,6 @@ for package_id, package_identifier in sorted(required_packages.items()):
     if (not package.get("required") or
             package.get("package_identifier") != package_identifier):
         raise SystemExit(f"CVD package definition is invalid: {package_id}")
-
 try:
     import jsonschema  # type: ignore
 except ImportError:
@@ -360,7 +341,6 @@ version_dtg = (
 print(f"{manifest['automation_release']}\t{version_dtg}")
 PY
 }
-
 manifest_query() {
     local query="$1"
     python3 - "$MANIFEST_PATH" "$PLATFORM_ID" "$query" <<'PY'
@@ -413,7 +393,6 @@ else:
     raise SystemExit(f"unsupported manifest query: {query}")
 PY
 }
-
 retry_operation() {
     local description="$1"
     shift
@@ -434,7 +413,6 @@ retry_operation() {
         ((delay > maximum_delay)) && delay="$maximum_delay"
     done
 }
-
 check_platform_and_user() {
     CURRENT_STAGE="execution-context validation"
     if [[ "$EUID" -eq 0 ]]; then
@@ -461,7 +439,6 @@ check_platform_and_user() {
     print_info "Operating system: ${PRETTY_NAME:-Ubuntu 24.04}"
     print_info "Architecture    : $architecture"
 }
-
 acquire_lock() {
     CURRENT_STAGE="mutation-lock acquisition"
     command -v flock >/dev/null 2>&1 || {
@@ -473,7 +450,6 @@ acquire_lock() {
     exec 9>"$LOCK_FILE"
     flock --nonblock 9 || fatal "$EXIT_FAILURE" "Another IT 140 mutating lifecycle script is running."
 }
-
 check_prerequisites() {
     CURRENT_STAGE="prerequisite validation"
     local minimum available command_name
@@ -490,7 +466,6 @@ check_prerequisites() {
         print_notice "Visual Studio Code is open. Close and reopen it after Update."
     fi
 }
-
 refresh_controlled_manifest_assets() {
     CURRENT_STAGE="controlled manifest refresh"
     local archive_path stage_dir source_root candidate_manifest candidate_schema candidate_info validated obsolete
@@ -543,7 +518,6 @@ refresh_controlled_manifest_assets() {
         fi
     done
 }
-
 package_version() {
     dpkg-query -W -f='${Version}' "$1" 2>/dev/null || true
 }
@@ -560,13 +534,11 @@ emoji_font_file() {
     fc-list : family file 2>/dev/null \
         | awk -F: -v family="$EMOJI_FAMILY" 'index($0, family) {print $1; exit}'
 }
-
 emoji_font_file_discoverable() {
     local font_file
     font_file="$(emoji_font_file || true)"
     [[ -n "$font_file" && -r "$font_file" ]]
 }
-
 rebuild_font_cache() {
     CURRENT_STAGE="font-cache maintenance"
     command -v fc-cache >/dev/null 2>&1 \
@@ -577,7 +549,6 @@ rebuild_font_cache() {
     CHANGED=true
     print_success "The system font cache was rebuilt."
 }
-
 update_system_packages() {
     CURRENT_STAGE="Ubuntu package maintenance"
     local emoji_before_version emoji_after_version
@@ -636,7 +607,6 @@ update_system_packages() {
     sudo apt-get clean \
         || print_warning "Optional package-cache cleanup did not complete."
 }
-
 repair_numlock_autostart() {
     CURRENT_STAGE="Num Lock startup integration maintenance"
     local staged_entry
@@ -667,7 +637,6 @@ EOF_NUMLOCK
             || fatal "$EXIT_FAILURE" "The Num Lock autostart desktop entry is invalid."
     fi
 }
-
 update_python_tools() {
     CURRENT_STAGE="course Python tool maintenance"
     local -a packages=()
@@ -694,7 +663,6 @@ update_python_tools() {
     fi
     print_success "Course Python tools are current."
 }
-
 update_vscode_extensions() {
     CURRENT_STAGE="Visual Studio Code extension maintenance"
     local extension
@@ -712,7 +680,6 @@ update_vscode_extensions() {
     done
     print_success "Required Visual Studio Code extensions are current."
 }
-
 has_managed_path_block() {
     local file="$1"
     [[ -r "$file" ]] || return 1
@@ -724,7 +691,6 @@ has_managed_path_block() {
 desktop_directory() {
     xdg-user-dir DESKTOP 2>/dev/null || printf '%s/Desktop\n' "$HOME"
 }
-
 find_vscode_launcher() {
     local desktop_dir candidate
     desktop_dir="$(desktop_directory)"
@@ -743,7 +709,6 @@ find_vscode_launcher() {
     done < <(find "$desktop_dir" -maxdepth 1 -type f -name '*.desktop' -print0)
     return 1
 }
-
 launcher_opens_repos_root() {
     local launcher="$1"
     python3 - "$launcher" "$REPOS_ROOT" "$COURSE_ROOT" <<'PY'
@@ -782,7 +747,6 @@ if workspace not in args or course_root in args or path_value != workspace:
     raise SystemExit(1)
 PY
 }
-
 launcher_is_xfce_trusted() {
     local launcher="$1" current_checksum stored_checksum
     [[ -f "$launcher" && -x "$launcher" ]] || return 1
@@ -793,14 +757,12 @@ launcher_is_xfce_trusted() {
         | head -n 1)"
     [[ "$stored_checksum" == "$current_checksum" ]]
 }
-
 numlock_is_on() {
     local status
     command -v numlockx >/dev/null 2>&1 || return 1
     status="$(numlockx status 2>&1)" || return 1
     grep -Eiq '(^|[[:space:]])on([[:space:]]|$)' <<< "$status"
 }
-
 repository_workspace_is_configured() {
     local desktop_dir shortcut marker name path
     [[ -d "$REPOS_ROOT" && -r "$REPOS_ROOT" && -x "$REPOS_ROOT" ]] || return 1
@@ -815,7 +777,6 @@ repository_workspace_is_configured() {
         [[ ! -e "$path" && ! -L "$path" ]] || return 1
     done
 }
-
 detect_user_configuration() {
     CURRENT_STAGE="user-configuration state detection"
     local launcher
@@ -836,7 +797,6 @@ detect_user_configuration() {
         || USER_CONFIGURATION_COMPLETE=false
     numlock_is_on || USER_CONFIGURATION_COMPLETE=false
 }
-
 post_update_checks() {
     CURRENT_STAGE="post-update verification"
     local command_name extension package installed_extensions
@@ -885,7 +845,6 @@ post_update_checks() {
     fi
     print_success "Post-update checks completed."
 }
-
 main() {
     parse_options "$@"
     mkdir -p "$LOG_DIR"
@@ -896,7 +855,6 @@ main() {
     trap on_error ERR
     trap on_interrupt INT TERM
     trap cleanup EXIT
-
     print_header "IT 140 CODIO VIRTUAL DESKTOP UPDATE"
     print_info "Script version : $SCRIPT_VERSION"
     print_info "Version DTG    : $VERSION_DTG"
@@ -906,7 +864,6 @@ main() {
     print_info "Log file       : $LOG_FILE"
     print_notice "Update will not upgrade Ubuntu to a different release."
     print_notice "Keep this Terminal open until the final summary appears."
-
     check_platform_and_user
     CURRENT_STAGE="local manifest validation"
     local manifest_info
@@ -927,7 +884,6 @@ main() {
     finish "$EXIT_SUCCESS" "Required update operations completed."
     exit $?
 }
-
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     main "$@"
 fi

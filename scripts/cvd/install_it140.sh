@@ -37,7 +37,6 @@ readonly EXIT_EXTERNAL=4
 readonly EXIT_MANIFEST=5
 readonly EXIT_CANCELED=6
 readonly EXIT_PARTIAL=7
-
 NONINTERACTIVE=false
 REQUESTED_PROFILE="$DEPLOYMENT_PROFILE_ID"
 CHANGED=false
@@ -70,7 +69,6 @@ usage() {
     cat <<USAGE
 Usage: install_it140.sh [--help] [--version] [--noninteractive]
                       [--deployment-profile codio_cvd]
-
 Installs or repairs the manifest-declared system layer for the IT 140 Codio
 Virtual Desktop. Run as the standard Codio user, not with sudo.
 Exit codes:
@@ -82,7 +80,6 @@ Exit codes:
   5  Manifest, schema, or controlled configuration invalid
   6  User canceled before a managed change
   7  Partial result or interruption after change
-
 Logs: ~/it140/logs/
 USAGE
 }
@@ -135,12 +132,10 @@ course_continuity_guidance() {
     print_notice "This issue affects the Codio Virtual Desktop (CVD)."
     print_notice "Follow the remediation above. If it continues, contact course support and include the log file."
 }
-
 finish() {
     local requested_code="${1:-0}"
     local message="${2:-}"
     local exit_code result elapsed next_step
-
     [[ "$FINALIZED" == false ]] || return "$requested_code"
     FINALIZED=true
     cleanup
@@ -182,31 +177,32 @@ finish() {
     print_notice "Review the summary and log before closing this Terminal."
     return "$exit_code"
 }
-
 fatal() {
     local requested_code="$1"
     shift
+    local exit_code=0
     FAILURES=$((FAILURES + 1))
     print_error "$*"
     print_error "Failed stage: $CURRENT_STAGE"
-    finish "$requested_code" "$*"
-    exit $?
+    finish "$requested_code" "$*" || exit_code=$?
+    exit "$exit_code"
 }
 on_error() {
     local status=$?
     local line=${BASH_LINENO[0]:-unknown}
+    local exit_code=0
     trap - ERR
     FAILURES=$((FAILURES + 1))
     print_error "Install stopped near line ${line} during ${CURRENT_STAGE} (status ${status})."
-    finish "$EXIT_FAILURE" "An unexpected command failure stopped Install."
-    exit $?
+    finish "$EXIT_FAILURE" "An unexpected command failure stopped Install." || exit_code=$?
+    exit "$exit_code"
 }
-
 on_interrupt() {
+    local exit_code=0
     trap - INT TERM
     print_error "Install was interrupted during ${CURRENT_STAGE}."
-    finish "$EXIT_CANCELED" "Install was interrupted; rerun it to recover."
-    exit $?
+    finish "$EXIT_CANCELED" "Install was interrupted; rerun it to recover." || exit_code=$?
+    exit "$exit_code"
 }
 validate_manifest() {
     python3 - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" \
@@ -216,7 +212,6 @@ import pathlib
 import sys
 
 manifest_path, schema_path, platform_id, profile_id, supported_schema = sys.argv[1:]
-
 class DuplicateKeyError(ValueError):
     pass
 def no_duplicates(pairs):
@@ -289,7 +284,6 @@ except ImportError:
 else:
     jsonschema.Draft202012Validator.check_schema(schema)
     jsonschema.Draft202012Validator(schema).validate(manifest)
-
 version_dtg = (
     manifest.get("automation_release_date_time_group")
     or manifest.get("automation_release_date")
@@ -303,7 +297,6 @@ manifest_values() {
     python3 - "$MANIFEST_PATH" "$PLATFORM_ID" "$query" <<'PY'
 import json
 import sys
-
 path, platform_id, query = sys.argv[1:]
 with open(path, encoding="utf-8") as stream:
     manifest = json.load(stream)
@@ -409,7 +402,6 @@ Components: main
 Architectures: $(dpkg --print-architecture)
 Signed-By: /usr/share/keyrings/microsoft.gpg
 EOF_REPO
-
     CHANGED=true
     print_success "Approved software repositories are configured."
 }
@@ -449,7 +441,6 @@ install_system_layer() {
     local -a system_packages=()
     apt_options=(-o Acquire::Retries=5 -o Dpkg::Options::=--force-confdef \
         -o Dpkg::Options::=--force-confold)
-
     emoji_before_version="$(package_version "$EMOJI_PACKAGE")"
     if emoji_font_resolves && emoji_font_file_discoverable; then
         emoji_before_healthy=true
@@ -461,7 +452,6 @@ install_system_layer() {
     sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l \
         apt-get "${apt_options[@]}" install -y ca-certificates curl gpg \
         || fatal "$EXIT_EXTERNAL" "Repository prerequisites could not be installed."
-
     config_vendor_repositories
     print_info "Applying supported Ubuntu 24.04 maintenance without a release upgrade."
     sudo apt-get -o Acquire::Retries=5 update \
@@ -478,7 +468,6 @@ install_system_layer() {
         apt-get "${apt_options[@]}" install -y -- "${system_packages[@]}" \
         || fatal "$EXIT_EXTERNAL" "One or more required system packages could not be installed or repaired."
     CHANGED=true
-
     emoji_after_version="$(package_version "$EMOJI_PACKAGE")"
     if [[ "$emoji_before_version" != "$emoji_after_version" ||
           "$emoji_before_healthy" != true ]] ||
@@ -498,7 +487,6 @@ install_system_layer() {
 configure_system_integrations() {
     CURRENT_STAGE="system integration configuration"
     print_info "Configuring system-level CVD integrations."
-
     sudo install -d -m 0755 /etc/xdg/autostart
     sudo tee "$NUMLOCK_AUTOSTART_PATH" >/dev/null <<'EOF_NUMLOCK'
 [Desktop Entry]
@@ -566,7 +554,6 @@ JSON_BOOKMARKS
         /etc/opt/chrome/policies/managed/it140_bookmarks.json
     python3 -m json.tool /etc/opt/chrome/policies/managed/it140_bookmarks.json >/dev/null \
         || fatal "$EXIT_FAILURE" "The managed Chrome bookmarks policy is invalid."
-
     CHANGED=true
     print_success "System-level CVD integrations are configured."
 }
@@ -589,13 +576,11 @@ post_validate() {
             failed=1
         fi
     done
-
     python3.12 - <<'PY' || failed=1
 import sys
 if sys.version_info[:2] != (3, 12):
     raise SystemExit("Python 3.12 is required")
 PY
-
     if ! emoji_font_resolves; then
         print_error "fc-match emoji does not resolve to $EMOJI_FAMILY."
         failed=1
@@ -630,10 +615,8 @@ PY
     fi
     print_success "System-layer verification passed."
 }
-
 main() {
     parse_options "$@"
-
     mkdir -p "$LOG_DIR"
     chmod 0700 "$LOG_DIR"
     touch "$LOG_FILE"
@@ -665,7 +648,6 @@ main() {
     install_system_layer
     configure_system_integrations
     post_validate
-
     trap - ERR INT TERM
     finish "$EXIT_SUCCESS" "Required installation operations completed."
     exit $?
