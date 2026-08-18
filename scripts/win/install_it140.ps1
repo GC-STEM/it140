@@ -64,6 +64,23 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
+# Test-only isolation seam used by tests/lifecycle/install/win/. Production
+# execution leaves these environment variables unset and follows normal
+# Windows APIs, WinGet state, native commands, and system-drive observations.
+$InstallTestMode = ([string]$env:IT140_INSTALL_TEST_MODE).Trim().ToLowerInvariant() -eq "true"
+$InstallTestStatePath = [string]$env:IT140_INSTALL_TEST_STATE
+$InstallTestState = $null
+if ($InstallTestMode) {
+    if (
+        [string]::IsNullOrWhiteSpace($InstallTestStatePath) -or
+        -not (Test-Path -LiteralPath $InstallTestStatePath -PathType Leaf)
+    ) {
+        throw "IT140_INSTALL_TEST_STATE must identify a readable JSON state file in test mode."
+    }
+    $InstallTestState = Get-Content -LiteralPath $InstallTestStatePath -Raw |
+        ConvertFrom-Json
+}
+
 $ScriptVersion = "0.10.0-beta.1"
 $VersionDate = "2026-08-09-23-59"
 $DevelopmentStatus = "Beta Testing"
@@ -84,8 +101,10 @@ $MutationMutex = $null
 $Changed = $false
 $RestartRequired = $false
 $WarningCount = 0
+$FailureCount = 0
 $ExitCode = 0
 $FailureExitCode = 1
+$Controlled = $null
 
 function Write-Header {
     param([Parameter(Mandatory = $true)][string]$Title)
@@ -156,6 +175,9 @@ function Write-ClosingNotice {
 }
 
 function Test-IsAdministrator {
+    if ($null -ne $InstallTestState) {
+        return [bool](Get-PropertyValue -Object $InstallTestState -Name "is_administrator")
+    }
     $Identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $Principal = [Security.Principal.WindowsPrincipal]::new($Identity)
     return $Principal.IsInRole(
@@ -164,6 +186,9 @@ function Test-IsAdministrator {
 }
 
 function Update-ProcessEnvironment {
+    if ($null -ne $InstallTestState) {
+        return
+    }
     $MachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
     $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
     $env:Path = @($MachinePath, $UserPath) -join ";"
@@ -183,6 +208,140 @@ function Get-PropertyValue {
         return $null
     }
     return $PropertyRecord.Value
+}
+
+function Save-InstallTestState {
+    if ($null -eq $InstallTestState) {
+        return
+    }
+    $Json = $InstallTestState | ConvertTo-Json -Depth 40
+    $Utf8NoBom = [Text.UTF8Encoding]::new($false)
+    [IO.File]::WriteAllText($InstallTestStatePath, "$Json`n", $Utf8NoBom)
+}
+
+function Set-InstallTestStateProperty {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        $Value
+    )
+    if ($null -eq $InstallTestState) {
+        return
+    }
+    $PropertyRecord = $InstallTestState.PSObject.Properties[$Name]
+    if ($null -eq $PropertyRecord) {
+        $InstallTestState | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
+    }
+    else {
+        $InstallTestState.$Name = $Value
+    }
+    Save-InstallTestState
+}
+
+function Add-InstallTestStateArrayValue {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Value
+    )
+    if ($null -eq $InstallTestState) {
+        return
+    }
+    [string[]]$Values = @(
+        Get-PropertyValue -Object $InstallTestState -Name $Name
+    ) | ForEach-Object { [string]$_ }
+    if ($Value -notin $Values) {
+        $Values += $Value
+        Set-InstallTestStateProperty -Name $Name -Value @($Values)
+    }
+}
+
+function Test-InstallCommandAvailable {
+    param([Parameter(Mandatory = $true)][string]$CommandName)
+    if ($null -ne $InstallTestState) {
+        if ($CommandName -ieq "winget.exe") {
+            return [bool](Get-PropertyValue -Object $InstallTestState -Name "winget_available")
+        }
+        [string[]]$Commands = @(
+            Get-PropertyValue -Object $InstallTestState -Name "available_commands"
+        ) | ForEach-Object { [string]$_ }
+        return $CommandName -in $Commands
+    }
+    return $null -ne (Get-Command $CommandName -ErrorAction SilentlyContinue)
+}
+
+function Get-InstallTestFailPoint {
+    param([Parameter(Mandatory = $true)][string]$Name)
+    if ($null -eq $InstallTestState) {
+        return $null
+    }
+    $FailPoints = Get-PropertyValue -Object $InstallTestState -Name "fail_points"
+    if ($null -eq $FailPoints) {
+        return $null
+    }
+    return Get-PropertyValue -Object $FailPoints -Name $Name
+}
+
+function Resolve-InstallExitCode {
+    param([Parameter(Mandatory = $true)][int]$RequestedExitCode)
+    if ($RequestedExitCode -in @(2, 3, 4, 5, 7)) {
+        return $RequestedExitCode
+    }
+    if ($RequestedExitCode -eq 6) {
+        if ($Changed) { return 7 }
+        return 6
+    }
+    if ($Changed) { return 7 }
+    return 1
+}
+
+function Write-InstallationSummary {
+    param(
+        [Parameter(Mandatory = $true)][string]$Conclusion,
+        [Parameter(Mandatory = $true)][int]$SummaryExitCode,
+        [Parameter(Mandatory = $true)][int]$Failures
+    )
+    $Result = if ($SummaryExitCode -eq 0) {
+        "PASS"
+    }
+    elseif ($SummaryExitCode -eq 7) {
+        "PARTIAL"
+    }
+    else {
+        "FAIL"
+    }
+    $ManifestRelease = "unavailable"
+    $ManifestDate = "unavailable"
+    if ($null -ne $Controlled -and $null -ne $Controlled.Manifest) {
+        $ManifestRelease = [string]$Controlled.Manifest.automation_release
+        $ManifestDate = [string]$Controlled.Manifest.automation_release_date_time_group
+    }
+    $Elapsed = (Get-Date) - $StartTime
+    $NextStep = if ($SummaryExitCode -eq 0) {
+        if ($RestartRequired) {
+            "Save your work, restart Windows, then run configure_it140.ps1."
+        }
+        else {
+            "Close this window, open a normal PowerShell window, and run configure_it140.ps1."
+        }
+    }
+    else {
+        "Resolve the reported issue, then rerun install_it140.ps1."
+    }
+    Write-Header "INSTALLATION SUMMARY"
+    Write-Host "Conclusion      : $Conclusion"
+    Write-Host "Result          : $Result"
+    Write-Host "Script version  : $ScriptVersion"
+    Write-Host "Version DTG     : $VersionDate"
+    Write-Host "Manifest release: $ManifestRelease"
+    Write-Host "Manifest DTG    : $ManifestDate"
+    Write-Host "Warnings        : $WarningCount"
+    Write-Host "Failures        : $Failures"
+    $ManagedChanges = if ($Changed) { "Yes" } else { "No" }
+    Write-Host "Managed changes : $ManagedChanges"
+    Write-Host ("Elapsed time    : {0:hh\:mm\:ss}" -f $Elapsed)
+    Write-Host "Next step       : $NextStep"
+    Write-Host "Log file        : $LogPath"
+    Write-Host "Exit code       : $SummaryExitCode"
+    Write-ClosingNotice
 }
 
 function Test-JsonDuplicateKey {
@@ -527,6 +686,13 @@ function Read-ControlledManifest {
 }
 
 function Get-OperatingSystemFact {
+    if ($null -ne $InstallTestState) {
+        $Facts = Get-PropertyValue -Object $InstallTestState -Name "windows_facts"
+        if ($null -eq $Facts) {
+            throw "Windows Install lifecycle test state is missing windows_facts."
+        }
+        return $Facts
+    }
     $CurrentVersion = Get-ItemProperty `
         -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
 
@@ -576,8 +742,8 @@ function Test-SupportedOperatingSystem {
     if ($IsWindows10) {
         if ($WindowsFacts.DisplayVersion -ne "22H2") {
             throw (
-                "Windows 10 release {0} is not enabled. Supported Windows 10 " +
-                "release: 22H2." -f $WindowsFacts.DisplayVersion
+                ("Windows 10 release {0} is not enabled. Supported Windows 10 " +
+                "release: 22H2.") -f $WindowsFacts.DisplayVersion
             )
         }
         return
@@ -588,8 +754,8 @@ function Test-SupportedOperatingSystem {
     )
     if ($WindowsFacts.DisplayVersion -notin $SupportedWindows11Releases) {
         throw (
-            "Windows 11 release {0} is not enabled. Supported Windows 11 " +
-            "releases: {1}" -f
+            ("Windows 11 release {0} is not enabled. Supported Windows 11 " +
+            "releases: {1}") -f
             $WindowsFacts.DisplayVersion,
             ($SupportedWindows11Releases -join ", ")
         )
@@ -597,6 +763,9 @@ function Test-SupportedOperatingSystem {
 }
 
 function Enter-MutationLock {
+    if ($null -ne $InstallTestState) {
+        return $null
+    }
     $CreatedNew = $false
     $Mutex = [Threading.Mutex]::new(
         $false,
@@ -644,6 +813,40 @@ function Invoke-ExternalCommand {
     )
 
     Write-Info $Operation
+    if ($null -ne $InstallTestState) {
+        $CommandKey = (($FilePath, ($ArgumentList -join " ")) -join " ").Trim()
+        $ExitCodes = Get-PropertyValue -Object $InstallTestState -Name "command_exit_codes"
+        if ($null -ne $ExitCodes) {
+            $ConfiguredExitCode = Get-PropertyValue -Object $ExitCodes -Name $CommandKey
+            if ($null -ne $ConfiguredExitCode -and [int]$ConfiguredExitCode -ne 0) {
+                throw "$Operation failed with exit code $ConfiguredExitCode."
+            }
+        }
+        if (
+            $FilePath -ieq "winget.exe" -and
+            $ArgumentList.Count -gt 0 -and
+            $ArgumentList[0] -eq "install"
+        ) {
+            $IdIndex = [Array]::IndexOf($ArgumentList, "--id")
+            if ($IdIndex -ge 0 -and ($IdIndex + 1) -lt $ArgumentList.Count) {
+                $PackageIdentifier = [string]$ArgumentList[$IdIndex + 1]
+                Add-InstallTestStateArrayValue -Name "winget_packages" -Value $PackageIdentifier
+                $MissingCapability = [string](Get-InstallTestFailPoint -Name "install_capability_missing")
+                if ($PackageIdentifier -ne $MissingCapability) {
+                    $PackageCommands = Get-PropertyValue -Object $InstallTestState -Name "package_commands"
+                    if ($null -ne $PackageCommands) {
+                        $Commands = Get-PropertyValue -Object $PackageCommands -Name $PackageIdentifier
+                        foreach ($CommandName in @($Commands)) {
+                            Add-InstallTestStateArrayValue `
+                                -Name "available_commands" `
+                                -Value ([string]$CommandName)
+                        }
+                    }
+                }
+            }
+        }
+        return
+    }
     & $FilePath @ArgumentList
     $CommandExitCode = $LASTEXITCODE
     if ($CommandExitCode -ne 0) {
@@ -787,8 +990,21 @@ function Install-WinGetFallback {
 }
 
 function Install-WinGet {
+    if ($null -ne $InstallTestState) {
+        if (Test-InstallCommandAvailable -CommandName "winget.exe") {
+            Write-Success "Windows Package Manager is available."
+            return
+        }
+        if ([bool](Get-InstallTestFailPoint -Name "winget_repair")) {
+            throw "Windows Package Manager repair failed in lifecycle test."
+        }
+        Set-InstallTestStateProperty -Name "winget_available" -Value $true
+        $script:Changed = $true
+        Write-Success "Windows Package Manager was installed successfully."
+        return
+    }
     Update-ProcessEnvironment
-    if ($null -ne (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+    if (Test-InstallCommandAvailable -CommandName "winget.exe") {
         Write-Success "Windows Package Manager is available."
         return
     }
@@ -807,7 +1023,7 @@ function Install-WinGet {
     }
 
     Update-ProcessEnvironment
-    if ($null -ne (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+    if (Test-InstallCommandAvailable -CommandName "winget.exe") {
         Write-Success "Windows Package Manager was registered successfully."
         return
     }
@@ -816,7 +1032,7 @@ function Install-WinGet {
     Install-WinGetFallback
     Update-ProcessEnvironment
 
-    if ($null -eq (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+    if (-not (Test-InstallCommandAvailable -CommandName "winget.exe")) {
         throw "Windows Package Manager is unavailable after the repair attempt."
     }
 
@@ -851,6 +1067,12 @@ function Get-SystemPackageBinding {
 function Test-WinGetPackageRecognized {
     param([Parameter(Mandatory = $true)][string]$PackageIdentifier)
 
+    if ($null -ne $InstallTestState) {
+        [string[]]$Packages = @(
+            Get-PropertyValue -Object $InstallTestState -Name "winget_packages"
+        ) | ForEach-Object { [string]$_ }
+        return $PackageIdentifier -in $Packages
+    }
     & winget.exe list `
         --id $PackageIdentifier `
         --exact `
@@ -864,12 +1086,15 @@ function Test-SystemPackageCapability {
     param([Parameter(Mandatory = $true)]$Binding)
 
     foreach ($ExecutableName in @($Binding.ExecutableNames)) {
-        if ($null -eq (Get-Command $ExecutableName -ErrorAction SilentlyContinue)) {
+        if (-not (Test-InstallCommandAvailable -CommandName ([string]$ExecutableName))) {
             return $false
         }
     }
 
     if ([string]$Binding.Role -eq "programming_language_runtime") {
+        if ($null -ne $InstallTestState) {
+            return [string](Get-PropertyValue -Object $InstallTestState -Name "python_version") -eq "3.12"
+        }
         $RuntimeExecutable = [string]@($Binding.ExecutableNames)[0]
         try {
             $PythonVersion = & $RuntimeExecutable -c (
@@ -976,12 +1201,12 @@ function Test-SystemLayer {
     $MissingCommands = @()
     foreach ($Binding in $Bindings) {
         foreach ($ExecutableName in @($Binding.ExecutableNames)) {
-            if ($null -eq (Get-Command $ExecutableName -ErrorAction SilentlyContinue)) {
+            if (-not (Test-InstallCommandAvailable -CommandName ([string]$ExecutableName))) {
                 $MissingCommands += [string]$ExecutableName
             }
         }
     }
-    if ($null -eq (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+    if (-not (Test-InstallCommandAvailable -CommandName "winget.exe")) {
         $MissingCommands += "winget.exe"
     }
     if ($MissingCommands.Count -gt 0) {
@@ -992,11 +1217,19 @@ function Test-SystemLayer {
         -Object $Platform.course_ide_bindings `
         -Name "programming_language_runtime"
     $RuntimeExecutable = [string]$RuntimeBinding.verification.executable_names[0]
-    $PythonVersion = & $RuntimeExecutable -c (
-        "import sys; print('.'.join(map(str, sys.version_info[:2])))"
-    )
-    if ($LASTEXITCODE -ne 0 -or [string]$PythonVersion -ne "3.12") {
-        throw "The required Python 3.12 runtime is not active."
+    if ($null -ne $InstallTestState) {
+        $PythonVersion = [string](Get-PropertyValue -Object $InstallTestState -Name "python_version")
+        if ($PythonVersion -ne "3.12") {
+            throw "The required Python 3.12 runtime is not active."
+        }
+    }
+    else {
+        $PythonVersion = & $RuntimeExecutable -c (
+            "import sys; print('.'.join(map(str, sys.version_info[:2])))"
+        )
+        if ($LASTEXITCODE -ne 0 -or [string]$PythonVersion -ne "3.12") {
+            throw "The required Python 3.12 runtime is not active."
+        }
     }
 
     foreach ($Binding in $Bindings) {
@@ -1017,6 +1250,16 @@ function Test-SystemLayer {
 function Get-CommandVersionLine {
     param([Parameter(Mandatory = $true)][string]$CommandName)
 
+    if ($null -ne $InstallTestState) {
+        $Versions = Get-PropertyValue -Object $InstallTestState -Name "command_versions"
+        if ($null -ne $Versions) {
+            $Value = Get-PropertyValue -Object $Versions -Name $CommandName
+            if ($null -ne $Value) {
+                return [string]$Value
+            }
+        }
+        return "unavailable"
+    }
     try {
         $VersionOutput = @(& $CommandName --version 2>&1)
         if ($LASTEXITCODE -eq 0 -and $VersionOutput.Count -gt 0) {
@@ -1086,14 +1329,18 @@ try {
     Write-Info "Manifest release : $($Controlled.Manifest.automation_release)"
     Write-Info "Manifest DTG     : $($Controlled.Manifest.automation_release_date_time_group)"
 
-    $SystemDriveRoot = [IO.Path]::GetPathRoot($env:SystemRoot)
-    $SystemDriveInfo = [IO.DriveInfo]::new($SystemDriveRoot)
-
-    if (-not $SystemDriveInfo.IsReady) {
-        throw "The system drive is not ready: $SystemDriveRoot"
+    if ($null -ne $InstallTestState) {
+        $FreeSpace = [int64](Get-PropertyValue -Object $InstallTestState -Name "free_space_bytes")
     }
+    else {
+        $SystemDriveRoot = [IO.Path]::GetPathRoot($env:SystemRoot)
+        $SystemDriveInfo = [IO.DriveInfo]::new($SystemDriveRoot)
 
-    $FreeSpace = [int64]$SystemDriveInfo.AvailableFreeSpace
+        if (-not $SystemDriveInfo.IsReady) {
+            throw "The system drive is not ready: $SystemDriveRoot"
+        }
+        $FreeSpace = [int64]$SystemDriveInfo.AvailableFreeSpace
+    }
 
     $MinimumSpace = [int64]$Controlled.Manifest.policy.minimum_free_space_bytes
     if ($FreeSpace -lt $MinimumSpace) {
@@ -1112,58 +1359,35 @@ try {
     Install-SystemPackage -Bindings $Bindings
     Test-SystemLayer -Bindings $Bindings -Platform $Controlled.Platform
 
-    $Elapsed = (Get-Date) - $StartTime
-    Write-Header "SETUP SUMMARY"
     Write-Success "The system-level IT 140 Course IDE is installed."
-    Write-Info "Result           : PASS"
-    Write-Info "Script version   : $ScriptVersion"
-    Write-Info "Version DTG      : $VersionDate"
-    Write-Info "Status           : $DevelopmentStatus"
-    Write-Info "Manifest release : $($Controlled.Manifest.automation_release)"
-    Write-Info "Manifest DTG     : $($Controlled.Manifest.automation_release_date_time_group)"
     Write-Info "Git              : $(Get-CommandVersionLine -CommandName 'git.exe')"
     Write-Info "GitHub CLI       : $(Get-CommandVersionLine -CommandName 'gh.exe')"
     Write-Info "Python           : $(Get-CommandVersionLine -CommandName 'python.exe')"
     Write-Info "VS Code          : $(Get-CommandVersionLine -CommandName 'code.cmd')"
-    Write-Info "Warnings         : $WarningCount"
-    Write-Info "Failures         : 0"
-    Write-Info ("Elapsed time     : {0:hh\:mm\:ss}" -f $Elapsed)
-    Write-Info "Log file         : $LogPath"
-
-    if ($RestartRequired) {
-        Write-Notice "Next step: save your work and restart Windows."
-        Write-Notice (
-            "After Windows restarts, open a normal PowerShell window and " +
-            "run configure_it140.ps1."
-        )
-    }
-    else {
-        Write-Notice (
-            "Next step: close this window, open a normal PowerShell window, " +
-            "and run configure_it140.ps1."
-        )
-    }
-    Write-Info "Exit code        : 0"
-    Write-ClosingNotice
     $ExitCode = 0
+    Write-InstallationSummary `
+        -Conclusion "The system-level IT 140 Course IDE is installed." `
+        -SummaryExitCode $ExitCode `
+        -Failures 0
 }
 catch {
     $LineNumber = $_.InvocationInfo.ScriptLineNumber
+    $script:FailureCount++
     Write-ErrorMessage $_.Exception.Message
     if ($LineNumber) {
         Write-ErrorMessage "Setup stopped near line $LineNumber."
     }
-    Write-Info "Setup log: $LogPath"
     if ($Changed) {
         Write-Notice (
             "Managed system state changed before setup stopped. " +
             "Rerun install_it140.ps1 to repair it."
         )
-        $ExitCode = 7
     }
-    else {
-        $ExitCode = $FailureExitCode
-    }
+    $ExitCode = Resolve-InstallExitCode -RequestedExitCode $FailureExitCode
+    Write-InstallationSummary `
+        -Conclusion $_.Exception.Message `
+        -SummaryExitCode $ExitCode `
+        -Failures $FailureCount
 }
 finally {
     if ($null -ne $MutationMutex) {

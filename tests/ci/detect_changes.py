@@ -39,6 +39,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "win": False,
         "win_verify": False,
         "win_configure": False,
+        "win_install": False,
     }
     if force_all:
         return {name: True for name in flags}
@@ -75,6 +76,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["mac_install"] = True
             flags["win_verify"] = True
             flags["win_configure"] = True
+            flags["win_install"] = True
         elif posix.startswith("tests/lifecycle/verify/cvd/"):
             flags["cvd_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/cvd/"):
@@ -97,6 +99,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["win_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/win/"):
             flags["win_configure"] = True
+        elif posix.startswith("tests/lifecycle/install/win/"):
+            flags["win_install"] = True
         elif posix.startswith("tests/lifecycle/"):
             # Unknown/shared lifecycle infrastructure should exercise every
             # behavioral suite until it receives explicit routing.
@@ -111,6 +115,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["mac_install"] = True
             flags["win_verify"] = True
             flags["win_configure"] = True
+            flags["win_install"] = True
         elif posix.startswith("scripts/nix/"):
             flags["manifest"] = True
             flags["nix"] = True
@@ -142,6 +147,10 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
                 flags["win_verify"] = True
             if posix == "scripts/win/configure_it140.ps1":
                 flags["win_configure"] = True
+            if posix == "scripts/win/install_it140.ps1":
+                flags["win_install"] = True
+                # Install changes should also exercise the independent Verify oracle.
+                flags["win_verify"] = True
     return flags
 
 

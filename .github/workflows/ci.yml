@@ -35,6 +35,7 @@ jobs:
       win: ${{ steps.changes.outputs.win }}
       win_verify: ${{ steps.changes.outputs.win_verify }}
       win_configure: ${{ steps.changes.outputs.win_configure }}
+      win_install: ${{ steps.changes.outputs.win_install }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4.4.0
@@ -408,6 +409,28 @@ jobs:
           -p 'test_*.py'
           -v
 
+  win_install:
+    name: Windows Install lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.win_install == 'true'
+    runs-on: windows-2025
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run Windows Install lifecycle tests
+        shell: powershell
+        run: >-
+          python -m unittest discover
+          -s tests/lifecycle/install/win
+          -p 'test_*.py'
+          -v
+
   gate:
     name: CI Gate
     if: always()
@@ -430,6 +453,7 @@ jobs:
       - windows
       - win_verify
       - win_configure
+      - win_install
     runs-on: ubuntu-24.04
     steps:
       - name: Require all applicable checks to pass
@@ -452,6 +476,7 @@ jobs:
           WINDOWS_RESULT: ${{ needs.windows.result }}
           WIN_VERIFY_RESULT: ${{ needs.win_verify.result }}
           WIN_CONFIGURE_RESULT: ${{ needs.win_configure.result }}
+          WIN_INSTALL_RESULT: ${{ needs.win_install.result }}
         shell: bash
         run: |
           set -euo pipefail
@@ -474,7 +499,8 @@ jobs:
             "mac-install:$MAC_INSTALL_RESULT" \
             "windows:$WINDOWS_RESULT" \
             "win-verify:$WIN_VERIFY_RESULT" \
-            "win-configure:$WIN_CONFIGURE_RESULT"
+            "win-configure:$WIN_CONFIGURE_RESULT" \
+            "win-install:$WIN_INSTALL_RESULT"
           do
             job="${item%%:*}"
             result="${item#*:}"

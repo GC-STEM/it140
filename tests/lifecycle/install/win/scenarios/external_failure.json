@@ -1,0 +1,15 @@
+{
+  "id": "win-install-external-service-failure-before-managed-change",
+  "arguments": ["-DeploymentProfile", "windows_bare_metal"],
+  "state_overrides": {
+    "winget_available": false,
+    "fail_points": {"winget_repair": true}
+  },
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "failures": 1,
+    "output_contains": ["Windows Package Manager repair failed"]
+  }
+}

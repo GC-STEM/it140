@@ -1,0 +1,12 @@
+{
+  "id": "win-install-partial-after-managed-change",
+  "arguments": ["-DeploymentProfile", "windows_bare_metal"],
+  "fixture_overrides": {"fail_first_install_capability": true},
+  "expected": {
+    "exit_code": 7,
+    "result": "PARTIAL",
+    "managed_changes": "Yes",
+    "failures": 1,
+    "output_contains": ["Required capability is unavailable after installing"]
+  }
+}

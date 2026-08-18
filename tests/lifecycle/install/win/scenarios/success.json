@@ -1,0 +1,14 @@
+{
+  "id": "win-install-success",
+  "arguments": ["-DeploymentProfile", "windows_bare_metal"],
+  "expected": {
+    "exit_code": 0,
+    "result": "PASS",
+    "managed_changes": "Yes",
+    "configured": true,
+    "output_contains": [
+      "Manifest-required Windows capabilities are available.",
+      "The system-level IT 140 Course IDE is installed."
+    ]
+  }
+}

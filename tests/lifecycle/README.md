@@ -71,6 +71,7 @@ Install behavioral suites now cover:
 - CVD: `scripts/cvd/install_it140.sh`
 - Ubuntu Desktop GNOME: `scripts/nix/ubg/setup_ubg.sh`
 - macOS Apple silicon: `scripts/mac/install_it140.zsh`
+- Windows bare metal: `scripts/win/install_it140.ps1`
 
 They establish system-mutation contracts for:
 
@@ -84,10 +85,11 @@ They establish system-mutation contracts for:
 - CVD-specific Noto Color Emoji health, Xfce Num Lock autostart, and Chrome managed bookmarks
 - Ubuntu GNOME-specific GitHub CLI and Visual Studio Code APT repository/key artifacts
 - macOS-specific Homebrew formula/cask convergence while preserving compatible preexisting applications
+- Windows-specific WinGet capability convergence while preserving compatible preexisting applications regardless of package-manager provenance
 - semantic idempotence across two successful runs
 - Install transcript permissions and summary/exit-code consistency
 
-See `tests/lifecycle/install/cvd/README.md`, `tests/lifecycle/install/ubg/README.md`, and `tests/lifecycle/install/mac/README.md` for the platform isolation models.
+See `tests/lifecycle/install/cvd/README.md`, `tests/lifecycle/install/ubg/README.md`, `tests/lifecycle/install/mac/README.md`, and `tests/lifecycle/install/win/README.md` for the platform isolation models.
 
 ## Run locally
 
@@ -162,9 +164,14 @@ python3 -m unittest discover \
   -v
 ```
 
-Windows PowerShell Configure and Verify:
+Windows PowerShell Install, Configure, and Verify:
 
 ```powershell
+python -m unittest discover `
+  -s tests/lifecycle/install/win `
+  -p 'test_*.py' `
+  -v
+
 python -m unittest discover `
   -s tests/lifecycle/configure/win `
   -p 'test_*.py' `
@@ -206,6 +213,13 @@ APT, `sudo`, repository downloads, package queries, `gpg`, and system-file write
 - `IT140_INSTALL_TEST_ADMIN_RESULT` supplies the Administrator-account observation needed to exercise exit code `3` without altering runner privileges.
 
 The suite still uses the real macOS Apple-silicon runner for Darwin/arm64, `sw_vers`, Xcode Command Line Tools, filesystem behavior, `osascript` manifest parsing, and the production Zsh transcript path. These seams are inert unless explicit test mode is enabled.
+
+### Windows
+
+- `IT140_INSTALL_TEST_MODE=true` explicitly enables Windows Install isolation; normal course execution leaves it unset.
+- `IT140_INSTALL_TEST_STATE` identifies a JSON file containing deterministic observations and mutable external state for administrator context, Windows release facts, system-drive free space, WinGet availability/ownership, command capabilities, and package-install outcomes.
+
+Windows Install still executes as the production PowerShell entry point and performs its normal manifest validation, lifecycle branching, capability/provenance decisions, post-install validation, summary generation, and exit-code resolution. The state seam replaces hosted-runner observations and unsafe package-manager mutation only; it does not supply expected Install results.
 
 ## Configure test-isolation hooks
 

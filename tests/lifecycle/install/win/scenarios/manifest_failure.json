@@ -1,0 +1,12 @@
+{
+  "id": "win-install-manifest-failure",
+  "arguments": ["-DeploymentProfile", "windows_bare_metal"],
+  "fixture_overrides": {"manifest": "malformed"},
+  "expected": {
+    "exit_code": 5,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "failures": 1,
+    "output_contains": ["JSON duplicate-key validation failed"]
+  }
+}
