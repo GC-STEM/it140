@@ -1,0 +1,11 @@
+{
+  "id": "mac-install-privilege-failure",
+  "arguments": ["--noninteractive"],
+  "admin_result": "false",
+  "expected": {
+    "exit_code": 3,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "contains": ["must be a macOS Administrator account"]
+  }
+}

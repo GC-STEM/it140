@@ -35,6 +35,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "mac": False,
         "mac_verify": False,
         "mac_configure": False,
+        "mac_install": False,
         "win": False,
         "win_verify": False,
         "win_configure": False,
@@ -71,6 +72,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["ubg_install"] = True
             flags["mac_verify"] = True
             flags["mac_configure"] = True
+            flags["mac_install"] = True
             flags["win_verify"] = True
             flags["win_configure"] = True
         elif posix.startswith("tests/lifecycle/verify/cvd/"):
@@ -89,6 +91,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["mac_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/mac/"):
             flags["mac_configure"] = True
+        elif posix.startswith("tests/lifecycle/install/mac/"):
+            flags["mac_install"] = True
         elif posix.startswith("tests/lifecycle/verify/win/"):
             flags["win_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/win/"):
@@ -104,6 +108,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["ubg_install"] = True
             flags["mac_verify"] = True
             flags["mac_configure"] = True
+            flags["mac_install"] = True
             flags["win_verify"] = True
             flags["win_configure"] = True
         elif posix.startswith("scripts/nix/"):
@@ -126,6 +131,10 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
                 flags["mac_verify"] = True
             if posix == "scripts/mac/configure_it140.zsh":
                 flags["mac_configure"] = True
+            if posix == "scripts/mac/install_it140.zsh":
+                flags["mac_install"] = True
+                # Install changes should also exercise the independent Verify oracle.
+                flags["mac_verify"] = True
         elif posix.startswith("scripts/win/"):
             flags["manifest"] = True
             flags["win"] = True

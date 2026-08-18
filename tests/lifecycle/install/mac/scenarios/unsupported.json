@@ -1,0 +1,10 @@
+{
+  "id": "mac-install-unsupported-profile",
+  "arguments": ["--noninteractive", "--deployment-profile", "unsupported_profile"],
+  "expected": {
+    "exit_code": 2,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "contains": ["Unsupported deployment profile"]
+  }
+}

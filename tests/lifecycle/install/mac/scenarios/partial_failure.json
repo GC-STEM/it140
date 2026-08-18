@@ -1,0 +1,11 @@
+{
+  "id": "mac-install-partial-after-managed-change",
+  "arguments": ["--noninteractive"],
+  "mock_overrides": {"brew_install_failure_at": 2},
+  "expected": {
+    "exit_code": 7,
+    "result": "PARTIAL",
+    "managed_changes": "Yes",
+    "contains": ["Required Homebrew"]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "mac-install-external-service-failure-before-managed-change",
+  "arguments": ["--noninteractive"],
+  "network_result": "failure",
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "contains": ["approved GitHub source was unavailable"]
+  }
+}

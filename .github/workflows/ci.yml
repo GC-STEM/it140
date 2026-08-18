@@ -31,6 +31,7 @@ jobs:
       mac: ${{ steps.changes.outputs.mac }}
       mac_verify: ${{ steps.changes.outputs.mac_verify }}
       mac_configure: ${{ steps.changes.outputs.mac_configure }}
+      mac_install: ${{ steps.changes.outputs.mac_install }}
       win: ${{ steps.changes.outputs.win }}
       win_verify: ${{ steps.changes.outputs.win_verify }}
       win_configure: ${{ steps.changes.outputs.win_configure }}
@@ -301,6 +302,29 @@ jobs:
           -p 'test_*.py'
           -v
 
+  mac_install:
+    name: macOS Install lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.mac_install == 'true'
+    runs-on: macos-15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir "jsonschema[format-nongpl]==4.26.0"
+      - name: Run macOS Install lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/install/mac
+          -p 'test_*.py'
+          -v
+
   windows:
     name: Windows PowerShell syntax
     needs: changes
@@ -402,6 +426,7 @@ jobs:
       - macos
       - mac_verify
       - mac_configure
+      - mac_install
       - windows
       - win_verify
       - win_configure
@@ -423,6 +448,7 @@ jobs:
           MACOS_RESULT: ${{ needs.macos.result }}
           MAC_VERIFY_RESULT: ${{ needs.mac_verify.result }}
           MAC_CONFIGURE_RESULT: ${{ needs.mac_configure.result }}
+          MAC_INSTALL_RESULT: ${{ needs.mac_install.result }}
           WINDOWS_RESULT: ${{ needs.windows.result }}
           WIN_VERIFY_RESULT: ${{ needs.win_verify.result }}
           WIN_CONFIGURE_RESULT: ${{ needs.win_configure.result }}
@@ -445,6 +471,7 @@ jobs:
             "macos:$MACOS_RESULT" \
             "mac-verify:$MAC_VERIFY_RESULT" \
             "mac-configure:$MAC_CONFIGURE_RESULT" \
+            "mac-install:$MAC_INSTALL_RESULT" \
             "windows:$WINDOWS_RESULT" \
             "win-verify:$WIN_VERIFY_RESULT" \
             "win-configure:$WIN_CONFIGURE_RESULT"

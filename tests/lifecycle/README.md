@@ -70,6 +70,7 @@ Install behavioral suites now cover:
 
 - CVD: `scripts/cvd/install_it140.sh`
 - Ubuntu Desktop GNOME: `scripts/nix/ubg/setup_ubg.sh`
+- macOS Apple silicon: `scripts/mac/install_it140.zsh`
 
 They establish system-mutation contracts for:
 
@@ -82,10 +83,11 @@ They establish system-mutation contracts for:
 - convergence of manifest-declared APT packages and approved repository artifacts
 - CVD-specific Noto Color Emoji health, Xfce Num Lock autostart, and Chrome managed bookmarks
 - Ubuntu GNOME-specific GitHub CLI and Visual Studio Code APT repository/key artifacts
+- macOS-specific Homebrew formula/cask convergence while preserving compatible preexisting applications
 - semantic idempotence across two successful runs
 - Install transcript permissions and summary/exit-code consistency
 
-See `tests/lifecycle/install/cvd/README.md` and `tests/lifecycle/install/ubg/README.md` for the platform isolation models.
+See `tests/lifecycle/install/cvd/README.md`, `tests/lifecycle/install/ubg/README.md`, and `tests/lifecycle/install/mac/README.md` for the platform isolation models.
 
 ## Run locally
 
@@ -141,9 +143,14 @@ python3 -m unittest discover \
   -v
 ```
 
-macOS Apple silicon Configure and Verify:
+macOS Apple silicon Install, Configure, and Verify:
 
 ```zsh
+python3 -m unittest discover \
+  -s tests/lifecycle/install/mac \
+  -p 'test_*.py' \
+  -v
+
 python3 -m unittest discover \
   -s tests/lifecycle/configure/mac \
   -p 'test_*.py' \
@@ -190,6 +197,15 @@ APT, `sudo`, vendor downloads, package queries, fontconfig, and desktop-entry va
 - `IT140_INSTALL_TEST_EUID` supplies a deterministic non-root effective-user value only while Install test isolation is active.
 
 APT, `sudo`, repository downloads, package queries, `gpg`, and system-file writes remain external boundaries supplied through the test `PATH`. The real `setup_ubg.sh` entry point still performs manifest validation, lifecycle branching, capability decisions, post-install validation, summary generation, and exit-code resolution.
+
+### macOS
+
+- `IT140_INSTALL_TEST_MODE=true` explicitly enables macOS Install isolation; normal course execution leaves it unset.
+- `IT140_INSTALL_TEST_BREW_PATH` supplies a stateful fake Homebrew executable so the hosted runner is never modified by package installation.
+- `IT140_INSTALL_TEST_NETWORK_RESULT` supplies deterministic approved-source availability (`success` or `failure`) without coupling lifecycle semantics to current GitHub service health.
+- `IT140_INSTALL_TEST_ADMIN_RESULT` supplies the Administrator-account observation needed to exercise exit code `3` without altering runner privileges.
+
+The suite still uses the real macOS Apple-silicon runner for Darwin/arm64, `sw_vers`, Xcode Command Line Tools, filesystem behavior, `osascript` manifest parsing, and the production Zsh transcript path. These seams are inert unless explicit test mode is enabled.
 
 ## Configure test-isolation hooks
 

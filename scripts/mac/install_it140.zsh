@@ -53,6 +53,11 @@ IT140_RETRY_INITIAL_DELAY_SECONDS=5
 IT140_RUNTIME_TEMP_DIR=''
 IT140_TEMP_PATHS=()
 IT140_BREW_METADATA_REFRESHED=false
+# Behavioral-test seams are inert unless IT140_INSTALL_TEST_MODE=true.
+readonly IT140_INSTALL_TEST_MODE="${IT140_INSTALL_TEST_MODE:-false}"
+readonly IT140_INSTALL_TEST_BREW_PATH="${IT140_INSTALL_TEST_BREW_PATH:-}"
+readonly IT140_INSTALL_TEST_NETWORK_RESULT="${IT140_INSTALL_TEST_NETWORK_RESULT:-}"
+readonly IT140_INSTALL_TEST_ADMIN_RESULT="${IT140_INSTALL_TEST_ADMIN_RESULT:-}"
 it140_usage() {
     cat <<'USAGE'
 Usage: install_it140.zsh [--help] [--version] [--noninteractive]
@@ -122,9 +127,9 @@ it140_finish() {
     [[ "$next" == 'None' ]] || it140_notice 'Open a new Terminal window before running the next lifecycle script.'
     exit "$code"
 }
-it140_abort(){ local code="$1"; shift; local msg="$*"; [[ "$IT140_CHANGED" == true && "$code" -ne 2 && "$code" -ne 5 ]] && code=7; it140_error "$msg"; it140_error "Failed stage: $IT140_CURRENT_STAGE"; it140_finish "$code" 'FAIL' "$msg" 'Rerun: "$HOME/it140/scripts/mac/install_it140.zsh"'; }
-it140_on_error(){ local exit_status="$1" line="$2"; trap - ERR; set +e; local code=1; [[ "$IT140_CHANGED" == true ]] && code=7; it140_error "Unexpected failure near line ${line} during ${IT140_CURRENT_STAGE} (status ${exit_status})."; it140_finish "$code" 'FAIL' 'An unexpected command failure stopped Install.' 'Rerun: "$HOME/it140/scripts/mac/install_it140.zsh"'; }
-it140_on_interrupt(){ trap - INT TERM HUP; set +e; local code=6; [[ "$IT140_CHANGED" == true ]] && code=7; it140_error "Install was interrupted during ${IT140_CURRENT_STAGE}."; it140_finish "$code" 'CANCELED' 'The operation did not finish; rerun Install to recover.' 'Rerun: "$HOME/it140/scripts/mac/install_it140.zsh"'; }
+it140_abort(){ local code="$1"; shift; local msg="$*" result='FAIL'; [[ "$IT140_CHANGED" == true && "$code" -ne 2 && "$code" -ne 5 ]] && code=7; (( code == 7 )) && result='PARTIAL'; it140_error "$msg"; it140_error "Failed stage: $IT140_CURRENT_STAGE"; it140_finish "$code" "$result" "$msg" 'Rerun: "$HOME/it140/scripts/mac/install_it140.zsh"'; }
+it140_on_error(){ local exit_status="$1" line="$2"; trap - ERR; set +e; local code=1 result='FAIL'; [[ "$IT140_CHANGED" == true ]] && { code=7; result='PARTIAL'; }; it140_error "Unexpected failure near line ${line} during ${IT140_CURRENT_STAGE} (status ${exit_status})."; it140_finish "$code" "$result" 'An unexpected command failure stopped Install.' 'Rerun: "$HOME/it140/scripts/mac/install_it140.zsh"'; }
+it140_on_interrupt(){ trap - INT TERM HUP; set +e; local code=6 result='CANCELED'; [[ "$IT140_CHANGED" == true ]] && { code=7; result='PARTIAL'; }; it140_error "Install was interrupted during ${IT140_CURRENT_STAGE}."; it140_finish "$code" "$result" 'The operation did not finish; rerun Install to recover.' 'Rerun: "$HOME/it140/scripts/mac/install_it140.zsh"'; }
 it140_initialize_log() {
     /bin/mkdir -p -- "$IT140_LOG_DIR"; /bin/chmod 0700 "$IT140_LOG_DIR"; : > "$IT140_LOG_FILE"; /bin/chmod 0600 "$IT140_LOG_FILE"
     exec > >(/usr/bin/tee -a "$IT140_LOG_FILE") 2>&1
@@ -186,21 +191,27 @@ it140_load_manifest() {
 }
 it140_check_context() {
     IT140_CURRENT_STAGE='Check supported platform and user context'; [[ "$(uname -s)" == Darwin ]] || it140_abort 2 'This script supports macOS only.'; (( $(id -u) != 0 )) || it140_abort 2 'Do not run this script with sudo.'; [[ "$(uname -m)" == arm64 ]] || it140_abort 2 'The current macOS implementation supports Apple silicon (arm64) only.'; [[ "$IT140_REQUESTED_PROFILE" == "$IT140_DEFAULT_PROFILE" ]] || it140_abort 2 "Unsupported deployment profile: $IT140_REQUESTED_PROFILE"
-    local u="$(id -un)"; /usr/sbin/dseditgroup -o checkmember -m "$u" admin 2>/dev/null | /usr/bin/grep -q yes || it140_abort 3 'The account running Install must be a macOS Administrator account.'
+    local u="$(id -un)"; if [[ "$IT140_INSTALL_TEST_MODE" == true && -n "$IT140_INSTALL_TEST_ADMIN_RESULT" ]]; then [[ "$IT140_INSTALL_TEST_ADMIN_RESULT" == true ]] || it140_abort 3 'The account running Install must be a macOS Administrator account.'; else /usr/sbin/dseditgroup -o checkmember -m "$u" admin 2>/dev/null | /usr/bin/grep -q yes || it140_abort 3 'The account running Install must be a macOS Administrator account.'; fi
     local kb bytes; kb="$(/bin/df -Pk "$HOME" | /usr/bin/awk 'NR==2{print $4}')"; [[ "$kb" =~ ^[0-9]+$ ]] || it140_abort 1 'Available storage could not be determined.'; bytes=$((kb*1024)); (( bytes >= IT140_MINIMUM_FREE_SPACE_BYTES )) || it140_abort 1 'At least 5 GB of available storage is required.'
 }
-it140_network_probe(){ IT140_CURRENT_STAGE='Check approved network source'; local a=1 d="$IT140_RETRY_INITIAL_DELAY_SECONDS"; while (( a<=IT140_RETRY_MAXIMUM_ATTEMPTS )); do /usr/bin/curl --fail --silent --show-error --location --connect-timeout 15 --max-time "$IT140_NETWORK_TIMEOUT_SECONDS" --output /dev/null 'https://github.com/GC-STEM/it140' && return; ((a<IT140_RETRY_MAXIMUM_ATTEMPTS)) && /bin/sleep "$d"; d=$((d*2)); ((d>60))&&d=60; a=$((a+1)); done; it140_abort 4 'The approved GitHub source was unavailable after bounded retries.'; }
+it140_network_probe(){ IT140_CURRENT_STAGE='Check approved network source'; if [[ "$IT140_INSTALL_TEST_MODE" == true ]]; then case "$IT140_INSTALL_TEST_NETWORK_RESULT" in success) return 0;; failure) it140_abort 4 'The approved GitHub source was unavailable after bounded retries.';; esac; fi; local a=1 d="$IT140_RETRY_INITIAL_DELAY_SECONDS"; while (( a<=IT140_RETRY_MAXIMUM_ATTEMPTS )); do /usr/bin/curl --fail --silent --show-error --location --connect-timeout 15 --max-time "$IT140_NETWORK_TIMEOUT_SECONDS" --output /dev/null 'https://github.com/GC-STEM/it140' && return; ((a<IT140_RETRY_MAXIMUM_ATTEMPTS)) && /bin/sleep "$d"; d=$((d*2)); ((d>60))&&d=60; a=$((a+1)); done; it140_abort 4 'The approved GitHub source was unavailable after bounded retries.'; }
 it140_download(){ local url="$1" out="$2" desc="$3" a=1 d="$IT140_RETRY_INITIAL_DELAY_SECONDS"; while ((a<=IT140_RETRY_MAXIMUM_ATTEMPTS)); do it140_info "Downloading ${desc} (attempt ${a}/${IT140_RETRY_MAXIMUM_ATTEMPTS})."; /usr/bin/curl --fail --silent --show-error --location --connect-timeout 20 --max-time 300 --output "$out" "$url" && return 0; /bin/rm -f -- "$out"; ((a<IT140_RETRY_MAXIMUM_ATTEMPTS))&&/bin/sleep "$d"; d=$((d*2)); ((d>60))&&d=60; a=$((a+1)); done; return 1; }
-it140_find_brew(){ [[ -x /opt/homebrew/bin/brew ]] && { printf '%s' /opt/homebrew/bin/brew; return; }; command -v brew >/dev/null 2>&1 && { command -v brew; return; }; return 1; }
+it140_find_brew(){ if [[ "$IT140_INSTALL_TEST_MODE" == true && -n "$IT140_INSTALL_TEST_BREW_PATH" ]]; then [[ -x "$IT140_INSTALL_TEST_BREW_PATH" ]] && { printf '%s' "$IT140_INSTALL_TEST_BREW_PATH"; return; }; return 1; fi; [[ -x /opt/homebrew/bin/brew ]] && { printf '%s' /opt/homebrew/bin/brew; return; }; command -v brew >/dev/null 2>&1 && { command -v brew; return; }; return 1; }
 it140_refresh_brew(){ [[ "$IT140_BREW_METADATA_REFRESHED" == true ]] && return; IT140_CURRENT_STAGE='Refresh Homebrew metadata'; "$BREW_PATH" update || it140_abort 4 'Homebrew package metadata could not be refreshed.'; IT140_BREW_METADATA_REFRESHED=true; }
 it140_command_compatible(){ local role="$1" cmd="$2"; command -v "$cmd" >/dev/null 2>&1 || return 1; if [[ "$role" == programming_language_runtime ]]; then local v; v="$("$(command -v "$cmd")" -c 'import sys; print(".".join(map(str,sys.version_info[:2])))' 2>/dev/null)" || return 1; [[ "$v" == 3.12 ]]; fi; }
 IT140_VSCODE_APP_PATH=''
 IT140_VSCODE_CONFLICT_PATH=''
 it140_detect_vscode_app() {
     local app bundle
+    local -a candidate_apps
     IT140_VSCODE_APP_PATH=''
     IT140_VSCODE_CONFLICT_PATH=''
-    for app in '/Applications/Visual Studio Code.app' "$HOME/Applications/Visual Studio Code.app"; do
+    if [[ "$IT140_INSTALL_TEST_MODE" == true ]]; then
+        candidate_apps=("$HOME/Applications/Visual Studio Code.app")
+    else
+        candidate_apps=('/Applications/Visual Studio Code.app' "$HOME/Applications/Visual Studio Code.app")
+    fi
+    for app in "${candidate_apps[@]}"; do
         [[ -d "$app" ]] || continue
         bundle="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist" 2>/dev/null || true)"
         if [[ "$bundle" == 'com.microsoft.VSCode' ]]; then
