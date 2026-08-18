@@ -53,7 +53,6 @@ IT140_RETRY_INITIAL_DELAY_SECONDS=5
 IT140_RUNTIME_TEMP_DIR=''
 IT140_TEMP_PATHS=()
 IT140_BREW_METADATA_REFRESHED=false
-
 it140_usage() {
     cat <<'USAGE'
 Usage: install_it140.zsh [--help] [--version] [--noninteractive]
@@ -63,11 +62,9 @@ Installs missing Apple Command Line Tools, Homebrew, and manifest-declared
 system capabilities. Compatible preexisting applications are preserved even
 when Homebrew did not install them. Package-manager ownership is not required
 for local capability compliance.
-
 The script never uses Homebrew --adopt or --force to take ownership of an
 existing application. It does not authenticate GitHub or configure personal
 Git, Python-environment, VS Code-extension, or editor settings.
-
 Logs: ~/it140/logs/
 USAGE
 }
@@ -126,7 +123,7 @@ it140_finish() {
     exit "$code"
 }
 it140_abort(){ local code="$1"; shift; local msg="$*"; [[ "$IT140_CHANGED" == true && "$code" -ne 2 && "$code" -ne 5 ]] && code=7; it140_error "$msg"; it140_error "Failed stage: $IT140_CURRENT_STAGE"; it140_finish "$code" 'FAIL' "$msg" 'Rerun: "$HOME/it140/scripts/mac/install_it140.zsh"'; }
-it140_on_error(){ local status="$1" line="$2"; trap - ERR; set +e; local code=1; [[ "$IT140_CHANGED" == true ]] && code=7; it140_error "Unexpected failure near line ${line} during ${IT140_CURRENT_STAGE} (status ${status})."; it140_finish "$code" 'FAIL' 'An unexpected command failure stopped Install.' 'Rerun: "$HOME/it140/scripts/mac/install_it140.zsh"'; }
+it140_on_error(){ local exit_status="$1" line="$2"; trap - ERR; set +e; local code=1; [[ "$IT140_CHANGED" == true ]] && code=7; it140_error "Unexpected failure near line ${line} during ${IT140_CURRENT_STAGE} (status ${exit_status})."; it140_finish "$code" 'FAIL' 'An unexpected command failure stopped Install.' 'Rerun: "$HOME/it140/scripts/mac/install_it140.zsh"'; }
 it140_on_interrupt(){ trap - INT TERM HUP; set +e; local code=6; [[ "$IT140_CHANGED" == true ]] && code=7; it140_error "Install was interrupted during ${IT140_CURRENT_STAGE}."; it140_finish "$code" 'CANCELED' 'The operation did not finish; rerun Install to recover.' 'Rerun: "$HOME/it140/scripts/mac/install_it140.zsh"'; }
 it140_initialize_log() {
     /bin/mkdir -p -- "$IT140_LOG_DIR"; /bin/chmod 0700 "$IT140_LOG_DIR"; : > "$IT140_LOG_FILE"; /bin/chmod 0600 "$IT140_LOG_FILE"
@@ -235,9 +232,10 @@ it140_repair_vscode_cli() {
     rehash
     command -v code >/dev/null 2>&1 || it140_abort 1 'Visual Studio Code is installed, but the repaired code command is not discoverable on PATH.'
 }
-it140_install_formula(){ local role="$1" package="$2" commands="$3" cmd="${commands%%,*}"; IT140_CURRENT_STAGE="Evaluate Homebrew formula ${package}"; if [[ -n "$cmd" ]] && it140_command_compatible "$role" "$cmd"; then if "$BREW_PATH" list --formula "$package" >/dev/null 2>&1; then it140_state 'PRESENT — package-manager-managed, compatible' "$role" "$package"; else it140_state 'PRESENT — externally installed, compatible' "$role" "$(command -v "$cmd")"; fi; return; fi; if "$BREW_PATH" list --formula "$package" >/dev/null 2>&1; then it140_state 'INCOMPATIBLE — preserved' "$role" "$package is Homebrew-managed but its required capability is unavailable or incompatible"; it140_abort 1 "Existing ${package} was preserved. Repair or update it manually, then rerun Install."; fi; it140_state 'MISSING' "$role" "$package"; it140_refresh_brew; "$BREW_PATH" install "$package" || it140_abort 1 "Required Homebrew formula could not be installed: ${package}."; IT140_CHANGED=true; rehash; [[ -n "$cmd" ]] && it140_command_compatible "$role" "$cmd" || it140_abort 1 "Required capability is unavailable after installing ${package}."; it140_state 'INSTALLED — by IT 140' "$role" "$package"; }
+it140_install_formula(){ local role="$1" package="$2" executable_names_csv="$3" cmd="${executable_names_csv%%,*}"; IT140_CURRENT_STAGE="Evaluate Homebrew formula ${package}"; if [[ -n "$cmd" ]] && it140_command_compatible "$role" "$cmd"; then if "$BREW_PATH" list --formula "$package" >/dev/null 2>&1; then it140_state 'PRESENT — package-manager-managed, compatible' "$role" "$package"; else it140_state 'PRESENT — externally installed, compatible' "$role" "$(command -v "$cmd")"; fi; return; fi; if "$BREW_PATH" list --formula "$package" >/dev/null 2>&1; then it140_state 'INCOMPATIBLE — preserved' "$role" "$package is Homebrew-managed but its required capability is unavailable or incompatible"; it140_abort 1 "Existing ${package} was preserved.
+Repair or update it manually, then rerun Install."; fi; it140_state 'MISSING' "$role" "$package"; it140_refresh_brew; "$BREW_PATH" install "$package" || it140_abort 1 "Required Homebrew formula could not be installed: ${package}."; IT140_CHANGED=true; rehash; [[ -n "$cmd" ]] && it140_command_compatible "$role" "$cmd" || it140_abort 1 "Required capability is unavailable after installing ${package}."; it140_state 'INSTALLED — by IT 140' "$role" "$package"; }
 it140_install_cask() {
-    local role="$1" package="$2" commands="$3" cmd="${commands%%,*}" app='' status=0
+    local role="$1" package="$2" executable_names_csv="$3" cmd="${executable_names_csv%%,*}" app='' detection_status=0
     IT140_CURRENT_STAGE="Evaluate Homebrew cask ${package}"
     if [[ "$package" == visual-studio-code ]]; then
         if it140_detect_vscode_app; then
@@ -250,8 +248,8 @@ it140_install_cask() {
             fi
             return
         else
-            status=$?
-            (( status == 2 )) && it140_abort_vscode_conflict
+            detection_status=$?
+            (( detection_status == 2 )) && it140_abort_vscode_conflict
         fi
     elif [[ -n "$cmd" ]] && command -v "$cmd" >/dev/null 2>&1; then
         if "$BREW_PATH" list --cask "$package" >/dev/null 2>&1; then
@@ -261,22 +259,19 @@ it140_install_cask() {
         fi
         return
     fi
-
     if "$BREW_PATH" list --cask "$package" >/dev/null 2>&1; then
         it140_state 'INCOMPATIBLE — preserved' "$role" "$package is registered with Homebrew but its required capability is unavailable"
         it140_abort 1 "Existing ${package} was preserved. Repair or update it manually, then rerun Install."
     fi
-
     it140_state 'MISSING' "$role" "$package"
     it140_refresh_brew
     "$BREW_PATH" install --cask "$package" || it140_abort 1 "Required Homebrew cask could not be installed: ${package}."
     IT140_CHANGED=true
     rehash
-
     if [[ "$package" == visual-studio-code ]]; then
         if ! it140_detect_vscode_app; then
-            status=$?
-            (( status == 2 )) && it140_abort_vscode_conflict
+            detection_status=$?
+            (( detection_status == 2 )) && it140_abort_vscode_conflict
             it140_abort 1 'Microsoft Visual Studio Code was not found after installation.'
         fi
         app="$IT140_VSCODE_APP_PATH"
@@ -287,7 +282,6 @@ it140_install_cask() {
     it140_state 'INSTALLED — by IT 140' "$role" "$package"
 }
 
-
 it140_parse_options "$@"
 it140_initialize_log
 it140_prune_logs
@@ -295,7 +289,6 @@ it140_check_context
 it140_load_manifest
 it140_network_probe
 it140_acquire_lock
-
 it140_header 'Stage 1: Apple Command Line Tools'
 IT140_CURRENT_STAGE='Install or verify Apple Command Line Tools'
 if ! /usr/bin/xcode-select -p >/dev/null 2>&1; then
@@ -306,7 +299,6 @@ if ! /usr/bin/xcode-select -p >/dev/null 2>&1; then
     it140_finish 7 'PARTIAL' 'Apple Command Line Tools installation was requested and must finish before Install can continue.' 'After the installer finishes, rerun: "$HOME/it140/scripts/mac/install_it140.zsh"'
 fi
 it140_state 'PRESENT — compatible' 'apple_command_line_tools' "$(/usr/bin/xcode-select -p)"
-
 it140_header 'Stage 2: Homebrew'
 IT140_CURRENT_STAGE='Install or verify Homebrew'
 BREW_PATH=''
@@ -321,25 +313,23 @@ else
     it140_state 'PRESENT — compatible' 'package_manager' "$BREW_PATH"
 fi
 eval "$("$BREW_PATH" shellenv)"
-
 it140_header 'Stage 3: Manifest-Declared System Capabilities'
 BINDINGS_FILE="$IT140_RUNTIME_TEMP_DIR/system_bindings.txt"; it140_manifest_tool system_bindings > "$BINDINGS_FILE" || it140_abort 5 'The manifest system-binding query failed.'
-while IFS=$'\t' read -r role adapter package commands; do
+while IFS=$'\t' read -r role adapter package executable_names_csv; do
     [[ -n "$role" && -n "$adapter" && -n "$package" ]] || continue
     case "$adapter" in
-        homebrew_formula) it140_install_formula "$role" "$package" "$commands";;
-        homebrew_cask) it140_install_cask "$role" "$package" "$commands";;
+        homebrew_formula) it140_install_formula "$role" "$package" "$executable_names_csv";;
+        homebrew_cask) it140_install_cask "$role" "$package" "$executable_names_csv";;
         *) it140_abort 5 "Unsupported macOS system installer adapter: ${adapter}";;
     esac
 done < "$BINDINGS_FILE"
-
 it140_header 'Stage 4: Post-Installation Validation'
-while IFS=$'\t' read -r role adapter package commands; do
+while IFS=$'\t' read -r role adapter package executable_names_csv; do
     [[ -n "$role" ]] || continue
     if [[ "$package" == visual-studio-code ]]; then
         if ! it140_detect_vscode_app; then
-            status=$?
-            (( status == 2 )) && it140_abort_vscode_conflict
+            detection_status=$?
+            (( detection_status == 2 )) && it140_abort_vscode_conflict
             it140_abort 1 'Microsoft Visual Studio Code is unavailable after Install.'
         fi
         app="$IT140_VSCODE_APP_PATH"
@@ -347,9 +337,8 @@ while IFS=$'\t' read -r role adapter package commands; do
         it140_success "Required capability available: ${role} (${app})"
         continue
     fi
-    cmd="${commands%%,*}"; [[ -n "$cmd" ]] || continue
+    cmd="${executable_names_csv%%,*}"; [[ -n "$cmd" ]] || continue
     it140_command_compatible "$role" "$cmd" || it140_abort 1 "Required capability is unavailable or incompatible after Install: ${role} (${cmd})."
     it140_success "Required capability available: ${role} ($(command -v "$cmd"))"
 done < "$BINDINGS_FILE"
-
 it140_finish 0 'PASS' 'The macOS system capabilities are available; compatible preexisting applications were preserved.' 'Run next: "$HOME/it140/scripts/mac/configure_it140.zsh"'

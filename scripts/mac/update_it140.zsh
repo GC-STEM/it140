@@ -89,7 +89,6 @@ it140_parse_options() {
     done
     (( $# == 0 )) || { printf '[ERROR] Unexpected argument: %s\n' "$1" >&2; exit 2; }
 }
-
 it140_header() {
     printf '\n============================================================\n'
     printf '%s\n' "$1"
@@ -111,8 +110,8 @@ it140_release_lock() {
 }
 it140_cleanup() {
     set +e
-    local path
-    for path in "${IT140_TEMP_PATHS[@]}"; do [[ -n "$path" ]] && /bin/rm -rf -- "$path"; done
+    local temp_path
+    for temp_path in "${IT140_TEMP_PATHS[@]}"; do [[ -n "$temp_path" ]] && /bin/rm -rf -- "$temp_path"; done
     it140_release_lock
 }
 it140_course_continuity() {
@@ -158,10 +157,10 @@ it140_abort() {
     it140_finish "$exit_code" 'FAIL' "$message" "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
 }
 it140_on_error() {
-    local status="$1" line="$2"
+    local exit_status="$1" line="$2"
     trap - ERR; set +e
     local exit_code=1; [[ "$IT140_CHANGED" == true ]] && exit_code=7
-    it140_error "An unexpected command failure occurred near line ${line} during ${IT140_CURRENT_STAGE} (status ${status})."
+    it140_error "An unexpected command failure occurred near line ${line} during ${IT140_CURRENT_STAGE} (status ${exit_status})."
     it140_finish "$exit_code" 'FAIL' 'An unexpected command failure stopped the script.' "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
 }
 it140_on_interrupt() {
@@ -333,9 +332,9 @@ it140_download() {
 it140_find_brew() { if [[ -x /opt/homebrew/bin/brew ]]; then printf '%s' /opt/homebrew/bin/brew; return 0; fi; command -v brew >/dev/null 2>&1 && { command -v brew; return 0; }; return 1; }
 it140_activate_brew_environment() { eval "$("$1" shellenv)"; }
 it140_make_list_file() {
-    local query="$1" path
+    local query="$1" list_file_path
     [[ -n "$IT140_RUNTIME_TEMP_DIR" && -d "$IT140_RUNTIME_TEMP_DIR" ]] || it140_abort 1 'The private runtime staging directory is unavailable.'
-    path="$IT140_RUNTIME_TEMP_DIR/${query}.$$.txt"; it140_manifest_tool "$query" > "$path" || it140_abort 5 "The manifest query failed: ${query}."; printf '%s' "$path"
+    list_file_path="$IT140_RUNTIME_TEMP_DIR/${query}.$$.txt"; it140_manifest_tool "$query" > "$list_file_path" || it140_abort 5 "The manifest query failed: ${query}."; printf '%s' "$list_file_path"
 }
 it140_merge_vscode_settings() {
     local python_path="$1" expected_json expected_file
@@ -397,9 +396,11 @@ it140_load_manifest
 it140_header 'Stage 2: Update Manifest-Declared System Software'
 IT140_CURRENT_STAGE='Locate Homebrew'; BREW_PATH="$(it140_find_brew)" || it140_abort 1 'Homebrew is unavailable. Run install_it140.zsh before Update.'; it140_activate_brew_environment "$BREW_PATH"; "$BREW_PATH" update || it140_abort 4 'Homebrew package metadata could not be updated.'
 FORMULAE_FILE="$(it140_make_list_file system_formulae)"
-while IFS= read -r package_id; do [[ -n "$package_id" ]] || continue; IT140_CURRENT_STAGE="Update Homebrew formula ${package_id}"; "$BREW_PATH" list --formula "$package_id" >/dev/null 2>&1 || it140_abort 1 "Required Homebrew formula is missing: ${package_id}. Run install_it140.zsh."; if "$BREW_PATH" outdated --formula "$package_id" 2>/dev/null | /usr/bin/grep -q .; then "$BREW_PATH" upgrade "$package_id" || it140_abort 4 "Homebrew formula could not be updated: ${package_id}."; IT140_CHANGED=true; else it140_info "Homebrew formula is current: ${package_id}"; fi; done < "$FORMULAE_FILE"
+while IFS= read -r package_id; do [[ -n "$package_id" ]] || continue; IT140_CURRENT_STAGE="Update Homebrew formula ${package_id}"; "$BREW_PATH" list --formula "$package_id" >/dev/null 2>&1 || it140_abort 1 "Required Homebrew formula is missing: ${package_id}.
+Run install_it140.zsh."; if "$BREW_PATH" outdated --formula "$package_id" 2>/dev/null | /usr/bin/grep -q .; then "$BREW_PATH" upgrade "$package_id" || it140_abort 4 "Homebrew formula could not be updated: ${package_id}."; IT140_CHANGED=true; else it140_info "Homebrew formula is current: ${package_id}"; fi; done < "$FORMULAE_FILE"
 CASKS_FILE="$(it140_make_list_file system_casks)"
-while IFS= read -r package_id; do [[ -n "$package_id" ]] || continue; IT140_CURRENT_STAGE="Update Homebrew cask ${package_id}"; "$BREW_PATH" list --cask "$package_id" >/dev/null 2>&1 || it140_abort 1 "Required Homebrew cask is missing: ${package_id}. Run install_it140.zsh."; if "$BREW_PATH" outdated --cask --greedy "$package_id" 2>/dev/null | /usr/bin/grep -q .; then "$BREW_PATH" upgrade --cask "$package_id" || it140_abort 4 "Homebrew cask could not be updated: ${package_id}."; IT140_CHANGED=true; else it140_info "Homebrew cask is current: ${package_id}"; fi; done < "$CASKS_FILE"
+while IFS= read -r package_id; do [[ -n "$package_id" ]] || continue; IT140_CURRENT_STAGE="Update Homebrew cask ${package_id}"; "$BREW_PATH" list --cask "$package_id" >/dev/null 2>&1 || it140_abort 1 "Required Homebrew cask is missing: ${package_id}.
+Run install_it140.zsh."; if "$BREW_PATH" outdated --cask --greedy "$package_id" 2>/dev/null | /usr/bin/grep -q .; then "$BREW_PATH" upgrade --cask "$package_id" || it140_abort 4 "Homebrew cask could not be updated: ${package_id}."; IT140_CHANGED=true; else it140_info "Homebrew cask is current: ${package_id}"; fi; done < "$CASKS_FILE"
 it140_header 'Stage 3: Update User-Scoped Course Tools'
 IT140_CURRENT_STAGE='Update course Python packages'; [[ -x "$IT140_VENV_DIR/bin/python" ]] || it140_abort 1 'The course virtual environment is missing. Run configure_it140.zsh.'; VENV_PYTHON="$IT140_VENV_DIR/bin/python"
 "$VENV_PYTHON" -m pip install --upgrade pip || it140_abort 4 'pip could not be updated.'; VENV_PACKAGES_FILE="$(it140_make_list_file venv_packages)"

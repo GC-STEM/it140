@@ -123,7 +123,7 @@ finish(){
   return "$code"
 }
 fatal(){ local code="$1"; shift; FAILURES=$((FAILURES+1)); print_error "$*"; print_error "Failed stage: $CURRENT_STAGE"; finish "$code" "$*"; exit $?; }
-on_error(){ local status=$?; trap - ERR; FAILURES=$((FAILURES+1)); print_error "Configuration stopped during $CURRENT_STAGE (status $status)."; finish 1 "An unexpected command failure stopped Configure."; exit $?; }
+on_error(){ local exit_status=$?; trap - ERR; FAILURES=$((FAILURES+1)); print_error "Configuration stopped during $CURRENT_STAGE (status $exit_status)."; finish 1 "An unexpected command failure stopped Configure."; exit $?; }
 on_interrupt(){ trap - INT TERM HUP; print_error "Configuration was interrupted during $CURRENT_STAGE."; finish 6 "Configure was interrupted; rerun it to recover."; exit $?; }
 acquire_lock(){
   CURRENT_STAGE="shared lifecycle mutation lock"

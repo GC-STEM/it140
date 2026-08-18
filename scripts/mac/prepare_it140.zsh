@@ -104,7 +104,7 @@ fail() {
     finish "$code" 'FAIL' "$message"
 }
 on_error() {
-    local status="$1"
+    local exit_status="$1"
     local line="$2"
     trap - ERR
     set +e
@@ -112,7 +112,7 @@ on_error() {
         restore_critical_assets
         finish 7 'FAIL' "Preparation stopped unexpectedly near line ${line}; prior critical automation assets were restored when possible."
     fi
-    finish "$status" 'FAIL' "Preparation stopped unexpectedly near line ${line}."
+    finish "$exit_status" 'FAIL' "Preparation stopped unexpectedly near line ${line}."
 }
 on_interrupt() {
     trap - INT TERM HUP
@@ -146,7 +146,6 @@ JXA
 usage() {
     cat <<'USAGE'
 Usage: prepare_it140.zsh [--help] [--version]
-
 Acquire or refresh the IT 140 automation package for the approved Apple-silicon
 macOS deployment profile. Prepare uses only native macOS utilities and does not
 require Homebrew, Git, the controlled manifest, or another lifecycle script.
