@@ -1,0 +1,11 @@
+{
+  "id": "ubg-install-external-service-failure-before-managed-change",
+  "arguments": [],
+  "mock_overrides": {"fail_points": {"apt_update": 1}},
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "contains": ["APT package metadata could not be refreshed."]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "ubg-install-post-install-partial-failure",
+  "arguments": [],
+  "mock_overrides": {"skip_install_packages": ["code"]},
+  "expected": {
+    "exit_code": 7,
+    "result": "PARTIAL",
+    "managed_changes": "Yes",
+    "contains": ["APT did not report the required package installed: code"]
+  }
+}

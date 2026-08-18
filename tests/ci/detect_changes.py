@@ -31,6 +31,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "nix": False,
         "ubg_verify": False,
         "ubg_configure": False,
+        "ubg_install": False,
         "mac": False,
         "mac_verify": False,
         "mac_configure": False,
@@ -67,6 +68,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["cvd_install"] = True
             flags["ubg_verify"] = True
             flags["ubg_configure"] = True
+            flags["ubg_install"] = True
             flags["mac_verify"] = True
             flags["mac_configure"] = True
             flags["win_verify"] = True
@@ -81,6 +83,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["ubg_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/ubg/"):
             flags["ubg_configure"] = True
+        elif posix.startswith("tests/lifecycle/install/ubg/"):
+            flags["ubg_install"] = True
         elif posix.startswith("tests/lifecycle/verify/mac/"):
             flags["mac_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/mac/"):
@@ -97,6 +101,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["cvd_install"] = True
             flags["ubg_verify"] = True
             flags["ubg_configure"] = True
+            flags["ubg_install"] = True
             flags["mac_verify"] = True
             flags["mac_configure"] = True
             flags["win_verify"] = True
@@ -109,6 +114,10 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             if posix == "scripts/nix/ubg/config_ubg.sh":
                 flags["ubg_configure"] = True
                 # Configure changes should also exercise the independent Verify oracle.
+                flags["ubg_verify"] = True
+            if posix == "scripts/nix/ubg/setup_ubg.sh":
+                flags["ubg_install"] = True
+                # Install changes should also exercise the independent Verify oracle.
                 flags["ubg_verify"] = True
         elif posix.startswith("scripts/mac/"):
             flags["manifest"] = True

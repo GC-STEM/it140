@@ -1,0 +1,11 @@
+{
+  "id": "ubg-install-privilege-failure",
+  "arguments": [],
+  "mock_overrides": {"sudo_authorized": false},
+  "expected": {
+    "exit_code": 3,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "contains": ["Administrator authorization is required for system installation."]
+  }
+}

@@ -66,9 +66,12 @@ The CVD suite additionally covers Xfce/Num Lock behavior. The Ubuntu GNOME suite
 
 ### Install
 
-The first Install behavioral suite covers CVD: `scripts/cvd/install_it140.sh`.
+Install behavioral suites now cover:
 
-It establishes system-mutation contracts for:
+- CVD: `scripts/cvd/install_it140.sh`
+- Ubuntu Desktop GNOME: `scripts/nix/ubg/setup_ubg.sh`
+
+They establish system-mutation contracts for:
 
 - successful installation (`0`)
 - unsupported context (`2`) and unavailable required privilege (`3`) before managed changes
@@ -76,11 +79,13 @@ It establishes system-mutation contracts for:
 - malformed controlled configuration (`5`) before managed changes
 - post-install verification failure resolving to `PARTIAL` (`7`)
 - preservation of student repositories and unrelated user configuration
-- convergence of manifest-declared APT packages, approved repository artifacts, Noto Color Emoji health, Xfce Num Lock autostart, and Chrome managed bookmarks
+- convergence of manifest-declared APT packages and approved repository artifacts
+- CVD-specific Noto Color Emoji health, Xfce Num Lock autostart, and Chrome managed bookmarks
+- Ubuntu GNOME-specific GitHub CLI and Visual Studio Code APT repository/key artifacts
 - semantic idempotence across two successful runs
 - Install transcript permissions and summary/exit-code consistency
 
-See `tests/lifecycle/install/cvd/README.md` for the isolation model.
+See `tests/lifecycle/install/cvd/README.md` and `tests/lifecycle/install/ubg/README.md` for the platform isolation models.
 
 ## Run locally
 
@@ -114,6 +119,15 @@ CVD Install on Linux with the suite's isolated system-root seam:
 ```bash
 python3 -m unittest discover \
   -s tests/lifecycle/install/cvd \
+  -p 'test_*.py' \
+  -v
+```
+
+Ubuntu GNOME Install on Ubuntu/Linux with isolated APT/system paths:
+
+```bash
+python3 -m unittest discover \
+  -s tests/lifecycle/install/ubg \
   -p 'test_*.py' \
   -v
 ```
@@ -168,6 +182,14 @@ Test hooks are active only when explicitly set by the lifecycle harness. Normal 
 - `IT140_INSTALL_TEST_EUID` supplies a deterministic effective-user value only while Install test mode/root isolation is active.
 
 APT, `sudo`, vendor downloads, package queries, fontconfig, and desktop-entry validation remain external boundaries supplied through the test `PATH`. The production Install entry point still performs its normal manifest validation, lifecycle branching, managed-file generation, post-install verification, summary generation, and exit-code resolution.
+
+### Ubuntu GNOME
+
+- `IT140_INSTALL_TEST_MODE=true` explicitly enables Ubuntu GNOME Install isolation. Normal course execution leaves it unset.
+- `IT140_INSTALL_TEST_ROOT` redirects `/etc/os-release` and the GitHub CLI / Visual Studio Code APT source and keyring files into the temporary fixture tree.
+- `IT140_INSTALL_TEST_EUID` supplies a deterministic non-root effective-user value only while Install test isolation is active.
+
+APT, `sudo`, repository downloads, package queries, `gpg`, and system-file writes remain external boundaries supplied through the test `PATH`. The real `setup_ubg.sh` entry point still performs manifest validation, lifecycle branching, capability decisions, post-install validation, summary generation, and exit-code resolution.
 
 ## Configure test-isolation hooks
 

@@ -1,0 +1,10 @@
+{
+  "id": "ubg-install-unsupported-profile",
+  "arguments": ["--deployment-profile", "unsupported_profile"],
+  "expected": {
+    "exit_code": 2,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "contains": ["Unsupported deployment profile: unsupported_profile"]
+  }
+}

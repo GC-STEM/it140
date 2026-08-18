@@ -1,0 +1,11 @@
+{
+  "id": "ubg-install-manifest-failure",
+  "arguments": [],
+  "fixture_overrides": {"manifest": "malformed"},
+  "expected": {
+    "exit_code": 5,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "contains": ["The controlled manifest is invalid"]
+  }
+}

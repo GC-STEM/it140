@@ -1,0 +1,13 @@
+{
+  "id": "ubg-install-success",
+  "arguments": [],
+  "expected": {
+    "exit_code": 0,
+    "result": "PASS",
+    "managed_changes": "Yes",
+    "contains": [
+      "Required Ubuntu system capabilities passed post-validation.",
+      "Required system software is compatible."
+    ]
+  }
+}

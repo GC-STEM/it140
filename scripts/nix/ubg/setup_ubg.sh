@@ -14,6 +14,7 @@
 # ==============================================================================
 set -Eeuo pipefail
 umask 077
+
 readonly SCRIPT_VERSION="0.8.0-alpha.1"
 readonly VERSION_DTG="2026-08-07-10-44"
 readonly DEVELOPMENT_STATUS="Alpha Testing"
@@ -29,6 +30,19 @@ readonly LOG_DIR="$COURSE_ROOT/logs"
 readonly LOG_FILE="$LOG_DIR/setup_ubg_$(date +%Y%m%d_%H%M%S).log"
 readonly LOCK_FILE="$HOME/.cache/it140-ubg-mutation.lock"
 readonly EXIT_FAILURE=1 EXIT_UNSUPPORTED=2 EXIT_PRIVILEGE=3 EXIT_EXTERNAL=4 EXIT_MANIFEST=5 EXIT_CANCELED=6 EXIT_PARTIAL=7
+
+readonly INSTALL_TEST_MODE="${IT140_INSTALL_TEST_MODE:-false}"
+if [[ "$INSTALL_TEST_MODE" == true ]]; then
+    readonly INSTALL_TEST_ROOT="${IT140_INSTALL_TEST_ROOT:-}"
+else
+    readonly INSTALL_TEST_ROOT=""
+fi
+readonly OS_RELEASE_PATH="${INSTALL_TEST_ROOT}/etc/os-release"
+readonly GITHUB_SOURCE_LIST="${INSTALL_TEST_ROOT}/etc/apt/sources.list.d/github-cli.list"
+readonly GITHUB_KEYRING="${INSTALL_TEST_ROOT}/usr/share/keyrings/githubcli-archive-keyring.gpg"
+readonly VSCODE_SOURCE_LIST="${INSTALL_TEST_ROOT}/etc/apt/sources.list.d/vscode.list"
+readonly VSCODE_KEYRING="${INSTALL_TEST_ROOT}/usr/share/keyrings/packages.microsoft.gpg"
+
 REQUESTED_PROFILE="$DEPLOYMENT_PROFILE_ID"
 CHANGED=false
 WARNINGS=0
@@ -38,6 +52,7 @@ APT_METADATA_REFRESHED=false
 CURRENT_STAGE="initialization"
 MANIFEST_RELEASE="unavailable"
 START_EPOCH="$(date +%s)"
+
 header(){ printf '\n============================================================\n%s\n============================================================\n' "$1"; }
 info(){ printf '[INFO] %s\n' "$1"; }
 success(){ printf '[SUCCESS] %s\n' "$1"; }
@@ -60,37 +75,82 @@ parse(){
         case "$1" in
             --help|-h) usage; exit 0;;
             --version) printf '%s (%s; %s)\n' "$SCRIPT_VERSION" "$VERSION_DTG" "$DEVELOPMENT_STATUS"; exit 0;;
-            --deployment-profile|--profile) shift; (($#)) || { error 'Missing deployment profile.'; exit 2; }; REQUESTED_PROFILE="$1";;
-            *) error "Unsupported option: $1"; usage >&2; exit 2;;
+            --deployment-profile|--profile) shift; (($#)) || { error 'Missing deployment profile.'; exit "$EXIT_UNSUPPORTED"; }; REQUESTED_PROFILE="$1";;
+            *) error "Unsupported option: $1"; usage >&2; exit "$EXIT_UNSUPPORTED";;
         esac
         shift
     done
 }
+resolve_failure_code(){
+    local requested="$1"
+    case "$requested" in
+        "$EXIT_MANIFEST"|"$EXIT_UNSUPPORTED"|"$EXIT_PRIVILEGE"|"$EXIT_EXTERNAL"|"$EXIT_PARTIAL")
+            printf '%s\n' "$requested"
+            ;;
+        "$EXIT_CANCELED")
+            [[ "$CHANGED" == true ]] && printf '%s\n' "$EXIT_PARTIAL" || printf '%s\n' "$EXIT_CANCELED"
+            ;;
+        *)
+            [[ "$CHANGED" == true ]] && printf '%s\n' "$EXIT_PARTIAL" || printf '%s\n' "$EXIT_FAILURE"
+            ;;
+    esac
+}
 finish(){
-    local code="$1" result="$2" detail="$3"
-    [[ "$FINALIZED" == false ]] || return "$code"
+    local requested_code="${1:-0}" detail="${2:-}"
+    local code result next_step
+    [[ "$FINALIZED" == false ]] || return "$requested_code"
     FINALIZED=true
+    if ((requested_code == 0)); then
+        code=0
+        result=PASS
+        next_step='Open a new Terminal and run config_ubg.sh.'
+    else
+        code="$(resolve_failure_code "$requested_code")"
+        [[ "$code" == "$EXIT_PARTIAL" ]] && result=PARTIAL || result=FAIL
+        next_step='Resolve the reported issue, then rerun setup_ubg.sh.'
+    fi
     header 'IT 140 UBUNTU GNOME SETUP SUMMARY'
+    printf 'Conclusion         : %s\n' "$detail"
     printf 'Result             : %s\n' "$result"
     printf 'Script version     : %s\n' "$SCRIPT_VERSION"
     printf 'Version DTG        : %s\n' "$VERSION_DTG"
-    printf 'Development status: %s\n' "$DEVELOPMENT_STATUS"
+    printf 'Development status : %s\n' "$DEVELOPMENT_STATUS"
     printf 'Manifest release   : %s\n' "$MANIFEST_RELEASE"
     printf 'Managed changes    : %s\n' "$( [[ "$CHANGED" == true ]] && printf Yes || printf No )"
     printf 'Warnings           : %s\n' "$WARNINGS"
     printf 'Failures           : %s\n' "$FAILURES"
     printf 'Elapsed seconds    : %s\n' "$(( $(date +%s)-START_EPOCH ))"
-    printf 'Detail             : %s\n' "$detail"
-    printf 'Next step          : %s\n' 'Open a new Terminal and run config_ubg.sh.'
+    printf 'Next step          : %s\n' "$next_step"
     printf 'Log file           : %s\n' "$LOG_FILE"
     printf 'Exit code          : %s\n' "$code"
     ((code==0)) || continuity
     notice 'Review the summary and log before closing Terminal.'
     return "$code"
 }
-fatal(){ local code="$1"; shift; FAILURES=$((FAILURES+1)); error "$*"; finish "$code" FAIL "$*"; exit $?; }
-on_error(){ local code=$?; trap - ERR; FAILURES=$((FAILURES+1)); error "Unexpected failure during ${CURRENT_STAGE} (status ${code})."; finish "$([[ "$CHANGED" == true ]] && printf 7 || printf 1)" FAIL "An unexpected command failure stopped Setup."; exit $?; }
-on_interrupt(){ trap - INT TERM HUP; finish "$([[ "$CHANGED" == true ]] && printf 7 || printf 6)" CANCELED 'Setup was interrupted. Rerun it to reevaluate the system layer.'; exit $?; }
+fatal(){
+    local requested_code="$1" exit_code=0
+    shift
+    FAILURES=$((FAILURES+1))
+    error "$*"
+    error "Failed stage: $CURRENT_STAGE"
+    finish "$requested_code" "$*" || exit_code=$?
+    exit "$exit_code"
+}
+on_error(){
+    local status=$? exit_code=0
+    trap - ERR
+    FAILURES=$((FAILURES+1))
+    error "Unexpected failure during ${CURRENT_STAGE} (status ${status})."
+    finish "$EXIT_FAILURE" 'An unexpected command failure stopped Setup.' || exit_code=$?
+    exit "$exit_code"
+}
+on_interrupt(){
+    local exit_code=0
+    trap - INT TERM HUP
+    error "Setup was interrupted during ${CURRENT_STAGE}."
+    finish "$EXIT_CANCELED" 'Setup was interrupted. Rerun it to reevaluate the system layer.' || exit_code=$?
+    exit "$exit_code"
+}
 validate_manifest(){
     python3 - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" "$REQUESTED_PROFILE" "$SUPPORTED_SCHEMA" <<'PY'
 import json,pathlib,sys
@@ -134,7 +194,10 @@ install_apt_packages(){
     sudo env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 install -y "$@" || fatal "$EXIT_FAILURE" "Required APT packages could not be installed: $*"
     CHANGED=true
     local package
-    for package in "$@"; do apt_package_present "$package" || fatal "$EXIT_FAILURE" "APT did not report the required package installed: $package"; state 'INSTALLED — by IT 140' system_package "$package"; done
+    for package in "$@"; do
+        apt_package_present "$package" || fatal "$EXIT_FAILURE" "APT did not report the required package installed: $package"
+        state 'INSTALLED — by IT 140' system_package "$package"
+    done
 }
 command_compatible(){
     local role="$1" command_name="$2"
@@ -144,25 +207,57 @@ command_compatible(){
     fi
 }
 ensure_github_cli_source(){
-    local list='/etc/apt/sources.list.d/github-cli.list' key='/usr/share/keyrings/githubcli-archive-keyring.gpg'
-    if [[ -e "$list" ]] && ! grep -Fq 'https://cli.github.com/packages' "$list"; then fatal "$EXIT_FAILURE" "An existing unmanaged GitHub CLI source file at $list conflicts with the approved source and was preserved."; fi
-    if [[ ! -e "$key" ]]; then CURRENT_STAGE='Install GitHub CLI repository signing key'; curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee "$key" >/dev/null || fatal "$EXIT_EXTERNAL" 'The GitHub CLI repository signing key could not be retrieved.'; sudo chmod go+r "$key"; CHANGED=true; fi
-    if [[ ! -e "$list" ]]; then printf 'deb [arch=%s signed-by=%s] https://cli.github.com/packages stable main\n' "$(dpkg --print-architecture)" "$key" | sudo tee "$list" >/dev/null; CHANGED=true; fi
+    if [[ -e "$GITHUB_SOURCE_LIST" ]] && ! grep -Fq 'https://cli.github.com/packages' "$GITHUB_SOURCE_LIST"; then
+        fatal "$EXIT_FAILURE" "An existing unmanaged GitHub CLI source file at $GITHUB_SOURCE_LIST conflicts with the approved source and was preserved."
+    fi
+    if [[ ! -e "$GITHUB_KEYRING" ]]; then
+        CURRENT_STAGE='Install GitHub CLI repository signing key'
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee "$GITHUB_KEYRING" >/dev/null || fatal "$EXIT_EXTERNAL" 'The GitHub CLI repository signing key could not be retrieved.'
+        sudo chmod go+r "$GITHUB_KEYRING"
+        CHANGED=true
+    fi
+    if [[ ! -e "$GITHUB_SOURCE_LIST" ]]; then
+        printf 'deb [arch=%s signed-by=%s] https://cli.github.com/packages stable main\n' "$(dpkg --print-architecture)" "$GITHUB_KEYRING" | sudo tee "$GITHUB_SOURCE_LIST" >/dev/null
+        CHANGED=true
+    fi
     APT_METADATA_REFRESHED=false
 }
 ensure_vscode_source(){
-    local list='/etc/apt/sources.list.d/vscode.list' key='/usr/share/keyrings/packages.microsoft.gpg'
-    if [[ -e "$list" ]] && ! grep -Fq 'https://packages.microsoft.com/repos/code' "$list"; then fatal "$EXIT_FAILURE" "An existing unmanaged Visual Studio Code source file at $list conflicts with the approved source and was preserved."; fi
-    if [[ ! -e "$key" ]]; then CURRENT_STAGE='Install Microsoft package signing key'; local temp; temp="$(mktemp)"; curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > "$temp" || { rm -f "$temp"; fatal "$EXIT_EXTERNAL" 'The Microsoft package signing key could not be retrieved.'; }; sudo install -m 0644 "$temp" "$key"; rm -f "$temp"; CHANGED=true; fi
-    if [[ ! -e "$list" ]]; then printf 'deb [arch=%s signed-by=%s] https://packages.microsoft.com/repos/code stable main\n' "$(dpkg --print-architecture)" "$key" | sudo tee "$list" >/dev/null; CHANGED=true; fi
+    if [[ -e "$VSCODE_SOURCE_LIST" ]] && ! grep -Fq 'https://packages.microsoft.com/repos/code' "$VSCODE_SOURCE_LIST"; then
+        fatal "$EXIT_FAILURE" "An existing unmanaged Visual Studio Code source file at $VSCODE_SOURCE_LIST conflicts with the approved source and was preserved."
+    fi
+    if [[ ! -e "$VSCODE_KEYRING" ]]; then
+        CURRENT_STAGE='Install Microsoft package signing key'
+        local temp
+        temp="$(mktemp)"
+        curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > "$temp" || { rm -f "$temp"; fatal "$EXIT_EXTERNAL" 'The Microsoft package signing key could not be retrieved.'; }
+        sudo install -m 0644 "$temp" "$VSCODE_KEYRING"
+        rm -f "$temp"
+        CHANGED=true
+    fi
+    if [[ ! -e "$VSCODE_SOURCE_LIST" ]]; then
+        printf 'deb [arch=%s signed-by=%s] https://packages.microsoft.com/repos/code stable main\n' "$(dpkg --print-architecture)" "$VSCODE_KEYRING" | sudo tee "$VSCODE_SOURCE_LIST" >/dev/null
+        CHANGED=true
+    fi
     APT_METADATA_REFRESHED=false
 }
-ensure_source(){ case "$1" in ubuntu_archive|'') ;; github_cli_packages) ensure_github_cli_source;; microsoft_vscode_packages) ensure_vscode_source;; *) fatal "$EXIT_MANIFEST" "Unsupported Ubuntu software source: $1";; esac; }
+ensure_source(){
+    case "$1" in
+        ubuntu_archive|'') ;;
+        github_cli_packages) ensure_github_cli_source;;
+        microsoft_vscode_packages) ensure_vscode_source;;
+        *) fatal "$EXIT_MANIFEST" "Unsupported Ubuntu software source: $1";;
+    esac
+}
 install_binding(){
     local role="$1" package="$2" source_id="$3" commands="$4" command_name="${commands%%,*}"
     CURRENT_STAGE="Evaluate required capability ${role}"
     if [[ -n "$command_name" ]] && command_compatible "$role" "$command_name"; then
-        if apt_package_present "$package"; then state 'PRESENT — APT package present, compatible' "$role" "$(command -v "$command_name")"; else state 'PRESENT — externally installed, compatible' "$role" "$(command -v "$command_name")"; fi
+        if apt_package_present "$package"; then
+            state 'PRESENT — APT package present, compatible' "$role" "$(command -v "$command_name")"
+        else
+            state 'PRESENT — externally installed, compatible' "$role" "$(command -v "$command_name")"
+        fi
         return
     fi
     if apt_package_present "$package"; then
@@ -172,59 +267,91 @@ install_binding(){
     state MISSING "$role" "$package"
     ensure_source "$source_id"
     install_apt_packages "$package"
-    if [[ -n "$command_name" ]] && ! command_compatible "$role" "$command_name"; then fatal "$EXIT_FAILURE" "Required capability is unavailable after installing $package."; fi
+    if [[ -n "$command_name" ]] && ! command_compatible "$role" "$command_name"; then
+        fatal "$EXIT_FAILURE" "Required capability is unavailable after installing $package."
+    fi
 }
-parse "$@"
-mkdir -p "$LOG_DIR" "$(dirname "$LOCK_FILE")"
-chmod 0700 "$LOG_DIR"
-: > "$LOG_FILE"; chmod 0600 "$LOG_FILE"
-exec > >(tee -a "$LOG_FILE") 2>&1
-trap on_error ERR
-trap on_interrupt INT TERM HUP
-header 'IT 140 UBUNTU GNOME SYSTEM SETUP'
-info "Script version : $SCRIPT_VERSION"
-info "Version DTG    : $VERSION_DTG"
-info "Status         : $DEVELOPMENT_STATUS"
-info "Current user   : $(id -un)"
-info "Course root    : $COURSE_ROOT"
-info "Log file       : $LOG_FILE"
-notice 'Compatible preexisting applications are preserved; package-manager ownership is not required for local capability compliance.'
-notice 'Setup does not create the course Python environment or change personal Git/GitHub/VS Code settings; config_ubg.sh owns those tasks.'
-CURRENT_STAGE='Validate execution context'
-((EUID!=0)) || fatal "$EXIT_UNSUPPORTED" 'Run Setup as the regular desktop user, not with sudo.'
-[[ -r /etc/os-release ]] || fatal "$EXIT_UNSUPPORTED" 'Ubuntu could not be identified.'
-# shellcheck disable=SC1091
-source /etc/os-release
-[[ "${ID:-}" == ubuntu && "${VERSION_ID:-}" == 24.04 ]] || fatal "$EXIT_UNSUPPORTED" 'This implementation supports Ubuntu 24.04 LTS only.'
-[[ "$(uname -m)" == x86_64 ]] || fatal "$EXIT_UNSUPPORTED" 'This implementation supports x86_64 only.'
-[[ "$REQUESTED_PROFILE" == "$DEPLOYMENT_PROFILE_ID" ]] || fatal "$EXIT_UNSUPPORTED" "Unsupported deployment profile: $REQUESTED_PROFILE"
-command -v sudo >/dev/null 2>&1 || fatal "$EXIT_PRIVILEGE" 'sudo is required for system installation.'
-sudo -v || fatal "$EXIT_PRIVILEGE" 'Administrator authorization is required for system installation.'
-exec 9>"$LOCK_FILE"
-flock -n 9 || fatal "$EXIT_PARTIAL" 'Another IT 140 Ubuntu mutation script is running.'
-CURRENT_STAGE='Validate controlled manifest'
-[[ -r "$MANIFEST_PATH" && -r "$SCHEMA_PATH" ]] || fatal "$EXIT_MANIFEST" 'The controlled manifest or schema is missing.'
-MANIFEST_RELEASE="$(validate_manifest 2>&1)" || fatal "$EXIT_MANIFEST" "The controlled manifest is invalid: $MANIFEST_RELEASE"
-info "Manifest release: $MANIFEST_RELEASE"
-header 'Stage 1: Required Ubuntu Support Packages'
-declare -a missing_os=()
-while IFS=$'\t' read -r package source_id; do
-    [[ -n "$package" ]] || continue
-    if apt_package_present "$package"; then state 'PRESENT — APT package present' system_package "$package"; else state MISSING system_package "$package"; [[ "$source_id" == ubuntu_archive ]] && missing_os+=("$package"); fi
-done < <(manifest_query os_packages)
-((${#missing_os[@]}==0)) || install_apt_packages "${missing_os[@]}"
-header 'Stage 2: Manifest-Declared System Capabilities'
-while IFS=$'\t' read -r role package source_id commands; do
-    [[ -n "$role" && -n "$package" ]] || continue
-    install_binding "$role" "$package" "$source_id" "$commands"
-done < <(manifest_query system_bindings)
-header 'Stage 3: Post-Installation Validation'
-while IFS=$'\t' read -r role package source_id commands; do
-    [[ -n "$role" && -n "$package" ]] || continue
-    command_name="${commands%%,*}"
-    if [[ -n "$command_name" ]] && ! command_compatible "$role" "$command_name"; then fatal "$EXIT_FAILURE" "Required capability failed post-validation: $role ($command_name)."; fi
-    if apt_package_present "$package"; then state 'PRESENT — APT package present, compatible' "$role" "$package"; else state 'PRESENT — externally installed, compatible' "$role" "$(command -v "$command_name")"; fi
-done < <(manifest_query system_bindings)
-success 'Required Ubuntu system capabilities passed post-validation.'
-finish 0 PASS 'Required system software is compatible. Compatible preexisting applications were preserved.'
-exit $?
+
+main(){
+    parse "$@"
+    mkdir -p "$LOG_DIR" "$(dirname "$LOCK_FILE")"
+    chmod 0700 "$LOG_DIR"
+    : > "$LOG_FILE"
+    chmod 0600 "$LOG_FILE"
+    exec > >(tee -a "$LOG_FILE") 2>&1
+    trap on_error ERR
+    trap on_interrupt INT TERM HUP
+
+    header 'IT 140 UBUNTU GNOME SYSTEM SETUP'
+    info "Script version : $SCRIPT_VERSION"
+    info "Version DTG    : $VERSION_DTG"
+    info "Status         : $DEVELOPMENT_STATUS"
+    info "Current user   : $(id -un)"
+    info "Course root    : $COURSE_ROOT"
+    info "Log file       : $LOG_FILE"
+    notice 'Compatible preexisting applications are preserved; package-manager ownership is not required for local capability compliance.'
+    notice 'Setup does not create the course Python environment or change personal Git/GitHub/VS Code settings; config_ubg.sh owns those tasks.'
+
+    CURRENT_STAGE='Validate execution context'
+    local effective_euid="$EUID"
+    if [[ "$INSTALL_TEST_MODE" == true && -n "$INSTALL_TEST_ROOT" && -n "${IT140_INSTALL_TEST_EUID:-}" ]]; then
+        [[ "${IT140_INSTALL_TEST_EUID}" =~ ^[0-9]+$ ]] || fatal "$EXIT_UNSUPPORTED" 'The Install test effective-user value is invalid.'
+        effective_euid="${IT140_INSTALL_TEST_EUID}"
+    fi
+    ((effective_euid!=0)) || fatal "$EXIT_UNSUPPORTED" 'Run Setup as the regular desktop user, not with sudo.'
+    [[ -r "$OS_RELEASE_PATH" ]] || fatal "$EXIT_UNSUPPORTED" 'Ubuntu could not be identified.'
+    # shellcheck disable=SC1090
+    source "$OS_RELEASE_PATH"
+    [[ "${ID:-}" == ubuntu && "${VERSION_ID:-}" == 24.04 ]] || fatal "$EXIT_UNSUPPORTED" 'This implementation supports Ubuntu 24.04 LTS only.'
+    [[ "$(uname -m)" == x86_64 ]] || fatal "$EXIT_UNSUPPORTED" 'This implementation supports x86_64 only.'
+    [[ "$REQUESTED_PROFILE" == "$DEPLOYMENT_PROFILE_ID" ]] || fatal "$EXIT_UNSUPPORTED" "Unsupported deployment profile: $REQUESTED_PROFILE"
+    command -v sudo >/dev/null 2>&1 || fatal "$EXIT_PRIVILEGE" 'sudo is required for system installation.'
+    sudo -v || fatal "$EXIT_PRIVILEGE" 'Administrator authorization is required for system installation.'
+
+    exec 9>"$LOCK_FILE"
+    flock -n 9 || fatal "$EXIT_PARTIAL" 'Another IT 140 Ubuntu mutation script is running.'
+
+    CURRENT_STAGE='Validate controlled manifest'
+    [[ -r "$MANIFEST_PATH" && -r "$SCHEMA_PATH" ]] || fatal "$EXIT_MANIFEST" 'The controlled manifest or schema is missing.'
+    MANIFEST_RELEASE="$(validate_manifest 2>&1)" || fatal "$EXIT_MANIFEST" "The controlled manifest is invalid: $MANIFEST_RELEASE"
+    info "Manifest release: $MANIFEST_RELEASE"
+
+    header 'Stage 1: Required Ubuntu Support Packages'
+    declare -a missing_os=()
+    while IFS=$'\t' read -r package source_id; do
+        [[ -n "$package" ]] || continue
+        if apt_package_present "$package"; then
+            state 'PRESENT — APT package present' system_package "$package"
+        else
+            state MISSING system_package "$package"
+            [[ "$source_id" == ubuntu_archive ]] && missing_os+=("$package")
+        fi
+    done < <(manifest_query os_packages)
+    ((${#missing_os[@]}==0)) || install_apt_packages "${missing_os[@]}"
+
+    header 'Stage 2: Manifest-Declared System Capabilities'
+    while IFS=$'\t' read -r role package source_id commands; do
+        [[ -n "$role" && -n "$package" ]] || continue
+        install_binding "$role" "$package" "$source_id" "$commands"
+    done < <(manifest_query system_bindings)
+
+    header 'Stage 3: Post-Installation Validation'
+    while IFS=$'\t' read -r role package source_id commands; do
+        [[ -n "$role" && -n "$package" ]] || continue
+        command_name="${commands%%,*}"
+        if [[ -n "$command_name" ]] && ! command_compatible "$role" "$command_name"; then
+            fatal "$EXIT_FAILURE" "Required capability failed post-validation: $role ($command_name)."
+        fi
+        if apt_package_present "$package"; then
+            state 'PRESENT — APT package present, compatible' "$role" "$package"
+        else
+            state 'PRESENT — externally installed, compatible' "$role" "$(command -v "$command_name")"
+        fi
+    done < <(manifest_query system_bindings)
+    success 'Required Ubuntu system capabilities passed post-validation.'
+    local exit_code=0
+    finish 0 'Required system software is compatible. Compatible preexisting applications were preserved.' || exit_code=$?
+    exit "$exit_code"
+}
+
+main "$@"
