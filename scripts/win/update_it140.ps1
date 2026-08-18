@@ -115,13 +115,6 @@ $LogPath = Join-Path $LogDirectory (
 $VenvDirectory = Join-Path $CourseRoot ".venv"
 $VenvScriptsDirectory = Join-Path $VenvDirectory "Scripts"
 $VenvPython = Join-Path $VenvScriptsDirectory "python.exe"
-$VsCodeSettings = Join-Path $env:APPDATA "Code\User\settings.json"
-$CourseShortcutPath = Join-Path (
-    [Environment]::GetFolderPath("Desktop")
-) "IT 140.lnk"
-$VsCodeShortcutPath = Join-Path (
-    [Environment]::GetFolderPath("Desktop")
-) "Visual Studio Code - IT 140.lnk"
 $StartTime = Get-Date
 $TranscriptStarted = $false
 $MutationMutex = $null
@@ -1967,6 +1960,17 @@ if ($Version) {
     Write-Host "Development status : $DevelopmentStatus"
     exit 0
 }
+
+# User-shell paths are intentionally resolved only after the early-exit CLI
+# options above. Help/version queries must not depend on Desktop or AppData
+# special-folder availability and must not initialize user-integration state.
+$VsCodeSettings = Join-Path $env:APPDATA "Code\User\settings.json"
+$CourseShortcutPath = Join-Path (
+    [Environment]::GetFolderPath("Desktop")
+) "IT 140.lnk"
+$VsCodeShortcutPath = Join-Path (
+    [Environment]::GetFolderPath("Desktop")
+) "Visual Studio Code - IT 140.lnk"
 
 try {
     New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null
