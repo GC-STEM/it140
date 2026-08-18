@@ -935,8 +935,10 @@ function Test-SupportedOperatingSystem {
     if ($IsWindows10) {
         if ($WindowsFacts.DisplayVersion -ne "22H2") {
             throw (
-                "Windows 10 release {0} is not enabled. Supported Windows 10 " +
-                "release: 22H2." -f $WindowsFacts.DisplayVersion
+                (
+                    "Windows 10 release {0} is not enabled. Supported Windows 10 " +
+                    "release: 22H2."
+                ) -f $WindowsFacts.DisplayVersion
             )
         }
         return
@@ -947,8 +949,10 @@ function Test-SupportedOperatingSystem {
     )
     if ($WindowsFacts.DisplayVersion -notin $SupportedWindows11Releases) {
         throw (
-            "Windows 11 release {0} is not enabled. Supported Windows 11 " +
-            "releases: {1}" -f
+            (
+                "Windows 11 release {0} is not enabled. Supported Windows 11 " +
+                "releases: {1}"
+            ) -f
             $WindowsFacts.DisplayVersion,
             ($SupportedWindows11Releases -join ", ")
         )
@@ -1459,8 +1463,9 @@ function Install-VsCodeExtension {
 
     if ($null -ne $ConfigureTestState) {
         $InstalledExtensions = @(
-            Get-PropertyValue -Object $ConfigureTestState -Name "extensions"
-        ) | ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
+            @(Get-PropertyValue -Object $ConfigureTestState -Name "extensions") |
+                ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
+        )
         $MissingExtensions = @(
             $RequiredExtensions |
                 Where-Object { $_.ToLowerInvariant() -notin $InstalledExtensions }
@@ -1473,8 +1478,11 @@ function Install-VsCodeExtension {
             ) {
                 throw "VS Code extension installation failed: $($MissingExtensions[0])"
             }
+            $NormalizedMissingExtensions = @(
+                $MissingExtensions | ForEach-Object { $_.ToLowerInvariant() }
+            )
             $InstalledExtensions = @(
-                $InstalledExtensions + ($MissingExtensions | ForEach-Object { $_.ToLowerInvariant() }) |
+                @($InstalledExtensions) + @($NormalizedMissingExtensions) |
                     Sort-Object -Unique
             )
             Set-ConfigureTestStateProperty -Name "extensions" -Value $InstalledExtensions
@@ -2117,8 +2125,9 @@ function Test-ConfiguredUserLayer {
 
     $InstalledExtensions = if ($null -ne $ConfigureTestState) {
         @(
-            Get-PropertyValue -Object $ConfigureTestState -Name "extensions"
-        ) | ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
+            @(Get-PropertyValue -Object $ConfigureTestState -Name "extensions") |
+                ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
+        )
     }
     else {
         @(

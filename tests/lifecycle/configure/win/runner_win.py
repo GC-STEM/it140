@@ -361,8 +361,15 @@ class WinConfigureHarness:
             state_path=state_path,
         )
 
+    @staticmethod
+    def _new_temp_root(prefix: str) -> Path:
+        # GitHub's Windows runner may expose its temporary directory through an
+        # 8.3 alias (for example, RUNNER~1). Resolve it before building expected
+        # managed paths so Python and PowerShell compare the same path spelling.
+        return Path(tempfile.mkdtemp(prefix=prefix)).resolve()
+
     def run_scenario(self, scenario: dict[str, Any]) -> ConfigureRun:
-        temp_root = Path(tempfile.mkdtemp(prefix="it140-configure-win-"))
+        temp_root = self._new_temp_root("it140-configure-win-")
         try:
             home, win_dir, state_path = self._prepare_fixture(temp_root, scenario)
             return self._execute(scenario, temp_root, home, win_dir, state_path)
@@ -371,7 +378,7 @@ class WinConfigureHarness:
             raise
 
     def run_twice(self, scenario: dict[str, Any]) -> ConfigureSequence:
-        temp_root = Path(tempfile.mkdtemp(prefix="it140-configure-win-twice-"))
+        temp_root = self._new_temp_root("it140-configure-win-twice-")
         try:
             home, win_dir, state_path = self._prepare_fixture(temp_root, scenario)
             first = self._execute(scenario, temp_root, home, win_dir, state_path)

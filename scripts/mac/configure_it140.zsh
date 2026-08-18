@@ -100,7 +100,10 @@ finish(){
   release_lock
   if (( requested != 0 )); then
     code=$requested; result="FAIL"
-    [[ "$CHANGED" == true && "$requested" != "$EXIT_UNSUPPORTED" && "$requested" != "$EXIT_MANIFEST" ]] && code=$EXIT_PARTIAL
+    if [[ "$CHANGED" == true && "$requested" != "$EXIT_UNSUPPORTED" && "$requested" != "$EXIT_MANIFEST" ]]; then
+      code=$EXIT_PARTIAL
+    fi
+    (( code == EXIT_PARTIAL )) && result="PARTIAL"
     next="Resolve the reported issue, then rerun configure_it140.zsh."
   fi
   print_header "CONFIGURATION SUMMARY"
@@ -122,9 +125,30 @@ finish(){
   (( code == 0 )) && print_success "The macOS user configuration completed successfully." || course_continuity
   return "$code"
 }
-fatal(){ local code="$1"; shift; FAILURES=$((FAILURES+1)); print_error "$*"; print_error "Failed stage: $CURRENT_STAGE"; finish "$code" "$*"; exit $?; }
-on_error(){ local exit_status=$?; trap - ERR; FAILURES=$((FAILURES+1)); print_error "Configuration stopped during $CURRENT_STAGE (status $exit_status)."; finish 1 "An unexpected command failure stopped Configure."; exit $?; }
-on_interrupt(){ trap - INT TERM HUP; print_error "Configuration was interrupted during $CURRENT_STAGE."; finish 6 "Configure was interrupted; rerun it to recover."; exit $?; }
+fatal(){
+  local requested_code="$1" resolved_code=0
+  shift
+  FAILURES=$((FAILURES+1))
+  print_error "$*"
+  print_error "Failed stage: $CURRENT_STAGE"
+  finish "$requested_code" "$*" || resolved_code=$?
+  exit "$resolved_code"
+}
+on_error(){
+  local exit_status=$? resolved_code=0
+  trap - ERR
+  FAILURES=$((FAILURES+1))
+  print_error "Configuration stopped during $CURRENT_STAGE (status $exit_status)."
+  finish 1 "An unexpected command failure stopped Configure." || resolved_code=$?
+  exit "$resolved_code"
+}
+on_interrupt(){
+  local resolved_code=0
+  trap - INT TERM HUP
+  print_error "Configuration was interrupted during $CURRENT_STAGE."
+  finish 6 "Configure was interrupted; rerun it to recover." || resolved_code=$?
+  exit "$resolved_code"
+}
 acquire_lock(){
   CURRENT_STAGE="shared lifecycle mutation lock"
   /bin/mkdir -p -- "$LOCK_PARENT"
@@ -225,7 +249,7 @@ upsert_path(){
     $0 == finish || $0 == legacy_finish {inside=0; next}
     !inside {print}
   ' "$file" > "$temp"
-  printf '\n%s\n%s\n%s\n' "$MANAGED_ENV_START" "$MANAGED_ENV_EXPORT" "$MANAGED_ENV_END" >> "$temp"
+  printf '%s\n%s\n%s\n' "$MANAGED_ENV_START" "$MANAGED_ENV_EXPORT" "$MANAGED_ENV_END" >> "$temp"
   chmod 0600 "$temp"
   if cmp -s "$temp" "$file"; then rm -f "$temp"; else mv -f "$temp" "$file"; CHANGED=true; fi
 }
