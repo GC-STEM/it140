@@ -1,0 +1,20 @@
+{
+  "id": "ubg-configure-partial-after-managed-change",
+  "arguments": [
+    "--noninteractive",
+    "--deployment-profile",
+    "ubuntu_gnome_bare_metal"
+  ],
+  "mock_overrides": {
+    "fail_extension_install": true
+  },
+  "expected": {
+    "exit_code": 7,
+    "result": "PARTIAL",
+    "managed_changes": "Yes",
+    "failures": 1,
+    "output_contains": [
+      "Unexpected failure during user tools and VS Code settings"
+    ]
+  }
+}

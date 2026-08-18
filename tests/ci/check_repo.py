@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Fast repository-integrity checks for the IT 140 automation package."""
-
 from __future__ import annotations
 
 import json
 from pathlib import Path
 import sys
+
 ROOT = Path(__file__).resolve().parents[2]
 REQUIRED_FILES = (
     "scripts/.manifest/it140_manifest.json",
@@ -56,6 +56,22 @@ REQUIRED_FILES = (
     "tests/lifecycle/configure/cvd/scenarios/unsupported.json",
     "tests/lifecycle/configure/cvd/scenarios/partial_failure.json",
     "tests/lifecycle/configure/cvd/scenarios/external_failure.json",
+    "tests/lifecycle/configure/ubg/README.md",
+    "tests/lifecycle/configure/ubg/runner_ubg.py",
+    "tests/lifecycle/configure/ubg/test_configure_ubg.py",
+    "tests/lifecycle/configure/ubg/mocks/mock_command.py",
+    "tests/lifecycle/configure/ubg/fixtures/base/home/.bashrc",
+    "tests/lifecycle/configure/ubg/fixtures/base/home/.profile",
+    "tests/lifecycle/configure/ubg/fixtures/base/home/.config/Code/User/settings.json",
+    "tests/lifecycle/configure/ubg/fixtures/base/home/.config/other-app/prefs.txt",
+    "tests/lifecycle/configure/ubg/fixtures/base/home/Desktop/Personal Notes.txt",
+    "tests/lifecycle/configure/ubg/fixtures/base/home/Repos/student-work/do_not_touch.py",
+    "tests/lifecycle/configure/ubg/scenarios/success.json",
+    "tests/lifecycle/configure/ubg/scenarios/manifest_failure.json",
+    "tests/lifecycle/configure/ubg/scenarios/unsupported.json",
+    "tests/lifecycle/configure/ubg/scenarios/partial_failure.json",
+    "tests/lifecycle/configure/ubg/scenarios/external_failure.json",
+    "tests/lifecycle/configure/ubg/scenarios/external_after_change.json",
     "tests/lifecycle/configure/mac/README.md",
     "tests/lifecycle/configure/mac/runner_mac.py",
     "tests/lifecycle/configure/mac/test_configure_mac.py",
@@ -126,6 +142,7 @@ REQUIRED_FILES = (
     "tests/lifecycle/verify/win/scenarios/unsupported.json",
 )
 
+
 class DuplicateKeyError(ValueError):
     pass
 
@@ -171,6 +188,7 @@ def main() -> int:
     print(f"Repository validation passed: {len(REQUIRED_FILES)} required files found.")
     print("Manifest and schema are valid JSON with no duplicate object keys.")
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

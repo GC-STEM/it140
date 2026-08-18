@@ -1,0 +1,19 @@
+{
+  "id": "ubg-configure-success",
+  "arguments": [
+    "--noninteractive",
+    "--deployment-profile",
+    "ubuntu_gnome_bare_metal"
+  ],
+  "expected": {
+    "exit_code": 0,
+    "result": "PASS",
+    "managed_changes": "Yes",
+    "failures": 0,
+    "configured": true,
+    "output_contains": [
+      "Ubuntu GNOME user configuration passed post-validation.",
+      "Required Ubuntu GNOME user configuration and repository-workspace operations completed."
+    ]
+  }
+}

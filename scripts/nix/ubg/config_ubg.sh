@@ -9,7 +9,6 @@
 # Creates ~/Repos as the student development workspace, applies a GNOME/GIO
 # development icon when supported, and creates Desktop/Repos. It never
 # recursively modifies repositories or files beneath ~/Repos.
-
 set -Eeuo pipefail
 umask 077
 readonly SCRIPT_VERSION="0.8.0-alpha.1"
@@ -29,11 +28,9 @@ readonly VENV_DIR="$COURSE_ROOT/.venv"
 readonly PATH_START="# >>> IT 140 managed PATH >>>"
 readonly PATH_END="# <<< IT 140 managed PATH <<<"
 readonly PATH_EXPORT='export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/nix/ubg:$PATH"'
-
 NONINTERACTIVE=false
 REQUESTED_PROFILE="$DEPLOYMENT_PROFILE_ID"
 CHANGED=false WARNINGS=0 FAILURES=0 MANIFEST_RELEASE="unavailable" CURRENT_STAGE="initialization" FINALIZED=false
-
 header(){ printf '\n============================================================\n%s\n============================================================\n' "$1"; }
 info(){ printf '[INFO] %s\n' "$1"; }
 success(){ printf '[SUCCESS] %s\n' "$1"; }
@@ -49,10 +46,36 @@ USAGE
 }
 parse(){ while (($#)); do case "$1" in --help|-h) usage; exit 0;; --version) printf '%s (%s)\n' "$SCRIPT_VERSION" "$VERSION_DTG"; exit 0;; --noninteractive) NONINTERACTIVE=true;; --deployment-profile) shift; (($#)) || exit 2; REQUESTED_PROFILE="$1";; *) error "Unsupported option: $1"; exit 2;; esac; shift; done; }
 continuity(){ notice "Course continuity: You can continue your IT 140 coursework in the Codio Virtual Desktop (CVD) while this local course IDE issue is resolved."; }
-finish(){ local code="$1" msg="$2" result=PASS; [[ "$FINALIZED" == false ]] || return "$code"; FINALIZED=true; if ((code)); then result=FAIL; [[ "$CHANGED" == true ]] && code=7; fi; header "CONFIGURATION SUMMARY"; printf 'Conclusion      : %s\nResult          : %s\nScript version  : %s\nVersion DTG     : %s\nManifest release: %s\nRepository root : %s\nWarnings        : %s\nFailures        : %s\nLog file        : %s\nExit code       : %s\n' "$msg" "$result" "$SCRIPT_VERSION" "$VERSION_DTG" "$MANIFEST_RELEASE" "$REPOS_ROOT" "$WARNINGS" "$FAILURES" "$LOG_FILE" "$code"; ((code==0)) || continuity; return "$code"; }
-fatal(){ local c="$1"; shift; FAILURES=$((FAILURES+1)); error "$*"; finish "$c" "$*"; exit $?; }
-on_error(){ local c=$?; trap - ERR; FAILURES=$((FAILURES+1)); error "Unexpected failure during $CURRENT_STAGE (status $c)."; finish 1 "An unexpected command failure stopped Configure."; exit $?; }
-
+finish(){
+ local code="$1" msg="$2" result=PASS
+ [[ "$FINALIZED" == false ]] || return "$code"
+ FINALIZED=true
+ if ((code)); then
+  result=FAIL
+  if [[ "$CHANGED" == true ]]; then code=7; result=PARTIAL; fi
+ fi
+ header "CONFIGURATION SUMMARY"
+ printf 'Conclusion      : %s\nResult          : %s\nScript version  : %s\nVersion DTG     : %s\nManifest release: %s\nRepository root : %s\nWarnings        : %s\nFailures        : %s\nManaged changes : %s\nLog file        : %s\nExit code       : %s\n' "$msg" "$result" "$SCRIPT_VERSION" "$VERSION_DTG" "$MANIFEST_RELEASE" "$REPOS_ROOT" "$WARNINGS" "$FAILURES" "$( [[ "$CHANGED" == true ]] && printf 'Yes' || printf 'No' )" "$LOG_FILE" "$code"
+ ((code==0)) || continuity
+ return "$code"
+}
+fatal(){
+ local c="$1" exit_code=0
+ shift
+ FAILURES=$((FAILURES+1))
+ error "$*"
+ finish "$c" "$*" || exit_code=$?
+ exit "$exit_code"
+}
+on_error(){
+ local c=$?
+ local exit_code=0
+ trap - ERR
+ FAILURES=$((FAILURES+1))
+ error "Unexpected failure during $CURRENT_STAGE (status $c)."
+ finish 1 "An unexpected command failure stopped Configure." || exit_code=$?
+ exit "$exit_code"
+}
 validate_manifest(){ python3 - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" "$REQUESTED_PROFILE" "$SUPPORTED_SCHEMA" <<'PY'
 import json,pathlib,sys
 mp,sp,pid,prof,sv=sys.argv[1:]; m=json.loads(pathlib.Path(mp).read_text()); s=json.loads(pathlib.Path(sp).read_text())
@@ -88,7 +111,6 @@ elif q=='vscode_settings':
 elif q=='privacy_template': print(m['provider_profiles']['github_com']['privacy_identity']['template'])
 PY
 }
-
 upsert_path(){ local file="$1"; python3 - "$file" <<'PY'
 from pathlib import Path
 import sys
@@ -100,9 +122,8 @@ p.write_text(t)
 PY
 }
 desktop_dir(){ xdg-user-dir DESKTOP 2>/dev/null || printf '%s/Desktop\n' "$HOME"; }
-
-check_context(){ CURRENT_STAGE="execution-context validation"; ((EUID!=0)) || fatal 2 "Do not run config_ubg.sh with sudo."; source /etc/os-release; [[ "${ID:-}" == ubuntu && "${VERSION_ID:-}" == 24.04 ]] || fatal 2 "This implementation supports Ubuntu 24.04 LTS only."; [[ "$(uname -m)" == x86_64 ]] || fatal 2 "This implementation supports x86_64 only."; [[ "$REQUESTED_PROFILE" == "$DEPLOYMENT_PROFILE_ID" ]] || fatal 2 "Unsupported deployment profile."; for c in git gh python3.12 code gio; do command -v "$c" >/dev/null 2>&1 || fatal 1 "Required command is missing: $c. Run setup_ubg.sh first."; done; }
-
+check_context(){ CURRENT_STAGE="execution-context validation"; ((EUID!=0)) || fatal 2 "Do not run config_ubg.sh with sudo."; source /etc/os-release; [[ "${ID:-}" == ubuntu && "${VERSION_ID:-}" == 24.04 ]] || fatal 2 "This implementation supports Ubuntu 24.04 LTS only."; [[ "$(uname -m)" == x86_64 ]] || fatal 2 "This implementation supports x86_64 only."; [[ "$REQUESTED_PROFILE" == "$DEPLOYMENT_PROFILE_ID" ]] || fatal 2 "Unsupported deployment profile."; for c in git gh python3.12 code gio; do command -v "$c" >/dev/null 2>&1 || fatal 1 "Required command is missing: $c.
+Run setup_ubg.sh first."; done; }
 configure_workspace(){
  CURRENT_STAGE="repository workspace configuration"; mkdir -p "$COURSE_ROOT" "$LOG_DIR" "$PLATFORM_SCRIPT_DIR"; chmod 700 "$LOG_DIR"; touch "$HOME/.bashrc" "$HOME/.profile"; upsert_path "$HOME/.bashrc"; upsert_path "$HOME/.profile"; export PATH="$VENV_DIR/bin:$PLATFORM_SCRIPT_DIR:$PATH"
  if [[ -e "$REPOS_ROOT" && ! -d "$REPOS_ROOT" ]]; then fatal 1 "The required repository workspace path exists but is not a directory."; fi
@@ -114,13 +135,11 @@ configure_workspace(){
  if gio set "$REPOS_ROOT" metadata::custom-icon-name applications-development >/dev/null 2>&1; then CHANGED=true; success "Applied the GNOME development icon metadata to $REPOS_ROOT."; else warning "GNOME did not accept development icon metadata; workspace functionality is unaffected."; fi
  success "Repository workspace configured: $REPOS_ROOT"
 }
-
 configure_identity(){ CURRENT_STAGE="GitHub authentication and Git identity"; if ! gh auth status --hostname github.com >/dev/null 2>&1; then [[ "$NONINTERACTIVE" == false ]] || fatal 1 "GitHub authentication is required."; printf 'Press Enter to authenticate with GitHub, or type C to cancel: '; local r; IFS= read -r r; [[ "${r,,}" != c ]] || fatal 6 "GitHub authentication canceled."; gh auth login --hostname github.com --git-protocol https --web --clipboard || fatal 4 "GitHub authentication failed."; CHANGED=true; fi; local j aid login name t email entered; j="$(gh api user --jq '{id:.id,login:.login,name:.name}')" || fatal 4 "GitHub account data unavailable."; IFS=$'\t' read -r aid login name < <(python3 - "$j" <<'PY'
 import json,sys
 x=json.loads(sys.argv[1]); print(f"{x['id']}\t{x['login']}\t{x.get('name') or x['login']}")
 PY
 ); if [[ "$NONINTERACTIVE" == false ]]; then printf 'Git commit display name [%s]: ' "$name"; IFS= read -r entered; [[ -z "$entered" ]] || name="$entered"; fi; t="$(manifest_query privacy_template)"; email="${t//\$\{ACCOUNT_ID\}/$aid}"; email="${email//\$\{USERNAME\}/$login}"; git config --global user.name "$name"; git config --global user.email "$email"; while IFS=$'\t' read -r k v; do [[ -n "$k" ]] || continue; git config --global "$k" "$v"; done < <(manifest_query git_settings); CHANGED=true; }
-
 configure_tools(){ CURRENT_STAGE="user tools and VS Code settings"; [[ -x "$VENV_DIR/bin/python" ]] || { python3.12 -m venv "$VENV_DIR"; CHANGED=true; }; mapfile -t pkgs < <(manifest_query venv_packages); ((${#pkgs[@]}==0)) || "$VENV_DIR/bin/python" -m pip install --disable-pip-version-check --upgrade "${pkgs[@]}"; while IFS= read -r ext; do [[ -n "$ext" ]] || continue; code --install-extension "$ext" --force >/dev/null; done < <(manifest_query extensions); local settings="$HOME/.config/Code/User/settings.json" managed; managed="$(manifest_query vscode_settings)"; IT140_SETTINGS="$settings" IT140_MANAGED="$managed" IT140_PY="$VENV_DIR/bin/python" python3 - <<'PY'
 import json,os
 from pathlib import Path
@@ -136,8 +155,6 @@ def merge(a,b):
 merge(d,m); p.parent.mkdir(parents=True,exist_ok=True); tmp=p.with_name(p.name+'.it140.tmp'); tmp.write_text(json.dumps(d,indent=4)+'\n'); json.loads(tmp.read_text()); tmp.replace(p)
 PY
  CHANGED=true; }
-
 validate(){ CURRENT_STAGE="configuration validation"; [[ -d "$REPOS_ROOT" && -w "$REPOS_ROOT" ]] || fatal 1 "Repository workspace validation failed."; local link="$(desktop_dir)/Repos"; [[ -L "$link" && "$(readlink -f "$link")" == "$(readlink -f "$REPOS_ROOT")" ]] || fatal 1 "Desktop Repos link validation failed."; gh auth status --hostname github.com >/dev/null 2>&1 || fatal 1 "GitHub authentication validation failed."; [[ -x "$VENV_DIR/bin/python" ]] || fatal 1 "Course virtual environment validation failed."; success "Ubuntu GNOME user configuration passed post-validation."; }
-
 main(){ parse "$@"; mkdir -p "$LOG_DIR"; chmod 700 "$LOG_DIR"; touch "$LOG_FILE"; chmod 600 "$LOG_FILE"; exec > >(tee -a "$LOG_FILE") 2>&1; trap on_error ERR; header "IT 140 UBUNTU GNOME CONFIGURE"; info "Script version : $SCRIPT_VERSION"; info "Version DTG    : $VERSION_DTG"; info "Course root    : $COURSE_ROOT"; info "Repository root: $REPOS_ROOT"; info "Log file       : $LOG_FILE"; check_context; CURRENT_STAGE="controlled manifest validation"; MANIFEST_RELEASE="$(validate_manifest)" || fatal 5 "The controlled manifest or schema is invalid."; configure_workspace; configure_identity; configure_tools; validate; finish 0 "Required Ubuntu GNOME user configuration and repository-workspace operations completed."; }
 main "$@"

@@ -1,0 +1,17 @@
+{
+  "id": "ubg-configure-unsupported-profile",
+  "arguments": [
+    "--noninteractive",
+    "--deployment-profile",
+    "not_ubuntu_gnome_bare_metal"
+  ],
+  "expected": {
+    "exit_code": 2,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "failures": 1,
+    "output_contains": [
+      "Unsupported deployment profile."
+    ]
+  }
+}

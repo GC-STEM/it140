@@ -1,0 +1,8 @@
+{
+  "it140.lifecycleTestSentinel": "preserve-me",
+  "editor.wordWrap": "on",
+  "python.defaultInterpreterPath": "/student/old/python",
+  "files.exclude": {
+    "**/.student-sentinel": true
+  }
+}

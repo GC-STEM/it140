@@ -1,0 +1,27 @@
+{
+  "id": "ubg-configure-external-service-failure-before-managed-change",
+  "arguments": [
+    "--noninteractive",
+    "--deployment-profile",
+    "ubuntu_gnome_bare_metal"
+  ],
+  "fixture_overrides": {
+    "preconfigured_before_identity": true
+  },
+  "seed_mock_overrides": {
+    "gio_set_failure": true
+  },
+  "mock_overrides": {
+    "gio_set_failure": true,
+    "gh_api_user_failure": true
+  },
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "failures": 1,
+    "output_contains": [
+      "GitHub account data unavailable."
+    ]
+  }
+}

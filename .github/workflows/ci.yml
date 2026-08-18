@@ -25,6 +25,7 @@ jobs:
       cvd_configure: ${{ steps.changes.outputs.cvd_configure }}
       nix: ${{ steps.changes.outputs.nix }}
       ubg_verify: ${{ steps.changes.outputs.ubg_verify }}
+      ubg_configure: ${{ steps.changes.outputs.ubg_configure }}
       mac: ${{ steps.changes.outputs.mac }}
       mac_verify: ${{ steps.changes.outputs.mac_verify }}
       mac_configure: ${{ steps.changes.outputs.mac_configure }}
@@ -167,6 +168,25 @@ jobs:
         run: >-
           python3 -m unittest discover
           -s tests/lifecycle/verify/ubg
+          -p 'test_*.py'
+          -v
+
+  ubg_configure:
+    name: Ubuntu GNOME Configure lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.ubg_configure == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir --user "jsonschema[format-nongpl]==4.26.0"
+      - name: Run Ubuntu GNOME Configure lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/configure/ubg
           -p 'test_*.py'
           -v
 
@@ -336,6 +356,7 @@ jobs:
       - cvd_configure
       - linux
       - ubg_verify
+      - ubg_configure
       - macos
       - mac_verify
       - mac_configure
@@ -354,6 +375,7 @@ jobs:
           CVD_CONFIGURE_RESULT: ${{ needs.cvd_configure.result }}
           LINUX_RESULT: ${{ needs.linux.result }}
           UBG_VERIFY_RESULT: ${{ needs.ubg_verify.result }}
+          UBG_CONFIGURE_RESULT: ${{ needs.ubg_configure.result }}
           MACOS_RESULT: ${{ needs.macos.result }}
           MAC_VERIFY_RESULT: ${{ needs.mac_verify.result }}
           MAC_CONFIGURE_RESULT: ${{ needs.mac_configure.result }}
@@ -373,6 +395,7 @@ jobs:
             "cvd-configure:$CVD_CONFIGURE_RESULT" \
             "linux:$LINUX_RESULT" \
             "ubg-verify:$UBG_VERIFY_RESULT" \
+            "ubg-configure:$UBG_CONFIGURE_RESULT" \
             "macos:$MACOS_RESULT" \
             "mac-verify:$MAC_VERIFY_RESULT" \
             "mac-configure:$MAC_CONFIGURE_RESULT" \

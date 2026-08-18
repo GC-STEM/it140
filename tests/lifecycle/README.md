@@ -2,7 +2,7 @@
 
 This directory contains behavioral tests for the IT 140 lifecycle scripts. These tests complement the fast structural and syntax checks under `tests/ci/`; they do not replace qualification on the actual supported course environments.
 
-The Verify suites established the common black-box conventions. The CVD, macOS, and Windows Configure suites add mutation-specific conventions that later Configure, Update, Install, and Prepare suites can reuse.
+The Verify suites established the common black-box conventions. The CVD, Ubuntu GNOME, macOS, and Windows Configure suites add mutation-specific conventions that later Configure, Update, Install, and Prepare suites can reuse.
 
 ## Test conventions
 
@@ -45,6 +45,7 @@ The Ubuntu GNOME scripts currently retain their Alpha-era `*_ubg.sh` names. Keep
 Behavioral Configure suites cover:
 
 - CVD: `scripts/cvd/configure_it140.sh`
+- Ubuntu Desktop GNOME: `scripts/nix/ubg/config_ubg.sh`
 - macOS Apple silicon: `scripts/mac/configure_it140.zsh`
 - Windows: `scripts/win/configure_it140.ps1`
 
@@ -61,7 +62,7 @@ They establish the shared mutation-specific contracts for:
 - semantic idempotence across two successful runs
 - Configure transcript permissions and summary/exit-code consistency
 
-The CVD suite additionally covers Xfce/Num Lock behavior. The macOS suite covers managed Zsh PATH blocks, the Desktop `Repos` link, and `Visual Studio Code - Repos.app`. The Windows suite covers privilege-context enforcement, registry-backed user PATH semantics, merge-preserving VS Code settings, Python/extension/Git convergence, and the managed `Repos.lnk` and Visual Studio Code workspace shortcuts. See each platform suite README for its isolation model.
+The CVD suite additionally covers Xfce/Num Lock behavior. The Ubuntu GNOME suite covers managed Bash PATH blocks, GNOME/GIO workspace metadata, and the Desktop `Repos` link. The macOS suite covers managed Zsh PATH blocks, the Desktop `Repos` link, and `Visual Studio Code - Repos.app`. The Windows suite covers privilege-context enforcement, registry-backed user PATH semantics, merge-preserving VS Code settings, Python/extension/Git convergence, and the managed `Repos.lnk` and Visual Studio Code workspace shortcuts. See each platform suite README for its isolation model.
 
 ## Run locally
 
@@ -86,6 +87,15 @@ CVD Configure on a non-root Ubuntu 24.04 host:
 ```bash
 python3 -m unittest discover \
   -s tests/lifecycle/configure/cvd \
+  -p 'test_*.py' \
+  -v
+```
+
+Ubuntu GNOME Configure on a non-root Ubuntu 24.04 x86-64 host:
+
+```bash
+python3 -m unittest discover \
+  -s tests/lifecycle/configure/ubg \
   -p 'test_*.py' \
   -v
 ```
@@ -152,7 +162,7 @@ Manifest-declared/user commands such as Git, GitHub CLI, Homebrew, and VS Code a
 ### Windows
 
 - `IT140_VERIFY_TEST_ROOT` relocates user-profile paths used by Verify (`Repos`, Desktop, and VS Code user settings) into the temporary fixture.
-- `IT140_VERIFY_TEST_STATE` identifies a JSON file containing deterministic observations for Windows APIs and external boundaries that cannot be safely represented by filesystem fixtures alone, including elevation/Sandbox context, OS facts, native-command results, Git/VS Code observations, pending-restart state, and `.lnk` shortcut definitions.
+- `IT140_VERIFY_TEST_STATE` identifies a JSON file containing deterministic observations for Windows APIs and external boundaries that cannot safely be represented by filesystem fixtures alone, including elevation/Sandbox context, OS facts, native-command results, Git/VS Code observations, pending-restart state, and `.lnk` shortcut definitions.
 
 The Windows verifier still executes as the production PowerShell entry point and performs its normal comparisons, branching, result recording, summary generation, and exit-code resolution. The test state replaces external observations only; it does not supply expected verifier results.
 

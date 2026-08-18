@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Determine which IT 140 platform checks are affected by a Git change set."""
-
 from __future__ import annotations
 
 import argparse
@@ -30,6 +29,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "cvd_configure": False,
         "nix": False,
         "ubg_verify": False,
+        "ubg_configure": False,
         "mac": False,
         "mac_verify": False,
         "mac_configure": False,
@@ -62,6 +62,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["cvd_verify"] = True
             flags["cvd_configure"] = True
             flags["ubg_verify"] = True
+            flags["ubg_configure"] = True
             flags["mac_verify"] = True
             flags["mac_configure"] = True
             flags["win_verify"] = True
@@ -72,6 +73,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["cvd_configure"] = True
         elif posix.startswith("tests/lifecycle/verify/ubg/"):
             flags["ubg_verify"] = True
+        elif posix.startswith("tests/lifecycle/configure/ubg/"):
+            flags["ubg_configure"] = True
         elif posix.startswith("tests/lifecycle/verify/mac/"):
             flags["mac_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/mac/"):
@@ -86,6 +89,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["cvd_verify"] = True
             flags["cvd_configure"] = True
             flags["ubg_verify"] = True
+            flags["ubg_configure"] = True
             flags["mac_verify"] = True
             flags["mac_configure"] = True
             flags["win_verify"] = True
@@ -94,6 +98,10 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["manifest"] = True
             flags["nix"] = True
             if posix == "scripts/nix/ubg/verify_ubg.sh":
+                flags["ubg_verify"] = True
+            if posix == "scripts/nix/ubg/config_ubg.sh":
+                flags["ubg_configure"] = True
+                # Configure changes should also exercise the independent Verify oracle.
                 flags["ubg_verify"] = True
         elif posix.startswith("scripts/mac/"):
             flags["manifest"] = True
@@ -115,7 +123,6 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
 def write_outputs(flags: dict[str, bool]) -> None:
     output_path = os.environ.get("GITHUB_OUTPUT")
     lines = [f"{name}={'true' if value else 'false'}" for name, value in flags.items()]
-
     if output_path:
         with open(output_path, "a", encoding="utf-8", newline="\n") as handle:
             handle.write("\n".join(lines) + "\n")
@@ -129,9 +136,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--base", default="")
     parser.add_argument("--head", default="HEAD")
     parser.add_argument(
-        "--files",
-        nargs="*",
-        help="Optional explicit paths for local testing; skips git diff.",
+        "--files", nargs="*", help="Optional explicit paths for local testing; skips git diff."
     )
     return parser.parse_args()
 
@@ -146,7 +151,6 @@ def main() -> int:
         write_outputs(classify([], force_all=True))
         return 0
     if not args.base or args.base == ZERO_SHA:
-        # New branches/initial pushes do not have a usable comparison base.
         write_outputs(classify([], force_all=True))
         return 0
     try:
