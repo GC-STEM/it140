@@ -1,0 +1,12 @@
+{
+  "id": "win-configure-privilege-failure",
+  "arguments": ["-DeploymentProfile", "windows_bare_metal"],
+  "mock_overrides": {"is_administrator": true},
+  "expected": {
+    "exit_code": 3,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "failures": 1,
+    "output_contains": ["Do not run configure_it140.ps1 from an elevated terminal"]
+  }
+}

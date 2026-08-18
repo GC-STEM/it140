@@ -1,0 +1,19 @@
+{
+  "id": "win-configure-unsupported",
+  "arguments": ["-DeploymentProfile", "windows_bare_metal"],
+  "mock_overrides": {
+    "windows_facts": {
+      "Caption": "Microsoft Windows 11 Pro",
+      "Architecture": "64-bit",
+      "DisplayVersion": "99H9",
+      "BuildNumber": "99999"
+    }
+  },
+  "expected": {
+    "exit_code": 2,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "failures": 1,
+    "output_contains": ["Windows 11 release 99H9 is not enabled"]
+  }
+}

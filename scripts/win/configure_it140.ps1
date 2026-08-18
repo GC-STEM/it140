@@ -69,6 +69,42 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
+# Test-only isolation seam used by tests/lifecycle/configure/win/. Production
+# execution leaves these environment variables unset and follows normal
+# Windows APIs, registry state, native commands, and shell integration.
+$ConfigureTestRoot = [string]$env:IT140_CONFIGURE_TEST_ROOT
+$ConfigureTestStatePath = [string]$env:IT140_CONFIGURE_TEST_STATE
+$ConfigureTestState = $null
+if (-not [string]::IsNullOrWhiteSpace($ConfigureTestRoot)) {
+    if (
+        [string]::IsNullOrWhiteSpace($ConfigureTestStatePath) -or
+        -not (Test-Path -LiteralPath $ConfigureTestStatePath -PathType Leaf)
+    ) {
+        throw "IT140_CONFIGURE_TEST_STATE must identify a readable JSON state file in test mode."
+    }
+    $ConfigureTestState = Get-Content -LiteralPath $ConfigureTestStatePath -Raw |
+        ConvertFrom-Json
+}
+
+$ConfigureUserHome = if (-not [string]::IsNullOrWhiteSpace($ConfigureTestRoot)) {
+    Join-Path $ConfigureTestRoot "home"
+}
+else {
+    [Environment]::GetFolderPath("UserProfile")
+}
+$ConfigureDesktop = if (-not [string]::IsNullOrWhiteSpace($ConfigureTestRoot)) {
+    Join-Path $ConfigureUserHome "Desktop"
+}
+else {
+    [Environment]::GetFolderPath("Desktop")
+}
+$ConfigureAppData = if (-not [string]::IsNullOrWhiteSpace($ConfigureTestRoot)) {
+    Join-Path $ConfigureUserHome "AppData\Roaming"
+}
+else {
+    $env:APPDATA
+}
+
 $ScriptVersion = "0.10.0-beta.1"
 $VersionDate = "2026-08-09-23-59"
 $DevelopmentStatus = "Beta Testing"
@@ -77,7 +113,7 @@ $PlatformAbbreviation = "win"
 $ScriptDirectory = $PSScriptRoot
 $ScriptRoot = Split-Path -Parent $ScriptDirectory
 $CourseRoot = Split-Path -Parent $ScriptRoot
-$ReposRoot = Join-Path ([Environment]::GetFolderPath("UserProfile")) "Repos"
+$ReposRoot = Join-Path $ConfigureUserHome "Repos"
 $WindowsScriptDirectory = Join-Path $ScriptRoot $PlatformAbbreviation
 $ManifestPath = Join-Path $ScriptRoot ".manifest\it140_manifest.json"
 $SchemaPath = Join-Path $ScriptRoot ".manifest\it140_manifest.schema.json"
@@ -88,13 +124,9 @@ $LogPath = Join-Path $LogDirectory (
 $VenvDirectory = Join-Path $CourseRoot ".venv"
 $VenvScriptsDirectory = Join-Path $VenvDirectory "Scripts"
 $VenvPython = Join-Path $VenvScriptsDirectory "python.exe"
-$VsCodeSettings = Join-Path $env:APPDATA "Code\User\settings.json"
-$ReposShortcutPath = Join-Path (
-    [Environment]::GetFolderPath("Desktop")
-) "Repos.lnk"
-$VsCodeReposShortcutPath = Join-Path (
-    [Environment]::GetFolderPath("Desktop")
-) "Visual Studio Code - IT 140.lnk"
+$VsCodeSettings = Join-Path $ConfigureAppData "Code\User\settings.json"
+$ReposShortcutPath = Join-Path $ConfigureDesktop "Repos.lnk"
+$VsCodeReposShortcutPath = Join-Path $ConfigureDesktop "Visual Studio Code - IT 140.lnk"
 $VsCodeReposShortcutDescription = "Open Visual Studio Code in the IT 140 repository workspace"
 $ReposDesktopIniPath = Join-Path $ReposRoot "desktop.ini"
 $StartTime = Get-Date
@@ -105,6 +137,7 @@ $WarningCount = 0
 $ExitCode = 0
 $FailureExitCode = 1
 $GitHubUser = "unknown"
+$Controlled = $null
 
 function Write-Header {
     param([Parameter(Mandatory = $true)][string]$Title)
@@ -147,6 +180,37 @@ function Test-NativeCommandExitSuccess {
         [Parameter(Mandatory = $true)][string]$FilePath,
         [string[]]$ArgumentList = @()
     )
+
+    if ($null -ne $ConfigureTestState) {
+        $CommandName = [IO.Path]::GetFileName($FilePath)
+        $CommandKey = (($CommandName, ($ArgumentList -join " ")) -join " ").Trim()
+        $ExitCodes = Get-PropertyValue -Object $ConfigureTestState -Name "command_exit_codes"
+        if ($null -ne $ExitCodes) {
+            $ConfiguredExitCode = Get-PropertyValue -Object $ExitCodes -Name $CommandKey
+            if ($null -ne $ConfiguredExitCode) {
+                return [int]$ConfiguredExitCode -eq 0
+            }
+        }
+        if (
+            $CommandName -ieq "gh.exe" -and
+            ($ArgumentList -join " ") -eq "auth status --hostname github.com"
+        ) {
+            return [bool](Get-PropertyValue -Object $ConfigureTestState -Name "github_authenticated")
+        }
+        if (
+            $CommandName -ieq "python.exe" -and
+            $ArgumentList.Count -ge 4 -and
+            $ArgumentList[0] -eq "-m" -and
+            $ArgumentList[1] -eq "pip" -and
+            $ArgumentList[2] -eq "show"
+        ) {
+            $Packages = @(
+                Get-PropertyValue -Object $ConfigureTestState -Name "python_packages"
+            )
+            return $ArgumentList[3] -in $Packages
+        }
+        return $true
+    }
 
     $PreviousErrorActionPreference = $ErrorActionPreference
     try {
@@ -193,7 +257,62 @@ function Write-ClosingNotice {
     )
 }
 
+function Write-ConfigurationSummary {
+    param(
+        [Parameter(Mandatory = $true)][string]$Conclusion,
+        [Parameter(Mandatory = $true)][int]$SummaryExitCode,
+        [Parameter(Mandatory = $true)][int]$Failures
+    )
+
+    $Result = if ($SummaryExitCode -eq 0) {
+        "PASS"
+    }
+    elseif ($SummaryExitCode -eq 7) {
+        "PARTIAL"
+    }
+    else {
+        "FAIL"
+    }
+    $ManifestRelease = "unavailable"
+    $ManifestDate = "unavailable"
+    if ($null -ne $Controlled -and $null -ne $Controlled.Manifest) {
+        $ManifestRelease = [string]$Controlled.Manifest.automation_release
+        $ManifestDate = [string]$Controlled.Manifest.automation_release_date_time_group
+    }
+    $EndTime = Get-Date
+    $Elapsed = $EndTime - $StartTime
+    $NextStep = if ($SummaryExitCode -eq 0) {
+        "Close this window, open a new PowerShell window, and run verify_it140.ps1."
+    }
+    else {
+        "Resolve the reported issue, then rerun configure_it140.ps1."
+    }
+
+    Write-Header "CONFIGURATION SUMMARY"
+    Write-Host "Conclusion      : $Conclusion"
+    Write-Host "Result          : $Result"
+    Write-Host "Script version  : $ScriptVersion"
+    Write-Host "Version DTG     : $VersionDate"
+    Write-Host "Manifest release: $ManifestRelease"
+    Write-Host "Manifest DTG    : $ManifestDate"
+    Write-Host "Repository root : $ReposRoot"
+    Write-Host "Warnings        : $WarningCount"
+    Write-Host "Failures        : $Failures"
+    Write-Host "Start time      : $($StartTime.ToString('o'))"
+    Write-Host "End time        : $($EndTime.ToString('o'))"
+    $ManagedChanges = if ($Changed) { "Yes" } else { "No" }
+    Write-Host "Managed changes : $ManagedChanges"
+    Write-Host ("Elapsed time    : {0:hh\:mm\:ss}" -f $Elapsed)
+    Write-Host "Next step       : $NextStep"
+    Write-Host "Log file        : $LogPath"
+    Write-Host "Exit code       : $SummaryExitCode"
+    Write-ClosingNotice
+}
+
 function Test-IsAdministrator {
+    if ($null -ne $ConfigureTestState) {
+        return [bool](Get-PropertyValue -Object $ConfigureTestState -Name "is_administrator")
+    }
     $Identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $Principal = [Security.Principal.WindowsPrincipal]::new($Identity)
     return $Principal.IsInRole(
@@ -202,6 +321,9 @@ function Test-IsAdministrator {
 }
 
 function Test-IsWindowsSandbox {
+    if ($null -ne $ConfigureTestState) {
+        return [bool](Get-PropertyValue -Object $ConfigureTestState -Name "is_windows_sandbox")
+    }
     return [Environment]::UserName -eq "WDAGUtilityAccount"
 }
 
@@ -219,6 +341,13 @@ function Resolve-DeploymentProfile {
 }
 
 function Update-ProcessEnvironment {
+    if ($null -ne $ConfigureTestState) {
+        $MachinePath = [string](Get-PropertyValue -Object $ConfigureTestState -Name "machine_path")
+        $UserPath = [string](Get-PropertyValue -Object $ConfigureTestState -Name "user_path")
+        $env:Path = @($MachinePath, $UserPath) -join ";"
+        return
+    }
+
     $MachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
     $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
     $env:Path = @($MachinePath, $UserPath) -join ";"
@@ -238,7 +367,12 @@ function Get-NormalizedPathEntry {
 
 function Set-ManagedUserPath {
     $ManagedEntries = @($VenvScriptsDirectory, $WindowsScriptDirectory)
-    $ExistingUserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $ExistingUserPath = if ($null -ne $ConfigureTestState) {
+        [string](Get-PropertyValue -Object $ConfigureTestState -Name "user_path")
+    }
+    else {
+        [Environment]::GetEnvironmentVariable("Path", "User")
+    }
     $PreservedEntries = [Collections.Generic.List[string]]::new()
 
     foreach ($ExistingEntry in @($ExistingUserPath -split ";")) {
@@ -264,7 +398,12 @@ function Set-ManagedUserPath {
 
     $NewUserPath = (@($ManagedEntries) + @($PreservedEntries)) -join ";"
     if ($NewUserPath -cne [string]$ExistingUserPath) {
-        [Environment]::SetEnvironmentVariable("Path", $NewUserPath, "User")
+        if ($null -ne $ConfigureTestState) {
+            Set-ConfigureTestStateProperty -Name "user_path" -Value $NewUserPath
+        }
+        else {
+            [Environment]::SetEnvironmentVariable("Path", $NewUserPath, "User")
+        }
         $script:Changed = $true
     }
 
@@ -307,6 +446,72 @@ function Get-PropertyValue {
         return $null
     }
     return $PropertyRecord.Value
+}
+
+function Save-ConfigureTestState {
+    if ($null -eq $ConfigureTestState) {
+        return
+    }
+    $Json = $ConfigureTestState | ConvertTo-Json -Depth 40
+    $Utf8NoBom = [Text.UTF8Encoding]::new($false)
+    [IO.File]::WriteAllText($ConfigureTestStatePath, "$Json`n", $Utf8NoBom)
+}
+
+function Set-ConfigureTestStateProperty {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        $Value
+    )
+    if ($null -eq $ConfigureTestState) {
+        return
+    }
+    $PropertyRecord = $ConfigureTestState.PSObject.Properties[$Name]
+    if ($null -eq $PropertyRecord) {
+        $ConfigureTestState | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
+    }
+    else {
+        $ConfigureTestState.$Name = $Value
+    }
+    Save-ConfigureTestState
+}
+
+function Get-ConfigureTestShortcut {
+    param([Parameter(Mandatory = $true)][string]$Name)
+    if ($null -eq $ConfigureTestState) {
+        return $null
+    }
+    $Shortcuts = Get-PropertyValue -Object $ConfigureTestState -Name "shortcuts"
+    if ($null -eq $Shortcuts) {
+        return $null
+    }
+    return Get-PropertyValue -Object $Shortcuts -Name $Name
+}
+
+function Set-ConfigureTestShortcut {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)]$Definition,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+    if ($null -eq $ConfigureTestState) {
+        return
+    }
+    $Shortcuts = Get-PropertyValue -Object $ConfigureTestState -Name "shortcuts"
+    if ($null -eq $Shortcuts) {
+        $Shortcuts = [pscustomobject]@{}
+        Set-ConfigureTestStateProperty -Name "shortcuts" -Value $Shortcuts
+    }
+    $PropertyRecord = $Shortcuts.PSObject.Properties[$Name]
+    if ($null -eq $PropertyRecord) {
+        $Shortcuts | Add-Member -NotePropertyName $Name -NotePropertyValue $Definition
+    }
+    else {
+        $Shortcuts.$Name = $Definition
+    }
+    $ShortcutDirectory = Split-Path -Parent $Path
+    New-Item -ItemType Directory -Path $ShortcutDirectory -Force | Out-Null
+    [IO.File]::WriteAllBytes($Path, [Text.Encoding]::UTF8.GetBytes("IT140 lifecycle test shortcut`n"))
+    Save-ConfigureTestState
 }
 
 function Test-JsonDuplicateKey {
@@ -653,6 +858,13 @@ function Read-ControlledManifest {
 }
 
 function Get-OperatingSystemFact {
+    if ($null -ne $ConfigureTestState) {
+        $Facts = Get-PropertyValue -Object $ConfigureTestState -Name "windows_facts"
+        if ($null -eq $Facts) {
+            throw "Windows lifecycle test state is missing windows_facts."
+        }
+        return $Facts
+    }
     if (
         $DeploymentProfile -eq "windows_sandbox" -and
         (Test-IsWindowsSandbox)
@@ -744,6 +956,9 @@ function Test-SupportedOperatingSystem {
 }
 
 function Enter-MutationLock {
+    if ($null -ne $ConfigureTestState) {
+        return $null
+    }
     $CreatedNew = $false
     $Mutex = [Threading.Mutex]::new(
         $false,
@@ -788,6 +1003,12 @@ function Test-SystemLayer {
 
     Update-ProcessEnvironment
     $MissingCommands = @()
+    $AvailableCommands = @()
+    if ($null -ne $ConfigureTestState) {
+        $AvailableCommands = @(
+            Get-PropertyValue -Object $ConfigureTestState -Name "available_commands"
+        )
+    }
     foreach ($PropertyRecord in $Platform.course_ide_bindings.PSObject.Properties) {
         $Binding = $PropertyRecord.Value
         if (
@@ -795,7 +1016,13 @@ function Test-SystemLayer {
             [string]$Binding.installation_scope -eq "system"
         ) {
             foreach ($ExecutableName in @($Binding.verification.executable_names)) {
-                if ($null -eq (Get-Command $ExecutableName -ErrorAction SilentlyContinue)) {
+                $IsAvailable = if ($null -ne $ConfigureTestState) {
+                    $ExecutableName -in $AvailableCommands
+                }
+                else {
+                    $null -ne (Get-Command $ExecutableName -ErrorAction SilentlyContinue)
+                }
+                if (-not $IsAvailable) {
                     $MissingCommands += [string]$ExecutableName
                 }
             }
@@ -813,10 +1040,19 @@ function Test-SystemLayer {
         -Object $Platform.course_ide_bindings `
         -Name "programming_language_runtime"
     $RuntimeExecutable = [string]$RuntimeBinding.verification.executable_names[0]
-    $PythonVersion = & $RuntimeExecutable -c (
-        "import sys; print('.'.join(map(str, sys.version_info[:2])))"
-    )
-    if ($LASTEXITCODE -ne 0 -or [string]$PythonVersion -ne "3.12") {
+    if ($null -ne $ConfigureTestState) {
+        $PythonVersion = [string](
+            Get-PropertyValue -Object $ConfigureTestState -Name "python_version"
+        )
+        $PythonSucceeded = $true
+    }
+    else {
+        $PythonVersion = & $RuntimeExecutable -c (
+            "import sys; print('.'.join(map(str, sys.version_info[:2])))"
+        )
+        $PythonSucceeded = $LASTEXITCODE -eq 0
+    }
+    if (-not $PythonSucceeded -or [string]$PythonVersion -ne "3.12") {
         throw "Python 3.12 is not the active Windows system runtime. Run install_it140.ps1."
     }
 
@@ -869,6 +1105,11 @@ function Test-VenvPython {
     if (-not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) {
         return $false
     }
+    if ($null -ne $ConfigureTestState) {
+        return [string](
+            Get-PropertyValue -Object $ConfigureTestState -Name "venv_python_version"
+        ) -eq "3.12"
+    }
 
     try {
         $VenvVersion = & $VenvPython -c (
@@ -883,6 +1124,42 @@ function Test-VenvPython {
 
 function Install-CoursePythonEnvironment {
     param([Parameter(Mandatory = $true)][string[]]$RequiredPackages)
+
+    if ($null -ne $ConfigureTestState) {
+        if (-not (Test-VenvPython)) {
+            if (Test-Path -LiteralPath $VenvDirectory) {
+                Remove-Item -LiteralPath $VenvDirectory -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path $VenvScriptsDirectory -Force | Out-Null
+            [IO.File]::WriteAllBytes(
+                $VenvPython,
+                [Text.Encoding]::UTF8.GetBytes("IT140 lifecycle test python`n")
+            )
+            Set-ConfigureTestStateProperty -Name "venv_python_version" -Value "3.12"
+            $script:Changed = $true
+        }
+        $InstalledPackages = @(
+            Get-PropertyValue -Object $ConfigureTestState -Name "python_packages"
+        )
+        $MissingPackages = @(
+            $RequiredPackages | Where-Object { $_ -notin $InstalledPackages }
+        )
+        if ($MissingPackages.Count -gt 0) {
+            $FailPoints = Get-PropertyValue -Object $ConfigureTestState -Name "fail_points"
+            if (
+                $null -ne $FailPoints -and
+                [bool](Get-PropertyValue -Object $FailPoints -Name "python_package_install")
+            ) {
+                throw "One or more required course Python packages could not be installed."
+            }
+            $InstalledPackages = @($InstalledPackages + $MissingPackages | Sort-Object -Unique)
+            Set-ConfigureTestStateProperty -Name "python_packages" -Value $InstalledPackages
+            $script:Changed = $true
+        }
+        Write-Success "Required course Python packages are installed."
+        Write-Success "The course Python environment is configured."
+        return
+    }
 
     if (-not (Test-VenvPython)) {
         if (Test-Path -LiteralPath $VenvDirectory) {
@@ -941,6 +1218,18 @@ function Install-CoursePythonEnvironment {
 function Get-GitConfigValue {
     param([Parameter(Mandatory = $true)][string]$Key)
 
+    if ($null -ne $ConfigureTestState) {
+        $GitConfig = Get-PropertyValue -Object $ConfigureTestState -Name "git_config"
+        if ($null -eq $GitConfig) {
+            return ""
+        }
+        $ConfiguredValue = Get-PropertyValue -Object $GitConfig -Name $Key
+        if ($null -eq $ConfiguredValue) {
+            return ""
+        }
+        return ([string]$ConfiguredValue).Trim()
+    }
+
     $ObservedOutput = @(& git.exe config --global --get $Key 2>$null)
     if ($LASTEXITCODE -ne 0 -or $ObservedOutput.Count -eq 0) {
         return ""
@@ -950,6 +1239,86 @@ function Get-GitConfigValue {
 
 function Set-GitHubIdentity {
     param([Parameter(Mandatory = $true)]$Manifest)
+
+    if ($null -ne $ConfigureTestState) {
+        $GitHubIsAuthenticated = [bool](
+            Get-PropertyValue -Object $ConfigureTestState -Name "github_authenticated"
+        )
+        if (-not $GitHubIsAuthenticated) {
+            if ($NonInteractive) {
+                throw "GitHub authentication requires an existing login in noninteractive mode."
+            }
+            throw "GitHub authentication did not complete."
+        }
+        $FailPoints = Get-PropertyValue -Object $ConfigureTestState -Name "fail_points"
+        if (
+            $null -ne $FailPoints -and
+            [bool](Get-PropertyValue -Object $FailPoints -Name "github_identity_lookup")
+        ) {
+            throw "The authenticated GitHub account identity could not be retrieved."
+        }
+        $script:GitHubUser = [string](
+            Get-PropertyValue -Object $ConfigureTestState -Name "github_login"
+        )
+        $GitHubId = [string](
+            Get-PropertyValue -Object $ConfigureTestState -Name "github_id"
+        )
+        if (
+            [string]::IsNullOrWhiteSpace($GitHubUser) -or
+            $GitHubId -notmatch "^[0-9]+$"
+        ) {
+            throw "The authenticated GitHub account identity is invalid."
+        }
+        $ExistingDisplayName = Get-GitConfigValue -Key "user.name"
+        $GitDisplayName = if ([string]::IsNullOrWhiteSpace($ExistingDisplayName)) {
+            $GitHubUser
+        }
+        else {
+            $ExistingDisplayName
+        }
+        $PrivateEmail = "{0}+{1}@users.noreply.github.com" -f $GitHubId, $GitHubUser
+        $GitConfig = Get-PropertyValue -Object $ConfigureTestState -Name "git_config"
+        if ($null -eq $GitConfig) {
+            $GitConfig = [pscustomobject]@{}
+            Set-ConfigureTestStateProperty -Name "git_config" -Value $GitConfig
+        }
+        $DesiredSettings = [ordered]@{
+            "user.name" = $GitDisplayName
+            "user.email" = $PrivateEmail
+        }
+        $GitSettings = Get-PropertyValue `
+            -Object $Manifest.managed_settings `
+            -Name "git_course_defaults"
+        if ($null -eq $GitSettings) {
+            throw "The controlled Git settings profile is missing."
+        }
+        foreach ($PropertyRecord in $GitSettings.values.PSObject.Properties) {
+            $SettingValue = $PropertyRecord.Value
+            if ($SettingValue -is [bool]) {
+                $SettingValue = $SettingValue.ToString().ToLowerInvariant()
+            }
+            $DesiredSettings[$PropertyRecord.Name] = [string]$SettingValue
+        }
+        foreach ($Key in $DesiredSettings.Keys) {
+            $Existing = Get-PropertyValue -Object $GitConfig -Name $Key
+            if ([string]$Existing -cne [string]$DesiredSettings[$Key]) {
+                $ExistingProperty = $GitConfig.PSObject.Properties[$Key]
+                if ($null -eq $ExistingProperty) {
+                    $GitConfig | Add-Member -NotePropertyName $Key -NotePropertyValue $DesiredSettings[$Key]
+                }
+                else {
+                    $GitConfig.$Key = $DesiredSettings[$Key]
+                }
+                $script:Changed = $true
+            }
+        }
+        Save-ConfigureTestState
+        Write-Success "GitHub authentication and the privacy-preserving Git identity are configured."
+        Write-Info "GitHub user      : $GitHubUser"
+        Write-Info "Git display name : $GitDisplayName"
+        Write-Info "Git email        : private GitHub noreply address configured"
+        return
+    }
 
     $GitHubIsAuthenticated = Test-NativeCommandExitSuccess `
         -FilePath "gh.exe" `
@@ -1087,6 +1456,33 @@ function Set-GitHubIdentity {
 
 function Install-VsCodeExtension {
     param([Parameter(Mandatory = $true)][string[]]$RequiredExtensions)
+
+    if ($null -ne $ConfigureTestState) {
+        $InstalledExtensions = @(
+            Get-PropertyValue -Object $ConfigureTestState -Name "extensions"
+        ) | ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
+        $MissingExtensions = @(
+            $RequiredExtensions |
+                Where-Object { $_.ToLowerInvariant() -notin $InstalledExtensions }
+        )
+        if ($MissingExtensions.Count -gt 0) {
+            $FailPoints = Get-PropertyValue -Object $ConfigureTestState -Name "fail_points"
+            if (
+                $null -ne $FailPoints -and
+                [bool](Get-PropertyValue -Object $FailPoints -Name "vscode_extension_install")
+            ) {
+                throw "VS Code extension installation failed: $($MissingExtensions[0])"
+            }
+            $InstalledExtensions = @(
+                $InstalledExtensions + ($MissingExtensions | ForEach-Object { $_.ToLowerInvariant() }) |
+                    Sort-Object -Unique
+            )
+            Set-ConfigureTestStateProperty -Name "extensions" -Value $InstalledExtensions
+            $script:Changed = $true
+        }
+        Write-Success "Required VS Code extensions are installed."
+        return
+    }
 
     $InstalledExtensions = @(
         & code.cmd --list-extensions 2>$null |
@@ -1311,6 +1707,11 @@ function Set-VsCodeSetting {
 }
 
 function Get-VsCodeExecutablePath {
+    if ($null -ne $ConfigureTestState) {
+        return [string](
+            Get-PropertyValue -Object $ConfigureTestState -Name "vscode_executable"
+        )
+    }
     $CodeCommand = Get-Command code.cmd -ErrorAction SilentlyContinue
     if ($null -ne $CodeCommand) {
         $CodeBinDirectory = Split-Path -Parent $CodeCommand.Source
@@ -1357,6 +1758,21 @@ function Test-IsCourseManagedReposDesktopIni {
 function Test-ShortcutTargetsRepos {
     param([Parameter(Mandatory = $true)][string]$ShortcutPath)
 
+    if ($null -ne $ConfigureTestState) {
+        $Shortcut = Get-ConfigureTestShortcut -Name ([IO.Path]::GetFileName($ShortcutPath))
+        if ($null -eq $Shortcut) {
+            return $false
+        }
+        $ExpectedExplorer = Join-Path $env:SystemRoot "explorer.exe"
+        return (
+            [string]::Equals(
+                [IO.Path]::GetFullPath([string]$Shortcut.TargetPath),
+                [IO.Path]::GetFullPath($ExpectedExplorer),
+                [StringComparison]::OrdinalIgnoreCase
+            ) -and
+            [string]$Shortcut.Arguments -like "*$ReposRoot*"
+        )
+    }
     if (-not (Test-Path -LiteralPath $ShortcutPath -PathType Leaf)) {
         return $false
     }
@@ -1384,6 +1800,30 @@ function Test-ShortcutTargetsVsCodeRepos {
         [Parameter(Mandatory = $true)][string]$VsCodeExecutable
     )
 
+    if ($null -ne $ConfigureTestState) {
+        $Shortcut = Get-ConfigureTestShortcut -Name ([IO.Path]::GetFileName($ShortcutPath))
+        if ($null -eq $Shortcut) {
+            return $false
+        }
+        $ArgumentPath = ([string]$Shortcut.Arguments).Trim().Trim('"')
+        return (
+            [string]::Equals(
+                [IO.Path]::GetFullPath([string]$Shortcut.TargetPath),
+                [IO.Path]::GetFullPath($VsCodeExecutable),
+                [StringComparison]::OrdinalIgnoreCase
+            ) -and
+            [string]::Equals(
+                [IO.Path]::GetFullPath($ArgumentPath),
+                [IO.Path]::GetFullPath($ReposRoot),
+                [StringComparison]::OrdinalIgnoreCase
+            ) -and
+            [string]::Equals(
+                [IO.Path]::GetFullPath([string]$Shortcut.WorkingDirectory),
+                [IO.Path]::GetFullPath($ReposRoot),
+                [StringComparison]::OrdinalIgnoreCase
+            )
+        )
+    }
     if (-not (Test-Path -LiteralPath $ShortcutPath -PathType Leaf)) {
         return $false
     }
@@ -1425,6 +1865,10 @@ function Test-ShortcutTargetsVsCodeRepos {
 function Test-IsCourseManagedVsCodeReposShortcut {
     param([Parameter(Mandatory = $true)][string]$ShortcutPath)
 
+    if ($null -ne $ConfigureTestState) {
+        $Shortcut = Get-ConfigureTestShortcut -Name ([IO.Path]::GetFileName($ShortcutPath))
+        return $null -ne $Shortcut -and $Shortcut.Description -eq $VsCodeReposShortcutDescription
+    }
     if (-not (Test-Path -LiteralPath $ShortcutPath -PathType Leaf)) {
         return $false
     }
@@ -1457,7 +1901,7 @@ function Set-RepositoryWorkspace {
         $script:Changed = $true
     }
 
-    $DesktopDirectory = [Environment]::GetFolderPath("Desktop")
+    $DesktopDirectory = $ConfigureDesktop
     if ([string]::IsNullOrWhiteSpace($DesktopDirectory)) {
         throw "The Windows Desktop directory could not be resolved."
     }
@@ -1478,14 +1922,29 @@ function Set-RepositoryWorkspace {
         )
     }
 
-    $ShellApplication = New-Object -ComObject WScript.Shell
-    $ReposShortcut = $ShellApplication.CreateShortcut($ReposShortcutPath)
-    $ReposShortcut.TargetPath = "$env:SystemRoot\explorer.exe"
-    $ReposShortcut.Arguments = ('"{0}"' -f $ReposRoot)
-    $ReposShortcut.WorkingDirectory = $ReposRoot
-    $ReposShortcut.IconLocation = "$env:SystemRoot\explorer.exe,0"
-    $ReposShortcut.Description = "Open the IT 140 development repository workspace"
-    $ReposShortcut.Save()
+    $ShellApplication = $null
+    if ($null -eq $ConfigureTestState) {
+        $ShellApplication = New-Object -ComObject WScript.Shell
+        $ReposShortcut = $ShellApplication.CreateShortcut($ReposShortcutPath)
+        $ReposShortcut.TargetPath = "$env:SystemRoot\explorer.exe"
+        $ReposShortcut.Arguments = ('"{0}"' -f $ReposRoot)
+        $ReposShortcut.WorkingDirectory = $ReposRoot
+        $ReposShortcut.IconLocation = "$env:SystemRoot\explorer.exe,0"
+        $ReposShortcut.Description = "Open the IT 140 development repository workspace"
+        $ReposShortcut.Save()
+    }
+    else {
+        Set-ConfigureTestShortcut `
+            -Name "Repos.lnk" `
+            -Path $ReposShortcutPath `
+            -Definition ([pscustomobject]@{
+                TargetPath = "$env:SystemRoot\explorer.exe"
+                Arguments = ('"{0}"' -f $ReposRoot)
+                WorkingDirectory = $ReposRoot
+                IconLocation = "$env:SystemRoot\explorer.exe,0"
+                Description = "Open the IT 140 development repository workspace"
+            })
+    }
     $script:Changed = $true
 
     if (-not (Test-ShortcutTargetsRepos -ShortcutPath $ReposShortcutPath)) {
@@ -1527,13 +1986,27 @@ function Set-RepositoryWorkspace {
         }
 
         if ($WriteVsCodeShortcut) {
-            $VsCodeShortcut = $ShellApplication.CreateShortcut($VsCodeReposShortcutPath)
-            $VsCodeShortcut.TargetPath = $VsCodeExecutable
-            $VsCodeShortcut.Arguments = ('"{0}"' -f $ReposRoot)
-            $VsCodeShortcut.WorkingDirectory = $ReposRoot
-            $VsCodeShortcut.IconLocation = "$VsCodeExecutable,0"
-            $VsCodeShortcut.Description = $VsCodeReposShortcutDescription
-            $VsCodeShortcut.Save()
+            if ($null -eq $ConfigureTestState) {
+                $VsCodeShortcut = $ShellApplication.CreateShortcut($VsCodeReposShortcutPath)
+                $VsCodeShortcut.TargetPath = $VsCodeExecutable
+                $VsCodeShortcut.Arguments = ('"{0}"' -f $ReposRoot)
+                $VsCodeShortcut.WorkingDirectory = $ReposRoot
+                $VsCodeShortcut.IconLocation = "$VsCodeExecutable,0"
+                $VsCodeShortcut.Description = $VsCodeReposShortcutDescription
+                $VsCodeShortcut.Save()
+            }
+            else {
+                Set-ConfigureTestShortcut `
+                    -Name "Visual Studio Code - IT 140.lnk" `
+                    -Path $VsCodeReposShortcutPath `
+                    -Definition ([pscustomobject]@{
+                        TargetPath = $VsCodeExecutable
+                        Arguments = ('"{0}"' -f $ReposRoot)
+                        WorkingDirectory = $ReposRoot
+                        IconLocation = "$VsCodeExecutable,0"
+                        Description = $VsCodeReposShortcutDescription
+                    })
+            }
             $script:Changed = $true
         }
 
@@ -1618,7 +2091,12 @@ function Test-ConfiguredUserLayer {
         throw "The course Python 3.12 virtual environment is not usable."
     }
 
-    $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $UserPath = if ($null -ne $ConfigureTestState) {
+        [string](Get-PropertyValue -Object $ConfigureTestState -Name "user_path")
+    }
+    else {
+        [Environment]::GetEnvironmentVariable("Path", "User")
+    }
     foreach ($ManagedPath in @($VenvScriptsDirectory, $WindowsScriptDirectory)) {
         if (-not (Test-PathContainsEntry -PathValue $UserPath -ExpectedEntry $ManagedPath)) {
             throw "The user PATH is missing: $ManagedPath"
@@ -1637,10 +2115,17 @@ function Test-ConfiguredUserLayer {
         }
     }
 
-    $InstalledExtensions = @(
-        & code.cmd --list-extensions 2>$null |
-            ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
-    )
+    $InstalledExtensions = if ($null -ne $ConfigureTestState) {
+        @(
+            Get-PropertyValue -Object $ConfigureTestState -Name "extensions"
+        ) | ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
+    }
+    else {
+        @(
+            & code.cmd --list-extensions 2>$null |
+                ForEach-Object { ([string]$_).Trim().ToLowerInvariant() }
+        )
+    }
     foreach ($ExtensionId in $RequiredExtensions) {
         if ($ExtensionId.ToLowerInvariant() -notin $InstalledExtensions) {
             throw "Required VS Code extension is missing: $ExtensionId"
@@ -1822,34 +2307,18 @@ try {
         -RequiredPackages $RequiredPackages `
         -RequiredExtensions $RequiredExtensions
 
-    $Elapsed = (Get-Date) - $StartTime
-    Write-Header "CONFIGURATION SUMMARY"
-    Write-Success "The current Windows user is configured for IT 140."
-    Write-Info "Result            : PASS"
-    Write-Info "Script version    : $ScriptVersion"
-    Write-Info "Version DTG       : $VersionDate"
-    Write-Info "Status            : $DevelopmentStatus"
-    Write-Info "Manifest release  : $($Controlled.Manifest.automation_release)"
-    Write-Info "Manifest DTG      : $($Controlled.Manifest.automation_release_date_time_group)"
-    Write-Info "GitHub login      : $GitHubUser"
-    Write-Info "Course folder     : $CourseRoot"
-    Write-Info "Repository folder : $ReposRoot"
-    Write-Info "Course interpreter: $VenvPython"
-    Write-Info "Warnings          : $WarningCount"
-    Write-Info "Failures          : 0"
-    Write-Info ("Elapsed time      : {0:hh\:mm\:ss}" -f $Elapsed)
-    Write-Info "Log file          : $LogPath"
-    Write-Notice (
-        "Next step: close this window, open a new PowerShell window, and " +
-        "run verify_it140.ps1."
-    )
-    Write-Info "Exit code         : 0"
-    Write-ClosingNotice
     $ExitCode = 0
+    Write-Success "The current Windows user is configured for IT 140."
+    Write-Info "GitHub user      : $GitHubUser"
+    Write-Info "Course interpreter: $VenvPython"
+    Write-ConfigurationSummary `
+        -Conclusion "Required Windows user configuration completed." `
+        -SummaryExitCode $ExitCode `
+        -Failures 0
 }
 catch [OperationCanceledException] {
-    Write-Notice $_.Exception.Message
-    Write-Info "Configuration log: $LogPath"
+    $Conclusion = $_.Exception.Message
+    Write-Notice $Conclusion
     if ($Changed) {
         Write-Notice (
             "Managed user state changed before configuration was canceled. " +
@@ -1860,14 +2329,18 @@ catch [OperationCanceledException] {
     else {
         $ExitCode = 6
     }
+    Write-ConfigurationSummary `
+        -Conclusion $Conclusion `
+        -SummaryExitCode $ExitCode `
+        -Failures 1
 }
 catch {
+    $Conclusion = $_.Exception.Message
     $LineNumber = $_.InvocationInfo.ScriptLineNumber
-    Write-ErrorMessage $_.Exception.Message
+    Write-ErrorMessage $Conclusion
     if ($LineNumber) {
         Write-ErrorMessage "Configuration stopped near line $LineNumber."
     }
-    Write-Info "Configuration log: $LogPath"
     if ($Changed) {
         Write-Notice (
             "Managed user state changed before configuration stopped. " +
@@ -1878,6 +2351,10 @@ catch {
     else {
         $ExitCode = $FailureExitCode
     }
+    Write-ConfigurationSummary `
+        -Conclusion $Conclusion `
+        -SummaryExitCode $ExitCode `
+        -Failures 1
 }
 finally {
     if ($null -ne $MutationMutex) {

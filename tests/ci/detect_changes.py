@@ -32,12 +32,13 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "ubg_verify": False,
         "mac": False,
         "mac_verify": False,
+        "mac_configure": False,
         "win": False,
         "win_verify": False,
+        "win_configure": False,
     }
     if force_all:
         return {name: True for name in flags}
-
     for raw_path in paths:
         path = PurePosixPath(raw_path)
         posix = path.as_posix()
@@ -62,7 +63,9 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["cvd_configure"] = True
             flags["ubg_verify"] = True
             flags["mac_verify"] = True
+            flags["mac_configure"] = True
             flags["win_verify"] = True
+            flags["win_configure"] = True
         elif posix.startswith("tests/lifecycle/verify/cvd/"):
             flags["cvd_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/cvd/"):
@@ -71,8 +74,12 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["ubg_verify"] = True
         elif posix.startswith("tests/lifecycle/verify/mac/"):
             flags["mac_verify"] = True
+        elif posix.startswith("tests/lifecycle/configure/mac/"):
+            flags["mac_configure"] = True
         elif posix.startswith("tests/lifecycle/verify/win/"):
             flags["win_verify"] = True
+        elif posix.startswith("tests/lifecycle/configure/win/"):
+            flags["win_configure"] = True
         elif posix.startswith("tests/lifecycle/"):
             # Unknown/shared lifecycle infrastructure should exercise every
             # behavioral suite until it receives explicit routing.
@@ -80,7 +87,9 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["cvd_configure"] = True
             flags["ubg_verify"] = True
             flags["mac_verify"] = True
+            flags["mac_configure"] = True
             flags["win_verify"] = True
+            flags["win_configure"] = True
         elif posix.startswith("scripts/nix/"):
             flags["manifest"] = True
             flags["nix"] = True
@@ -91,11 +100,15 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["mac"] = True
             if posix == "scripts/mac/verify_it140.zsh":
                 flags["mac_verify"] = True
+            if posix == "scripts/mac/configure_it140.zsh":
+                flags["mac_configure"] = True
         elif posix.startswith("scripts/win/"):
             flags["manifest"] = True
             flags["win"] = True
             if posix == "scripts/win/verify_it140.ps1":
                 flags["win_verify"] = True
+            if posix == "scripts/win/configure_it140.ps1":
+                flags["win_configure"] = True
     return flags
 
 
@@ -129,7 +142,6 @@ def main() -> int:
         flags = classify(args.files)
         write_outputs(flags)
         return 0
-
     if args.event == "workflow_dispatch":
         write_outputs(classify([], force_all=True))
         return 0

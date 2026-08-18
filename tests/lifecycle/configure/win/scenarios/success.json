@@ -1,0 +1,11 @@
+{
+  "id": "win-configure-success",
+  "arguments": ["-DeploymentProfile", "windows_bare_metal"],
+  "expected": {
+    "exit_code": 0,
+    "result": "PASS",
+    "managed_changes": "Yes",
+    "configured": true,
+    "output_contains": ["Required Windows user configuration completed."]
+  }
+}

@@ -2,7 +2,7 @@
 
 This directory contains behavioral tests for the IT 140 lifecycle scripts. These tests complement the fast structural and syntax checks under `tests/ci/`; they do not replace qualification on the actual supported course environments.
 
-The Verify suites established the common black-box conventions. The CVD Configure suite adds the mutation-specific conventions that later Configure, Update, Install, and Prepare suites can reuse.
+The Verify suites established the common black-box conventions. The CVD, macOS, and Windows Configure suites add mutation-specific conventions that later Configure, Update, Install, and Prepare suites can reuse.
 
 ## Test conventions
 
@@ -42,22 +42,26 @@ The Ubuntu GNOME scripts currently retain their Alpha-era `*_ubg.sh` names. Keep
 
 ### Configure
 
-The first Configure behavioral suite covers CVD: `scripts/cvd/configure_it140.sh`.
+Behavioral Configure suites cover:
 
-It establishes mutation-specific contracts for:
+- CVD: `scripts/cvd/configure_it140.sh`
+- macOS Apple silicon: `scripts/mac/configure_it140.zsh`
+- Windows: `scripts/win/configure_it140.ps1`
+
+They establish the shared mutation-specific contracts for:
 
 - successful configuration (`0`)
 - unsupported context before managed changes (`2`)
-- required external-service failure (`4`)
+- required external-service failure retaining its lifecycle code before managed changes (`4`)
 - malformed controlled configuration before managed changes (`5`)
-- ordinary failure after managed changes resolving to partial result (`7`)
+- ordinary or external failure after managed changes resolving to `PARTIAL` (`7`)
 - preservation of student repositories and unrelated user files
 - merge-preservation behavior for shell and VS Code settings
-- convergence of Git, VS Code extension, Python venv, desktop-integration, workspace, and Num Lock state
+- convergence of Git, VS Code extension, Python venv, desktop-integration, and workspace state
 - semantic idempotence across two successful runs
 - Configure transcript permissions and summary/exit-code consistency
 
-See `tests/lifecycle/configure/cvd/README.md` for the CVD isolation model.
+The CVD suite additionally covers Xfce/Num Lock behavior. The macOS suite covers managed Zsh PATH blocks, the Desktop `Repos` link, and `Visual Studio Code - Repos.app`. The Windows suite covers privilege-context enforcement, registry-backed user PATH semantics, merge-preserving VS Code settings, Python/extension/Git convergence, and the managed `Repos.lnk` and Visual Studio Code workspace shortcuts. See each platform suite README for its isolation model.
 
 ## Run locally
 
@@ -86,18 +90,28 @@ python3 -m unittest discover \
   -v
 ```
 
-macOS Apple silicon Verify:
+macOS Apple silicon Configure and Verify:
 
 ```zsh
+python3 -m unittest discover \
+  -s tests/lifecycle/configure/mac \
+  -p 'test_*.py' \
+  -v
+
 python3 -m unittest discover \
   -s tests/lifecycle/verify/mac \
   -p 'test_*.py' \
   -v
 ```
 
-Windows PowerShell Verify:
+Windows PowerShell Configure and Verify:
 
 ```powershell
+python -m unittest discover `
+  -s tests/lifecycle/configure/win `
+  -p 'test_*.py' `
+  -v
+
 python -m unittest discover `
   -s tests/lifecycle/verify/win `
   -p 'test_*.py' `
@@ -105,6 +119,17 @@ python -m unittest discover `
 ```
 
 The harness code uses only the Python standard library. Unix/macOS CI jobs install `jsonschema` so production shell lifecycle scripts validate the copied production manifest against its schema during behavioral tests.
+
+## Configure test-isolation hooks
+
+Test hooks are active only when the corresponding lifecycle-test environment variables are explicitly set. Normal course execution leaves them unset.
+
+### Windows
+
+- `IT140_CONFIGURE_TEST_ROOT` relocates user-profile paths used by Configure (`Repos`, Desktop, and VS Code user settings) into the temporary fixture.
+- `IT140_CONFIGURE_TEST_STATE` identifies a JSON file containing deterministic observations and mutable managed state for Windows APIs and external boundaries that cannot safely be changed on a hosted runner, including elevation/Sandbox context, OS facts, user PATH, system commands, GitHub identity, Git settings, Python venv state, VS Code extensions, executable resolution, and `.lnk` shortcut definitions.
+
+Windows Configure still executes as the production PowerShell entry point and performs its normal manifest validation, lifecycle branching, filesystem merges, state comparisons, summary generation, and exit-code resolution. Test state replaces external observations and unsafe host mutations only; it does not supply expected Configure results.
 
 ## Verify test-isolation hooks
 

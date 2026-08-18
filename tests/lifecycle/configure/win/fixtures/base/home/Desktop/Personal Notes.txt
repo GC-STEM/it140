@@ -1,0 +1,1 @@
+Personal desktop file. Configure must preserve this file.

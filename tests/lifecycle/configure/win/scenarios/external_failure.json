@@ -1,0 +1,13 @@
+{
+  "id": "win-configure-external-service-failure",
+  "arguments": ["-DeploymentProfile", "windows_bare_metal"],
+  "fixture_overrides": {"preconfigured_before_identity": true},
+  "mock_overrides": {"github_authenticated": false},
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "failures": 1,
+    "output_contains": ["GitHub authentication requires an existing login in noninteractive mode"]
+  }
+}
