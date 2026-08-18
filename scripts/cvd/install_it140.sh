@@ -26,7 +26,18 @@ readonly SCHEMA_PATH="${SCRIPT_ROOT}/.manifest/it140_manifest.schema.json"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
 readonly LOG_FILE="${LOG_DIR}/install_${PLATFORM_ID}_$(date +%Y%m%d_%H%M%S).log"
 readonly LOCK_FILE="${HOME}/.cache/it140-${PLATFORM_ID}-mutation.lock"
-readonly NUMLOCK_AUTOSTART_PATH="/etc/xdg/autostart/numlockx.desktop"
+# Test-only isolation root. It is honored only when explicit lifecycle test
+# mode is enabled; normal course execution always resolves production paths.
+readonly INSTALL_TEST_MODE="${IT140_INSTALL_TEST_MODE:-false}"
+if [[ "$INSTALL_TEST_MODE" == true ]]; then
+    readonly INSTALL_TEST_ROOT="${IT140_INSTALL_TEST_ROOT:-}"
+else
+    readonly INSTALL_TEST_ROOT=""
+fi
+readonly OS_RELEASE_PATH="${INSTALL_TEST_ROOT}/etc/os-release"
+readonly NUMLOCK_AUTOSTART_PATH="${INSTALL_TEST_ROOT}/etc/xdg/autostart/numlockx.desktop"
+readonly CHROME_POLICY_DIR="${INSTALL_TEST_ROOT}/etc/opt/chrome/policies/managed"
+readonly CHROME_POLICY_PATH="${CHROME_POLICY_DIR}/it140_bookmarks.json"
 readonly EMOJI_PACKAGE="fonts-noto-color-emoji"
 readonly EMOJI_FAMILY="Noto Color Emoji"
 readonly EXIT_SUCCESS=0
@@ -321,12 +332,18 @@ PY
 }
 check_platform() {
     CURRENT_STAGE="execution-context validation"
-    if [[ "$EUID" -eq 0 ]]; then
+    local effective_euid="$EUID"
+    if [[ -n "$INSTALL_TEST_ROOT" && -n "${IT140_INSTALL_TEST_EUID:-}" ]]; then
+        [[ "${IT140_INSTALL_TEST_EUID}" =~ ^[0-9]+$ ]] \
+            || fatal "$EXIT_UNSUPPORTED" "The Install test effective-user override is invalid."
+        effective_euid="${IT140_INSTALL_TEST_EUID}"
+    fi
+    if [[ "$effective_euid" -eq 0 ]]; then
         fatal "$EXIT_UNSUPPORTED" "Do not run install_it140.sh with sudo; use the standard CVD desktop account."
     fi
-    [[ -r /etc/os-release ]] || fatal "$EXIT_UNSUPPORTED" "Cannot identify the operating system."
+    [[ -r "$OS_RELEASE_PATH" ]] || fatal "$EXIT_UNSUPPORTED" "Cannot identify the operating system."
     # shellcheck disable=SC1091
-    source /etc/os-release
+    source "$OS_RELEASE_PATH"
     if [[ "${ID:-}" != ubuntu || "${VERSION_ID:-}" != 24.04 ]]; then
         fatal "$EXIT_UNSUPPORTED" "This script supports only the IT 140 Ubuntu 24.04 CVD; detected ${PRETTY_NAME:-unknown}."
     fi
@@ -487,7 +504,7 @@ install_system_layer() {
 configure_system_integrations() {
     CURRENT_STAGE="system integration configuration"
     print_info "Configuring system-level CVD integrations."
-    sudo install -d -m 0755 /etc/xdg/autostart
+    sudo install -d -m 0755 "$(dirname "$NUMLOCK_AUTOSTART_PATH")"
     sudo tee "$NUMLOCK_AUTOSTART_PATH" >/dev/null <<'EOF_NUMLOCK'
 [Desktop Entry]
 Type=Application
@@ -498,8 +515,8 @@ OnlyShowIn=XFCE;
 NoDisplay=true
 X-GNOME-Autostart-enabled=true
 EOF_NUMLOCK
-    sudo install -d -m 0755 /etc/opt/chrome/policies/managed
-    sudo tee /etc/opt/chrome/policies/managed/it140_bookmarks.json >/dev/null <<'JSON_BOOKMARKS'
+    sudo install -d -m 0755 "$CHROME_POLICY_DIR"
+    sudo tee "$CHROME_POLICY_PATH" >/dev/null <<'JSON_BOOKMARKS'
 {
   "BookmarkBarEnabled": true,
   "ManagedBookmarks": [
@@ -548,11 +565,11 @@ EOF_NUMLOCK
 JSON_BOOKMARKS
     sudo chown root:root \
         "$NUMLOCK_AUTOSTART_PATH" \
-        /etc/opt/chrome/policies/managed/it140_bookmarks.json
+        "$CHROME_POLICY_PATH"
     sudo chmod 0644 \
         "$NUMLOCK_AUTOSTART_PATH" \
-        /etc/opt/chrome/policies/managed/it140_bookmarks.json
-    python3 -m json.tool /etc/opt/chrome/policies/managed/it140_bookmarks.json >/dev/null \
+        "$CHROME_POLICY_PATH"
+    python3 -m json.tool "$CHROME_POLICY_PATH" >/dev/null \
         || fatal "$EXIT_FAILURE" "The managed Chrome bookmarks policy is invalid."
     CHANGED=true
     print_success "System-level CVD integrations are configured."
@@ -589,7 +606,7 @@ PY
         print_error "The $EMOJI_FAMILY font file is not discoverable through fontconfig."
         failed=1
     fi
-    python3 -m json.tool /etc/opt/chrome/policies/managed/it140_bookmarks.json >/dev/null \
+    python3 -m json.tool "$CHROME_POLICY_PATH" >/dev/null \
         || failed=1
     if [[ ! -r "$NUMLOCK_AUTOSTART_PATH" ]]; then
         print_error "The Xfce Num Lock autostart entry is missing: $NUMLOCK_AUTOSTART_PATH"

@@ -1,0 +1,11 @@
+{
+  "id": "cvd-install-external-service-failure-before-managed-change",
+  "arguments": ["--noninteractive"],
+  "mock_overrides": {"fail_points": {"apt_update": 1}},
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "contains": ["Ubuntu package information could not be refreshed."]
+  }
+}

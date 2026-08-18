@@ -1,0 +1,13 @@
+{
+  "id": "cvd-install-success",
+  "arguments": ["--noninteractive"],
+  "expected": {
+    "exit_code": 0,
+    "result": "PASS",
+    "managed_changes": "Yes",
+    "contains": [
+      "Required installation operations completed.",
+      "System-layer verification passed."
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "cvd-install-post-validation-partial-failure",
+  "arguments": ["--noninteractive"],
+  "mock_overrides": {"skip_install_packages": ["xclip"]},
+  "expected": {
+    "exit_code": 7,
+    "result": "PARTIAL",
+    "managed_changes": "Yes",
+    "contains": [
+      "Required package is not installed: xclip",
+      "System-layer verification failed."
+    ]
+  }
+}

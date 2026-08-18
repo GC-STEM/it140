@@ -2,7 +2,7 @@
 
 This directory contains behavioral tests for the IT 140 lifecycle scripts. These tests complement the fast structural and syntax checks under `tests/ci/`; they do not replace qualification on the actual supported course environments.
 
-The Verify suites established the common black-box conventions. The CVD, Ubuntu GNOME, macOS, and Windows Configure suites add mutation-specific conventions that later Configure, Update, Install, and Prepare suites can reuse.
+The Verify suites established the common black-box conventions. The CVD, Ubuntu GNOME, macOS, and Windows Configure suites add mutation-specific conventions. The CVD Install suite extends those conventions to system-layer package, repository, privilege, and integration behavior and serves as the reference pattern for later Install suites.
 
 ## Test conventions
 
@@ -64,6 +64,24 @@ They establish the shared mutation-specific contracts for:
 
 The CVD suite additionally covers Xfce/Num Lock behavior. The Ubuntu GNOME suite covers managed Bash PATH blocks, GNOME/GIO workspace metadata, and the Desktop `Repos` link. The macOS suite covers managed Zsh PATH blocks, the Desktop `Repos` link, and `Visual Studio Code - Repos.app`. The Windows suite covers privilege-context enforcement, registry-backed user PATH semantics, merge-preserving VS Code settings, Python/extension/Git convergence, and the managed `Repos.lnk` and Visual Studio Code workspace shortcuts. See each platform suite README for its isolation model.
 
+### Install
+
+The first Install behavioral suite covers CVD: `scripts/cvd/install_it140.sh`.
+
+It establishes system-mutation contracts for:
+
+- successful installation (`0`)
+- unsupported context (`2`) and unavailable required privilege (`3`) before managed changes
+- required external-source failure (`4`) before or after managed changes while preserving the specific external-service classification
+- malformed controlled configuration (`5`) before managed changes
+- post-install verification failure resolving to `PARTIAL` (`7`)
+- preservation of student repositories and unrelated user configuration
+- convergence of manifest-declared APT packages, approved repository artifacts, Noto Color Emoji health, Xfce Num Lock autostart, and Chrome managed bookmarks
+- semantic idempotence across two successful runs
+- Install transcript permissions and summary/exit-code consistency
+
+See `tests/lifecycle/install/cvd/README.md` for the isolation model.
+
 ## Run locally
 
 Run a suite on its matching platform from the repository root.
@@ -87,6 +105,15 @@ CVD Configure on a non-root Ubuntu 24.04 host:
 ```bash
 python3 -m unittest discover \
   -s tests/lifecycle/configure/cvd \
+  -p 'test_*.py' \
+  -v
+```
+
+CVD Install on Linux with the suite's isolated system-root seam:
+
+```bash
+python3 -m unittest discover \
+  -s tests/lifecycle/install/cvd \
   -p 'test_*.py' \
   -v
 ```
@@ -129,6 +156,18 @@ python -m unittest discover `
 ```
 
 The harness code uses only the Python standard library. Unix/macOS CI jobs install `jsonschema` so production shell lifecycle scripts validate the copied production manifest against its schema during behavioral tests.
+
+## Install test-isolation hooks
+
+Test hooks are active only when explicitly set by the lifecycle harness. Normal course execution leaves them unset.
+
+### CVD
+
+- `IT140_INSTALL_TEST_MODE=true` explicitly enables the CVD Install isolation seams. With test mode unset, normal production behavior is used even if a test-root variable is present.
+- `IT140_INSTALL_TEST_ROOT` redirects the operating-system release fixture and the Num Lock/Chrome policy files that Install later reads directly. With test mode disabled, those paths remain the production `/etc/...` locations.
+- `IT140_INSTALL_TEST_EUID` supplies a deterministic effective-user value only while Install test mode/root isolation is active.
+
+APT, `sudo`, vendor downloads, package queries, fontconfig, and desktop-entry validation remain external boundaries supplied through the test `PATH`. The production Install entry point still performs its normal manifest validation, lifecycle branching, managed-file generation, post-install verification, summary generation, and exit-code resolution.
 
 ## Configure test-isolation hooks
 

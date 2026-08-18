@@ -1,0 +1,11 @@
+{
+  "id": "cvd-install-manifest-failure",
+  "arguments": ["--noninteractive"],
+  "fixture_overrides": {"manifest": "malformed"},
+  "expected": {
+    "exit_code": 5,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "contains": ["controlled manifest and schema failed validation"]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "cvd-install-privilege-failure",
+  "arguments": ["--noninteractive"],
+  "mock_overrides": {"sudo_noninteractive": false},
+  "expected": {
+    "exit_code": 3,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "contains": ["lacks required passwordless sudo access"]
+  }
+}
