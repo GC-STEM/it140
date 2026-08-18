@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import sys
-
 ROOT = Path(__file__).resolve().parents[2]
 REQUIRED_FILES = (
     "scripts/.manifest/it140_manifest.json",
@@ -31,6 +30,7 @@ REQUIRED_FILES = (
     "scripts/nix/ubg/config_ubg.sh",
     "scripts/nix/ubg/verify_ubg.sh",
     "scripts/nix/ubg/update_ubg.sh",
+    "tests/ci/check_zsh_special_params.py",
     "tests/lifecycle/README.md",
     "tests/lifecycle/common/__init__.py",
     "tests/lifecycle/common/configure_log.py",
@@ -97,7 +97,6 @@ REQUIRED_FILES = (
     "tests/lifecycle/verify/win/scenarios/unsupported.json",
 )
 
-
 class DuplicateKeyError(ValueError):
     pass
 
@@ -143,7 +142,6 @@ def main() -> int:
     print(f"Repository validation passed: {len(REQUIRED_FILES)} required files found.")
     print("Manifest and schema are valid JSON with no duplicate object keys.")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

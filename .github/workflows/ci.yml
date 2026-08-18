@@ -169,7 +169,7 @@ jobs:
           -v
 
   macos:
-    name: macOS Zsh syntax
+    name: macOS Zsh validation
     needs: changes
     if: needs.changes.outputs.mac == 'true'
     runs-on: macos-15
@@ -186,6 +186,12 @@ jobs:
           (( ${#files[@]} > 0 )) || { print -u2 "No macOS Zsh scripts found."; exit 1; }
           print -l "Checking:" $files
           zsh -n $files
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Reject Zsh special-parameter collisions
+        run: python3 tests/ci/check_zsh_special_params.py
 
   mac_verify:
     name: macOS Verify lifecycle tests
