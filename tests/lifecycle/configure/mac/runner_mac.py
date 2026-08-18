@@ -299,15 +299,24 @@ class MacConfigureHarness:
             self._write_mock_wrapper(mock_dir / name, name)
             self._write_mock_wrapper(venv_bin / name, name)
 
-        state = self._merge(self._default_mock_state(), scenario.get("mock_overrides", {}))
+        preconfigure = bool(
+            scenario.get("fixture_overrides", {}).get("preconfigured_before_identity")
+        )
+        initial_overrides = (
+            scenario.get("seed_mock_overrides", {})
+            if preconfigure
+            else scenario.get("mock_overrides", {})
+        )
+        state = self._merge(self._default_mock_state(), initial_overrides)
         state_path = temp_root / "mock-state.json"
         state_path.write_text(
             json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
         trace_path = temp_root / "mock-trace.jsonl"
 
-        if scenario.get("fixture_overrides", {}).get("preconfigured_before_identity"):
-            self._apply_preconfigured_state(home, venv_bin)
+        # A scenario that needs canonical already-configured state is seeded by
+        # the production Configure entry point in run_scenario(). Do not duplicate
+        # production output construction here; that would allow fixture drift.
 
         # Retain the parsed manifest as part of fixture preparation so a malformed
         # copied manifest never prevents construction of deterministic test mocks.
@@ -423,6 +432,40 @@ class MacConfigureHarness:
             home, mock_dir, state_path, trace_path = self._prepare_fixture(
                 temp_root, scenario
             )
+            if scenario.get("fixture_overrides", {}).get(
+                "preconfigured_before_identity"
+            ):
+                seed_scenario = copy.deepcopy(scenario)
+                seed_scenario["id"] = f"{scenario['id']}-seed"
+                seed_run = self._execute(
+                    seed_scenario,
+                    temp_root,
+                    home,
+                    mock_dir,
+                    state_path,
+                    trace_path,
+                )
+                if seed_run.returncode != 0:
+                    raise RuntimeError(
+                        "Production Configure could not seed canonical configured state.\n"
+                        + seed_run.combined_output
+                    )
+
+                # Preserve all state produced by the successful production seed,
+                # then inject only the measured scenario's boundary failures.
+                state = json.loads(state_path.read_text(encoding="utf-8"))
+                state = self._merge(state, scenario.get("mock_overrides", {}))
+                state_path.write_text(
+                    json.dumps(state, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+
+                # Keep measured diagnostics limited to the measured execution and
+                # avoid the production log's one-second filename resolution from
+                # causing the seed and measured runs to share a transcript path.
+                trace_path.unlink(missing_ok=True)
+                time.sleep(1.05)
+
             return self._execute(
                 scenario, temp_root, home, mock_dir, state_path, trace_path
             )
