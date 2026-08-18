@@ -1,0 +1,1 @@
+{"id":"ubg-update-external-service-failure-before-managed-change","mock_overrides":{"fail_points":{"git_clone":true}},"expected":{"exit_code":4,"result":"FAIL","managed_changes":"No","restart_required":"No","failures":1,"warnings_min":4,"contains":["course maintenance assets were unavailable after bounded retries"]}}

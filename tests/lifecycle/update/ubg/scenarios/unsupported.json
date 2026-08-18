@@ -1,0 +1,1 @@
+{"id":"ubg-update-unsupported-profile","arguments":["--deployment-profile","not-ubg"],"expected":{"exit_code":2,"result":"FAIL","managed_changes":"No","restart_required":"No","failures":1,"contains":["Unsupported deployment profile"]}}

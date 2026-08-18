@@ -1,0 +1,1 @@
+{"id":"mac-update-external-service-failure-before-managed-change","network_result":"failure","expected":{"exit_code":4,"result":"FAIL","managed_changes":"No","failures":1,"contains":["approved GitHub source was unavailable"]}}

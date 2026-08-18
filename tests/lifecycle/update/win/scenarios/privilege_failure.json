@@ -1,0 +1,15 @@
+{
+  "id": "win-update-privilege-failure",
+  "mock_overrides": {
+    "is_administrator": true
+  },
+  "expected": {
+    "exit_code": 3,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "failures": 1,
+    "contains": [
+      "normal, non-elevated PowerShell"
+    ]
+  }
+}

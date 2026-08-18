@@ -1,0 +1,1 @@
+{"id":"ubg-update-restart-required","fixture_overrides":{"reboot_required":true},"expected":{"exit_code":7,"result":"PARTIAL","managed_changes":"Yes","restart_required":"Yes","failures":0,"contains":["restart is required","restart Ubuntu"]}}

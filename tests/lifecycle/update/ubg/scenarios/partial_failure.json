@@ -1,0 +1,1 @@
+{"id":"ubg-update-partial-after-managed-change","mock_overrides":{"skip_venv_packages":["pytest-cov"]},"expected":{"exit_code":7,"result":"PARTIAL","managed_changes":"Yes","restart_required":"No","failures":1,"contains":["Required course Python package is missing after Update: pytest-cov"]}}

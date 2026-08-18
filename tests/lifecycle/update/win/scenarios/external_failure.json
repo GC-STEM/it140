@@ -1,0 +1,17 @@
+{
+  "id": "win-update-external-service-failure-before-managed-change",
+  "mock_overrides": {
+    "fail_points": {
+      "asset_download": true
+    }
+  },
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "failures": 1,
+    "contains": [
+      "course package could not be retrieved"
+    ]
+  }
+}

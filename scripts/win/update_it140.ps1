@@ -74,6 +74,22 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
+# Test-only isolation seam used by tests/lifecycle/update/win/. Production
+# execution leaves these variables unset and follows the real Windows APIs,
+# WinGet/UAC behavior, user configuration, and system-drive observations.
+$UpdateTestMode = ([string]$env:IT140_UPDATE_TEST_MODE).Trim().ToLowerInvariant() -eq "true"
+$UpdateTestStatePath = [string]$env:IT140_UPDATE_TEST_STATE
+$UpdateTestState = $null
+if ($UpdateTestMode) {
+    if (
+        [string]::IsNullOrWhiteSpace($UpdateTestStatePath) -or
+        -not (Test-Path -LiteralPath $UpdateTestStatePath -PathType Leaf)
+    ) {
+        throw "IT140_UPDATE_TEST_STATE must identify a readable JSON state file in test mode."
+    }
+    $UpdateTestState = Get-Content -LiteralPath $UpdateTestStatePath -Raw | ConvertFrom-Json
+}
+
 $ScriptVersion = "0.10.0-beta.1"
 $VersionDateTimeGroup = "2026-08-09-23-59"
 $DevelopmentStatus = "Beta Testing"
@@ -213,6 +229,9 @@ function Write-ClosingNotice {
 }
 
 function Test-IsAdministrator {
+    if ($null -ne $UpdateTestState) {
+        return [bool](Get-PropertyValue -Object $UpdateTestState -Name "is_administrator")
+    }
     $Identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $Principal = [Security.Principal.WindowsPrincipal]::new($Identity)
     return $Principal.IsInRole(
@@ -221,6 +240,7 @@ function Test-IsAdministrator {
 }
 
 function Update-ProcessEnvironment {
+    if ($null -ne $UpdateTestState) { return }
     $MachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
     $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
     $env:Path = @($MachinePath, $UserPath) -join ";"
@@ -273,6 +293,126 @@ function Get-PropertyValue {
         return $null
     }
     return $PropertyRecord.Value
+}
+
+function Save-UpdateTestState {
+    if ($null -eq $UpdateTestState) { return }
+    $Json = $UpdateTestState | ConvertTo-Json -Depth 50
+    $Utf8NoBom = [Text.UTF8Encoding]::new($false)
+    [IO.File]::WriteAllText($UpdateTestStatePath, "$Json`n", $Utf8NoBom)
+}
+
+function Set-UpdateTestStateProperty {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        $Value
+    )
+    if ($null -eq $UpdateTestState) { return }
+    $PropertyRecord = $UpdateTestState.PSObject.Properties[$Name]
+    if ($null -eq $PropertyRecord) {
+        $UpdateTestState | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
+    }
+    else {
+        $UpdateTestState.$Name = $Value
+    }
+    Save-UpdateTestState
+}
+
+function Add-UpdateTestStateArrayValue {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Value
+    )
+    if ($null -eq $UpdateTestState) { return }
+    [string[]]$Values = @(Get-PropertyValue -Object $UpdateTestState -Name $Name) |
+        ForEach-Object { [string]$_ }
+    if ($Value -notin $Values) {
+        $Values += $Value
+        Set-UpdateTestStateProperty -Name $Name -Value @($Values)
+    }
+}
+
+function Get-UpdateTestFailPoint {
+    param([Parameter(Mandatory = $true)][string]$Name)
+    if ($null -eq $UpdateTestState) { return $null }
+    $FailPoints = Get-PropertyValue -Object $UpdateTestState -Name "fail_points"
+    if ($null -eq $FailPoints) { return $null }
+    return Get-PropertyValue -Object $FailPoints -Name $Name
+}
+
+function Test-UpdateCommandAvailable {
+    param([Parameter(Mandatory = $true)][string]$CommandName)
+    if ($null -ne $UpdateTestState) {
+        [string[]]$Commands = @(
+            Get-PropertyValue -Object $UpdateTestState -Name "available_commands"
+        ) | ForEach-Object { [string]$_ }
+        return $CommandName -in $Commands
+    }
+    return $null -ne (Get-Command $CommandName -ErrorAction SilentlyContinue)
+}
+
+function Resolve-UpdateExitCode {
+    param([Parameter(Mandatory = $true)][int]$RequestedExitCode)
+    if ($RequestedExitCode -in @(2, 3, 4, 5, 7)) { return $RequestedExitCode }
+    if ($RequestedExitCode -eq 6) {
+        if ($Changed) { return 7 }
+        return 6
+    }
+    if ($Changed) { return 7 }
+    return 1
+}
+
+function Write-UpdateSummary {
+    param(
+        [Parameter(Mandatory = $true)][string]$Conclusion,
+        [Parameter(Mandatory = $true)][int]$RequestedExitCode
+    )
+    $SummaryExitCode = Resolve-UpdateExitCode -RequestedExitCode $RequestedExitCode
+    if ($RequestedExitCode -eq 0 -and ($Partial -or $FailureCount -gt 0)) {
+        $SummaryExitCode = 7
+    }
+    $Result = if ($SummaryExitCode -eq 0) { "PASS" } elseif ($SummaryExitCode -eq 7) { "PARTIAL" } else { "FAIL" }
+    $Elapsed = (Get-Date) - $StartTime
+    $ManifestRelease = "Unavailable"
+    $ManifestDtg = "Unavailable"
+    try {
+        $SummaryControlled = Read-ControlledManifest
+        $ManifestRelease = [string]$SummaryControlled.Manifest.automation_release
+        $ManifestDtg = [string]$SummaryControlled.Manifest.automation_release_date_time_group
+    }
+    catch {
+        # Summary generation must never replace the primary lifecycle result.
+    }
+    $NextStep = if ($SummaryExitCode -eq 0) {
+        if ($ConfigurationComplete) { "Run verify_it140.ps1." } else { "Run configure_it140.ps1, then verify_it140.ps1." }
+    }
+    else {
+        "Resolve the reported issue, then rerun update_it140.ps1."
+    }
+    Write-Header "UPDATE SUMMARY"
+    Write-Host ("Conclusion      : {0}" -f $Conclusion)
+    Write-Host ("Result          : {0}" -f $Result)
+    Write-Host ("Workflow        : {0}" -f $WorkflowName)
+    Write-Host ("Script version  : {0}" -f $ScriptVersion)
+    Write-Host ("Version DTG     : {0}" -f $VersionDateTimeGroup)
+    Write-Host ("Status          : {0}" -f $DevelopmentStatus)
+    Write-Host ("Manifest release: {0}" -f $ManifestRelease)
+    Write-Host ("Manifest DTG    : {0}" -f $ManifestDtg)
+    Write-Host ("Warnings        : {0}" -f $WarningCount)
+    Write-Host ("Failures        : {0}" -f $FailureCount)
+    Write-Host ("Managed changes : {0}" -f $(if ($Changed) { "Yes" } else { "No" }))
+    Write-Host ("Elapsed time    : {0:hh\:mm\:ss}" -f $Elapsed)
+    Write-Host ("Next step       : {0}" -f $NextStep)
+    Write-Host ("Log file        : {0}" -f $LogPath)
+    Write-Host ("Exit code       : {0}" -f $SummaryExitCode)
+    if ($SummaryExitCode -eq 0) {
+        Write-Success "The IT 140 Windows update completed successfully."
+    }
+    elseif ($SummaryExitCode -eq 7) {
+        Write-ErrorMessage "The update completed partially."
+    }
+    Write-ClosingNotice
+    $script:ExitCode = $SummaryExitCode
 }
 
 function Test-JsonDuplicateKey {
@@ -643,6 +783,11 @@ function Read-ControlledManifest {
 }
 
 function Get-OperatingSystemFact {
+    if ($null -ne $UpdateTestState) {
+        $Facts = Get-PropertyValue -Object $UpdateTestState -Name "windows_facts"
+        if ($null -eq $Facts) { throw "Windows Update lifecycle test state is missing windows_facts." }
+        return $Facts
+    }
     $OperatingSystem = Get-CimInstance -ClassName Win32_OperatingSystem
     $CurrentVersion = Get-ItemProperty `
         -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
@@ -702,6 +847,7 @@ function Test-SupportedOperatingSystem {
 }
 
 function Enter-MutationLock {
+    if ($null -ne $UpdateTestState) { return $null }
     $CreatedNew = $false
     $Mutex = [Threading.Mutex]::new(
         $false,
@@ -881,6 +1027,35 @@ function Invoke-GitCloneWithRetry {
 }
 
 function Invoke-AssetTransaction {
+    if ($null -ne $UpdateTestState) {
+        if ([bool](Get-UpdateTestFailPoint -Name "asset_download")) {
+            throw "The controlled IT 140 course package could not be retrieved."
+        }
+        $TemporaryRoot = Join-Path ([IO.Path]::GetTempPath()) ("it140-update-test-{0}" -f ([guid]::NewGuid().ToString("N")))
+        New-Item -ItemType Directory -Path $TemporaryRoot -Force | Out-Null
+        $SystemPhaseScript = Join-Path $TemporaryRoot "update_win_system_phase.ps1"
+        Copy-Item -LiteralPath $PSCommandPath -Destination $SystemPhaseScript -Force
+        if ([bool](Get-PropertyValue -Object $UpdateTestState -Name "candidate_manifest_changed")) {
+            $CurrentManifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+            $MinifiedManifest = $CurrentManifest | ConvertTo-Json -Depth 100 -Compress
+            $Utf8NoBom = [Text.UTF8Encoding]::new($false)
+            [IO.File]::WriteAllText($ManifestPath, "$MinifiedManifest`n", $Utf8NoBom)
+            $script:Changed = $true
+            Set-UpdateTestStateProperty -Name "candidate_manifest_changed" -Value $false
+            Write-Success "Validated student-facing Windows automation assets are active."
+        }
+        else {
+            Write-Info "Controlled Windows automation assets are already current."
+        }
+        $Activated = Read-ControlledManifest
+        return [pscustomobject]@{
+            TemporaryRoot = $TemporaryRoot
+            BackupDirectory = (Join-Path $TemporaryRoot "backup")
+            SystemPhaseScript = $SystemPhaseScript
+            Manifest = $Activated.Manifest
+            Platform = $Activated.Platform
+        }
+    }
     $TemporaryRoot = Join-Path `
         ([IO.Path]::GetTempPath()) `
         ("it140-update-{0}" -f ([guid]::NewGuid().ToString("N")))
@@ -1271,6 +1446,21 @@ function Test-VenvPython {
 function Update-UserTool {
     param([Parameter(Mandatory = $true)]$Platform)
 
+    if ($null -ne $UpdateTestState) {
+        [string[]]$SkippedPackages = @(Get-PropertyValue -Object $UpdateTestState -Name "skip_venv_packages") | ForEach-Object { [string]$_ }
+        foreach ($PackageName in (Get-RequiredPythonPackage -Platform $Platform)) {
+            if ($PackageName -notin $SkippedPackages) { Add-UpdateTestStateArrayValue -Name "venv_packages" -Value $PackageName }
+        }
+        [string[]]$SkippedExtensions = @(Get-PropertyValue -Object $UpdateTestState -Name "skip_extensions") | ForEach-Object { [string]$_ }
+        foreach ($ExtensionId in (Get-RequiredExtension -Platform $Platform)) {
+            if ($ExtensionId -notin $SkippedExtensions) { Add-UpdateTestStateArrayValue -Name "extensions" -Value $ExtensionId }
+        }
+        Set-UpdateTestStateProperty -Name "venv_python_version" -Value "3.12"
+        $script:Changed = $true
+        Write-Success "Current-user course tools and extensions are current."
+        return
+    }
+
     Update-ProcessEnvironment
     if (-not (Test-VenvPython)) {
         if (Test-Path -LiteralPath $VenvDirectory) {
@@ -1571,6 +1761,10 @@ function Get-GitConfigValue {
 function Test-ConfigurationState {
     param([Parameter(Mandatory = $true)]$Manifest)
 
+    if ($null -ne $UpdateTestState) {
+        return [bool](Get-PropertyValue -Object $UpdateTestState -Name "configuration_complete")
+    }
+
     if (-not (Test-VenvPython)) {
         return $false
     }
@@ -1630,6 +1824,13 @@ function Test-ConfigurationState {
 function Update-ManagedIntegration {
     param([Parameter(Mandatory = $true)]$Manifest)
 
+    if ($null -ne $UpdateTestState) {
+        Set-UpdateTestStateProperty -Name "managed_integration" -Value $true
+        $script:Changed = $true
+        Write-Success "Course-managed Windows user integration is current."
+        return
+    }
+
     Update-ManagedGitSetting -Manifest $Manifest
     Update-ManagedVsCodeSetting -Manifest $Manifest
 
@@ -1654,6 +1855,27 @@ function Update-ManagedIntegration {
 
 function Test-PostUpdateState {
     param([Parameter(Mandatory = $true)]$Platform)
+
+    if ($null -ne $UpdateTestState) {
+        [string[]]$InstalledPackages = @(Get-PropertyValue -Object $UpdateTestState -Name "winget_packages") | ForEach-Object { [string]$_ }
+        foreach ($Binding in (Get-SystemPackageBinding -Platform $Platform)) {
+            if ([string]$Binding.PackageIdentifier -notin $InstalledPackages) {
+                Write-RequiredFailure "Required system package is missing after Update: $($Binding.PackageIdentifier)"
+            }
+        }
+        if ([string](Get-PropertyValue -Object $UpdateTestState -Name "venv_python_version") -ne "3.12") {
+            Write-RequiredFailure "The course Python 3.12 virtual environment is not usable."
+        }
+        [string[]]$InstalledPythonPackages = @(Get-PropertyValue -Object $UpdateTestState -Name "venv_packages") | ForEach-Object { [string]$_ }
+        foreach ($PackageName in (Get-RequiredPythonPackage -Platform $Platform)) {
+            if ($PackageName -notin $InstalledPythonPackages) { Write-RequiredFailure "Required course Python package is missing: $PackageName" }
+        }
+        [string[]]$InstalledExtensions = @(Get-PropertyValue -Object $UpdateTestState -Name "extensions") | ForEach-Object { ([string]$_).ToLowerInvariant() }
+        foreach ($ExtensionId in (Get-RequiredExtension -Platform $Platform)) {
+            if ($ExtensionId.ToLowerInvariant() -notin $InstalledExtensions) { Write-RequiredFailure "Required VS Code extension is missing: $ExtensionId" }
+        }
+        return
+    }
 
     try {
         $null = Read-ControlledManifest
@@ -1795,12 +2017,17 @@ try {
         "python.exe",
         "code.cmd"
     )) {
-        if ($null -eq (Get-Command $RequiredCommand -ErrorAction SilentlyContinue)) {
+        if (-not (Test-UpdateCommandAvailable -CommandName $RequiredCommand)) {
             throw "Required update command is missing: $RequiredCommand. Run install_it140.ps1."
         }
     }
 
-    $FreeSpace = (Get-PSDrive -Name $env:SystemDrive.TrimEnd(":")).Free
+    if ($null -ne $UpdateTestState) {
+        $FreeSpace = [int64](Get-PropertyValue -Object $UpdateTestState -Name "free_space_bytes")
+    }
+    else {
+        $FreeSpace = (Get-PSDrive -Name $env:SystemDrive.TrimEnd(":")).Free
+    }
     $MinimumSpace = [int64]$Controlled.Manifest.policy.minimum_free_space_bytes
     if ($FreeSpace -lt $MinimumSpace) {
         throw (
@@ -1841,22 +2068,38 @@ try {
         $SystemArguments += "-NonInteractive"
     }
 
-    try {
-        $SystemProcess = Start-Process `
-            -FilePath "powershell.exe" `
-            -Verb RunAs `
-            -ArgumentList ($SystemArguments -join " ") `
-            -Wait `
-            -PassThru
-        if ($SystemProcess.ExitCode -ne 0) {
-            Write-RequiredFailure (
-                "The elevated system phase returned exit code {0}." -f
-                $SystemProcess.ExitCode
-            )
+    if ($null -ne $UpdateTestState) {
+        if ([bool](Get-UpdateTestFailPoint -Name "system_external")) {
+            $FailureExitCode = 4
+            throw "The elevated system phase could not retrieve required package information."
         }
+        foreach ($Binding in (Get-SystemPackageBinding -Platform $Transaction.Platform)) {
+            Add-UpdateTestStateArrayValue -Name "winget_packages" -Value ([string]$Binding.PackageIdentifier)
+            foreach ($ExecutableName in @($Binding.ExecutableNames)) {
+                Add-UpdateTestStateArrayValue -Name "available_commands" -Value ([string]$ExecutableName)
+            }
+        }
+        $script:Changed = $true
+        Write-Success "The elevated course IDE package phase completed."
     }
-    catch [System.ComponentModel.Win32Exception] {
-        Write-RequiredFailure "The elevated system phase was canceled or could not start."
+    else {
+        try {
+            $SystemProcess = Start-Process `
+                -FilePath "powershell.exe" `
+                -Verb RunAs `
+                -ArgumentList ($SystemArguments -join " ") `
+                -Wait `
+                -PassThru
+            if ($SystemProcess.ExitCode -ne 0) {
+                Write-RequiredFailure (
+                    "The elevated system phase returned exit code {0}." -f
+                    $SystemProcess.ExitCode
+                )
+            }
+        }
+        catch [System.ComponentModel.Win32Exception] {
+            Write-RequiredFailure "The elevated system phase was canceled or could not start."
+        }
     }
 
     try {
@@ -1873,75 +2116,25 @@ try {
     $ActiveControlled = Read-ControlledManifest
     Test-PostUpdateState -Platform $ActiveControlled.Platform
 
-    $Elapsed = (Get-Date) - $StartTime
-    Write-Header "UPDATE SUMMARY"
-    Write-Info "Workflow          : $WorkflowName"
-    Write-Info "Script version    : $ScriptVersion"
-    Write-Info "Version DTG       : $VersionDateTimeGroup"
-    Write-Info "Status            : $DevelopmentStatus"
-    Write-Info "Windows           : $($WindowsFacts.Caption)"
-    Write-Info "Release           : $($WindowsFacts.DisplayVersion)"
-    Write-Info "Manifest release  : $($ActiveControlled.Manifest.automation_release)"
-    Write-Info "Manifest DTG      : $($ActiveControlled.Manifest.automation_release_date_time_group)"
-    Write-Info "Git               : $(Get-CommandVersionLine -CommandName 'git.exe')"
-    Write-Info "GitHub CLI        : $(Get-CommandVersionLine -CommandName 'gh.exe')"
-    Write-Info "Python            : $(Get-CommandVersionLine -CommandName 'python.exe')"
-    Write-Info "VS Code           : $(Get-CommandVersionLine -CommandName 'code.cmd')"
-    Write-Info "Warnings          : $WarningCount"
-    Write-Info "Failures          : $FailureCount"
-    Write-Info ("Elapsed time      : {0:hh\:mm\:ss}" -f $Elapsed)
-    Write-Info "Log file          : $LogPath"
-
-    Write-Notice "Close and reopen Visual Studio Code before continuing coursework."
-
     if ($Partial -or $FailureCount -gt 0) {
-        Write-ErrorMessage "The update completed partially."
-        if ($ConfigurationComplete) {
-            Write-Notice (
-                "Next step: run verify_it140.ps1 and follow its " +
-                "remediation guidance."
-            )
-        }
-        else {
-            Write-Notice (
-                "Next step: run configure_it140.ps1, then verify_it140.ps1."
-            )
-        }
-        Write-Info "Exit code         : 7"
-        Write-ClosingNotice
-        $ExitCode = 7
+        Write-UpdateSummary -Conclusion "The update completed with one or more required issues." -RequestedExitCode 7
     }
     else {
-        Write-Success "The IT 140 Windows update completed successfully."
-        if ($ConfigurationComplete) {
-            Write-Notice "Next step: run verify_it140.ps1."
-        }
-        else {
-            Write-Notice "Next step: run configure_it140.ps1."
-        }
-        Write-Info "Exit code         : 0"
-        Write-ClosingNotice
-        $ExitCode = 0
+        Write-UpdateSummary -Conclusion "Required Windows course components were updated or confirmed current." -RequestedExitCode 0
     }
+
 }
 catch {
     $LineNumber = $_.InvocationInfo.ScriptLineNumber
     Write-ErrorMessage $_.Exception.Message
-    if ($LineNumber) {
-        Write-ErrorMessage "Update stopped near line $LineNumber."
-    }
-    Write-Info "Update log: $LogPath"
+    if ($LineNumber) { Write-ErrorMessage "Update stopped near line $LineNumber." }
+    if ($FailureCount -eq 0) { $FailureCount++ }
     if ($Changed) {
-        Write-Notice (
-            "Managed state changed before update stopped. " +
-            "Rerun update_it140.ps1 to repair it."
-        )
-        $ExitCode = 7
+        Write-Notice "Managed state changed before update stopped. Rerun update_it140.ps1 to repair it."
     }
-    else {
-        $ExitCode = $FailureExitCode
-    }
+    Write-UpdateSummary -Conclusion $_.Exception.Message -RequestedExitCode $FailureExitCode
 }
+
 finally {
     if ($null -ne $Transaction) {
         Remove-Item `

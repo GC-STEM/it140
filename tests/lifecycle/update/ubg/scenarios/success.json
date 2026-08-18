@@ -1,0 +1,1 @@
+{"id":"ubg-update-success","expected":{"exit_code":0,"result":"PASS","managed_changes":"Yes","restart_required":"No","failures":0,"contains":["Ubuntu GNOME Update passed post-validation","run verify_ubg.sh"]}}

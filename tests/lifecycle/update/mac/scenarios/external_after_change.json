@@ -1,0 +1,1 @@
+{"id":"mac-update-external-service-failure-after-managed-change","fixture_overrides":{"candidate_manifest":"reformatted"},"mock_overrides":{"fail_points":{"brew_update":true}},"expected":{"exit_code":4,"result":"FAIL","managed_changes":"Yes","failures":1,"contains":["Validated candidate manifest release","Homebrew package metadata could not be updated"]}}

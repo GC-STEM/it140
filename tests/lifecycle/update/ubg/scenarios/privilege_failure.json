@@ -1,0 +1,1 @@
+{"id":"ubg-update-privilege-failure","mock_overrides":{"sudo_valid":false},"expected":{"exit_code":3,"result":"FAIL","managed_changes":"No","restart_required":"No","failures":1,"contains":["Administrator authorization is required"]}}

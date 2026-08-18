@@ -1,0 +1,10 @@
+{
+  "id": "win-update-success",
+  "expected": {
+    "exit_code": 0,
+    "result": "PASS",
+    "managed_changes": "Yes",
+    "failures": 0,
+    "configured": true
+  }
+}

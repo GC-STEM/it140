@@ -57,6 +57,13 @@ IT140_RETRY_MAXIMUM_ATTEMPTS=5
 IT140_RETRY_INITIAL_DELAY_SECONDS=5
 IT140_TEMP_PATHS=()
 IT140_RUNTIME_TEMP_DIR=''
+# Behavioral-test seams are inert unless IT140_UPDATE_TEST_MODE=true.
+readonly IT140_UPDATE_TEST_MODE="${IT140_UPDATE_TEST_MODE:-false}"
+readonly IT140_UPDATE_TEST_BREW_PATH="${IT140_UPDATE_TEST_BREW_PATH:-}"
+readonly IT140_UPDATE_TEST_NETWORK_RESULT="${IT140_UPDATE_TEST_NETWORK_RESULT:-}"
+readonly IT140_UPDATE_TEST_ADMIN_RESULT="${IT140_UPDATE_TEST_ADMIN_RESULT:-}"
+readonly IT140_UPDATE_TEST_ARCHIVE_PATH="${IT140_UPDATE_TEST_ARCHIVE_PATH:-}"
+readonly IT140_UPDATE_TEST_DOWNLOAD_RESULT="${IT140_UPDATE_TEST_DOWNLOAD_RESULT:-}"
 it140_usage() {
     cat <<'USAGE'
 Usage: update_it140.zsh [--help] [--version] [--noninteractive]
@@ -149,25 +156,35 @@ it140_finish() {
     [[ "$next_step" == 'None' ]] || it140_notice 'Open a new Terminal window before running the next lifecycle script.'
     exit "$exit_code"
 }
+it140_resolve_failure_code() {
+    local requested_code="$1"
+    case "$requested_code" in
+        2|3|4|5|7) printf '%s' "$requested_code";;
+        6) [[ "$IT140_CHANGED" == true ]] && printf '7' || printf '6';;
+        *) [[ "$IT140_CHANGED" == true ]] && printf '7' || printf '1';;
+    esac
+}
 it140_abort() {
-    local exit_code="$1"; shift; local message="$*"
-    if [[ "$IT140_CHANGED" == true && "$exit_code" -ne 2 && "$exit_code" -ne 5 ]]; then exit_code=7; fi
+    local requested_code="$1"; shift; local message="$*" exit_code result='FAIL'
+    exit_code="$(it140_resolve_failure_code "$requested_code")"
+    (( exit_code == 7 )) && result='PARTIAL'
     it140_error "$message"
     it140_error "Failed stage: $IT140_CURRENT_STAGE"
-    it140_finish "$exit_code" 'FAIL' "$message" "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
+    it140_finish "$exit_code" "$result" "$message" "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
 }
 it140_on_error() {
-    local exit_status="$1" line="$2"
+    local exit_status="$1" line="$2" exit_code=1 result='FAIL'
     trap - ERR; set +e
-    local exit_code=1; [[ "$IT140_CHANGED" == true ]] && exit_code=7
+    [[ "$IT140_CHANGED" == true ]] && { exit_code=7; result='PARTIAL'; }
     it140_error "An unexpected command failure occurred near line ${line} during ${IT140_CURRENT_STAGE} (status ${exit_status})."
-    it140_finish "$exit_code" 'FAIL' 'An unexpected command failure stopped the script.' "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
+    it140_finish "$exit_code" "$result" 'An unexpected command failure stopped the script.' "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
 }
 it140_on_interrupt() {
+    local exit_code=6 result='CANCELED'
     trap - INT TERM HUP; set +e
-    local exit_code=6; [[ "$IT140_CHANGED" == true ]] && exit_code=7
+    [[ "$IT140_CHANGED" == true ]] && { exit_code=7; result='PARTIAL'; }
     it140_error "The script was interrupted during ${IT140_CURRENT_STAGE}."
-    it140_finish "$exit_code" 'CANCELED' 'The operation did not finish. Rerun the same script to recover.' "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
+    it140_finish "$exit_code" "$result" 'The operation did not finish. Rerun the same script to recover.' "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
 }
 it140_initialize_log() {
     /bin/mkdir -p -- "$IT140_LOG_DIR"; /bin/chmod -- 0700 "$IT140_LOG_DIR"
@@ -300,6 +317,10 @@ it140_check_platform_base() {
 it140_check_admin_account() {
     IT140_CURRENT_STAGE='Check administrator capability'
     local current_user="$(id -un)"
+    if [[ "$IT140_UPDATE_TEST_MODE" == true && -n "$IT140_UPDATE_TEST_ADMIN_RESULT" ]]; then
+        [[ "$IT140_UPDATE_TEST_ADMIN_RESULT" == true ]] || it140_abort 3 'The account running this script must be an Administrator account.'
+        return 0
+    fi
     /usr/sbin/dseditgroup -o checkmember -m "$current_user" admin 2>/dev/null | /usr/bin/grep -q 'yes' || it140_abort 3 'The account running this script must be an Administrator account.'
 }
 it140_check_disk_space() {
@@ -312,6 +333,12 @@ it140_check_disk_space() {
 }
 it140_network_probe() {
     IT140_CURRENT_STAGE='Check approved network source'
+    if [[ "$IT140_UPDATE_TEST_MODE" == true ]]; then
+        case "$IT140_UPDATE_TEST_NETWORK_RESULT" in
+            success) return 0;;
+            failure) it140_abort 4 'The approved GitHub source was unavailable after bounded retries.';;
+        esac
+    fi
     local attempt=1 delay="$IT140_RETRY_INITIAL_DELAY_SECONDS"
     while (( attempt <= IT140_RETRY_MAXIMUM_ATTEMPTS )); do
         if /usr/bin/curl --fail --silent --show-error --location --connect-timeout 15 --max-time "$IT140_NETWORK_TIMEOUT_SECONDS" --output /dev/null 'https://github.com/GC-STEM/it140'; then return 0; fi
@@ -322,6 +349,13 @@ it140_network_probe() {
 }
 it140_download() {
     local url="$1" destination="$2" description="$3" attempt=1 delay="$IT140_RETRY_INITIAL_DELAY_SECONDS"
+    if [[ "$IT140_UPDATE_TEST_MODE" == true ]]; then
+        [[ "$IT140_UPDATE_TEST_DOWNLOAD_RESULT" != failure ]] || return 1
+        if [[ -n "$IT140_UPDATE_TEST_ARCHIVE_PATH" && -r "$IT140_UPDATE_TEST_ARCHIVE_PATH" ]]; then
+            /bin/cp -- "$IT140_UPDATE_TEST_ARCHIVE_PATH" "$destination"
+            return $?
+        fi
+    fi
     while (( attempt <= IT140_RETRY_MAXIMUM_ATTEMPTS )); do
         it140_info "Downloading ${description} (attempt ${attempt}/${IT140_RETRY_MAXIMUM_ATTEMPTS})."
         if /usr/bin/curl --fail --silent --show-error --location --connect-timeout 20 --max-time 300 --output "$destination" "$url"; then return 0; fi
@@ -329,7 +363,7 @@ it140_download() {
     done
     return 1
 }
-it140_find_brew() { if [[ -x /opt/homebrew/bin/brew ]]; then printf '%s' /opt/homebrew/bin/brew; return 0; fi; command -v brew >/dev/null 2>&1 && { command -v brew; return 0; }; return 1; }
+it140_find_brew() { if [[ "$IT140_UPDATE_TEST_MODE" == true && -n "$IT140_UPDATE_TEST_BREW_PATH" ]]; then [[ -x "$IT140_UPDATE_TEST_BREW_PATH" ]] && { printf '%s' "$IT140_UPDATE_TEST_BREW_PATH"; return 0; }; return 1; fi; if [[ -x /opt/homebrew/bin/brew ]]; then printf '%s' /opt/homebrew/bin/brew; return 0; fi; command -v brew >/dev/null 2>&1 && { command -v brew; return 0; }; return 1; }
 it140_activate_brew_environment() { eval "$("$1" shellenv)"; }
 it140_make_list_file() {
     local query="$1" list_file_path

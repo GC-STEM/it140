@@ -33,14 +33,17 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "ubg_verify": False,
         "ubg_configure": False,
         "ubg_install": False,
+        "ubg_update": False,
         "mac": False,
         "mac_verify": False,
         "mac_configure": False,
         "mac_install": False,
+        "mac_update": False,
         "win": False,
         "win_verify": False,
         "win_configure": False,
         "win_install": False,
+        "win_update": False,
     }
     if force_all:
         return {name: True for name in flags}
@@ -77,12 +80,15 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["ubg_verify"] = True
             flags["ubg_configure"] = True
             flags["ubg_install"] = True
+            flags["ubg_update"] = True
             flags["mac_verify"] = True
             flags["mac_configure"] = True
             flags["mac_install"] = True
+            flags["mac_update"] = True
             flags["win_verify"] = True
             flags["win_configure"] = True
             flags["win_install"] = True
+            flags["win_update"] = True
         elif posix.startswith("tests/lifecycle/verify/cvd/"):
             flags["cvd_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/cvd/"):
@@ -97,18 +103,24 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["ubg_configure"] = True
         elif posix.startswith("tests/lifecycle/install/ubg/"):
             flags["ubg_install"] = True
+        elif posix.startswith("tests/lifecycle/update/ubg/"):
+            flags["ubg_update"] = True
         elif posix.startswith("tests/lifecycle/verify/mac/"):
             flags["mac_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/mac/"):
             flags["mac_configure"] = True
         elif posix.startswith("tests/lifecycle/install/mac/"):
             flags["mac_install"] = True
+        elif posix.startswith("tests/lifecycle/update/mac/"):
+            flags["mac_update"] = True
         elif posix.startswith("tests/lifecycle/verify/win/"):
             flags["win_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/win/"):
             flags["win_configure"] = True
         elif posix.startswith("tests/lifecycle/install/win/"):
             flags["win_install"] = True
+        elif posix.startswith("tests/lifecycle/update/win/"):
+            flags["win_update"] = True
         elif posix.startswith("tests/lifecycle/"):
             # Unknown/shared lifecycle infrastructure should exercise every
             # behavioral suite until it receives explicit routing.
@@ -119,12 +131,15 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["ubg_verify"] = True
             flags["ubg_configure"] = True
             flags["ubg_install"] = True
+            flags["ubg_update"] = True
             flags["mac_verify"] = True
             flags["mac_configure"] = True
             flags["mac_install"] = True
+            flags["mac_update"] = True
             flags["win_verify"] = True
             flags["win_configure"] = True
             flags["win_install"] = True
+            flags["win_update"] = True
         elif posix.startswith("scripts/nix/"):
             flags["manifest"] = True
             flags["nix"] = True
@@ -138,6 +153,10 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
                 flags["ubg_install"] = True
                 # Install changes should also exercise the independent Verify oracle.
                 flags["ubg_verify"] = True
+            if posix == "scripts/nix/ubg/update_ubg.sh":
+                flags["ubg_update"] = True
+                # Update changes should also exercise the independent Verify oracle.
+                flags["ubg_verify"] = True
         elif posix.startswith("scripts/mac/"):
             flags["manifest"] = True
             flags["mac"] = True
@@ -149,6 +168,10 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
                 flags["mac_install"] = True
                 # Install changes should also exercise the independent Verify oracle.
                 flags["mac_verify"] = True
+            if posix == "scripts/mac/update_it140.zsh":
+                flags["mac_update"] = True
+                # Update changes should also exercise the independent Verify oracle.
+                flags["mac_verify"] = True
         elif posix.startswith("scripts/win/"):
             flags["manifest"] = True
             flags["win"] = True
@@ -159,6 +182,10 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             if posix == "scripts/win/install_it140.ps1":
                 flags["win_install"] = True
                 # Install changes should also exercise the independent Verify oracle.
+                flags["win_verify"] = True
+            if posix == "scripts/win/update_it140.ps1":
+                flags["win_update"] = True
+                # Update changes should also exercise the independent Verify oracle.
                 flags["win_verify"] = True
     return flags
 

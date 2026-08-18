@@ -1,0 +1,18 @@
+{
+  "id": "win-update-external-service-failure-after-managed-change",
+  "mock_overrides": {
+    "candidate_manifest_changed": true,
+    "fail_points": {
+      "system_external": true
+    }
+  },
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "Yes",
+    "failures": 1,
+    "contains": [
+      "could not retrieve required package information"
+    ]
+  }
+}

@@ -29,14 +29,17 @@ jobs:
       ubg_verify: ${{ steps.changes.outputs.ubg_verify }}
       ubg_configure: ${{ steps.changes.outputs.ubg_configure }}
       ubg_install: ${{ steps.changes.outputs.ubg_install }}
+      ubg_update: ${{ steps.changes.outputs.ubg_update }}
       mac: ${{ steps.changes.outputs.mac }}
       mac_verify: ${{ steps.changes.outputs.mac_verify }}
       mac_configure: ${{ steps.changes.outputs.mac_configure }}
       mac_install: ${{ steps.changes.outputs.mac_install }}
+      mac_update: ${{ steps.changes.outputs.mac_update }}
       win: ${{ steps.changes.outputs.win }}
       win_verify: ${{ steps.changes.outputs.win_verify }}
       win_configure: ${{ steps.changes.outputs.win_configure }}
       win_install: ${{ steps.changes.outputs.win_install }}
+      win_update: ${{ steps.changes.outputs.win_update }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4.4.0
@@ -252,6 +255,25 @@ jobs:
           -p 'test_*.py'
           -v
 
+  ubg_update:
+    name: Ubuntu GNOME Update lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.ubg_update == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir --user "jsonschema[format-nongpl]==4.26.0"
+      - name: Run Ubuntu GNOME Update lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/update/ubg
+          -p 'test_*.py'
+          -v
+
   macos:
     name: macOS Zsh validation
     needs: changes
@@ -343,6 +365,29 @@ jobs:
         run: >-
           python3 -m unittest discover
           -s tests/lifecycle/install/mac
+          -p 'test_*.py'
+          -v
+
+  mac_update:
+    name: macOS Update lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.mac_update == 'true'
+    runs-on: macos-15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir "jsonschema[format-nongpl]==4.26.0"
+      - name: Run macOS Update lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/update/mac
           -p 'test_*.py'
           -v
 
@@ -451,6 +496,28 @@ jobs:
           -p 'test_*.py'
           -v
 
+  win_update:
+    name: Windows Update lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.win_update == 'true'
+    runs-on: windows-2025
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run Windows Update lifecycle tests
+        shell: powershell
+        run: >-
+          python -m unittest discover
+          -s tests/lifecycle/update/win
+          -p 'test_*.py'
+          -v
+
   gate:
     name: CI Gate
     if: always()
@@ -467,14 +534,17 @@ jobs:
       - ubg_verify
       - ubg_configure
       - ubg_install
+      - ubg_update
       - macos
       - mac_verify
       - mac_configure
       - mac_install
+      - mac_update
       - windows
       - win_verify
       - win_configure
       - win_install
+      - win_update
     runs-on: ubuntu-24.04
     steps:
       - name: Require all applicable checks to pass
@@ -491,14 +561,17 @@ jobs:
           UBG_VERIFY_RESULT: ${{ needs.ubg_verify.result }}
           UBG_CONFIGURE_RESULT: ${{ needs.ubg_configure.result }}
           UBG_INSTALL_RESULT: ${{ needs.ubg_install.result }}
+          UBG_UPDATE_RESULT: ${{ needs.ubg_update.result }}
           MACOS_RESULT: ${{ needs.macos.result }}
           MAC_VERIFY_RESULT: ${{ needs.mac_verify.result }}
           MAC_CONFIGURE_RESULT: ${{ needs.mac_configure.result }}
           MAC_INSTALL_RESULT: ${{ needs.mac_install.result }}
+          MAC_UPDATE_RESULT: ${{ needs.mac_update.result }}
           WINDOWS_RESULT: ${{ needs.windows.result }}
           WIN_VERIFY_RESULT: ${{ needs.win_verify.result }}
           WIN_CONFIGURE_RESULT: ${{ needs.win_configure.result }}
           WIN_INSTALL_RESULT: ${{ needs.win_install.result }}
+          WIN_UPDATE_RESULT: ${{ needs.win_update.result }}
         shell: bash
         run: |
           set -euo pipefail
@@ -516,14 +589,17 @@ jobs:
             "ubg-verify:$UBG_VERIFY_RESULT" \
             "ubg-configure:$UBG_CONFIGURE_RESULT" \
             "ubg-install:$UBG_INSTALL_RESULT" \
+            "ubg-update:$UBG_UPDATE_RESULT" \
             "macos:$MACOS_RESULT" \
             "mac-verify:$MAC_VERIFY_RESULT" \
             "mac-configure:$MAC_CONFIGURE_RESULT" \
             "mac-install:$MAC_INSTALL_RESULT" \
+            "mac-update:$MAC_UPDATE_RESULT" \
             "windows:$WINDOWS_RESULT" \
             "win-verify:$WIN_VERIFY_RESULT" \
             "win-configure:$WIN_CONFIGURE_RESULT" \
-            "win-install:$WIN_INSTALL_RESULT"
+            "win-install:$WIN_INSTALL_RESULT" \
+            "win-update:$WIN_UPDATE_RESULT"
           do
             job="${item%%:*}"
             result="${item#*:}"

@@ -1,0 +1,1 @@
+{"id":"mac-update-privilege-failure","admin_result":"false","expected":{"exit_code":3,"result":"FAIL","managed_changes":"No","failures":1,"contains":["must be an Administrator account"]}}

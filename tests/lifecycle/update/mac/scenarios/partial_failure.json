@@ -1,0 +1,1 @@
+{"id":"mac-update-partial-after-managed-change","mock_overrides":{"skip_venv_packages":["pytest-cov"]},"expected":{"exit_code":7,"result":"PARTIAL","managed_changes":"Yes","failures":1,"contains":["Required course Python package failed post-update validation: pytest-cov"]}}

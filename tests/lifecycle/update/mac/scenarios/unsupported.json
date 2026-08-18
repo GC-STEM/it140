@@ -1,0 +1,1 @@
+{"id":"mac-update-unsupported-profile","arguments":["--deployment-profile","not-mac"],"expected":{"exit_code":2,"result":"FAIL","managed_changes":"No","failures":1,"contains":["Unsupported deployment profile"]}}

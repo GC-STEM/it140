@@ -93,25 +93,32 @@ See `tests/lifecycle/install/cvd/README.md`, `tests/lifecycle/install/ubg/README
 
 ### Update
 
-Update behavioral coverage currently starts with the CVD reference implementation:
+Update behavioral suites now cover all four supported platform families:
 
 - CVD: `scripts/cvd/update_it140.sh`
+- Ubuntu Desktop GNOME: `scripts/nix/ubg/update_ubg.sh`
+- macOS Apple silicon: `scripts/mac/update_it140.zsh`
+- Windows bare metal: `scripts/win/update_it140.ps1`
 
-The CVD Update suite establishes maintenance-stage contracts for:
+The Update suites establish maintenance-stage contracts for:
 
 - successful controlled-manifest refresh and maintenance (`0`)
 - unsupported context (`2`) and unavailable required privilege (`3`) before managed changes
 - required external-source failure retaining its lifecycle classification (`4`) before or after managed changes
 - malformed controlled configuration (`5`) before managed changes
 - ordinary failure after managed changes resolving to `PARTIAL` (`7`)
-- Ubuntu restart-required state resolving to `PARTIAL` (`7`) even when no required operation failed
+- Ubuntu restart-required state resolving to `PARTIAL` (`7`) even when no required operation failed (CVD and Ubuntu GNOME)
 - preservation of student repositories and unrelated user configuration
-- convergence of required APT packages, Noto Color Emoji/fontconfig health, Xfce Num Lock autostart, the Python venv, and VS Code extensions
-- atomic activation of the downloaded controlled manifest/schema pair
+- convergence of manifest-declared system components, the course Python venv, and VS Code extensions
+- CVD-specific Noto Color Emoji/fontconfig health and Xfce Num Lock autostart
+- Ubuntu GNOME APT maintenance without an Ubuntu release upgrade
+- macOS Homebrew formula/cask maintenance without a macOS major-version upgrade
+- Windows WinGet course-component maintenance without running Windows Update
+- validation and controlled activation of downloaded maintenance assets according to the platform implementation
 - semantic idempotence across two successful runs
 - Update transcript permissions and summary/exit-code consistency
 
-The Ubuntu GNOME, macOS, and Windows Update suites will port this reference contract after the CVD suite is qualified in CI.
+Each Update-script change also routes through that platform's existing Verify suite as an independent end-state regression oracle.
 
 ## Run locally
 
@@ -158,6 +165,15 @@ python3 -m unittest discover \
   -v
 ```
 
+Ubuntu GNOME Update on Ubuntu/Linux with isolated package/system boundaries:
+
+```bash
+python3 -m unittest discover \
+  -s tests/lifecycle/update/ubg \
+  -p 'test_*.py' \
+  -v
+```
+
 Ubuntu GNOME Install on Ubuntu/Linux with isolated APT/system paths:
 
 ```bash
@@ -185,6 +201,11 @@ python3 -m unittest discover \
   -v
 
 python3 -m unittest discover \
+  -s tests/lifecycle/update/mac \
+  -p 'test_*.py' \
+  -v
+
+python3 -m unittest discover \
   -s tests/lifecycle/configure/mac \
   -p 'test_*.py' \
   -v
@@ -200,6 +221,11 @@ Windows PowerShell Install, Configure, and Verify:
 ```powershell
 python -m unittest discover `
   -s tests/lifecycle/install/win `
+  -p 'test_*.py' `
+  -v
+
+python -m unittest discover `
+  -s tests/lifecycle/update/win `
   -p 'test_*.py' `
   -v
 
@@ -227,6 +253,29 @@ Test hooks are active only when explicitly set by the lifecycle harness. Normal 
 - `IT140_UPDATE_TEST_EUID` supplies a deterministic non-root effective-user value only while Update test mode is active.
 
 APT, `sudo`, repository archive download, package queries, fontconfig, VS Code, Git/GitHub observations, and desktop-entry validation remain external boundaries supplied through the test `PATH`. The production Update entry point still validates and atomically activates the downloaded controlled manifest/schema pair, performs lifecycle branching and maintenance, runs post-update checks, generates the transcript/summary, and resolves the process exit code.
+
+### Ubuntu GNOME
+
+- `IT140_UPDATE_TEST_MODE=true` explicitly enables Ubuntu GNOME Update isolation.
+- `IT140_UPDATE_TEST_ROOT` redirects `/etc/os-release` and reboot-required state into the temporary fixture tree.
+- `IT140_UPDATE_TEST_EUID` supplies a deterministic non-root effective-user value only while test mode is active.
+
+APT, `sudo`, package queries, Git retrieval, Python, and VS Code are supplied through the test `PATH`; normal Ubuntu GNOME execution remains manifest-driven and never performs an Ubuntu release upgrade.
+
+### macOS
+
+- `IT140_UPDATE_TEST_MODE=true` explicitly enables macOS Update isolation.
+- `IT140_UPDATE_TEST_BREW_PATH` supplies a stateful fake Homebrew executable.
+- `IT140_UPDATE_TEST_NETWORK_RESULT`, `IT140_UPDATE_TEST_ADMIN_RESULT`, `IT140_UPDATE_TEST_ARCHIVE_PATH`, and `IT140_UPDATE_TEST_DOWNLOAD_RESULT` make approved-source, administrator, and archive observations deterministic.
+
+These seams are inert in normal execution. The suite still runs the production Zsh entry point on the Apple-silicon macOS runner and uses the real macOS manifest parser/filesystem behavior.
+
+### Windows
+
+- `IT140_UPDATE_TEST_MODE=true` explicitly enables Windows Update isolation.
+- `IT140_UPDATE_TEST_STATE` identifies a temporary JSON state file that substitutes hosted-runner observations for UAC/administrator state, Windows release facts, required command availability, free space, package state, and user-tool state.
+
+Normal Windows execution leaves these variables unset and continues to use real Windows APIs, WinGet, UAC, managed user settings, and system-drive state. The test seam never enables Windows Update or an OS release upgrade.
 
 ## Install test-isolation hooks
 
