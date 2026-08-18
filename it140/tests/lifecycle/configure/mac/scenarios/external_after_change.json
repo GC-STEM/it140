@@ -1,0 +1,20 @@
+{
+  "id": "mac-configure-external-service-failure-after-managed-change",
+  "arguments": [
+    "--noninteractive",
+    "--deployment-profile",
+    "macos_bare_metal"
+  ],
+  "mock_overrides": {
+    "gh_api_user_failure": true
+  },
+  "expected": {
+    "exit_code": 7,
+    "result": "PARTIAL",
+    "managed_changes": "Yes",
+    "failures": 1,
+    "output_contains": [
+      "GitHub account data could not be read."
+    ]
+  }
+}

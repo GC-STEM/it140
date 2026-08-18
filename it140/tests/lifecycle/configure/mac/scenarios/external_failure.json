@@ -1,0 +1,23 @@
+{
+  "id": "mac-configure-external-service-failure-before-managed-change",
+  "arguments": [
+    "--noninteractive",
+    "--deployment-profile",
+    "macos_bare_metal"
+  ],
+  "fixture_overrides": {
+    "preconfigured_before_identity": true
+  },
+  "mock_overrides": {
+    "gh_api_user_failure": true
+  },
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "failures": 1,
+    "output_contains": [
+      "GitHub account data could not be read."
+    ]
+  }
+}

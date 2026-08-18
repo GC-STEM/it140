@@ -1,0 +1,20 @@
+{
+  "id": "mac-configure-manifest-failure",
+  "arguments": [
+    "--noninteractive",
+    "--deployment-profile",
+    "macos_bare_metal"
+  ],
+  "fixture_overrides": {
+    "manifest": "malformed"
+  },
+  "expected": {
+    "exit_code": 5,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "failures": 1,
+    "output_contains": [
+      "The controlled manifest or schema is invalid:"
+    ]
+  }
+}

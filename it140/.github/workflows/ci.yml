@@ -1,0 +1,367 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-24.04
+    outputs:
+      manifest: ${{ steps.changes.outputs.manifest }}
+      cvd: ${{ steps.changes.outputs.cvd }}
+      cvd_verify: ${{ steps.changes.outputs.cvd_verify }}
+      cvd_configure: ${{ steps.changes.outputs.cvd_configure }}
+      nix: ${{ steps.changes.outputs.nix }}
+      ubg_verify: ${{ steps.changes.outputs.ubg_verify }}
+      mac: ${{ steps.changes.outputs.mac }}
+      mac_verify: ${{ steps.changes.outputs.mac_verify }}
+      mac_configure: ${{ steps.changes.outputs.mac_configure }}
+      win: ${{ steps.changes.outputs.win }}
+      win_verify: ${{ steps.changes.outputs.win_verify }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Determine affected areas
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: >-
+          python3 tests/ci/detect_changes.py
+          --event "$EVENT_NAME"
+          --base "$BASE_SHA"
+          --head "$HEAD_SHA"
+
+  repository:
+    name: Repository validation
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Validate repository structure
+        run: python3 tests/ci/check_repo.py
+
+  manifest:
+    name: Manifest validation
+    needs: changes
+    if: needs.changes.outputs.manifest == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir --user "jsonschema[format-nongpl]==4.26.0"
+      - name: Validate manifest and schema
+        run: python3 tests/ci/check_manifest.py
+
+  cvd:
+    name: CVD shell syntax
+    needs: changes
+    if: needs.changes.outputs.cvd == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Parse CVD shell scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find scripts/cvd -maxdepth 1 -type f -name '*.sh' -print | sort)
+          ((${#files[@]} > 0)) || { echo "No CVD shell scripts found." >&2; exit 1; }
+          printf 'Checking %s\n' "${files[@]}"
+          bash -n "${files[@]}"
+
+  cvd_verify:
+    name: CVD Verify lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.cvd_verify == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir --user "jsonschema[format-nongpl]==4.26.0"
+      - name: Run CVD Verify lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/verify/cvd
+          -p 'test_*.py'
+          -v
+
+  cvd_configure:
+    name: CVD Configure lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.cvd_configure == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir --user "jsonschema[format-nongpl]==4.26.0"
+      - name: Run CVD Configure lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/configure/cvd
+          -p 'test_*.py'
+          -v
+
+  linux:
+    name: Linux shell syntax
+    needs: changes
+    if: needs.changes.outputs.nix == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Parse Linux shell scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find scripts/nix -type f -name '*.sh' -print | sort)
+          ((${#files[@]} > 0)) || { echo "No Linux shell scripts found." >&2; exit 1; }
+          printf 'Checking %s\n' "${files[@]}"
+          bash -n "${files[@]}"
+
+  ubg_verify:
+    name: Ubuntu GNOME Verify lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.ubg_verify == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir --user "jsonschema[format-nongpl]==4.26.0"
+      - name: Run Ubuntu GNOME Verify lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/verify/ubg
+          -p 'test_*.py'
+          -v
+
+  macos:
+    name: macOS Zsh validation
+    needs: changes
+    if: needs.changes.outputs.mac == 'true'
+    runs-on: macos-15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Parse macOS Zsh scripts
+        shell: zsh {0}
+        run: |
+          set -euo pipefail
+          files=(scripts/mac/*.zsh(N))
+          (( ${#files[@]} > 0 )) || { print -u2 "No macOS Zsh scripts found."; exit 1; }
+          print -l "Checking:" $files
+          zsh -n $files
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Reject Zsh special-parameter collisions
+        run: python3 tests/ci/check_zsh_special_params.py
+
+  mac_verify:
+    name: macOS Verify lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.mac_verify == 'true'
+    runs-on: macos-15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir "jsonschema[format-nongpl]==4.26.0"
+      - name: Run macOS Verify lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/verify/mac
+          -p 'test_*.py'
+          -v
+
+  mac_configure:
+    name: macOS Configure lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.mac_configure == 'true'
+    runs-on: macos-15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir "jsonschema[format-nongpl]==4.26.0"
+      - name: Run macOS Configure lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/configure/mac
+          -p 'test_*.py'
+          -v
+
+  windows:
+    name: Windows PowerShell syntax
+    needs: changes
+    if: needs.changes.outputs.win == 'true'
+    runs-on: windows-2025
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Parse Windows PowerShell scripts
+        shell: powershell
+        run: |
+          $files = Get-ChildItem -Path "scripts\win" -Filter "*.ps1" -File | Sort-Object FullName
+          if (-not $files) {
+              Write-Error "No Windows PowerShell scripts found."
+              exit 1
+          }
+          $failed = $false
+          foreach ($file in $files) {
+              Write-Host "Checking $($file.FullName)"
+              $tokens = $null
+              $errors = $null
+              [void][System.Management.Automation.Language.Parser]::ParseFile(
+                  $file.FullName,
+                  [ref]$tokens,
+                  [ref]$errors
+              )
+              if ($errors.Count -gt 0) {
+                  $failed = $true
+                  foreach ($parseError in $errors) {
+                      Write-Error "$($file.FullName): $($parseError.Message)"
+                  }
+              }
+          }
+          if ($failed) {
+              exit 1
+          }
+
+  win_verify:
+    name: Windows Verify lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.win_verify == 'true'
+    runs-on: windows-2025
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run Windows Verify lifecycle tests
+        shell: powershell
+        run: >-
+          python -m unittest discover
+          -s tests/lifecycle/verify/win
+          -p 'test_*.py'
+          -v
+
+  gate:
+    name: CI Gate
+    if: always()
+    needs:
+      - changes
+      - repository
+      - manifest
+      - cvd
+      - cvd_verify
+      - cvd_configure
+      - linux
+      - ubg_verify
+      - macos
+      - mac_verify
+      - mac_configure
+      - windows
+      - win_verify
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require all applicable checks to pass
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          REPOSITORY_RESULT: ${{ needs.repository.result }}
+          MANIFEST_RESULT: ${{ needs.manifest.result }}
+          CVD_RESULT: ${{ needs.cvd.result }}
+          CVD_VERIFY_RESULT: ${{ needs.cvd_verify.result }}
+          CVD_CONFIGURE_RESULT: ${{ needs.cvd_configure.result }}
+          LINUX_RESULT: ${{ needs.linux.result }}
+          UBG_VERIFY_RESULT: ${{ needs.ubg_verify.result }}
+          MACOS_RESULT: ${{ needs.macos.result }}
+          MAC_VERIFY_RESULT: ${{ needs.mac_verify.result }}
+          MAC_CONFIGURE_RESULT: ${{ needs.mac_configure.result }}
+          WINDOWS_RESULT: ${{ needs.windows.result }}
+          WIN_VERIFY_RESULT: ${{ needs.win_verify.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          for item in \
+            "changes:$CHANGES_RESULT" \
+            "repository:$REPOSITORY_RESULT" \
+            "manifest:$MANIFEST_RESULT" \
+            "cvd:$CVD_RESULT" \
+            "cvd-verify:$CVD_VERIFY_RESULT" \
+            "cvd-configure:$CVD_CONFIGURE_RESULT" \
+            "linux:$LINUX_RESULT" \
+            "ubg-verify:$UBG_VERIFY_RESULT" \
+            "macos:$MACOS_RESULT" \
+            "mac-verify:$MAC_VERIFY_RESULT" \
+            "mac-configure:$MAC_CONFIGURE_RESULT" \
+            "windows:$WINDOWS_RESULT" \
+            "win-verify:$WIN_VERIFY_RESULT"
+          do
+            job="${item%%:*}"
+            result="${item#*:}"
+            printf '%-16s %s\n' "$job" "$result"
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              failed=1
+            fi
+          done
+          if (( failed )); then
+            echo "One or more required CI jobs failed or were cancelled." >&2
+            exit 1
+          fi
