@@ -105,7 +105,7 @@ it140_info() { printf '[INFO] %s\n' "$*"; }
 it140_success() { printf '[SUCCESS] %s\n' "$*"; }
 it140_notice() { printf '[NOTICE] %s\n' "$*"; }
 it140_warning() { IT140_WARNINGS=$((IT140_WARNINGS + 1)); printf '[WARNING] %s\n' "$*"; }
-it140_error() { IT140_FAILURES=$((IT140_FAILURES + 1)); printf '[ERROR] %s\n' "$*" >&2; }
+it140_error() { printf '[ERROR] %s\n' "$*" >&2; }
 it140_show_version() {
     printf '%s %s (%s)\n' "$IT140_ARTIFACT_ID" "$IT140_ARTIFACT_VERSION" "$IT140_VERSION_DATE_TIME_GROUP"
     printf 'Status: %s\n' "$IT140_DEVELOPMENT_STATUS"
@@ -168,6 +168,7 @@ it140_abort() {
     local requested_code="$1"; shift; local message="$*" exit_code result='FAIL'
     exit_code="$(it140_resolve_failure_code "$requested_code")"
     (( exit_code == 7 )) && result='PARTIAL'
+    IT140_FAILURES=$((IT140_FAILURES + 1))
     it140_error "$message"
     it140_error "Failed stage: $IT140_CURRENT_STAGE"
     it140_finish "$exit_code" "$result" "$message" "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
@@ -176,6 +177,7 @@ it140_on_error() {
     local exit_status="$1" line="$2" exit_code=1 result='FAIL'
     trap - ERR; set +e
     [[ "$IT140_CHANGED" == true ]] && { exit_code=7; result='PARTIAL'; }
+    IT140_FAILURES=$((IT140_FAILURES + 1))
     it140_error "An unexpected command failure occurred near line ${line} during ${IT140_CURRENT_STAGE} (status ${exit_status})."
     it140_finish "$exit_code" "$result" 'An unexpected command failure stopped the script.' "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
 }

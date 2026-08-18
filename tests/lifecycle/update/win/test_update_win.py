@@ -16,7 +16,7 @@ class WinUpdateLifecycleTests(unittest.TestCase):
     def early(self,arg,text):
         assert POWERSHELL_EXECUTABLE
         with tempfile.TemporaryDirectory(prefix='it140-update-win-cli-') as t:
-            home=Path(t)/'home';home.mkdir();env=os.environ.copy();env['HOME']=str(home);env['USERPROFILE']=str(home)
+            home=Path(t)/'home';home.mkdir();env=os.environ.copy();env['HOME']=str(home);env['USERPROFILE']=str(home);env['APPDATA']=str(home/'AppData'/'Roaming')
             cp=subprocess.run([POWERSHELL_EXECUTABLE,'-NoProfile','-ExecutionPolicy','Bypass','-File',str(UPDATE_SOURCE),arg],capture_output=True,text=True,timeout=20,check=False,env=env)
             self.assertEqual(0,cp.returncode,cp.stdout+cp.stderr);self.assertIn(text,cp.stdout+cp.stderr)
     def test_help_returns_zero_without_creating_log(self):self.early('-Help','IT 140 Windows update script')

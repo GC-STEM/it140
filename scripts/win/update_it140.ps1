@@ -353,6 +353,7 @@ function Test-UpdateCommandAvailable {
 
 function Resolve-UpdateExitCode {
     param([Parameter(Mandatory = $true)][int]$RequestedExitCode)
+    if ($RequestedExitCode -eq 0) { return 0 }
     if ($RequestedExitCode -in @(2, 3, 4, 5, 7)) { return $RequestedExitCode }
     if ($RequestedExitCode -eq 6) {
         if ($Changed) { return 7 }
@@ -838,8 +839,8 @@ function Test-SupportedOperatingSystem {
     )
     if ($WindowsFacts.DisplayVersion -notin $SupportedWindows11Releases) {
         throw (
-            "Windows 11 release {0} is not enabled. Supported Windows 11 " +
-            "releases: {1}" -f
+            ("Windows 11 release {0} is not enabled. Supported Windows 11 " +
+            "releases: {1}") -f
             $WindowsFacts.DisplayVersion,
             ($SupportedWindows11Releases -join ", ")
         )

@@ -120,6 +120,12 @@ class UbgUpdateHarness:
         root=Path(tempfile.mkdtemp(prefix='it140-update-ubg-')); vals=self.prepare(root,scenario); return self.execute(scenario,root,*vals)
     def run_twice(self,scenario:dict[str,Any])->UpdateSequence:
         root=Path(tempfile.mkdtemp(prefix='it140-update-ubg-twice-')); vals=self.prepare(root,scenario); first=self.execute(scenario,root,*vals); first_state=json.loads(vals[3].read_text()); first_log=first.log_file
-        # Ensure the second run gets its own timestamped transcript.
-        if first_log: first_log.rename(first_log.with_name(first_log.stem+'_first.log'))
+        # Ensure the second run gets its own timestamped transcript while keeping
+        # the first UpdateRun object internally consistent for later assertions.
+        if first_log:
+            renamed_log=first_log.with_name(first_log.stem+'_first.log')
+            first_log.rename(renamed_log)
+            first.log_file=renamed_log
+            if first.transcript:
+                first.transcript.path=renamed_log
         second=self.execute(scenario,root,*vals); second_state=json.loads(vals[3].read_text()); return UpdateSequence(root,first,second,first_state,second_state)

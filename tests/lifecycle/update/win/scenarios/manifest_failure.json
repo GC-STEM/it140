@@ -9,7 +9,7 @@
     "managed_changes": "No",
     "failures": 1,
     "contains": [
-      "controlled manifest"
+      "JSON duplicate-key validation failed"
     ]
   }
 }
