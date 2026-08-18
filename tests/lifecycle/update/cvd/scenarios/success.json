@@ -1,0 +1,14 @@
+{
+  "id": "cvd-update-success",
+  "expected": {
+    "exit_code": 0,
+    "result": "PASS",
+    "managed_changes": "Yes",
+    "restart_required": "No",
+    "failures": 0,
+    "contains": [
+      "Required update operations completed.",
+      "run verify_it140.sh"
+    ]
+  }
+}

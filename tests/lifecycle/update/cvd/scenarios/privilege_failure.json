@@ -1,0 +1,16 @@
+{
+  "id": "cvd-update-privilege-failure",
+  "mock_overrides": {
+    "sudo_noninteractive": false
+  },
+  "expected": {
+    "exit_code": 3,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "restart_required": "No",
+    "failures": 1,
+    "contains": [
+      "lacks required passwordless sudo access"
+    ]
+  }
+}

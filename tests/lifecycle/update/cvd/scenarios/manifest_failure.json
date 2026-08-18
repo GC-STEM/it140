@@ -1,0 +1,16 @@
+{
+  "id": "cvd-update-manifest-failure",
+  "fixture_overrides": {
+    "manifest": "malformed"
+  },
+  "expected": {
+    "exit_code": 5,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "restart_required": "No",
+    "failures": 1,
+    "contains": [
+      "local controlled manifest and schema failed validation"
+    ]
+  }
+}

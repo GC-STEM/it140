@@ -24,6 +24,7 @@ jobs:
       cvd_verify: ${{ steps.changes.outputs.cvd_verify }}
       cvd_configure: ${{ steps.changes.outputs.cvd_configure }}
       cvd_install: ${{ steps.changes.outputs.cvd_install }}
+      cvd_update: ${{ steps.changes.outputs.cvd_update }}
       nix: ${{ steps.changes.outputs.nix }}
       ubg_verify: ${{ steps.changes.outputs.ubg_verify }}
       ubg_configure: ${{ steps.changes.outputs.ubg_configure }}
@@ -153,6 +154,25 @@ jobs:
         run: >-
           python3 -m unittest discover
           -s tests/lifecycle/install/cvd
+          -p 'test_*.py'
+          -v
+
+  cvd_update:
+    name: CVD Update lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.cvd_update == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check --no-cache-dir --user "jsonschema[format-nongpl]==4.26.0"
+      - name: Run CVD Update lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/update/cvd
           -p 'test_*.py'
           -v
 
@@ -442,6 +462,7 @@ jobs:
       - cvd_verify
       - cvd_configure
       - cvd_install
+      - cvd_update
       - linux
       - ubg_verify
       - ubg_configure
@@ -465,6 +486,7 @@ jobs:
           CVD_VERIFY_RESULT: ${{ needs.cvd_verify.result }}
           CVD_CONFIGURE_RESULT: ${{ needs.cvd_configure.result }}
           CVD_INSTALL_RESULT: ${{ needs.cvd_install.result }}
+          CVD_UPDATE_RESULT: ${{ needs.cvd_update.result }}
           LINUX_RESULT: ${{ needs.linux.result }}
           UBG_VERIFY_RESULT: ${{ needs.ubg_verify.result }}
           UBG_CONFIGURE_RESULT: ${{ needs.ubg_configure.result }}
@@ -489,6 +511,7 @@ jobs:
             "cvd-verify:$CVD_VERIFY_RESULT" \
             "cvd-configure:$CVD_CONFIGURE_RESULT" \
             "cvd-install:$CVD_INSTALL_RESULT" \
+            "cvd-update:$CVD_UPDATE_RESULT" \
             "linux:$LINUX_RESULT" \
             "ubg-verify:$UBG_VERIFY_RESULT" \
             "ubg-configure:$UBG_CONFIGURE_RESULT" \

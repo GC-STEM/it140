@@ -36,7 +36,17 @@ readonly LOG_FILE="${LOG_DIR}/update_cvd_$(date +%Y%m%d_%H%M%S).log"
 readonly VENV_DIR="${COURSE_ROOT}/.venv"
 readonly LOCK_FILE="${HOME}/.cache/it140-${PLATFORM_ID}-mutation.lock"
 readonly ARCHIVE_URL="https://github.com/GC-STEM/it140/archive/refs/heads/main.tar.gz"
-readonly NUMLOCK_AUTOSTART_PATH="/etc/xdg/autostart/numlockx.desktop"
+# Test-only isolation root. It is honored only when explicit lifecycle test
+# mode is enabled; normal course execution always resolves production paths.
+readonly UPDATE_TEST_MODE="${IT140_UPDATE_TEST_MODE:-false}"
+if [[ "$UPDATE_TEST_MODE" == true ]]; then
+    readonly UPDATE_TEST_ROOT="${IT140_UPDATE_TEST_ROOT:-}"
+else
+    readonly UPDATE_TEST_ROOT=""
+fi
+readonly OS_RELEASE_PATH="${UPDATE_TEST_ROOT}/etc/os-release"
+readonly NUMLOCK_AUTOSTART_PATH="${UPDATE_TEST_ROOT}/etc/xdg/autostart/numlockx.desktop"
+readonly REBOOT_REQUIRED_PATH="${UPDATE_TEST_ROOT}/var/run/reboot-required"
 readonly EMOJI_PACKAGE="fonts-noto-color-emoji"
 readonly EMOJI_FAMILY="Noto Color Emoji"
 readonly MANAGED_PATH_START="# >>> IT 140 managed PATH >>>"
@@ -415,12 +425,16 @@ retry_operation() {
 }
 check_platform_and_user() {
     CURRENT_STAGE="execution-context validation"
-    if [[ "$EUID" -eq 0 ]]; then
+    local effective_euid="$EUID"
+    if [[ "$UPDATE_TEST_MODE" == true && -n "${IT140_UPDATE_TEST_EUID:-}" ]]; then
+        effective_euid="$IT140_UPDATE_TEST_EUID"
+    fi
+    if [[ "$effective_euid" -eq 0 ]]; then
         fatal "$EXIT_UNSUPPORTED" "Do not run update_it140.sh with sudo; use the standard CVD desktop account."
     fi
-    [[ -r /etc/os-release ]] || fatal "$EXIT_UNSUPPORTED" "Cannot identify the operating system."
-    # shellcheck disable=SC1091
-    source /etc/os-release
+    [[ -r "$OS_RELEASE_PATH" ]] || fatal "$EXIT_UNSUPPORTED" "Cannot identify the operating system."
+    # shellcheck disable=SC1090
+    source "$OS_RELEASE_PATH"
     if [[ "${ID:-}" != ubuntu || "${VERSION_ID:-}" != 24.04 ]]; then
         fatal "$EXIT_UNSUPPORTED" "This script supports only the IT 140 Ubuntu 24.04 CVD; detected ${PRETTY_NAME:-unknown}."
     fi
@@ -839,8 +853,9 @@ post_update_checks() {
         grep -Fqx "${extension,,}" <<< "$installed_extensions" \
             || fatal "$EXIT_FAILURE" "Post-update check failed; VS Code extension is missing: $extension"
     done
-    if [[ -e /var/run/reboot-required ]]; then
+    if [[ -e "$REBOOT_REQUIRED_PATH" ]]; then
         RESTART_REQUIRED=true
+        PARTIAL=true
         print_notice "Ubuntu reports that a CVD restart is required before the lifecycle can continue."
     fi
     print_success "Post-update checks completed."
@@ -851,7 +866,14 @@ main() {
     chmod 0700 "$LOG_DIR"
     touch "$LOG_FILE"
     chmod 0600 "$LOG_FILE"
-    exec > >(tee -a "$LOG_FILE") 2>&1
+    if [[ "$UPDATE_TEST_MODE" == true ]]; then
+        # Behavioral tests use a short-lived synthetic process tree. Writing
+        # directly avoids leaving an asynchronous tee process holding captured
+        # pipes open while preserving the same transcript contents.
+        exec >> "$LOG_FILE" 2>&1
+    else
+        exec > >(tee -a "$LOG_FILE") 2>&1
+    fi
     trap on_error ERR
     trap on_interrupt INT TERM
     trap cleanup EXIT

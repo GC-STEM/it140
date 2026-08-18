@@ -1,0 +1,16 @@
+{
+  "id": "cvd-update-partial-after-managed-change",
+  "mock_overrides": {
+    "desktop_file_valid": false
+  },
+  "expected": {
+    "exit_code": 7,
+    "result": "PARTIAL",
+    "managed_changes": "Yes",
+    "restart_required": "No",
+    "failures": 1,
+    "contains": [
+      "Num Lock autostart desktop entry is invalid"
+    ]
+  }
+}

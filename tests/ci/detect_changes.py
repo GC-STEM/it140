@@ -28,6 +28,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "cvd_verify": False,
         "cvd_configure": False,
         "cvd_install": False,
+        "cvd_update": False,
         "nix": False,
         "ubg_verify": False,
         "ubg_configure": False,
@@ -64,10 +65,15 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
                 flags["cvd_configure"] = True
             if posix == "scripts/cvd/install_it140.sh":
                 flags["cvd_install"] = True
+            if posix == "scripts/cvd/update_it140.sh":
+                flags["cvd_update"] = True
+                # Update changes should also exercise the independent Verify oracle.
+                flags["cvd_verify"] = True
         elif posix == "tests/lifecycle/README.md" or posix.startswith("tests/lifecycle/common/"):
             flags["cvd_verify"] = True
             flags["cvd_configure"] = True
             flags["cvd_install"] = True
+            flags["cvd_update"] = True
             flags["ubg_verify"] = True
             flags["ubg_configure"] = True
             flags["ubg_install"] = True
@@ -83,6 +89,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["cvd_configure"] = True
         elif posix.startswith("tests/lifecycle/install/cvd/"):
             flags["cvd_install"] = True
+        elif posix.startswith("tests/lifecycle/update/cvd/"):
+            flags["cvd_update"] = True
         elif posix.startswith("tests/lifecycle/verify/ubg/"):
             flags["ubg_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/ubg/"):
@@ -107,6 +115,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["cvd_verify"] = True
             flags["cvd_configure"] = True
             flags["cvd_install"] = True
+            flags["cvd_update"] = True
             flags["ubg_verify"] = True
             flags["ubg_configure"] = True
             flags["ubg_install"] = True

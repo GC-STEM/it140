@@ -1,0 +1,22 @@
+{
+  "id": "cvd-update-external-service-failure-after-managed-change",
+  "fixture_overrides": {
+    "archive_manifest": "reformatted"
+  },
+  "mock_overrides": {
+    "fail_points": {
+      "apt_update": true
+    }
+  },
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "Yes",
+    "restart_required": "No",
+    "failures": 1,
+    "contains": [
+      "controlled manifest was refreshed atomically",
+      "Ubuntu package information could not be refreshed"
+    ]
+  }
+}

@@ -2,7 +2,7 @@
 
 This directory contains behavioral tests for the IT 140 lifecycle scripts. These tests complement the fast structural and syntax checks under `tests/ci/`; they do not replace qualification on the actual supported course environments.
 
-The Verify suites established the common black-box conventions. The CVD, Ubuntu GNOME, macOS, and Windows Configure suites add mutation-specific conventions. The CVD Install suite extends those conventions to system-layer package, repository, privilege, and integration behavior and serves as the reference pattern for later Install suites.
+The Verify suites established the common black-box conventions. Configure and Install now have behavioral coverage across all four supported platform families. The CVD Update suite extends those conventions to controlled-asset refresh, maintenance, restart-required outcomes, and post-update verification and serves as the reference pattern for the remaining Update suites.
 
 ## Test conventions
 
@@ -91,6 +91,28 @@ They establish system-mutation contracts for:
 
 See `tests/lifecycle/install/cvd/README.md`, `tests/lifecycle/install/ubg/README.md`, `tests/lifecycle/install/mac/README.md`, and `tests/lifecycle/install/win/README.md` for the platform isolation models.
 
+### Update
+
+Update behavioral coverage currently starts with the CVD reference implementation:
+
+- CVD: `scripts/cvd/update_it140.sh`
+
+The CVD Update suite establishes maintenance-stage contracts for:
+
+- successful controlled-manifest refresh and maintenance (`0`)
+- unsupported context (`2`) and unavailable required privilege (`3`) before managed changes
+- required external-source failure retaining its lifecycle classification (`4`) before or after managed changes
+- malformed controlled configuration (`5`) before managed changes
+- ordinary failure after managed changes resolving to `PARTIAL` (`7`)
+- Ubuntu restart-required state resolving to `PARTIAL` (`7`) even when no required operation failed
+- preservation of student repositories and unrelated user configuration
+- convergence of required APT packages, Noto Color Emoji/fontconfig health, Xfce Num Lock autostart, the Python venv, and VS Code extensions
+- atomic activation of the downloaded controlled manifest/schema pair
+- semantic idempotence across two successful runs
+- Update transcript permissions and summary/exit-code consistency
+
+The Ubuntu GNOME, macOS, and Windows Update suites will port this reference contract after the CVD suite is qualified in CI.
+
 ## Run locally
 
 Run a suite on its matching platform from the repository root.
@@ -123,6 +145,15 @@ CVD Install on Linux with the suite's isolated system-root seam:
 ```bash
 python3 -m unittest discover \
   -s tests/lifecycle/install/cvd \
+  -p 'test_*.py' \
+  -v
+```
+
+CVD Update on Linux with the suite's isolated system-root seam:
+
+```bash
+python3 -m unittest discover \
+  -s tests/lifecycle/update/cvd \
   -p 'test_*.py' \
   -v
 ```
@@ -184,6 +215,18 @@ python -m unittest discover `
 ```
 
 The harness code uses only the Python standard library. Unix/macOS CI jobs install `jsonschema` so production shell lifecycle scripts validate the copied production manifest against its schema during behavioral tests.
+
+## Update test-isolation hooks
+
+Test hooks are active only when explicitly set by the lifecycle harness. Normal course execution leaves them unset.
+
+### CVD
+
+- `IT140_UPDATE_TEST_MODE=true` explicitly enables CVD Update isolation; normal CVD execution leaves it unset.
+- `IT140_UPDATE_TEST_ROOT` redirects the operating-system release fixture plus the Xfce Num Lock autostart and reboot-required files that Update reads directly.
+- `IT140_UPDATE_TEST_EUID` supplies a deterministic non-root effective-user value only while Update test mode is active.
+
+APT, `sudo`, repository archive download, package queries, fontconfig, VS Code, Git/GitHub observations, and desktop-entry validation remain external boundaries supplied through the test `PATH`. The production Update entry point still validates and atomically activates the downloaded controlled manifest/schema pair, performs lifecycle branching and maintenance, runs post-update checks, generates the transcript/summary, and resolves the process exit code.
 
 ## Install test-isolation hooks
 

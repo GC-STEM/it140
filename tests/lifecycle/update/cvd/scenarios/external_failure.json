@@ -1,0 +1,20 @@
+{
+  "id": "cvd-update-external-service-failure-before-managed-change",
+  "mock_overrides": {
+    "fail_points": {
+      "archive_download": true
+    }
+  },
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "restart_required": "No",
+    "failures": 1,
+    "warnings_min": 4,
+    "contains": [
+      "Repository archive download failed after 5 attempts",
+      "repository archive could not be downloaded"
+    ]
+  }
+}
