@@ -65,7 +65,6 @@ def main() -> int:
     args = sys.argv[2:]
     state = load_state()
     trace(command, args)
-
     forced = forced_exit(state, command)
     if forced is not None:
         return forced
@@ -75,7 +74,6 @@ def main() -> int:
             print(Path(os.environ["HOME"]) / "Desktop")
             return 0
         return 1
-
     if command == "gh":
         if args[:2] == ["auth", "status"]:
             return 0 if state.get("gh_auth", True) else 1
@@ -95,7 +93,6 @@ def main() -> int:
             print(json.dumps(identity, separators=(",", ":")))
             return 0
         return 0
-
     if command == "git":
         config = state.setdefault("git_config", {})
         if args[:3] == ["config", "--global", "--get"] and len(args) >= 4:
@@ -109,7 +106,6 @@ def main() -> int:
             save_state(state)
             return 0
         return 0
-
     if command == "code":
         extensions = state.setdefault("extensions", [])
         if args == ["--list-extensions"]:
@@ -127,13 +123,11 @@ def main() -> int:
                 save_state(state)
             return 0
         return 0
-
     if command == "python3.12":
         if len(args) == 3 and args[:2] == ["-m", "venv"]:
             write_wrapper(Path(args[2]) / "bin" / "python", "venv_python")
             return 0
         return 0
-
     if command == "venv_python":
         if len(args) >= 3 and args[:3] == ["-m", "pip", "install"]:
             if state.get("pip_install_failure", False):
@@ -150,12 +144,15 @@ def main() -> int:
                 save_state(state)
             return 0
         return 0
-
     if command == "gio":
-        if len(args) >= 3 and args[0] == "set" and args[1] == "metadata::custom-icon-name":
+        if (
+            len(args) >= 4
+            and args[0] == "set"
+            and args[2] == "metadata::custom-icon-name"
+        ):
             if state.get("gio_set_failure", False):
                 return 1
-            state["custom_icon"] = args[2]
+            state["custom_icon"] = args[3]
             save_state(state)
             return 0
         return 0
