@@ -1,0 +1,17 @@
+{
+  "id": "cvd-prepare-current-sanitizer-failure-after-overlay",
+  "fixture_overrides": {
+    "sanitize_failure": true
+  },
+  "expected": {
+    "exit_code": 1,
+    "log": true,
+    "package_activated": true,
+    "sanitizer_completed": false,
+    "contains": [
+      "ERROR: Prepare did not complete successfully.",
+      "Failed stage: CVD cleanup",
+      "Exit code: 1"
+    ]
+  }
+}

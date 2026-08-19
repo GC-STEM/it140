@@ -1,0 +1,14 @@
+{
+  "id": "cvd-prepare-current-root-context",
+  "mock_overrides": {
+    "uid": 0
+  },
+  "expected": {
+    "exit_code": 3,
+    "log": false,
+    "package_activated": false,
+    "contains": [
+      "Run prepare_it140.sh as the normal CVD user, not as root or with sudo."
+    ]
+  }
+}

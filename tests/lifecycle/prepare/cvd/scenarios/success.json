@@ -1,0 +1,14 @@
+{
+  "id": "cvd-prepare-current-success",
+  "expected": {
+    "exit_code": 0,
+    "log": true,
+    "package_activated": true,
+    "sanitizer_completed": true,
+    "contains": [
+      "SUCCESS: The IT 140 automation package is ready.",
+      "Workflow: Continue with the applicable CVD initialization workflow.",
+      "Next step: update_it140.sh"
+    ]
+  }
+}

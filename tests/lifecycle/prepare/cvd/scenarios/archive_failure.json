@@ -1,0 +1,16 @@
+{
+  "id": "cvd-prepare-current-invalid-archive",
+  "fixture_overrides": {
+    "archive": "missing_configure"
+  },
+  "expected": {
+    "exit_code": 6,
+    "log": true,
+    "package_activated": false,
+    "contains": [
+      "The archive is missing scripts/cvd/configure_it140.sh.",
+      "Failed stage: archive extraction and structural validation",
+      "Exit code: 6"
+    ]
+  }
+}

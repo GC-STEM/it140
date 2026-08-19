@@ -1,0 +1,14 @@
+{
+  "id": "cvd-prepare-current-unsupported-architecture",
+  "mock_overrides": {
+    "uname_m": "aarch64"
+  },
+  "expected": {
+    "exit_code": 4,
+    "log": false,
+    "package_activated": false,
+    "contains": [
+      "Unsupported processor architecture: aarch64"
+    ]
+  }
+}

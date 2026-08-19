@@ -1,0 +1,19 @@
+{
+  "id": "cvd-prepare-current-curl-failure",
+  "mock_overrides": {
+    "fail_points": {
+      "curl": true
+    },
+    "curl_exit_code": 22
+  },
+  "expected": {
+    "exit_code": 22,
+    "log": true,
+    "package_activated": false,
+    "contains": [
+      "ERROR: Prepare did not complete successfully.",
+      "Failed stage: repository archive download",
+      "Exit code: 22"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "cvd-prepare-partial-after-package-activation",
+  "fixture_overrides": {
+    "sanitize_failure": true
+  },
+  "expected": {
+    "exit_code": 7,
+    "result": "PARTIAL",
+    "managed_changes": "Yes",
+    "contains": [
+      "CVD cleanup did not complete after package activation."
+    ]
+  }
+}
