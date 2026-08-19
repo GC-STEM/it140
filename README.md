@@ -93,9 +93,11 @@ The README files contain the instructions needed to complete course activities. 
 
 Do not post passwords, authentication codes, access tokens, private identifying information, or complete solutions to graded assignments in public GitHub areas.
 
-## Faculty
+## Faculty and Staff
 
-Faculty should also review the [IT 140 Faculty Guide](.faculty/README.md) for information about the course environment, repository model, student workflow, and faculty support resources.
+Faculty should also review the [IT 140 Faculty Guide](.faculty/README.md)for information about the course environment, repository model, student workflow, and faculty support resources.
+
+Faculty, Learning Support Specialists (LSS), academic advisors, and technical support staff should review the [IT 140 Support Repository](https://github.com/GC-STEM/it140-support) for information about supporting students in the course, including how to access the course IDE, troubleshoot common problems, and provide technical support.
 
 ## Activity Metadata
 
