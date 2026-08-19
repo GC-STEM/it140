@@ -218,6 +218,18 @@ class CvdPrepareHarness:
         shutil.copytree(self.fixture_base, fixture_root)
         home = fixture_root / "home"
         course_root = home / "it140"
+
+        # Git does not track nested .git metadata as ordinary fixture files.
+        # Create it only inside the isolated runtime fixture so Prepare can prove
+        # that student-repository metadata is preserved while the course package's
+        # own top-level .git metadata is removed only after a successful overlay.
+        student_git = home / "Repos" / "student-work" / ".git"
+        student_git.mkdir(parents=True, exist_ok=True)
+        (student_git / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+        course_git = course_root / ".git"
+        course_git.mkdir(parents=True, exist_ok=True)
+        (course_git / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+
         cvd_dir = course_root / "scripts" / "cvd"
         cvd_dir.mkdir(parents=True, exist_ok=True)
         prepare_path = cvd_dir / PREPARE_SOURCE.name
