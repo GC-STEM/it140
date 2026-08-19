@@ -2,7 +2,7 @@
 
 This directory contains behavioral tests for the IT 140 lifecycle scripts. These tests complement the fast structural and syntax checks under `tests/ci/`; they do not replace qualification on the actual supported course environments.
 
-The Verify suites established the common black-box conventions. Configure and Install now have behavioral coverage across all four supported platform families. The CVD Update suite extends those conventions to controlled-asset refresh, maintenance, restart-required outcomes, and post-update verification and serves as the reference pattern for the remaining Update suites.
+The Verify suites established the common black-box conventions. Configure, Install, and Update now have behavioral coverage across all four supported platform families. Prepare coverage is being added platform by platform, beginning with CVD as the reference Prepare suite.
 
 ## Test conventions
 
@@ -17,6 +17,16 @@ The Verify suites established the common black-box conventions. Configure and In
 - **Idempotence is semantic:** A mutating stage may rewrite managed files or refresh metadata on a repeat run, but the resulting managed configuration and preserved user state must converge to the same semantic state.
 
 ## Current scope
+
+### Prepare
+
+Prepare behavioral coverage currently includes:
+
+- CVD: `scripts/cvd/prepare_it140.sh`
+
+The CVD suite is a characterization/regression suite for the Alpha-tested, Beta-deployed Prepare script. It protects the current production behavior without refactoring that script to match newer lifecycle conventions. In particular, it covers first-use bootstrap and installed-package refresh, authorized archive retrieval, pre-overlay preservation, user-state boundaries, package activation, top-level `.git` removal, executable permissions, PATH idempotence, sanitizer invocation, temporary cleanup, and semantic idempotence.
+
+See `tests/lifecycle/prepare/cvd/README.md` for the current-behavior details and qualification boundary.
 
 ### Verify
 
@@ -123,6 +133,15 @@ Each Update-script change also routes through that platform's existing Verify su
 ## Run locally
 
 Run a suite on its matching platform from the repository root.
+
+CVD Prepare on a non-root Ubuntu host:
+
+```bash
+python3 -m unittest discover \
+  -s tests/lifecycle/prepare/cvd \
+  -p 'test_*.py' \
+  -v
+```
 
 CVD or Ubuntu 24.04 Verify:
 

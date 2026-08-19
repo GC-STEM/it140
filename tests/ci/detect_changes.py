@@ -25,6 +25,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
     flags = {
         "manifest": False,
         "cvd": False,
+        "cvd_prepare": False,
         "cvd_verify": False,
         "cvd_configure": False,
         "cvd_install": False,
@@ -64,6 +65,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["manifest"] = True
             flags["cvd"] = True
             flags["cvd_verify"] = True
+            if posix in {"scripts/cvd/prepare_it140.sh", "scripts/cvd/sanitize_CVD.sh"}:
+                flags["cvd_prepare"] = True
             if posix == "scripts/cvd/configure_it140.sh":
                 flags["cvd_configure"] = True
             if posix == "scripts/cvd/install_it140.sh":
@@ -73,6 +76,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
                 # Update changes should also exercise the independent Verify oracle.
                 flags["cvd_verify"] = True
         elif posix == "tests/lifecycle/README.md" or posix.startswith("tests/lifecycle/common/"):
+            flags["cvd_prepare"] = True
             flags["cvd_verify"] = True
             flags["cvd_configure"] = True
             flags["cvd_install"] = True
@@ -89,6 +93,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["win_configure"] = True
             flags["win_install"] = True
             flags["win_update"] = True
+        elif posix.startswith("tests/lifecycle/prepare/cvd/"):
+            flags["cvd_prepare"] = True
         elif posix.startswith("tests/lifecycle/verify/cvd/"):
             flags["cvd_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/cvd/"):
@@ -124,6 +130,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         elif posix.startswith("tests/lifecycle/"):
             # Unknown/shared lifecycle infrastructure should exercise every
             # behavioral suite until it receives explicit routing.
+            flags["cvd_prepare"] = True
             flags["cvd_verify"] = True
             flags["cvd_configure"] = True
             flags["cvd_install"] = True

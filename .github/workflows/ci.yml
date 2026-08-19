@@ -21,6 +21,7 @@ jobs:
     outputs:
       manifest: ${{ steps.changes.outputs.manifest }}
       cvd: ${{ steps.changes.outputs.cvd }}
+      cvd_prepare: ${{ steps.changes.outputs.cvd_prepare }}
       cvd_verify: ${{ steps.changes.outputs.cvd_verify }}
       cvd_configure: ${{ steps.changes.outputs.cvd_configure }}
       cvd_install: ${{ steps.changes.outputs.cvd_install }}
@@ -102,6 +103,23 @@ jobs:
           ((${#files[@]} > 0)) || { echo "No CVD shell scripts found." >&2; exit 1; }
           printf 'Checking %s\n' "${files[@]}"
           bash -n "${files[@]}"
+
+  cvd_prepare:
+    name: CVD Prepare lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.cvd_prepare == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Run CVD Prepare lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/prepare/cvd
+          -p 'test_*.py'
+          -v
 
   cvd_verify:
     name: CVD Verify lifecycle tests
@@ -526,6 +544,7 @@ jobs:
       - repository
       - manifest
       - cvd
+      - cvd_prepare
       - cvd_verify
       - cvd_configure
       - cvd_install
@@ -553,6 +572,7 @@ jobs:
           REPOSITORY_RESULT: ${{ needs.repository.result }}
           MANIFEST_RESULT: ${{ needs.manifest.result }}
           CVD_RESULT: ${{ needs.cvd.result }}
+          CVD_PREPARE_RESULT: ${{ needs.cvd_prepare.result }}
           CVD_VERIFY_RESULT: ${{ needs.cvd_verify.result }}
           CVD_CONFIGURE_RESULT: ${{ needs.cvd_configure.result }}
           CVD_INSTALL_RESULT: ${{ needs.cvd_install.result }}
@@ -581,6 +601,7 @@ jobs:
             "repository:$REPOSITORY_RESULT" \
             "manifest:$MANIFEST_RESULT" \
             "cvd:$CVD_RESULT" \
+            "cvd-prepare:$CVD_PREPARE_RESULT" \
             "cvd-verify:$CVD_VERIFY_RESULT" \
             "cvd-configure:$CVD_CONFIGURE_RESULT" \
             "cvd-install:$CVD_INSTALL_RESULT" \
