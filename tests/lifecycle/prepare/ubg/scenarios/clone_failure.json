@@ -1,0 +1,15 @@
+{
+  "id": "ubg-prepare-clone-failure",
+  "mock_overrides": {
+    "fail_points": {
+      "git_clone": true
+    },
+    "git_clone_exit_code": 128
+  },
+  "expected": {
+    "exit_code": 128,
+    "contains": [
+      "[ERROR] Bootstrap stopped near line"
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+Current UBG bootstrap removes unmatched course-root content on successful refresh.

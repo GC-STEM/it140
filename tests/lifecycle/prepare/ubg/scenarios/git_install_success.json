@@ -1,0 +1,13 @@
+{
+  "id": "ubg-prepare-install-git-success",
+  "mock_overrides": {
+    "initial_git": false
+  },
+  "expected": {
+    "exit_code": 0,
+    "contains": [
+      "Installing Git and certificate support.",
+      "[SUCCESS] IT 140 automation files were retrieved."
+    ]
+  }
+}

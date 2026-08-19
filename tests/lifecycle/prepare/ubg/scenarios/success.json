@@ -1,0 +1,10 @@
+{
+  "id": "ubg-prepare-success",
+  "expected": {
+    "exit_code": 0,
+    "contains": [
+      "[SUCCESS] IT 140 automation files were retrieved.",
+      "Open a new Terminal, then run setup_ubg.sh."
+    ]
+  }
+}

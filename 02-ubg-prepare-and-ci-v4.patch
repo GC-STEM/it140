@@ -1,0 +1,168 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -27,6 +27,7 @@ jobs:
+       cvd_install: ${{ steps.changes.outputs.cvd_install }}
+       cvd_update: ${{ steps.changes.outputs.cvd_update }}
+       nix: ${{ steps.changes.outputs.nix }}
++      ubg_prepare: ${{ steps.changes.outputs.ubg_prepare }}
+       ubg_verify: ${{ steps.changes.outputs.ubg_verify }}
+       ubg_configure: ${{ steps.changes.outputs.ubg_configure }}
+       ubg_install: ${{ steps.changes.outputs.ubg_install }}
+@@ -202,6 +203,23 @@ jobs:
+           printf 'Checking %s\n' "${files[@]}"
+           bash -n "${files[@]}"
+ 
++  ubg_prepare:
++    name: Ubuntu GNOME Prepare lifecycle tests
++    needs: changes
++    if: needs.changes.outputs.ubg_prepare == 'true'
++    runs-on: ubuntu-24.04
++    steps:
++      - name: Check out repository
++        uses: actions/checkout@v4.4.0
++        with:
++          persist-credentials: false
++      - name: Run Ubuntu GNOME Prepare lifecycle tests
++        run: >-
++          python3 -m unittest discover
++          -s tests/lifecycle/prepare/ubg
++          -p 'test_*.py'
++          -v
++
+   ubg_verify:
+     name: Ubuntu GNOME Verify lifecycle tests
+     needs: changes
+@@ -552,6 +567,7 @@ jobs:
+       - cvd_install
+       - cvd_update
+       - linux
++      - ubg_prepare
+       - ubg_verify
+       - ubg_configure
+       - ubg_install
+@@ -578,6 +594,7 @@ jobs:
+           CVD_INSTALL_RESULT: ${{ needs.cvd_install.result }}
+           CVD_UPDATE_RESULT: ${{ needs.cvd_update.result }}
+           LINUX_RESULT: ${{ needs.linux.result }}
++          UBG_PREPARE_RESULT: ${{ needs.ubg_prepare.result }}
+           UBG_VERIFY_RESULT: ${{ needs.ubg_verify.result }}
+           UBG_CONFIGURE_RESULT: ${{ needs.ubg_configure.result }}
+           UBG_INSTALL_RESULT: ${{ needs.ubg_install.result }}
+@@ -605,6 +622,7 @@ jobs:
+             "cvd-install:$CVD_INSTALL_RESULT" \
+             "cvd-update:$CVD_UPDATE_RESULT" \
+             "linux:$LINUX_RESULT" \
++            "ubg-prepare:$UBG_PREPARE_RESULT" \
+             "ubg-verify:$UBG_VERIFY_RESULT" \
+             "ubg-configure:$UBG_CONFIGURE_RESULT" \
+             "ubg-install:$UBG_INSTALL_RESULT" \
+diff --git a/tests/ci/detect_changes.py b/tests/ci/detect_changes.py
+--- a/tests/ci/detect_changes.py
++++ b/tests/ci/detect_changes.py
+@@ -31,6 +31,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
+         "cvd_install": False,
+         "cvd_update": False,
+         "nix": False,
++        "ubg_prepare": False,
+         "ubg_verify": False,
+         "ubg_configure": False,
+         "ubg_install": False,
+@@ -79,5 +80,6 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
+             flags["cvd_install"] = True
+             flags["cvd_update"] = True
++            flags["ubg_prepare"] = True
+             flags["ubg_verify"] = True
+             flags["ubg_configure"] = True
+             flags["ubg_install"] = True
+@@ -102,6 +104,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
+             flags["cvd_install"] = True
+         elif posix.startswith("tests/lifecycle/update/cvd/"):
+             flags["cvd_update"] = True
++        elif posix.startswith("tests/lifecycle/prepare/ubg/"):
++            flags["ubg_prepare"] = True
+         elif posix.startswith("tests/lifecycle/verify/ubg/"):
+             flags["ubg_verify"] = True
+         elif posix.startswith("tests/lifecycle/configure/ubg/"):
+@@ -133,6 +137,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
+             flags["cvd_configure"] = True
+             flags["cvd_install"] = True
+             flags["cvd_update"] = True
++            flags["ubg_prepare"] = True
+             flags["ubg_verify"] = True
+             flags["ubg_configure"] = True
+             flags["ubg_install"] = True
+@@ -153,6 +158,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
+         elif posix.startswith("scripts/nix/"):
+             flags["manifest"] = True
+             flags["nix"] = True
++            if posix == "scripts/nix/ubg/bootstrap_ubg.sh":
++                flags["ubg_prepare"] = True
+             if posix == "scripts/nix/ubg/verify_ubg.sh":
+                 flags["ubg_verify"] = True
+             if posix == "scripts/nix/ubg/config_ubg.sh":
+diff --git a/tests/ci/check_repo.py b/tests/ci/check_repo.py
+--- a/tests/ci/check_repo.py
++++ b/tests/ci/check_repo.py
+@@ -50,6 +50,22 @@ REQUIRED_FILES = (
+     "tests/lifecycle/prepare/cvd/scenarios/sanitize_failure.json",
+     "tests/lifecycle/prepare/cvd/scenarios/success.json",
+     "tests/lifecycle/prepare/cvd/scenarios/unsupported.json",
++    "tests/lifecycle/prepare/ubg/README.md",
++    "tests/lifecycle/prepare/ubg/runner_ubg.py",
++    "tests/lifecycle/prepare/ubg/test_prepare_ubg.py",
++    "tests/lifecycle/prepare/ubg/mocks/mock_command.py",
++    "tests/lifecycle/prepare/ubg/fixtures/base/home/.bashrc",
++    "tests/lifecycle/prepare/ubg/fixtures/base/home/.gitconfig",
++    "tests/lifecycle/prepare/ubg/fixtures/base/home/.config/other-app/prefs.txt",
++    "tests/lifecycle/prepare/ubg/fixtures/base/home/Desktop/Personal Notes.txt",
++    "tests/lifecycle/prepare/ubg/fixtures/base/home/Repos/student-work/do_not_touch.py",
++    "tests/lifecycle/prepare/ubg/fixtures/base/home/it140/legacy-package.txt",
++    "tests/lifecycle/prepare/ubg/fixtures/base/home/it140/local-unmanaged.txt",
++    "tests/lifecycle/prepare/ubg/scenarios/clone_failure.json",
++    "tests/lifecycle/prepare/ubg/scenarios/git_install_failure.json",
++    "tests/lifecycle/prepare/ubg/scenarios/git_install_success.json",
++    "tests/lifecycle/prepare/ubg/scenarios/gnome_warning.json",
++    "tests/lifecycle/prepare/ubg/scenarios/success.json",
+     "tests/lifecycle/configure/cvd/README.md",
+     "tests/lifecycle/configure/cvd/runner_cvd.py",
+     "tests/lifecycle/configure/cvd/test_configure_cvd.py",
+diff --git a/tests/lifecycle/README.md b/tests/lifecycle/README.md
+--- a/tests/lifecycle/README.md
++++ b/tests/lifecycle/README.md
+@@ -22,6 +22,9 @@ Prepare behavioral coverage currently includes:
+ 
+ - CVD: `scripts/cvd/prepare_it140.sh`
++- Ubuntu Desktop GNOME: `scripts/nix/ubg/bootstrap_ubg.sh`
+ 
+ The CVD suite is a characterization/regression suite for the Alpha-tested, Beta-deployed Prepare script. It protects the current production behavior without refactoring that script to match newer lifecycle conventions. In particular, it covers first-use bootstrap and installed-package refresh, authorized archive retrieval, pre-overlay preservation, user-state boundaries, package activation, top-level `.git` removal, executable permissions, PATH idempotence, sanitizer invocation, temporary cleanup, and semantic idempotence.
+ 
+ See `tests/lifecycle/prepare/cvd/README.md` for the current-behavior details and qualification boundary.
++
++The Ubuntu GNOME suite applies the same characterization-first approach to the Alpha-era bootstrap, including its current Git/APT acquisition flow, preservation boundary, replacement semantics, corrected `scripts/nix/ubg` deployment path, and semantic idempotence. See `tests/lifecycle/prepare/ubg/README.md` for details.
+@@ -119,4 +122,13 @@ CVD Prepare on a non-root Ubuntu host:
+   -v
+ ```
+ 
++Ubuntu GNOME Prepare on a supported non-root Ubuntu host:
++
++```bash
++python3 -m unittest discover \
++  -s tests/lifecycle/prepare/ubg \
++  -p 'test_*.py' \
++  -v
++```
++
+ CVD or Ubuntu 24.04 Verify:
+diff --git a/scripts/nix/ubg/bootstrap_ubg.sh b/scripts/nix/ubg/bootstrap_ubg.sh
+--- a/scripts/nix/ubg/bootstrap_ubg.sh
++++ b/scripts/nix/ubg/bootstrap_ubg.sh
+@@ -31,6 +31,6 @@ cp -a "$temp_dir/it140/." "$COURSE_ROOT/"
+ rm -rf "$COURSE_ROOT/.git"
+-chmod 0755 "$COURSE_ROOT/scripts/nix/Ubuntu/"*.sh
++chmod 0755 "$COURSE_ROOT/scripts/nix/ubg/"*.sh
+ 
+-path_line='export PATH="$HOME/it140/scripts/nix/Ubuntu:$PATH"'
++path_line='export PATH="$HOME/it140/scripts/nix/ubg:$PATH"'
+ touch "$HOME/.bashrc"
+ grep -qxF "$path_line" "$HOME/.bashrc" || printf '\n%s\n' "$path_line" >> "$HOME/.bashrc"

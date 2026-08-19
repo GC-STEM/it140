@@ -1,0 +1,14 @@
+{
+  "id": "ubg-prepare-gnome-warning",
+  "environment": {
+    "XDG_CURRENT_DESKTOP": "",
+    "DESKTOP_SESSION": ""
+  },
+  "expected": {
+    "exit_code": 0,
+    "contains": [
+      "[WARNING] GNOME was not detected.",
+      "[SUCCESS] IT 140 automation files were retrieved."
+    ]
+  }
+}

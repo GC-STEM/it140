@@ -1,0 +1,17 @@
+{
+  "id": "ubg-prepare-install-git-failure",
+  "mock_overrides": {
+    "initial_git": false,
+    "fail_points": {
+      "sudo": true
+    },
+    "sudo_exit_code": 100
+  },
+  "expected": {
+    "exit_code": 100,
+    "contains": [
+      "Installing Git and certificate support.",
+      "[ERROR] Bootstrap stopped near line"
+    ]
+  }
+}
