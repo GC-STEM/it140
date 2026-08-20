@@ -51,8 +51,8 @@ source_root="$(find "$stage_root" -mindepth 1 -maxdepth 1 -type d -name 'it140-*
 [[ -n "$source_root" ]]
 for script in prepare install configure verify update; do [[ -f "$source_root/scripts/cvd/${script}_it140.sh" ]]; done
 [[ -f "$source_root/scripts/cvd/sanitize_CVD.sh" ]]
-mkdir -p "$(dirname "$lock_file")"
-chmod 700 "$(dirname "$lock_file")"
+mkdir -p "${lock_file%/*}"
+chmod 700 "${lock_file%/*}"
 exec 9>"$lock_file"
 if ! /usr/bin/flock --nonblock 9; then printf 'ERROR: Another IT 140 CVD mutation script is running.\n' >&2; cleanup; exit 7; fi
 cp -a "$source_root/." "$course_root/"
@@ -239,8 +239,8 @@ extract_and_validate_archive() {
 
 acquire_mutation_lock() {
     CURRENT_STAGE="mutation-lock acquisition"
-    mkdir -p "$(dirname "$LOCK_FILE")"
-    chmod 700 "$(dirname "$LOCK_FILE")"
+    mkdir -p "${LOCK_FILE%/*}"
+    chmod 700 "${LOCK_FILE%/*}"
     exec 9>"$LOCK_FILE"
     if ! /usr/bin/flock --nonblock 9; then
         printf 'ERROR: Another IT 140 CVD mutation script is running.\n' >&2

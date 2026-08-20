@@ -22,8 +22,8 @@ case ${VERSION_ID:-} in 22.04|24.04|26.04) ;; *) printf '[ERROR] Supported Ubunt
 [[ ${XDG_CURRENT_DESKTOP:-}${DESKTOP_SESSION:-} == *GNOME* || ${XDG_CURRENT_DESKTOP:-} == *ubuntu* ]] || printf '[WARNING] GNOME was not detected. The scripts are designed for Ubuntu Desktop with GNOME.\n'
 
 [[ -x /usr/bin/flock ]] || { printf '[ERROR] The required flock utility is unavailable; concurrent lifecycle protection cannot be enforced.\n' >&2; exit 1; }
-mkdir -p "$(dirname "$LOCK_FILE")"
-chmod 0700 "$(dirname "$LOCK_FILE")"
+mkdir -p "${LOCK_FILE%/*}"
+chmod 0700 "${LOCK_FILE%/*}"
 exec 9>"$LOCK_FILE"
 if ! /usr/bin/flock --nonblock 9; then
   printf '[ERROR] Another IT 140 Ubuntu mutation script is running.\n' >&2
