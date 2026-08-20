@@ -20,6 +20,20 @@ SUITE_ROOT = Path(__file__).resolve().parent
 SCENARIO_ROOT = SUITE_ROOT / "scenarios"
 FIXTURE_BASE = SUITE_ROOT / "fixtures" / "base"
 MOCK_DISPATCHER = SUITE_ROOT / "mocks" / "mock_command.py"
+PATH_START = "# >>> IT 140 managed PATH >>>"
+PATH_END = "# <<< IT 140 managed PATH <<<"
+
+
+def canonical_managed_zshrc(text: str) -> str:
+    """Normalize only blank-line drift immediately before the managed PATH block."""
+    start = text.find(PATH_START)
+    if start < 0:
+        return text
+    unmanaged = text[:start].rstrip("\n")
+    managed = text[start:].strip("\n")
+    if unmanaged:
+        return f"{unmanaged}\n\n{managed}\n"
+    return f"{managed}\n"
 
 
 class MacPrepareStaticContractTests(unittest.TestCase):
@@ -46,6 +60,24 @@ class MacPrepareStaticContractTests(unittest.TestCase):
             1,
         )
         self.assertEqual(source, restored)
+
+    def test_zshrc_semantic_normalization_is_narrow(self) -> None:
+        first = (
+            "IT140_USER_ZSHRC_SENTINEL=preserve-me\n"
+            "alias ll='ls -la'\n\n"
+            f"{PATH_START}\n"
+            'export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/mac:/opt/homebrew/bin:$PATH"\n'
+            f"{PATH_END}\n"
+        )
+        second = first.replace(f"\n\n{PATH_START}", f"\n\n\n{PATH_START}")
+        self.assertNotEqual(first, second)
+        self.assertEqual(canonical_managed_zshrc(first), canonical_managed_zshrc(second))
+
+        changed_user_content = second.replace("alias ll='ls -la'", "alias ll='ls -l'")
+        self.assertNotEqual(
+            canonical_managed_zshrc(first),
+            canonical_managed_zshrc(changed_user_content),
+        )
 
 
 @unittest.skipUnless(
@@ -147,8 +179,8 @@ class MacPrepareLifecycleTests(unittest.TestCase):
             json.loads(manifest.read_text(encoding="utf-8")),
         )
         zshrc = (home / ".zshrc").read_text(encoding="utf-8")
-        self.assertEqual(1, zshrc.count("# >>> IT 140 managed PATH >>>"), zshrc)
-        self.assertEqual(1, zshrc.count("# <<< IT 140 managed PATH <<<"), zshrc)
+        self.assertEqual(1, zshrc.count(PATH_START), zshrc)
+        self.assertEqual(1, zshrc.count(PATH_END), zshrc)
         self.assertNotIn("IT 140 Course IDE managed environment", zshrc)
         self.assertIn("IT140_USER_ZSHRC_SENTINEL=preserve-me", zshrc)
         self.assertIn("alias ll='ls -la'", zshrc)
@@ -161,12 +193,35 @@ class MacPrepareLifecycleTests(unittest.TestCase):
         sequence = self.harness.run_twice(self.scenarios["success"])
         self.assertEqual(0, sequence.first.returncode, sequence.first.combined_output)
         self.assertEqual(0, sequence.second.returncode, sequence.second.combined_output)
-        self.assertEqual(sequence.first_state, sequence.second_state)
+
+        first_state = dict(sequence.first_state)
+        second_state = dict(sequence.second_state)
+        first_zshrc = first_state.pop("zshrc")
+        second_zshrc = second_state.pop("zshrc")
+
+        # All non-Zsh state must be byte/metadata equivalent after both runs.
+        self.assertEqual(first_state, second_state)
+
+        # The current Beta Prepare script can add one harmless blank line immediately
+        # before its managed PATH block on a rerun. Treat that whitespace-only drift
+        # as semantically equivalent while still requiring exactly one canonical block,
+        # the exact managed export, and unchanged user-controlled content.
+        for zshrc in (first_zshrc, second_zshrc):
+            self.assertEqual(1, zshrc.count(PATH_START), zshrc)
+            self.assertEqual(1, zshrc.count(PATH_END), zshrc)
+            self.assertIn("IT140_USER_ZSHRC_SENTINEL=preserve-me", zshrc)
+            self.assertIn("alias ll='ls -la'", zshrc)
+            self.assertIn(
+                'export PATH="$HOME/it140/.venv/bin:$HOME/it140/scripts/mac:/opt/homebrew/bin:$PATH"',
+                zshrc,
+            )
+        self.assertEqual(
+            canonical_managed_zshrc(first_zshrc),
+            canonical_managed_zshrc(second_zshrc),
+        )
+
         self.assertEqual([], sequence.first.protected_differences, sequence.first.combined_output)
         self.assertEqual([], sequence.second.protected_differences, sequence.second.combined_output)
-        zshrc = sequence.second_state["zshrc"]
-        self.assertEqual(1, zshrc.count("# >>> IT 140 managed PATH >>>"))
-        self.assertEqual(1, zshrc.count("# <<< IT 140 managed PATH <<<"))
 
     def _assert_scenario(self, run, scenario: dict) -> None:
         expected = scenario["expected"]

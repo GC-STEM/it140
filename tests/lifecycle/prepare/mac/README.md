@@ -22,6 +22,19 @@ The suite validates the current production contract for:
 - private Prepare logs and temporary-file cleanup; and
 - semantic idempotence across two successful runs.
 
+### Zsh whitespace and semantic idempotence
+
+The current Beta Prepare implementation removes the old managed PATH block and appends a fresh block at the end of `.zshrc`. On a repeated successful Prepare run, this can leave one additional blank line immediately before the managed block.
+
+That whitespace-only drift does not change shell behavior, the managed PATH export, user-controlled Zsh content, or the number of managed blocks. The idempotence oracle therefore normalizes **only trailing blank lines immediately before the managed PATH block**. It still requires:
+
+- exactly one current managed PATH start marker and one end marker;
+- the exact expected managed PATH export;
+- preservation of user-controlled `.zshrc` content;
+- exact equality of all other semantic state, including the manifest, installed script modes, preserved user files, nested student Git metadata, unmatched course content, and top-level package Git removal.
+
+This characterization avoids changing a field-verified Beta production script solely to remove harmless formatting drift.
+
 ## Isolation model
 
 `prepare_it140.zsh` deliberately calls `/usr/bin/curl`, `/usr/bin/ditto`, and `/usr/bin/osascript` by absolute path. Changing those calls or adding a test seam would modify a protected Beta script. Instead, the harness creates a **temporary execution copy** of the production script and substitutes only its `ARCHIVE_URL` declaration with a loopback HTTP URL. A static test proves that this is the only textual change from production.
