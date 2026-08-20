@@ -39,6 +39,7 @@ jobs:
       mac_install: ${{ steps.changes.outputs.mac_install }}
       mac_update: ${{ steps.changes.outputs.mac_update }}
       win: ${{ steps.changes.outputs.win }}
+      win_prepare: ${{ steps.changes.outputs.win_prepare }}
       win_verify: ${{ steps.changes.outputs.win_verify }}
       win_configure: ${{ steps.changes.outputs.win_configure }}
       win_install: ${{ steps.changes.outputs.win_install }}
@@ -488,6 +489,28 @@ jobs:
               exit 1
           }
 
+  win_prepare:
+    name: Windows Prepare lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.win_prepare == 'true'
+    runs-on: windows-2025
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run Windows Prepare lifecycle tests
+        shell: powershell
+        run: >-
+          python -m unittest discover
+          -s tests/lifecycle/prepare/win
+          -p 'test_*.py'
+          -v
+
   win_verify:
     name: Windows Verify lifecycle tests
     needs: changes
@@ -602,6 +625,7 @@ jobs:
       - mac_install
       - mac_update
       - windows
+      - win_prepare
       - win_verify
       - win_configure
       - win_install
@@ -632,6 +656,7 @@ jobs:
           MAC_INSTALL_RESULT: ${{ needs.mac_install.result }}
           MAC_UPDATE_RESULT: ${{ needs.mac_update.result }}
           WINDOWS_RESULT: ${{ needs.windows.result }}
+          WIN_PREPARE_RESULT: ${{ needs.win_prepare.result }}
           WIN_VERIFY_RESULT: ${{ needs.win_verify.result }}
           WIN_CONFIGURE_RESULT: ${{ needs.win_configure.result }}
           WIN_INSTALL_RESULT: ${{ needs.win_install.result }}
@@ -663,6 +688,7 @@ jobs:
             "mac-install:$MAC_INSTALL_RESULT" \
             "mac-update:$MAC_UPDATE_RESULT" \
             "windows:$WINDOWS_RESULT" \
+            "win-prepare:$WIN_PREPARE_RESULT" \
             "win-verify:$WIN_VERIFY_RESULT" \
             "win-configure:$WIN_CONFIGURE_RESULT" \
             "win-install:$WIN_INSTALL_RESULT" \

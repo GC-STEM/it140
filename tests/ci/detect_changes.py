@@ -43,6 +43,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "mac_install": False,
         "mac_update": False,
         "win": False,
+        "win_prepare": False,
         "win_verify": False,
         "win_configure": False,
         "win_install": False,
@@ -93,6 +94,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["mac_configure"] = True
             flags["mac_install"] = True
             flags["mac_update"] = True
+            flags["win_prepare"] = True
             flags["win_verify"] = True
             flags["win_configure"] = True
             flags["win_install"] = True
@@ -127,6 +129,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["mac_install"] = True
         elif posix.startswith("tests/lifecycle/update/mac/"):
             flags["mac_update"] = True
+        elif posix.startswith("tests/lifecycle/prepare/win/"):
+            flags["win_prepare"] = True
         elif posix.startswith("tests/lifecycle/verify/win/"):
             flags["win_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/win/"):
@@ -153,6 +157,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["mac_configure"] = True
             flags["mac_install"] = True
             flags["mac_update"] = True
+            flags["win_prepare"] = True
             flags["win_verify"] = True
             flags["win_configure"] = True
             flags["win_install"] = True
@@ -196,6 +201,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         elif posix.startswith("scripts/win/"):
             flags["manifest"] = True
             flags["win"] = True
+            if posix == "scripts/win/prepare_it140.ps1":
+                flags["win_prepare"] = True
             if posix == "scripts/win/verify_it140.ps1":
                 flags["win_verify"] = True
             if posix == "scripts/win/configure_it140.ps1":

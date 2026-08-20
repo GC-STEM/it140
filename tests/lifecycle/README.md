@@ -2,7 +2,7 @@
 
 This directory contains behavioral tests for the IT 140 lifecycle scripts. These tests complement the fast structural and syntax checks under `tests/ci/`; they do not replace qualification on the actual supported course environments.
 
-The Verify suites established the common black-box conventions. Configure, Install, and Update now have behavioral coverage across all four supported platform families. Prepare coverage is being added platform by platform, beginning with CVD as the reference Prepare suite.
+The Verify suites established the common black-box conventions. Windows Prepare now completes behavioral coverage for all five lifecycle stages across all four supported platform families.
 
 ## Test conventions
 
@@ -25,6 +25,7 @@ Prepare behavioral coverage currently includes:
 - CVD: `scripts/cvd/prepare_it140.sh`
 - Ubuntu Desktop GNOME: `scripts/nix/ubg/bootstrap_ubg.sh`
 - macOS Apple silicon: `scripts/mac/prepare_it140.zsh`
+- Windows: `scripts/win/prepare_it140.ps1`
 
 The CVD suite is a characterization/regression suite for the Alpha-tested, Beta-deployed Prepare script. It protects the current production behavior without refactoring that script to match newer lifecycle conventions. In particular, it covers first-use bootstrap and installed-package refresh, authorized archive retrieval, pre-overlay preservation, user-state boundaries, package activation, top-level `.git` removal, executable permissions, PATH idempotence, sanitizer invocation, temporary cleanup, and semantic idempotence.
 
@@ -33,6 +34,8 @@ See `tests/lifecycle/prepare/cvd/README.md` for the current-behavior details and
 The Ubuntu GNOME suite applies the same characterization-first approach to the Alpha-era bootstrap, including its current Git/APT acquisition flow, preservation boundary, replacement semantics, corrected `scripts/nix/ubg` deployment path, and semantic idempotence. See `tests/lifecycle/prepare/ubg/README.md` for details.
 
 The macOS Prepare suite protects the field-verified Beta `prepare_it140.zsh` without changing the production script. Because the script intentionally uses absolute native paths for `curl`, `ditto`, and `osascript`, the behavioral harness executes a temporary copy whose only textual substitution is the archive URL, redirected to a deterministic loopback server. Static tests retain the production HTTPS/source and bounded-retry contract, while the real Apple-silicon macOS runner exercises native extraction, JSON parsing, filesystem permissions, PATH convergence, preservation boundaries, and idempotence. See `tests/lifecycle/prepare/mac/README.md` for details.
+
+The Windows Prepare suite characterizes the current Beta bootstrap command set without converting it into a managed lifecycle script. The harness redirects only the archive URL, user-profile root, and persistent user-PATH storage in a temporary execution copy; a source-level integrity test proves those are the only substitutions. The Windows runner exercises both real `curl.exe` and `Invoke-WebRequest`, overlay/preservation boundaries, top-level Git cleanup, PATH convergence, post-overlay failure behavior, temporary cleanup, transcript creation, and semantic idempotence. See `tests/lifecycle/prepare/win/README.md` for details.
 
 ### Verify
 
@@ -164,6 +167,15 @@ macOS Prepare on Apple silicon:
 python3 -m unittest discover \
   -s tests/lifecycle/prepare/mac \
   -p 'test_*.py' \
+  -v
+```
+
+Windows Prepare on Windows PowerShell:
+
+```powershell
+python -m unittest discover `
+  -s tests/lifecycle/prepare/win `
+  -p 'test_*.py' `
   -v
 ```
 
