@@ -28,9 +28,9 @@ Click the desired link in the **Activity** column to go to that repository. The 
 | Five | [Project One](https://github.com/GC-STEM/it140-projects) | `it140-projects/design` | 🔴 |
 | Six | [Milestone](https://github.com/GC-STEM/it140-projects) | `it140-projects/prototype` | 🔴 |
 | Seven | [Project Two](https://github.com/GC-STEM/it140-projects) | `it140-projects/src` | 🔴 |
-| F&S | [Support](https://github.com/GC-STEM/it140-support) | N/A | 🟢 |
+| F & S | [Support](https://github.com/GC-STEM/it140-support) | N/A: Faculty and Staff | 🟢 |
 
-*Note*. Modules Five through Seven use the same project repository. The Faculty and Staff (F&S) Support repository contains support guides for faculty, advisors, and technical support to help students with the course.
+*Note*. Modules Five through Seven use the same project repository. The Faculty and Staff (F&S) Support repository contains support guides for faculty, LSS, advisors, and technical support to help students with the course.
 
 <!--| All | [Course Resources](https://github.com/GC-STEM/it140-course-resources) | `it140-course-resources` |-->
 

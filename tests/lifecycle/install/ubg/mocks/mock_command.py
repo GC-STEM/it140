@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import stat
 import sys
+import tempfile
 from typing import Any
 
 STATE_PATH = Path(os.environ["IT140_MOCK_STATE"])
@@ -32,7 +33,19 @@ def load_state() -> dict[str, Any]:
 
 
 def save_state(state: dict[str, Any]) -> None:
-    STATE_PATH.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    """Write shared mock state atomically so pipeline peers never read a partial file."""
+    STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w",
+        encoding="utf-8",
+        dir=STATE_PATH.parent,
+        prefix=STATE_PATH.name + ".",
+        delete=False,
+    ) as handle:
+        json.dump(state, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+        temporary = Path(handle.name)
+    temporary.replace(STATE_PATH)
 
 
 def trace(command: str, args: list[str]) -> None:
