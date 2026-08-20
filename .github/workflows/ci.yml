@@ -27,6 +27,7 @@ jobs:
       cvd_install: ${{ steps.changes.outputs.cvd_install }}
       cvd_update: ${{ steps.changes.outputs.cvd_update }}
       nix: ${{ steps.changes.outputs.nix }}
+      ubg_prepare: ${{ steps.changes.outputs.ubg_prepare }}
       ubg_verify: ${{ steps.changes.outputs.ubg_verify }}
       ubg_configure: ${{ steps.changes.outputs.ubg_configure }}
       ubg_install: ${{ steps.changes.outputs.ubg_install }}
@@ -215,6 +216,23 @@ jobs:
           ((${#files[@]} > 0)) || { echo "No Linux shell scripts found." >&2; exit 1; }
           printf 'Checking %s\n' "${files[@]}"
           bash -n "${files[@]}"
+
+  ubg_prepare:
+    name: Ubuntu GNOME Prepare lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.ubg_prepare == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Run Ubuntu GNOME Prepare lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/prepare/ubg
+          -p 'test_*.py'
+          -v
 
   ubg_verify:
     name: Ubuntu GNOME Verify lifecycle tests
@@ -550,6 +568,7 @@ jobs:
       - cvd_install
       - cvd_update
       - linux
+      - ubg_prepare
       - ubg_verify
       - ubg_configure
       - ubg_install
@@ -578,6 +597,7 @@ jobs:
           CVD_INSTALL_RESULT: ${{ needs.cvd_install.result }}
           CVD_UPDATE_RESULT: ${{ needs.cvd_update.result }}
           LINUX_RESULT: ${{ needs.linux.result }}
+          UBG_PREPARE_RESULT: ${{ needs.ubg_prepare.result }}
           UBG_VERIFY_RESULT: ${{ needs.ubg_verify.result }}
           UBG_CONFIGURE_RESULT: ${{ needs.ubg_configure.result }}
           UBG_INSTALL_RESULT: ${{ needs.ubg_install.result }}
@@ -607,6 +627,7 @@ jobs:
             "cvd-install:$CVD_INSTALL_RESULT" \
             "cvd-update:$CVD_UPDATE_RESULT" \
             "linux:$LINUX_RESULT" \
+            "ubg-prepare:$UBG_PREPARE_RESULT" \
             "ubg-verify:$UBG_VERIFY_RESULT" \
             "ubg-configure:$UBG_CONFIGURE_RESULT" \
             "ubg-install:$UBG_INSTALL_RESULT" \

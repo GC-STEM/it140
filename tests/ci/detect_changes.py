@@ -31,6 +31,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "cvd_install": False,
         "cvd_update": False,
         "nix": False,
+        "ubg_prepare": False,
         "ubg_verify": False,
         "ubg_configure": False,
         "ubg_install": False,
@@ -81,6 +82,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["cvd_configure"] = True
             flags["cvd_install"] = True
             flags["cvd_update"] = True
+            flags["ubg_prepare"] = True
             flags["ubg_verify"] = True
             flags["ubg_configure"] = True
             flags["ubg_install"] = True
@@ -103,6 +105,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["cvd_install"] = True
         elif posix.startswith("tests/lifecycle/update/cvd/"):
             flags["cvd_update"] = True
+        elif posix.startswith("tests/lifecycle/prepare/ubg/"):
+            flags["ubg_prepare"] = True
         elif posix.startswith("tests/lifecycle/verify/ubg/"):
             flags["ubg_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/ubg/"):
@@ -135,6 +139,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["cvd_configure"] = True
             flags["cvd_install"] = True
             flags["cvd_update"] = True
+            flags["ubg_prepare"] = True
             flags["ubg_verify"] = True
             flags["ubg_configure"] = True
             flags["ubg_install"] = True
@@ -150,6 +155,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         elif posix.startswith("scripts/nix/"):
             flags["manifest"] = True
             flags["nix"] = True
+            if posix == "scripts/nix/ubg/bootstrap_ubg.sh":
+                flags["ubg_prepare"] = True
             if posix == "scripts/nix/ubg/verify_ubg.sh":
                 flags["ubg_verify"] = True
             if posix == "scripts/nix/ubg/config_ubg.sh":

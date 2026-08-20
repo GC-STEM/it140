@@ -33,9 +33,9 @@ mkdir -p "$COURSE_ROOT"
 find "$COURSE_ROOT" -mindepth 1 -maxdepth 1 ! -name logs -exec rm -rf {} +
 cp -a "$temp_dir/it140/." "$COURSE_ROOT/"
 rm -rf "$COURSE_ROOT/.git"
-chmod 0755 "$COURSE_ROOT/scripts/nix/Ubuntu/"*.sh
+chmod 0755 "$COURSE_ROOT/scripts/nix/ubg/"*.sh
 
-path_line='export PATH="$HOME/it140/scripts/nix/Ubuntu:$PATH"'
+path_line='export PATH="$HOME/it140/scripts/nix/ubg:$PATH"'
 touch "$HOME/.bashrc"
 grep -qxF "$path_line" "$HOME/.bashrc" || printf '\n%s\n' "$path_line" >> "$HOME/.bashrc"
 
