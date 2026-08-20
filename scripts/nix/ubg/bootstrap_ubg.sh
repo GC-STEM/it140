@@ -5,6 +5,7 @@ readonly SCRIPT_VERSION="0.3.0"
 readonly COURSE_ROOT="${HOME}/it140"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
 readonly LOG_FILE="${LOG_DIR}/bootstrap_ubg_$(date +%Y%m%d_%H%M%S).log"
+readonly LOCK_FILE="${HOME}/.cache/it140-ubg-mutation.lock"
 mkdir -p "$LOG_DIR"
 exec > >(tee -a "$LOG_FILE") 2>&1
 trap 'printf "[ERROR] Bootstrap stopped near line %s. Review %s\n" "${BASH_LINENO[0]:-unknown}" "$LOG_FILE" >&2' ERR
@@ -19,6 +20,15 @@ source /etc/os-release
 [[ ${ID:-} == ubuntu ]] || { printf '[ERROR] This script supports Ubuntu Desktop only. Detected: %s\n' "${PRETTY_NAME:-unknown}" >&2; exit 2; }
 case ${VERSION_ID:-} in 22.04|24.04|26.04) ;; *) printf '[ERROR] Supported Ubuntu LTS releases: 22.04, 24.04, and 26.04. Detected: %s\n' "${VERSION_ID:-unknown}" >&2; exit 2;; esac
 [[ ${XDG_CURRENT_DESKTOP:-}${DESKTOP_SESSION:-} == *GNOME* || ${XDG_CURRENT_DESKTOP:-} == *ubuntu* ]] || printf '[WARNING] GNOME was not detected. The scripts are designed for Ubuntu Desktop with GNOME.\n'
+
+[[ -x /usr/bin/flock ]] || { printf '[ERROR] The required flock utility is unavailable; concurrent lifecycle protection cannot be enforced.\n' >&2; exit 1; }
+mkdir -p "$(dirname "$LOCK_FILE")"
+chmod 0700 "$(dirname "$LOCK_FILE")"
+exec 9>"$LOCK_FILE"
+if ! /usr/bin/flock --nonblock 9; then
+  printf '[ERROR] Another IT 140 Ubuntu mutation script is running.\n' >&2
+  exit 7
+fi
 
 if ! command -v git >/dev/null 2>&1; then
   printf '[INFO] Installing Git and certificate support. Ubuntu may request your password.\n'

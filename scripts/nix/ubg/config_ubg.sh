@@ -24,6 +24,7 @@ readonly MANIFEST_PATH="$SCRIPT_ROOT/.manifest/it140_manifest.json"
 readonly SCHEMA_PATH="$SCRIPT_ROOT/.manifest/it140_manifest.schema.json"
 readonly LOG_DIR="$COURSE_ROOT/logs"
 readonly LOG_FILE="$LOG_DIR/configure_ubg_$(date +%Y%m%d_%H%M%S).log"
+readonly LOCK_FILE="$HOME/.cache/it140-ubg-mutation.lock"
 readonly VENV_DIR="$COURSE_ROOT/.venv"
 readonly PATH_START="# >>> IT 140 managed PATH >>>"
 readonly PATH_END="# <<< IT 140 managed PATH <<<"
@@ -52,7 +53,7 @@ finish(){
  FINALIZED=true
  if ((code)); then
   result=FAIL
-  if [[ "$CHANGED" == true ]]; then code=7; result=PARTIAL; fi
+  if ((code==7)) || [[ "$CHANGED" == true ]]; then code=7; result=PARTIAL; fi
  fi
  header "CONFIGURATION SUMMARY"
  printf 'Conclusion      : %s\nResult          : %s\nScript version  : %s\nVersion DTG     : %s\nManifest release: %s\nRepository root : %s\nWarnings        : %s\nFailures        : %s\nManaged changes : %s\nLog file        : %s\nExit code       : %s\n' "$msg" "$result" "$SCRIPT_VERSION" "$VERSION_DTG" "$MANIFEST_RELEASE" "$REPOS_ROOT" "$WARNINGS" "$FAILURES" "$( [[ "$CHANGED" == true ]] && printf 'Yes' || printf 'No' )" "$LOG_FILE" "$code"
@@ -75,6 +76,13 @@ on_error(){
  error "Unexpected failure during $CURRENT_STAGE (status $c)."
  finish 1 "An unexpected command failure stopped Configure." || exit_code=$?
  exit "$exit_code"
+}
+acquire_lock(){
+ CURRENT_STAGE="mutation-lock acquisition"
+ command -v flock >/dev/null 2>&1 || fatal 1 "The required flock utility is unavailable; concurrent lifecycle protection cannot be enforced."
+ mkdir -p "$(dirname "$LOCK_FILE")"; chmod 700 "$(dirname "$LOCK_FILE")"
+ exec 9>"$LOCK_FILE"
+ flock --nonblock 9 || fatal 7 "Another IT 140 Ubuntu mutation script is running."
 }
 validate_manifest(){ python3 - "$MANIFEST_PATH" "$SCHEMA_PATH" "$PLATFORM_ID" "$REQUESTED_PROFILE" "$SUPPORTED_SCHEMA" <<'PY'
 import json,pathlib,sys
@@ -156,5 +164,5 @@ merge(d,m); p.parent.mkdir(parents=True,exist_ok=True); tmp=p.with_name(p.name+'
 PY
  CHANGED=true; }
 validate(){ CURRENT_STAGE="configuration validation"; [[ -d "$REPOS_ROOT" && -w "$REPOS_ROOT" ]] || fatal 1 "Repository workspace validation failed."; local link="$(desktop_dir)/Repos"; [[ -L "$link" && "$(readlink -f "$link")" == "$(readlink -f "$REPOS_ROOT")" ]] || fatal 1 "Desktop Repos link validation failed."; gh auth status --hostname github.com >/dev/null 2>&1 || fatal 1 "GitHub authentication validation failed."; [[ -x "$VENV_DIR/bin/python" ]] || fatal 1 "Course virtual environment validation failed."; success "Ubuntu GNOME user configuration passed post-validation."; }
-main(){ parse "$@"; mkdir -p "$LOG_DIR"; chmod 700 "$LOG_DIR"; touch "$LOG_FILE"; chmod 600 "$LOG_FILE"; exec > >(tee -a "$LOG_FILE") 2>&1; trap on_error ERR; header "IT 140 UBUNTU GNOME CONFIGURE"; info "Script version : $SCRIPT_VERSION"; info "Version DTG    : $VERSION_DTG"; info "Course root    : $COURSE_ROOT"; info "Repository root: $REPOS_ROOT"; info "Log file       : $LOG_FILE"; check_context; CURRENT_STAGE="controlled manifest validation"; MANIFEST_RELEASE="$(validate_manifest)" || fatal 5 "The controlled manifest or schema is invalid."; configure_workspace; configure_identity; configure_tools; validate; finish 0 "Required Ubuntu GNOME user configuration and repository-workspace operations completed."; }
+main(){ parse "$@"; mkdir -p "$LOG_DIR"; chmod 700 "$LOG_DIR"; touch "$LOG_FILE"; chmod 600 "$LOG_FILE"; exec > >(tee -a "$LOG_FILE") 2>&1; trap on_error ERR; header "IT 140 UBUNTU GNOME CONFIGURE"; info "Script version : $SCRIPT_VERSION"; info "Version DTG    : $VERSION_DTG"; info "Course root    : $COURSE_ROOT"; info "Repository root: $REPOS_ROOT"; info "Log file       : $LOG_FILE"; check_context; CURRENT_STAGE="controlled manifest validation"; MANIFEST_RELEASE="$(validate_manifest)" || fatal 5 "The controlled manifest or schema is invalid."; acquire_lock; configure_workspace; configure_identity; configure_tools; validate; finish 0 "Required Ubuntu GNOME user configuration and repository-workspace operations completed."; }
 main "$@"

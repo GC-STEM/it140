@@ -3,15 +3,16 @@
 from __future__ import annotations
 import json, os
 from pathlib import Path
-import sys, tempfile
+import sys
+
+LIFECYCLE_ROOT = Path(__file__).resolve().parents[3]
+if str(LIFECYCLE_ROOT) not in sys.path:
+    sys.path.insert(0, str(LIFECYCLE_ROOT))
+from common.mock_state import load_state as load_shared_state, save_state as save_shared_state  # noqa: E402
 
 def sp()->Path:return Path(os.environ['IT140_MOCK_STATE'])
-def load():return json.loads(sp().read_text(encoding='utf-8'))
-def save(s):
-    p=sp()
-    with tempfile.NamedTemporaryFile('w',encoding='utf-8',dir=p.parent,prefix=p.name+'.',delete=False) as f:
-        json.dump(s,f,indent=2,sort_keys=True); f.write('\n'); t=Path(f.name)
-    t.replace(p)
+def load():return load_shared_state(sp())
+def save(s):save_shared_state(sp(),s)
 def trace(c,a):
     q=os.environ.get('IT140_MOCK_TRACE')
     if q:

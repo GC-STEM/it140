@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """Stateful deterministic command dispatcher for Ubuntu GNOME Update tests."""
 from __future__ import annotations
-import json, os, pathlib, shutil, stat, sys, tempfile
+import json, os, pathlib, shutil, sys
 from typing import Any
+
+LIFECYCLE_ROOT = pathlib.Path(__file__).resolve().parents[3]
+if str(LIFECYCLE_ROOT) not in sys.path:
+    sys.path.insert(0, str(LIFECYCLE_ROOT))
+from common.mock_state import load_state as load_shared_state, save_state as save_shared_state  # noqa: E402
 
 STATE=pathlib.Path(os.environ['IT140_MOCK_STATE'])
 TRACE=pathlib.Path(os.environ['IT140_MOCK_TRACE'])
@@ -12,8 +17,8 @@ PYTHON=os.environ['IT140_MOCK_PYTHON']
 COMMAND=os.environ.get('IT140_MOCK_COMMAND', pathlib.Path(sys.argv[0]).name)
 ARGS=sys.argv[1:]
 
-def load()->dict[str,Any]: return json.loads(STATE.read_text(encoding='utf-8'))
-def save(s:dict[str,Any])->None: STATE.write_text(json.dumps(s,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+def load()->dict[str,Any]: return load_shared_state(STATE)
+def save(s:dict[str,Any])->None: save_shared_state(STATE,s)
 def trace(cmd:str,args:list[str])->None:
     with TRACE.open('a',encoding='utf-8') as f: f.write(json.dumps({'command':cmd,'args':args},sort_keys=True)+'\n')
 def wrapper(path:pathlib.Path,name:str)->None:
@@ -70,10 +75,9 @@ def main()->int:
                 if x.startswith('-') or x in {'pip','setuptools','wheel'}: continue
                 packages.append(x)
             existing=list(s.get('venv_packages',[])); skipped=set(s.get('skip_venv_packages',[]))
-            for p in packages:
-                if p not in skipped and p not in existing: existing.append(p)
+            for package in packages:
+                if package not in skipped and package not in existing: existing.append(package)
             s['venv_packages']=sorted(existing); s['pip_update_count']=int(s.get('pip_update_count',0))+1; save(s); return 0
-        # Script-invoked Python beyond pip is intentionally delegated.
         os.execv(PYTHON,[PYTHON,*ARGS]); return 1
     if COMMAND=='code':
         if ARGS[:1]==['--install-extension'] and len(ARGS)>=2:

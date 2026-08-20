@@ -7,7 +7,11 @@ import json
 import os
 from pathlib import Path
 import sys
-import tempfile
+
+LIFECYCLE_ROOT = Path(__file__).resolve().parents[3]
+if str(LIFECYCLE_ROOT) not in sys.path:
+    sys.path.insert(0, str(LIFECYCLE_ROOT))
+from common.mock_state import load_state as load_shared_state, save_state as save_shared_state  # noqa: E402
 
 
 def state_path() -> Path:
@@ -15,22 +19,11 @@ def state_path() -> Path:
 
 
 def load_state() -> dict:
-    return json.loads(state_path().read_text(encoding="utf-8"))
+    return load_shared_state(state_path())
 
 
 def save_state(state: dict) -> None:
-    path = state_path()
-    with tempfile.NamedTemporaryFile(
-        "w",
-        encoding="utf-8",
-        dir=path.parent,
-        prefix=path.name + ".",
-        delete=False,
-    ) as handle:
-        json.dump(state, handle, indent=2, sort_keys=True)
-        handle.write("\n")
-        temporary = Path(handle.name)
-    temporary.replace(path)
+    save_shared_state(state_path(), state)
 
 
 def trace(command: str, args: list[str]) -> None:
@@ -200,14 +193,11 @@ def main() -> int:
         return 0 if state.get("xdg_mime_success", True) else 1
 
     if command == "sleep":
-        # Retry behavior is exercised without making CI wait through real backoff.
         return 0
 
     if command in {"xfconf-query", "xdg-open", "update-desktop-database", "tree", "xclip"}:
         return 0
 
-    # Other manifest-declared system commands only need to exist unless a
-    # scenario gives them an explicit exit code above.
     return 0
 
 

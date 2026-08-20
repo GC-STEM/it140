@@ -25,6 +25,7 @@ version="0.10.0-beta.1"
 version_dtg="2026-08-09-23-59"
 course_root="$HOME/it140"
 log_dir="$course_root/logs"
+lock_file="$HOME/.cache/it140-cvd-mutation.lock"
 archive_url="https://github.com/GC-STEM/it140/archive/refs/heads/main.tar.gz"
 mkdir -p "$course_root" "$log_dir"
 chmod 700 "$log_dir"
@@ -40,6 +41,7 @@ printf 'User: %s\nPurpose: Acquire or refresh the course automation package.\nLo
 [[ "$(uname -s)" == "Linux" ]]
 command -v curl >/dev/null
 command -v tar >/dev/null
+[[ -x /usr/bin/flock ]]
 archive_path="$temp_root/it140-main.tar.gz"
 stage_root="$temp_root/stage"
 mkdir -p "$stage_root"
@@ -49,6 +51,10 @@ source_root="$(find "$stage_root" -mindepth 1 -maxdepth 1 -type d -name 'it140-*
 [[ -n "$source_root" ]]
 for script in prepare install configure verify update; do [[ -f "$source_root/scripts/cvd/${script}_it140.sh" ]]; done
 [[ -f "$source_root/scripts/cvd/sanitize_CVD.sh" ]]
+mkdir -p "$(dirname "$lock_file")"
+chmod 700 "$(dirname "$lock_file")"
+exec 9>"$lock_file"
+if ! /usr/bin/flock --nonblock 9; then printf 'ERROR: Another IT 140 CVD mutation script is running.\n' >&2; cleanup; exit 7; fi
 cp -a "$source_root/." "$course_root/"
 rm -rf -- "$course_root/.git"
 chmod +x "$course_root/scripts/cvd/"*.sh
@@ -76,6 +82,7 @@ readonly DEVELOPMENT_STATUS="Beta Testing"
 readonly COURSE_ROOT="${HOME}/it140"
 readonly LOG_DIR="${COURSE_ROOT}/logs"
 readonly SCRIPT_DIR="${COURSE_ROOT}/scripts/cvd"
+readonly LOCK_FILE="${HOME}/.cache/it140-cvd-mutation.lock"
 readonly ARCHIVE_URL="https://github.com/GC-STEM/it140/archive/refs/heads/main.tar.gz"
 readonly PATH_LINE='export PATH="$HOME/it140/scripts/cvd:$PATH"'
 
@@ -148,6 +155,10 @@ require_standard_cvd_user() {
     }
     command -v tar >/dev/null 2>&1 || {
         printf 'ERROR: The baseline tar utility is unavailable.\n' >&2
+        return 5
+    }
+    [[ -x /usr/bin/flock ]] || {
+        printf 'ERROR: The baseline flock utility is unavailable; concurrent lifecycle protection cannot be enforced.\n' >&2
         return 5
     }
 }
@@ -226,6 +237,17 @@ extract_and_validate_archive() {
     printf '%s\n' "$source_root" > "$TEMP_ROOT/source-root.txt"
 }
 
+acquire_mutation_lock() {
+    CURRENT_STAGE="mutation-lock acquisition"
+    mkdir -p "$(dirname "$LOCK_FILE")"
+    chmod 700 "$(dirname "$LOCK_FILE")"
+    exec 9>"$LOCK_FILE"
+    if ! /usr/bin/flock --nonblock 9; then
+        printf 'ERROR: Another IT 140 CVD mutation script is running.\n' >&2
+        return 7
+    fi
+}
+
 refresh_managed_package() {
     CURRENT_STAGE="course package refresh"
     local source_root
@@ -277,6 +299,7 @@ main() {
     create_staging_area
     download_archive
     extract_and_validate_archive
+    acquire_mutation_lock
     refresh_managed_package
     activate_scripts_and_path
     run_cvd_cleanup

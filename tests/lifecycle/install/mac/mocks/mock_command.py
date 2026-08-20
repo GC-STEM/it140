@@ -8,7 +8,11 @@ import os
 from pathlib import Path
 import plistlib
 import sys
-import tempfile
+
+LIFECYCLE_ROOT = Path(__file__).resolve().parents[3]
+if str(LIFECYCLE_ROOT) not in sys.path:
+    sys.path.insert(0, str(LIFECYCLE_ROOT))
+from common.mock_state import load_state as load_shared_state, save_state as save_shared_state  # noqa: E402
 
 
 def state_path() -> Path:
@@ -16,18 +20,11 @@ def state_path() -> Path:
 
 
 def load_state() -> dict:
-    return json.loads(state_path().read_text(encoding="utf-8"))
+    return load_shared_state(state_path())
 
 
 def save_state(state: dict) -> None:
-    path = state_path()
-    with tempfile.NamedTemporaryFile(
-        "w", encoding="utf-8", dir=path.parent, prefix=path.name + ".", delete=False
-    ) as handle:
-        json.dump(state, handle, indent=2, sort_keys=True)
-        handle.write("\n")
-        temporary = Path(handle.name)
-    temporary.replace(path)
+    save_shared_state(state_path(), state)
 
 
 def trace(command: str, args: list[str]) -> None:
@@ -103,7 +100,6 @@ def run_brew(state: dict, args: list[str]) -> int:
     if not args:
         return 0
     if args == ["shellenv"]:
-        # The harness PATH already has the deterministic mock directory first.
         return 0
     if args == ["update"]:
         state["brew_update_count"] = int(state.get("brew_update_count", 0)) + 1
@@ -135,8 +131,6 @@ def main() -> int:
         if "-c" in args:
             print("3.12")
         return 0
-    # Git, GitHub CLI, VS Code, and any other manifest-declared executable
-    # only need to be discoverable/executable during Install validation.
     return 0
 
 

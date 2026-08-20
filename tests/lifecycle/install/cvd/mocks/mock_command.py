@@ -10,6 +10,11 @@ import shutil
 import sys
 from typing import Any
 
+LIFECYCLE_ROOT = Path(__file__).resolve().parents[3]
+if str(LIFECYCLE_ROOT) not in sys.path:
+    sys.path.insert(0, str(LIFECYCLE_ROOT))
+from common.mock_state import load_state as load_shared_state, save_state as save_shared_state  # noqa: E402
+
 STATE_PATH = Path(os.environ["IT140_MOCK_STATE"])
 TRACE_PATH = Path(os.environ["IT140_MOCK_TRACE"])
 TEST_ROOT = Path(os.environ["IT140_INSTALL_TEST_ROOT"])
@@ -18,11 +23,11 @@ ARGS = sys.argv[1:]
 
 
 def load_state() -> dict[str, Any]:
-    return json.loads(STATE_PATH.read_text(encoding="utf-8"))
+    return load_shared_state(STATE_PATH)
 
 
 def save_state(state: dict[str, Any]) -> None:
-    STATE_PATH.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    save_shared_state(STATE_PATH, state)
 
 
 def trace(command: str, args: list[str]) -> None:
@@ -234,7 +239,6 @@ def dispatch(state: dict[str, Any], command: str, args: list[str]) -> int:
     if command == "desktop-file-validate":
         return 0 if state.get("desktop_file_valid", True) else 1
     if command == "python3.12":
-        # Install uses this only as its post-install Python 3.12 smoke test.
         if args == ["-"]:
             sys.stdin.read()
             return 0
