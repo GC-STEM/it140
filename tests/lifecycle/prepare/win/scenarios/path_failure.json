@@ -1,0 +1,14 @@
+{
+  "id": "path-failure",
+  "download_mode": "invoke_web_request",
+  "http_status": 200,
+  "archive": "valid",
+  "path_state_failure": true,
+  "expected": {
+    "exit_code": 1,
+    "requests": 1,
+    "package_activated": true,
+    "path_updated": false,
+    "preserve_course": false
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "success",
+  "download_mode": "curl",
+  "http_status": 200,
+  "archive": "valid",
+  "expected": {
+    "exit_code": 0,
+    "requests": 1,
+    "package_activated": true,
+    "path_updated": true
+  }
+}

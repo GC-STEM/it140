@@ -1,0 +1,13 @@
+{
+  "id": "archive-failure",
+  "download_mode": "invoke_web_request",
+  "http_status": 200,
+  "archive": "no_repository_root",
+  "expected": {
+    "exit_code": 1,
+    "requests": 1,
+    "package_activated": false,
+    "path_updated": false,
+    "preserve_course": true
+  }
+}

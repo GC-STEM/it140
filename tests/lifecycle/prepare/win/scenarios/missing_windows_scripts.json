@@ -1,0 +1,13 @@
+{
+  "id": "missing-windows-scripts",
+  "download_mode": "invoke_web_request",
+  "http_status": 200,
+  "archive": "missing_windows_scripts",
+  "expected": {
+    "exit_code": 1,
+    "requests": 1,
+    "package_activated": true,
+    "path_updated": false,
+    "preserve_course": false
+  }
+}
