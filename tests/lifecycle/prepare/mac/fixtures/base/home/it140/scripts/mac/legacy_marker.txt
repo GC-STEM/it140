@@ -1,0 +1,1 @@
+preserve this unmatched macOS script-directory file

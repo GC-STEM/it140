@@ -1,0 +1,13 @@
+{
+  "id": "mac-prepare-current-unsupported-architecture",
+  "mock_overrides": {"uname_m": "x86_64"},
+  "archive": "valid",
+  "http_status": 200,
+  "expected": {
+    "exit_code": 2,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "requests": 0,
+    "preserve_critical": true
+  }
+}

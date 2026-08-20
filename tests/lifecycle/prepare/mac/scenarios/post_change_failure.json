@@ -1,0 +1,13 @@
+{
+  "id": "mac-prepare-current-post-change-failure",
+  "archive": "valid",
+  "http_status": 200,
+  "fixture_overrides": {"path_file_unreadable": true},
+  "expected": {
+    "exit_code": 7,
+    "result": "FAIL",
+    "managed_changes": "Yes",
+    "requests": 1,
+    "preserve_critical": true
+  }
+}

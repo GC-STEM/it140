@@ -37,6 +37,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         "ubg_install": False,
         "ubg_update": False,
         "mac": False,
+        "mac_prepare": False,
         "mac_verify": False,
         "mac_configure": False,
         "mac_install": False,
@@ -87,6 +88,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["ubg_configure"] = True
             flags["ubg_install"] = True
             flags["ubg_update"] = True
+            flags["mac_prepare"] = True
             flags["mac_verify"] = True
             flags["mac_configure"] = True
             flags["mac_install"] = True
@@ -115,6 +117,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["ubg_install"] = True
         elif posix.startswith("tests/lifecycle/update/ubg/"):
             flags["ubg_update"] = True
+        elif posix.startswith("tests/lifecycle/prepare/mac/"):
+            flags["mac_prepare"] = True
         elif posix.startswith("tests/lifecycle/verify/mac/"):
             flags["mac_verify"] = True
         elif posix.startswith("tests/lifecycle/configure/mac/"):
@@ -144,6 +148,7 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["ubg_configure"] = True
             flags["ubg_install"] = True
             flags["ubg_update"] = True
+            flags["mac_prepare"] = True
             flags["mac_verify"] = True
             flags["mac_configure"] = True
             flags["mac_install"] = True
@@ -174,6 +179,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
         elif posix.startswith("scripts/mac/"):
             flags["manifest"] = True
             flags["mac"] = True
+            if posix == "scripts/mac/prepare_it140.zsh":
+                flags["mac_prepare"] = True
             if posix == "scripts/mac/verify_it140.zsh":
                 flags["mac_verify"] = True
             if posix == "scripts/mac/configure_it140.zsh":

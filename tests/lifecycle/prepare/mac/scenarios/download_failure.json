@@ -1,0 +1,12 @@
+{
+  "id": "mac-prepare-current-download-failure",
+  "archive": "valid",
+  "http_status": 503,
+  "expected": {
+    "exit_code": 4,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "requests": 5,
+    "preserve_critical": true
+  }
+}

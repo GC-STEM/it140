@@ -33,6 +33,7 @@ jobs:
       ubg_install: ${{ steps.changes.outputs.ubg_install }}
       ubg_update: ${{ steps.changes.outputs.ubg_update }}
       mac: ${{ steps.changes.outputs.mac }}
+      mac_prepare: ${{ steps.changes.outputs.mac_prepare }}
       mac_verify: ${{ steps.changes.outputs.mac_verify }}
       mac_configure: ${{ steps.changes.outputs.mac_configure }}
       mac_install: ${{ steps.changes.outputs.mac_install }}
@@ -335,6 +336,27 @@ jobs:
       - name: Reject Zsh special-parameter collisions
         run: python3 tests/ci/check_zsh_special_params.py
 
+  mac_prepare:
+    name: macOS Prepare lifecycle tests
+    needs: changes
+    if: needs.changes.outputs.mac_prepare == 'true'
+    runs-on: macos-15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run macOS Prepare lifecycle tests
+        run: >-
+          python3 -m unittest discover
+          -s tests/lifecycle/prepare/mac
+          -p 'test_*.py'
+          -v
+
   mac_verify:
     name: macOS Verify lifecycle tests
     needs: changes
@@ -574,6 +596,7 @@ jobs:
       - ubg_install
       - ubg_update
       - macos
+      - mac_prepare
       - mac_verify
       - mac_configure
       - mac_install
@@ -603,6 +626,7 @@ jobs:
           UBG_INSTALL_RESULT: ${{ needs.ubg_install.result }}
           UBG_UPDATE_RESULT: ${{ needs.ubg_update.result }}
           MACOS_RESULT: ${{ needs.macos.result }}
+          MAC_PREPARE_RESULT: ${{ needs.mac_prepare.result }}
           MAC_VERIFY_RESULT: ${{ needs.mac_verify.result }}
           MAC_CONFIGURE_RESULT: ${{ needs.mac_configure.result }}
           MAC_INSTALL_RESULT: ${{ needs.mac_install.result }}
@@ -633,6 +657,7 @@ jobs:
             "ubg-install:$UBG_INSTALL_RESULT" \
             "ubg-update:$UBG_UPDATE_RESULT" \
             "macos:$MACOS_RESULT" \
+            "mac-prepare:$MAC_PREPARE_RESULT" \
             "mac-verify:$MAC_VERIFY_RESULT" \
             "mac-configure:$MAC_CONFIGURE_RESULT" \
             "mac-install:$MAC_INSTALL_RESULT" \

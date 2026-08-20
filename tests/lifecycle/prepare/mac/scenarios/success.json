@@ -1,0 +1,12 @@
+{
+  "id": "mac-prepare-current-success",
+  "archive": "valid",
+  "http_status": 200,
+  "expected": {
+    "exit_code": 0,
+    "result": "PASS",
+    "managed_changes": "Yes",
+    "requests": 1,
+    "preserve_critical": false
+  }
+}

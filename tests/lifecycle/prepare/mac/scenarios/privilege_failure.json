@@ -1,0 +1,13 @@
+{
+  "id": "mac-prepare-current-root-context",
+  "mock_overrides": {"uid": 0},
+  "archive": "valid",
+  "http_status": 200,
+  "expected": {
+    "exit_code": 2,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "requests": 0,
+    "preserve_critical": true
+  }
+}

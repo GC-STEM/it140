@@ -1,0 +1,12 @@
+{
+  "id": "mac-prepare-current-missing-required-script",
+  "archive": "missing_configure",
+  "http_status": 200,
+  "expected": {
+    "exit_code": 5,
+    "result": "FAIL",
+    "managed_changes": "No",
+    "requests": 1,
+    "preserve_critical": true
+  }
+}
