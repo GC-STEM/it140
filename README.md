@@ -22,10 +22,10 @@ Click the desired link in the **Activity** column to go to that repository. The 
 | **Module** | **Activity** | **Local Repos Folder** | **Status** |
 | ---------- | ------------ | ---------------------- | :--------: |
 | One | [Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | N/A | 🟢 |
-| Two | [Assignment](https://github.com/GC-STEM/it140-m2-assignment) | `it140-m2-assignment` | 🟢 |
+| Two | [Assignment](https://github.com/GC-STEM/it140-m2-assignment) | `it140-m2-assignment` | 🔴 |
 | Three | [Assignment](https://github.com/GC-STEM/it140-m3-assignment) | `it140-m3-assignment` | 🔴 |
 | Four | [Assignment](https://github.com/GC-STEM/it140-m4-assignment) | `it140-m4-assignment` | 🔴 |
-| Five | [Project One](https://github.com/GC-STEM/it140-projects) | `it140-projects/design` | 🟡 |
+| Five | [Project One](https://github.com/GC-STEM/it140-projects) | `it140-projects/design` | 🔴 |
 | Six | [Milestone](https://github.com/GC-STEM/it140-projects) | `it140-projects/prototype` | 🔴 |
 | Seven | [Project Two](https://github.com/GC-STEM/it140-projects) | `it140-projects/src` | 🔴 |
 | F & S | [Support](https://github.com/GC-STEM/it140-support) | N/A: Faculty and Staff | 🟢 |
