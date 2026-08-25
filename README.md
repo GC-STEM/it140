@@ -19,16 +19,23 @@ GitHub provides several ways to interact with this repository in the upper-right
 
 Click the desired link in the **Activity** column to go to that repository. The **Local Repos Folder** column shows the name of the repository sub-directory that will appear in your `$HOME/Repos` directory after cloning.
 
-| **Module** | **Activity** | **Local Repos Folder** | **Status** |
-| ---------- | ------------ | ---------------------- | :--------: |
-| One | [Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | N/A | 🟢 |
-| Two | [Assignment](https://github.com/GC-STEM/it140-m2-assignment) | `it140-m2-assignment` | 🟢 |
-| Three | [Assignment](https://github.com/GC-STEM/it140-m3-assignment) | `it140-m3-assignment` | 🟢 |
-| Four | [Assignment](https://github.com/GC-STEM/it140-m4-assignment) | `it140-m4-assignment` | 🟢 |
-| Five | [Project One](https://github.com/GC-STEM/it140-projects) | `it140-projects/design` | 🟢 |
-| Six | [Milestone](https://github.com/GC-STEM/it140-projects) | `it140-projects/prototype` | 🟢 |
-| Seven | [Project Two](https://github.com/GC-STEM/it140-projects) | `it140-projects/src` | 🟢 |
-| F & S | [Support](https://github.com/GC-STEM/it140-support) | N/A: Faculty and Staff | 🟢 |
+| **Module** | **Activity** | **Local Repos Folder** | **Status** | **Notes** |
+| ---------- | ------------ | ---------------------- | :--------: | -------- |
+| One | [Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | N/A | 🟢 | Ready; no known issues. |
+| Two | [Assignment](https://github.com/GC-STEM/it140-m2-assignment) | `it140-m2-assignment` | 🟢 | Ready; no known issues. |
+| Three | [Assignment](https://github.com/GC-STEM/it140-m3-assignment) | `it140-m3-assignment` | 🟢 | Ready; no known issues. |
+| Four | [Assignment](https://github.com/GC-STEM/it140-m4-assignment) | `it140-m4-assignment` | 🟢 | Ready; no known issues. |
+| Five | [Project One](https://github.com/GC-STEM/it140-projects) | `it140-projects/design` | 🟢 | Ready; no known issues. |
+| Six | [Milestone](https://github.com/GC-STEM/it140-projects) | `it140-projects/prototype` | 🟢 | Ready; no known issues. |
+| Seven | [Project Two](https://github.com/GC-STEM/it140-projects) | `it140-projects/src` | 🟢 | Ready; no known issues. |
+| F & S | [Support](https://github.com/GC-STEM/it140-support) | N/A: Faculty and Staff | 🟢 | Ready; no known issues. |
+
+<!--
+Status	Meaning	Standard note
+🟢	Ready	Ready for use; no known issues.
+🟡	Caution	Usable with known issues or pending updates.
+🔴	Blocked	Not ready for use; blocking issue requires resolution.
+ -->
 
 *Note*. Modules Five through Seven use the same project repository. The Faculty and Staff (F&S) Support repository contains support guides for faculty, LSS, advisors, and technical support to help students with the course.
 
