@@ -1,6 +1,21 @@
-<!-- To see this file in a clean, formatted view, right-click on the filename and choose “Open Preview.”  -->
+<!-- To see this file in a clean, formatted view, select "Text Editor ▼" in the upper-right corner of the editor, then select "Markdown Preview". -->
 
 # IT 140: Introduction to Scripting
+
+---
+
+> [!NOTE]
+> **🆕 New for 2026 C-5:** IT 140 now uses GitHub repositories to provide assignment starter files, development resources, and supporting documentation.
+>
+> If you find a problem with this GitHub repository or its instructions, or have a suggestion for improvement, please open [GitHub Issues](https://github.com/GC-STEM/it140/issues) to review existing issues or create a new issue.
+
+---
+
+- **Course**: IT 140 - *Introduction to Scripting*
+- **Repository Title**: Main Course Repository
+- **Repository Type**: Student-facing course hub
+- **Repository Version**: 1.0.0
+- **Repository Version Date**: 08/29/2026
 
 ![IT 140 GitHub Repo card](./.github/assets/repo-card.png)
 
@@ -8,19 +23,12 @@ This repository is the central GitHub hub for **IT 140 - Introduction to Scripti
 
 This repository also contains the automation scripts used to prepare, configure, verify, and maintain the IT 140 course development environment across supported platforms.
 
-> [!TIP]
-GitHub provides several ways to interact with this repository in the upper-right corner of the page. Recommended options for this repo:
->
-> * **Star** – Click to bookmark this repo so it is easier to find later.
-> * **Watch** – Click if you want notifications about repo activity.
-> * **Fork** – Not recommended for this repo.
+## Course Task Repositories
 
-## Course Activity Repositories
+Click the desired link in the **Task** column to go to that repository. The **Local Repos Folder** column shows the name of the repository sub-directory that will appear in your `$HOME/Repos` directory after cloning.
 
-Click the desired link in the **Activity** column to go to that repository. The **Local Repos Folder** column shows the name of the repository sub-directory that will appear in your `$HOME/Repos` directory after cloning.
-
-| **Module** | **Activity** | **Local Repos Folder** | **Status** | **Notes** |
-| ---------- | ------------ | ---------------------- | :--------: | -------- |
+| **Module** | **Task** | **Local Repos Folder** | **Status** | **Notes** |
+| ---------- | -------- | ---------------------- | :--------: | -------- |
 | One | [Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | N/A | 🟢 | Ready; no known issues. |
 | Two | [Assignment](https://github.com/GC-STEM/it140-m2-assignment) | `it140-m2-assignment` | 🟢 | Ready; no known issues. |
 | Three | [Assignment](https://github.com/GC-STEM/it140-m3-assignment) | `it140-m3-assignment` | 🟢 | Ready; no known issues. |
@@ -31,15 +39,15 @@ Click the desired link in the **Activity** column to go to that repository. The 
 | F & S | [Support](https://github.com/GC-STEM/it140-support) | N/A: Faculty and Staff | 🟢 | Ready; no known issues. |
 
 <!--
-Status	Meaning	Standard note
-🟢	Ready	Ready for use; no known issues.
-🟡	Caution	Usable with known issues or pending updates.
-🔴	Blocked	Not ready for use; blocking issue requires resolution.
+Status\tMeaning\tStandard note
+🟢\tReady\tReady for use; no known issues.
+🟡\tCaution\tUsable with known issues or pending updates.
+🔴\tBlocked\tNot ready for use; blocking issue requires resolution.
  -->
 
 *Note*. Modules Five through Seven use the same project repository. The Faculty and Staff (F&S) Support repository contains support guides for faculty, LSS, advisors, and technical support to help students with the course.
 
-Follow the activity *Guidelines and Rubric* page in **D2L Brightspace** and the README for the activity you are completing. Brightspace remains the authoritative location for activity requirements, submissions, grading, and instructor feedback.
+Follow the task *Guidelines and Rubric* page in **D2L Brightspace** and the README for the task you are completing. Brightspace remains the authoritative location for task requirements, submissions, grading, and instructor feedback.
 
 If an expected repository or course resource is unavailable, check [Course Status](https://github.com/GC-STEM/it140/wiki/Course-Status).
 
@@ -59,7 +67,7 @@ If you have just reset your Codio Virtual Desktop (CVD), select:
 
 **[Setup Tasks | Codio Virtual Desktop](https://github.com/GC-STEM/it140-m1-setup-tasks/tree/main/codio)**
 
-The CVD setup process guides you through configuring the course IDE on your CVD. It assume you already have a GitHub Account.
+The CVD setup process guides you through configuring the course IDE on your CVD. It assumes you already have a GitHub Account.
 
 ### Setup After Resetting Your Computer
 
@@ -82,7 +90,7 @@ To learn more:
 
 ## Learn More
 
-The README files contain the instructions needed to complete course activities. The Wikis provide supplemental explanations, technical background, and opportunities to explore beyond the activity requirements.
+The README files contain the instructions needed to complete course tasks. The Wikis provide supplemental explanations, technical background, and opportunities to explore beyond the task requirements.
 
 * [IT 140 Main Course Wiki](https://github.com/GC-STEM/it140/wiki)
 * [Course Repositories](https://github.com/GC-STEM/it140/wiki/Course-Repositories)
@@ -103,12 +111,3 @@ Do not post passwords, authentication codes, access tokens, private identifying 
 Faculty should also review the [IT 140 Faculty Guide](.faculty/README.md) for information about the course environment, repository model, student workflow, and faculty support resources.
 
 Faculty, Learning Support Specialists (LSS), academic advisors, and technical support staff should review the [IT 140 Support Repository](https://github.com/GC-STEM/it140-support) for information about supporting students in the course, including how to access the course IDE, troubleshoot common problems, and provide technical support.
-
-## Activity Metadata
-
-* **Course**: IT 140 - *Introduction to Scripting*
-* **Activity Name**: Main Course Repository
-* **Activity Purpose**: Central hub for course activity repositories and course environment automation.
-* **Artifact Version**: 0.10.0-beta.1
-* **Artifact Date**: 2026-08-09
-* **Development Status**: Beta Testing
