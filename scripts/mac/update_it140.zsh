@@ -5,8 +5,8 @@
 # Repository path: scripts/mac/update_it140.zsh
 # Purpose: Maintain approved IT 140 course IDE software and controlled maintenance assets.
 # Artifact ID: IT140-MAC-UPDATE
-# Artifact version: 1.0.1
-# Version date-time group: 2026-08-30-07-01
+# Artifact version: 1.0.2
+# Version date-time group: 2026-08-30-12-56
 # Development status: Pilot — Active Development
 # Supported profile: macos_bare_metal (Apple silicon, arm64)
 # Traceability: UPD-FR-001 through UPD-FR-016; PKG-FR-003 through PKG-FR-010; PKG-FR-021; PKG-QOS-011 through PKG-QOS-015.
@@ -16,9 +16,9 @@ umask 077
 readonly IT140_ACTION='update'
 readonly IT140_ACTION_DISPLAY='Update'
 readonly IT140_ARTIFACT_ID='IT140-MAC-UPDATE'
-readonly IT140_ARTIFACT_VERSION='1.0.1'
-readonly IT140_VERSION_DATE_TIME_GROUP='2026-08-30-07-01'
-readonly IT140_DEVELOPMENT_STATUS='Beta Testing'
+readonly IT140_ARTIFACT_VERSION='1.0.2'
+readonly IT140_VERSION_DATE_TIME_GROUP='2026-08-30-12-56'
+readonly IT140_DEVELOPMENT_STATUS='Pilot — Active Development'
 readonly IT140_PURPOSE='Maintain approved IT 140 course IDE software and controlled maintenance assets.'
 readonly IT140_SUPPORTED_SCHEMA='2.2'
 readonly IT140_PLATFORM_ID='macos'
@@ -79,6 +79,17 @@ Options:
   --deployment-profile PROFILE   Select the approved macOS deployment profile.
 Run this script from the intended macOS course account. Do not add sudo before
 this command. The script requests administrator authorization only when needed.
+
+Exit codes:
+  0  Update completed successfully
+  1  Required operation failed before managed state changed
+  2  Unsupported macOS platform, release, or option
+  3  Required administrator authorization unavailable
+  4  Required external source or service unavailable
+  5  Controlled manifest or managed asset validation failed
+  6  User canceled before managed state changed
+  7  Update is partial or stopped after managed state changed
+
 Logs: ~/it140/logs/
 USAGE
 }
@@ -126,13 +137,36 @@ it140_course_continuity() {
 }
 it140_elapsed() { printf '%s' "$(( $(date +%s) - IT140_START_EPOCH ))"; }
 it140_finish() {
-    local exit_code="$1" result="$2" detail="$3" next_step="$4"
+    local exit_code="$1" result="$2" detail="$3" next_step="$4" action title
+    if (( exit_code == 0 )); then
+        result='PASS'
+    elif (( exit_code == 7 )); then
+        result='PARTIAL'
+    elif (( exit_code == 6 )); then
+        result='CANCELED'
+    else
+        result='FAIL'
+    fi
     trap - ERR INT TERM HUP
     set +e
     IT140_FINISHED=true
     it140_cleanup
-    it140_header "IT 140 macOS $(printf '%s' "$IT140_ACTION_DISPLAY" | /usr/bin/tr '[:lower:]' '[:upper:]') SUMMARY"
+    if (( exit_code == 0 )); then
+        title="IT 140 macOS $(printf '%s' "$IT140_ACTION_DISPLAY" | /usr/bin/tr '[:lower:]' '[:upper:]') COMPLETE"
+        action='None'
+    elif (( exit_code == 6 )); then
+        title="IT 140 macOS $(printf '%s' "$IT140_ACTION_DISPLAY" | /usr/bin/tr '[:lower:]' '[:upper:]') SUMMARY"
+        action='RUN UPDATE WHEN READY'
+    else
+        title="IT 140 macOS $(printf '%s' "$IT140_ACTION_DISPLAY" | /usr/bin/tr '[:lower:]' '[:upper:]') SUMMARY"
+        action='RETRY UPDATE ONCE'
+    fi
+    it140_header "$title"
     printf 'Result                  : %s\n' "$result"
+    printf 'Action required         : %s\n' "$action"
+    printf 'Next step               : %s\n' "$next_step"
+    printf '\n------------------------------------------------------------\nSUPPORT DETAILS\n------------------------------------------------------------\n'
+    printf 'Detail                  : %s\n' "$detail"
     printf 'Artifact ID             : %s\n' "$IT140_ARTIFACT_ID"
     printf 'Artifact version        : %s\n' "$IT140_ARTIFACT_VERSION"
     printf 'Version date-time group : %s\n' "$IT140_VERSION_DATE_TIME_GROUP"
@@ -147,13 +181,24 @@ it140_finish() {
     printf 'Warnings                : %s\n' "$IT140_WARNINGS"
     printf 'Failures                : %s\n' "$IT140_FAILURES"
     printf 'Elapsed time            : %s seconds\n' "$(it140_elapsed)"
-    printf 'Detail                  : %s\n' "$detail"
-    printf 'Next step               : %s\n' "$next_step"
     printf 'Log file                : %s\n' "$IT140_LOG_FILE"
     printf 'Exit code               : %s\n' "$exit_code"
-    if (( exit_code == 0 )); then it140_success "The IT 140 macOS $IT140_ACTION completed successfully."; else it140_course_continuity; fi
+    if (( exit_code == 0 )); then
+        it140_success "The IT 140 macOS $IT140_ACTION completed successfully."
+        [[ "$next_step" == 'None' ]] || it140_notice "NEXT: ${next_step}"
+    elif (( exit_code == 6 )); then
+        it140_notice 'Update was canceled before managed changes were made. Rerun it when you are ready.'
+        it140_course_continuity
+    else
+        it140_course_continuity
+        it140_notice "If this is the first failed Update, rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
+        it140_notice 'If Update has failed twice consecutively, stop retrying it and contact course support.'
+        it140_notice "Include this log file with the support request: $IT140_LOG_FILE"
+    fi
     it140_notice 'Review the summary and log before closing Terminal.'
-    [[ "$next_step" == 'None' ]] || it140_notice 'Open a new Terminal window before running the next lifecycle script.'
+    if (( exit_code == 0 )) && [[ "$next_step" != 'None' ]]; then
+        it140_notice 'Open a new Terminal window before running the next lifecycle script.'
+    fi
     exit "$exit_code"
 }
 it140_resolve_failure_code() {
@@ -168,10 +213,11 @@ it140_abort() {
     local requested_code="$1"; shift; local message="$*" exit_code result='FAIL'
     exit_code="$(it140_resolve_failure_code "$requested_code")"
     (( exit_code == 7 )) && result='PARTIAL'
+    (( exit_code == 6 )) && result='CANCELED'
     IT140_FAILURES=$((IT140_FAILURES + 1))
     it140_error "$message"
     it140_error "Failed stage: $IT140_CURRENT_STAGE"
-    it140_finish "$exit_code" "$result" "$message" "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
+    it140_finish "$exit_code" "$result" "$message" "Rerun \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\" once. If this was already the rerun, stop and contact course support."
 }
 it140_on_error() {
     local exit_status="$1" line="$2" exit_code=1 result='FAIL'
@@ -179,14 +225,14 @@ it140_on_error() {
     [[ "$IT140_CHANGED" == true ]] && { exit_code=7; result='PARTIAL'; }
     IT140_FAILURES=$((IT140_FAILURES + 1))
     it140_error "An unexpected command failure occurred near line ${line} during ${IT140_CURRENT_STAGE} (status ${exit_status})."
-    it140_finish "$exit_code" "$result" 'An unexpected command failure stopped the script.' "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
+    it140_finish "$exit_code" "$result" 'An unexpected command failure stopped the script.' "Rerun \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\" once. If this was already the rerun, stop and contact course support."
 }
 it140_on_interrupt() {
     local exit_code=6 result='CANCELED'
     trap - INT TERM HUP; set +e
     [[ "$IT140_CHANGED" == true ]] && { exit_code=7; result='PARTIAL'; }
     it140_error "The script was interrupted during ${IT140_CURRENT_STAGE}."
-    it140_finish "$exit_code" "$result" 'The operation did not finish. Rerun the same script to recover.' "Rerun: \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\""
+    it140_finish "$exit_code" "$result" 'The operation did not finish.' "Rerun \"$HOME/it140/scripts/mac/${IT140_ACTION}_it140.zsh\" once. If this was already the rerun, stop and contact course support."
 }
 it140_initialize_log() {
     /bin/mkdir -p -- "$IT140_LOG_DIR"; /bin/chmod -- 0700 "$IT140_LOG_DIR"
@@ -226,7 +272,7 @@ it140_acquire_lock() {
     [[ "$created_epoch" =~ ^[0-9]+$ ]] || created_epoch=0
     now="$(date +%s)"; age=$((now - created_epoch))
     if [[ "$lock_pid" =~ ^[0-9]+$ ]] && /bin/kill -0 "$lock_pid" 2>/dev/null && (( age < 7200 )); then
-        it140_abort 7 "Another IT 140 macOS lifecycle script is already running (process ${lock_pid})."
+        it140_abort 1 'Another IT 140 setup script is currently running. Return to the other Terminal and let it finish before starting another setup script.'
     fi
     it140_warning 'A stale lifecycle lock was found and removed.'
     /bin/rm -rf -- "$IT140_LOCK_DIR"

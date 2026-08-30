@@ -1,6 +1,6 @@
 {
   "schema_version": "2.2",
-  "automation_release": "1.0.1",
+  "automation_release": "1.0.2",
   "course": {
     "course_id": "IT 140",
     "course_title": "Introduction to Scripting",
@@ -2425,5 +2425,5 @@
       ]
     }
   },
-  "automation_release_date_time_group": "2026-08-30-07-01"
+  "automation_release_date_time_group": "2026-08-30-12-56"
 }

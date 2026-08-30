@@ -16,8 +16,8 @@ user settings.
 
 Run this script from a normal, non-elevated Windows PowerShell terminal.
 
-Artifact version: 1.0.1
-Version date-time group: 2026-08-30-07-01
+Artifact version: 1.0.2
+Version date-time group: 2026-08-30-12-56
 Development status: Pilot — Active Development
 
 Version basis:
@@ -33,21 +33,21 @@ Version basis:
     Version 0.3.1 updates controlled-manifest compatibility from schema 2.0 to
     schema 2.2 and validates the release date-time group.
 
-    Version 1.0.1 establishes the coordinated Beta-testing baseline,
+    Version 1.0.2 establishes the coordinated Beta-testing baseline,
     aligns artifact metadata with the controlled manifest and schema, and
     incorporates fixes completed during Alpha testing.
 
 
 .NOTES
 Exit codes:
-  0 Success
+  0 Update completed successfully
   1 Required operation failed before managed state changed
   2 Unsupported Windows platform, release, or option
   3 Required elevation was unavailable or used incorrectly
   4 Required network or package-retrieval operation failed
   5 Controlled manifest or managed asset validation failed
   6 User canceled before managed state changed
-  7 Update completed partially or managed state changed before failure
+  7 Update is partial or managed state changed before failure
 
 Logs are written under ~/it140/logs/. The elevated course-component phase
 writes a separate update_win_system log in the same directory.
@@ -90,8 +90,8 @@ if ($UpdateTestMode) {
     $UpdateTestState = Get-Content -LiteralPath $UpdateTestStatePath -Raw | ConvertFrom-Json
 }
 
-$ScriptVersion = "1.0.1"
-$VersionDateTimeGroup = "2026-08-30-07-01"
+$ScriptVersion = "1.0.2"
+$VersionDateTimeGroup = "2026-08-30-12-56"
 $DevelopmentStatus = "Beta Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"
@@ -203,22 +203,36 @@ Run from a normal, non-elevated Windows PowerShell terminal. A UAC prompt
 appears only for targeted maintenance of machine-wide course IDE packages.
 Windows Update is not run by this script.
 
+Exit codes:
+  0  Update completed successfully
+  1  Required operation failed before managed state changed
+  2  Unsupported Windows platform, release, or option
+  3  Required elevation was unavailable or used incorrectly
+  4  Required network or package-retrieval operation failed
+  5  Controlled manifest or managed asset validation failed
+  6  User canceled before managed state changed
+  7  Update is partial or managed state changed before failure
+
 Deployment profile: windows_bare_metal
 Log directory: $LogDirectory
 "@ | Write-Host
 }
 
 function Write-ClosingNotice {
+    param([Parameter(Mandatory = $true)][int]$SummaryExitCode)
+
     Write-Notice "A log containing all output displayed while this script ran is available here:"
     Write-Notice $LogPath
     Write-Notice (
         "After reviewing the summary, type 'exit' and press Enter to " +
         "close this PowerShell window."
     )
-    Write-Notice (
-        "Open a new PowerShell window before running another script so it " +
-        "loads the latest PATH and environment settings."
-    )
+    if ($SummaryExitCode -eq 0) {
+        Write-Notice (
+            "Open a new PowerShell window before running the next lifecycle " +
+            "script so it loads the latest PATH and environment settings."
+        )
+    }
 }
 
 function Test-IsAdministrator {
@@ -365,7 +379,18 @@ function Write-UpdateSummary {
     if ($RequestedExitCode -eq 0 -and ($Partial -or $FailureCount -gt 0)) {
         $SummaryExitCode = 7
     }
-    $Result = if ($SummaryExitCode -eq 0) { "PASS" } elseif ($SummaryExitCode -eq 7) { "PARTIAL" } else { "FAIL" }
+    $Result = if ($SummaryExitCode -eq 0) {
+        "PASS"
+    }
+    elseif ($SummaryExitCode -eq 7) {
+        "PARTIAL"
+    }
+    elseif ($SummaryExitCode -eq 6) {
+        "CANCELED"
+    }
+    else {
+        "FAIL"
+    }
     $Elapsed = (Get-Date) - $StartTime
     $ManifestRelease = "Unavailable"
     $ManifestDtg = "Unavailable"
@@ -378,14 +403,39 @@ function Write-UpdateSummary {
         # Summary generation must never replace the primary lifecycle result.
     }
     $NextStep = if ($SummaryExitCode -eq 0) {
-        if ($ConfigurationComplete) { "Run verify_it140.ps1." } else { "Run configure_it140.ps1, then verify_it140.ps1." }
+        if ($ConfigurationComplete) {
+            "Open a new PowerShell window and run verify_it140.ps1."
+        }
+        else {
+            "Open a new PowerShell window and run configure_it140.ps1, then verify_it140.ps1."
+        }
+    }
+    elseif ($SummaryExitCode -eq 6) {
+        "Rerun update_it140.ps1 when you are ready."
     }
     else {
-        "Resolve the reported issue, then rerun update_it140.ps1."
+        "Rerun update_it140.ps1 once. If this was already the rerun, stop and contact course support."
     }
-    Write-Header "UPDATE SUMMARY"
-    Write-Host ("Conclusion      : {0}" -f $Conclusion)
+    $ActionRequired = if ($SummaryExitCode -eq 0) {
+        "None"
+    }
+    elseif ($SummaryExitCode -eq 6) {
+        "RUN UPDATE WHEN READY"
+    }
+    else {
+        "RETRY UPDATE ONCE"
+    }
+    $SummaryTitle = if ($SummaryExitCode -eq 0) { "UPDATE COMPLETE" } else { "UPDATE SUMMARY" }
+
+    Write-Header $SummaryTitle
     Write-Host ("Result          : {0}" -f $Result)
+    Write-Host ("Action required : {0}" -f $ActionRequired)
+    Write-Host ("Next step       : {0}" -f $NextStep)
+    Write-Host ""
+    Write-Host "------------------------------------------------------------"
+    Write-Host "SUPPORT DETAILS"
+    Write-Host "------------------------------------------------------------"
+    Write-Host ("Conclusion      : {0}" -f $Conclusion)
     Write-Host ("Workflow        : {0}" -f $WorkflowName)
     Write-Host ("Script version  : {0}" -f $ScriptVersion)
     Write-Host ("Version DTG     : {0}" -f $VersionDateTimeGroup)
@@ -396,16 +446,28 @@ function Write-UpdateSummary {
     Write-Host ("Failures        : {0}" -f $FailureCount)
     Write-Host ("Managed changes : {0}" -f $(if ($Changed) { "Yes" } else { "No" }))
     Write-Host ("Elapsed time    : {0:hh\:mm\:ss}" -f $Elapsed)
-    Write-Host ("Next step       : {0}" -f $NextStep)
     Write-Host ("Log file        : {0}" -f $LogPath)
     Write-Host ("Exit code       : {0}" -f $SummaryExitCode)
     if ($SummaryExitCode -eq 0) {
         Write-Success "The IT 140 Windows update completed successfully."
+        Write-Notice "NEXT: $NextStep"
+    }
+    elseif ($SummaryExitCode -eq 6) {
+        Write-Notice "Update was canceled before managed changes were made."
     }
     elseif ($SummaryExitCode -eq 7) {
-        Write-ErrorMessage "The update completed partially."
+        Write-ErrorMessage "The update is incomplete after managed changes began."
+        Write-Notice "If this is the first failed Update, rerun update_it140.ps1 once."
+        Write-Notice "If Update has failed twice consecutively, stop retrying it and contact course support."
+        Write-Notice "Include this log file with the support request: $LogPath"
     }
-    Write-ClosingNotice
+    else {
+        Write-ErrorMessage "The update did not complete successfully."
+        Write-Notice "If this is the first failed Update, rerun update_it140.ps1 once."
+        Write-Notice "If Update has failed twice consecutively, stop retrying it and contact course support."
+        Write-Notice "Include this log file with the support request: $LogPath"
+    }
+    Write-ClosingNotice -SummaryExitCode $SummaryExitCode
     $script:ExitCode = $SummaryExitCode
 }
 
@@ -720,7 +782,7 @@ function Read-ManifestAtPath {
 
     $AutomationRelease = [string]$Manifest.automation_release
     $SemVerPattern = [string]$Schema.'$defs'.automationRelease.pattern
-        if ($AutomationRelease -notmatch $SemVerPattern) {
+    if ($AutomationRelease -notmatch $SemVerPattern) {
         throw "The manifest automation release is not strict SemVer: $AutomationRelease"
     }
 
@@ -852,7 +914,11 @@ function Enter-MutationLock {
     try {
         if (-not $Mutex.WaitOne(0)) {
             $Mutex.Dispose()
-            throw "Another IT 140 setup, configure, or update operation is running."
+            throw (
+                "Another IT 140 setup script is currently running. Return to " +
+                "the other PowerShell window and let it finish before starting " +
+                "another setup script."
+            )
         }
     }
     catch [Threading.AbandonedMutexException] {
@@ -2134,9 +2200,6 @@ catch {
     Write-ErrorMessage $_.Exception.Message
     if ($LineNumber) { Write-ErrorMessage "Update stopped near line $LineNumber." }
     if ($FailureCount -eq 0) { $FailureCount++ }
-    if ($Changed) {
-        Write-Notice "Managed state changed before update stopped. Rerun update_it140.ps1 to repair it."
-    }
     Write-UpdateSummary -Conclusion $_.Exception.Message -RequestedExitCode $FailureExitCode
 }
 

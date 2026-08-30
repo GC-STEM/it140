@@ -93,7 +93,7 @@ class WinVerifyLifecycleTests(unittest.TestCase):
         completed = self._run_cli("-Version")
         after = set(log_dir.glob("verify_win_*.log")) if log_dir.exists() else set()
         self.assertEqual(completed.returncode, 0, msg=completed.stdout + completed.stderr)
-        self.assertIn("1.0.1", completed.stdout)
+        self.assertIn("1.0.2", completed.stdout)
         self.assertEqual(before, after)
 
 

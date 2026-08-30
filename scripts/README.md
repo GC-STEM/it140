@@ -10,8 +10,8 @@ This guide explains the purpose of the IT 140 Course Automation Scripts package,
 - **Course**: IT 140 - *Introduction to Scripting*
 - **Activity Name**: Main Course Repository | Course Automation Scripts
 - **Activity Purpose**: Prepare, install, configure, verify, and update the IT 140 course IDE in supported environments.
-- **Artifact Version**: 1.0.1
-- **Artifact Date-Time Group**: 2026-08-31-07-1
+- **Artifact Version**: 1.0.2
+- **Artifact Date-Time Group**: 2026-08-30-12-56
 - **Development Status**: Pilot — Active Development
 
 > [!WARNING]
@@ -85,6 +85,31 @@ Although the commands differ by platform, the scripts follow common rules:
 - **Create support records**: Each lifecycle run saves a timestamped log or transcript under `~/it140/logs/` or the equivalent folder for the current platform.
 - **Provide course continuity**: If a local course IDE cannot be prepared successfully, students can continue their IT 140 coursework in the Codio Virtual Desktop while the local issue is resolved.
 
+### Understanding Update results
+
+The Update summary separates the **outcome of Update** from the **action needed before the next lifecycle step**. Read the first three fields in order:
+
+1. **Result** tells whether Update completed.
+2. **Action required** tells whether you must do something before continuing, such as restart the CVD or computer.
+3. **Next step** tells you exactly what to do after the required action, if any.
+
+A restart is a normal successful lifecycle transition when Update completed all required operations. A successful Update that requires a restart therefore reports **Result: `PASS`** and **Exit code: `0`**. The restart requirement is reported separately as **Action required** and, on platforms that track it, in the support details. Do not rerun Update only because a successful summary requires a restart.
+
+Update result meanings are standardized as follows:
+
+| Result | Meaning | Exit-code behavior | Student action |
+| --- | --- | --- | --- |
+| `PASS` | Update completed its required operations. Warnings may be listed separately. | `0` | Follow **Action required**, then **Next step**. |
+| `PARTIAL` | Update began making managed changes but did not finish all required operations. | `7` | Follow the retry/support instructions in the summary. |
+| `CANCELED` | Update was canceled before managed changes were made. | `6` | Run Update again when ready. |
+| `FAIL` | Update did not complete successfully. | Nonzero code appropriate to the failure | Follow the retry/support instructions in the summary. |
+
+Exit code `7` is reserved for an actual incomplete Update after managed state changed. It is not used merely because a restart is required.
+
+The summary places student actions before a **SUPPORT DETAILS** section. Support details retain diagnostic information such as warning and failure counts, script and manifest versions, managed-change state, restart state when applicable, log path, and exit code. Students normally do not need to interpret those fields unless the summary directs them to troubleshoot or provide the information to course support.
+
+Retry and support notices are shown only for actual failed or partial outcomes. A successful restart-required result directs the student to restart and continue; it does not direct the student to rerun Update.
+
 ## 4. Platform Folders
 
 | Folder | Environment | Script type | Intended use |
@@ -123,9 +148,9 @@ The main `win/` lifecycle is intended for a supported Windows computer on which 
 
 #### Windows Subsystem for Linux (WSL)
 
-{{SME TODO: Add a short description of the Windows Subsystem for Linux (WSL) environment and its possible use as a Linux development environment with Windows as the host. Note that this use is well beyond the scope of IT 140 but is presented here for completeness, especially for students who will not take a programming course after IT 140.}}
+{{SME TODO: Add that students and faculty can explore WSL as a Linux development environment with Windows as the host. This is beyond the scope of regular IT 140 setup and support.}}
 
--->.
+-->
 
 ## 7. macOS (`mac/`)
 
@@ -169,6 +194,6 @@ Every lifecycle script saves a timestamped plain-text log or transcript under th
 - **Windows**: `%USERPROFILE%\it140\logs\`
 - **macOS, Linux, and CVD**: `~/it140/logs/`
 
-When a script reports a warning or failure, keep the final summary and the exact log path. These records help instructors, AI support tools, and university technical support identify the script version, platform, completed actions, and point of failure without requiring the student to remember every message shown in the terminal.
+When a script reports a warning, partial result, or failure, keep the final summary and the exact log path. These records help instructors, AI support tools, and university technical support identify the script version, platform, completed actions, and point of failure without requiring the student to remember every message shown in the terminal.
 
-Follow the remediation and next-step instructions printed by the script. When requesting help, provide the final summary and the applicable log file through the support method identified in the course.
+Follow **Action required** and **Next step** printed near the top of the summary. When requesting help, provide the final summary and the applicable log file through the support method identified in the course.

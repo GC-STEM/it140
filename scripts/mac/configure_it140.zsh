@@ -5,8 +5,8 @@
 # Repository path: scripts/mac/configure_it140.zsh
 # Purpose: Configure or repair the current user's IT 140 course environment.
 # Artifact ID: IT140-MAC-CONFIGURE
-# Artifact version: 1.0.1
-# Version date-time group: 2026-08-30-07-01
+# Artifact version: 1.0.2
+# Version date-time group: 2026-08-30-12-56
 # Development status: Pilot — Active Development
 # Supported profile: macos_bare_metal (Apple silicon, arm64)
 # Traceability: CFG-FR-001 through CFG-FR-021; CFG-DES-001 through CFG-DES-021.
@@ -19,9 +19,9 @@
 # ==============================================================================
 set -euo pipefail
 umask 077
-readonly SCRIPT_VERSION="1.0.1"
-readonly VERSION_DTG="2026-08-30-07-01"
-readonly DEVELOPMENT_STATUS="Beta Testing"
+readonly SCRIPT_VERSION="1.0.2"
+readonly VERSION_DTG="2026-08-30-12-56"
+readonly DEVELOPMENT_STATUS="Pilot — Active Development"
 readonly PLATFORM_ID="macos"
 readonly DEPLOYMENT_PROFILE_ID="macos_bare_metal"
 readonly SUPPORTED_SCHEMA="2.2"

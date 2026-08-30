@@ -5,8 +5,8 @@
 # Repository path: scripts/mac/install_it140.zsh
 # Purpose: Install or repair the manifest-declared macOS system layer for the IT 140 course IDE.
 # Artifact ID: IT140-MAC-INSTALL
-# Artifact version: 1.0.1
-# Version date-time group: 2026-08-30-07-01
+# Artifact version: 1.0.2
+# Version date-time group: 2026-08-30-12-56
 # Development status: Pilot — Active Development
 # Supported profile: macos_bare_metal (Apple silicon, arm64)
 # Traceability: INS-FR-001 through INS-FR-015; PKG-FR-003 through PKG-FR-010; PKG-FR-021; PKG-QOS-011 through PKG-QOS-015.
@@ -16,9 +16,9 @@ umask 077
 readonly IT140_ACTION='install'
 readonly IT140_ACTION_DISPLAY='Install'
 readonly IT140_ARTIFACT_ID='IT140-MAC-INSTALL'
-readonly IT140_ARTIFACT_VERSION='1.0.1'
-readonly IT140_VERSION_DATE_TIME_GROUP='2026-08-30-07-01'
-readonly IT140_DEVELOPMENT_STATUS='Beta Testing'
+readonly IT140_ARTIFACT_VERSION='1.0.2'
+readonly IT140_VERSION_DATE_TIME_GROUP='2026-08-30-12-56'
+readonly IT140_DEVELOPMENT_STATUS='Pilot — Active Development'
 readonly IT140_PURPOSE='Install missing manifest-declared macOS system capabilities while preserving compatible preexisting applications.'
 readonly IT140_SUPPORTED_SCHEMA='2.2'
 readonly IT140_PLATFORM_ID='macos'

@@ -97,7 +97,7 @@ class MacPrepareLifecycleTests(unittest.TestCase):
         scenario = self.scenarios["success"]
         cases = [
             (["--help"], 0, "Usage: prepare_it140.zsh"),
-            (["--version"], 0, "1.0.1"),
+            (["--version"], 0, "1.0.2"),
             (["--not-a-real-option"], 2, "Unsupported option"),
         ]
         for arguments, expected_code, expected_text in cases:

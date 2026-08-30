@@ -15,8 +15,8 @@ Run this script from a normal, non-elevated Windows PowerShell terminal on a
 regular Windows computer. Windows Sandbox intentionally uses its administrative
 container account with the windows_sandbox deployment profile.
 
-Artifact version: 1.0.1
-Version date-time group: 2026-08-30-07-01
+Artifact version: 1.0.2
+Version date-time group: 2026-08-30-12-56
 Development status: Pilot — Active Development
 
 Version basis:
@@ -32,7 +32,7 @@ Version basis:
     Explorer development icon, and desktop Repos shortcut while preserving
     all repositories and files beneath the workspace.
 
-    Version 1.0.1 establishes the coordinated Beta-testing baseline,
+    Version 1.0.2 establishes the coordinated Beta-testing baseline,
     aligns artifact metadata with the controlled manifest and schema, and
     incorporates fixes completed during Alpha and Beta qualification testing.
 
@@ -105,8 +105,8 @@ else {
     $env:APPDATA
 }
 
-$ScriptVersion = "1.0.1"
-$VersionDate = "2026-08-30-07-01"
+$ScriptVersion = "1.0.2"
+$VersionDate = "2026-08-30-12-56"
 $DevelopmentStatus = "Beta Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"

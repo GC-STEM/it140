@@ -3,8 +3,8 @@
 # IT 140 Codio Virtual Desktop managed update and repair script
 #
 # Artifact ID: IT140-CVD-UPDATE
-# Artifact version: 1.0.1
-# Version date-time group: 2026-08-30-07-01
+# Artifact version: 1.0.2
+# Version date-time group: 2026-08-30-12-56
 # Development status: Pilot — Active Development
 #
 # Traceability: UPD-FR-001 through UPD-FR-016; PKG-FR-021;
@@ -19,9 +19,9 @@
 # step. It never modifies ~/Repos or any repository stored inside it.
 set -Eeuo pipefail
 umask 077
-readonly SCRIPT_VERSION="1.0.1"
-readonly VERSION_DTG="2026-08-30-07-01"
-readonly DEVELOPMENT_STATUS="Beta Testing"
+readonly SCRIPT_VERSION="1.0.2"
+readonly VERSION_DTG="2026-08-30-12-56"
+readonly DEVELOPMENT_STATUS="Pilot — Active Development"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"
 readonly DEPLOYMENT_PROFILE_ID="codio_cvd"
@@ -95,14 +95,14 @@ Maintains the approved IT 140 Codio Virtual Desktop on Ubuntu 24.04. Run as
 its standard desktop user, not with sudo. A successful update may require a
 CVD restart before another lifecycle script is run.
 Exit codes:
-  0  Completed successfully
+  0  Completed successfully, including when a restart is required
   1  Required operation failed
   2  Invalid use or unsupported execution context
   3  Required privilege unavailable
   4  Required external source or service unavailable
   5  Manifest, schema, or controlled configuration invalid
   6  User canceled before a managed change
-  7  Partial result, interruption after change, or restart required
+  7  Update completed partially or was interrupted after managed changes
 
 Logs: ~/it140/logs/
 USAGE
@@ -160,17 +160,31 @@ resolve_failure_code() {
 }
 course_continuity_guidance() {
     print_notice "This issue affects the Codio Virtual Desktop (CVD)."
-    print_notice "Rerun update_it140.sh no more than once after a failure."
+    print_notice "If this is the first failed Update, rerun update_it140.sh once."
     print_notice "If Update has failed twice consecutively, stop retrying it and contact course support."
     print_notice "Include this log file with the support request: $LOG_FILE"
     print_notice "Do not use manual sudo, APT, or file-repair commands unless course support directs you to do so."
 }
+summary_action() {
+    local exit_code="$1"
+    if ((exit_code == EXIT_CANCELED)); then
+        printf 'RUN UPDATE WHEN READY'
+    elif ((exit_code != 0)); then
+        printf 'RETRY UPDATE ONCE'
+    elif [[ "$RESTART_REQUIRED" == true ]]; then
+        printf 'RESTART VM'
+    else
+        printf 'None'
+    fi
+}
 summary_guidance() {
     local exit_code="$1"
-    if [[ "$RESTART_REQUIRED" == true ]]; then
-        printf 'Save your work, click RESTART VM, open Terminal, and run configure_it140.sh.'
+    if ((exit_code == EXIT_CANCELED)); then
+        printf 'Rerun update_it140.sh when you are ready.'
     elif ((exit_code != 0)); then
         printf 'Rerun update_it140.sh once. If this was already the rerun, stop and contact course support.'
+    elif [[ "$RESTART_REQUIRED" == true ]]; then
+        printf 'After the VM restarts, open Terminal and run configure_it140.sh.'
     elif [[ "$USER_CONFIGURATION_COMPLETE" == true ]]; then
         printf 'Open a fresh Terminal and run verify_it140.sh.'
     else
@@ -180,7 +194,7 @@ summary_guidance() {
 finish() {
     local requested_code="${1:-0}"
     local message="${2:-}"
-    local exit_code result elapsed next_step
+    local exit_code result elapsed next_step action header_title
     [[ "$FINALIZED" == false ]] || return "$requested_code"
     FINALIZED=true
     cleanup
@@ -196,14 +210,29 @@ finish() {
         result="PASS"
     elif ((exit_code == EXIT_PARTIAL)); then
         result="PARTIAL"
+    elif ((exit_code == EXIT_CANCELED)); then
+        result="CANCELED"
     else
         result="FAIL"
     fi
     elapsed=$(( $(date +%s) - START_EPOCH ))
     next_step="$(summary_guidance "$exit_code")"
-    print_header "UPDATE SUMMARY"
-    [[ -n "$message" ]] && printf 'Conclusion      : %s\n' "$message"
+    action="$(summary_action "$exit_code")"
+    if ((exit_code == 0)) && [[ "$RESTART_REQUIRED" == true ]]; then
+        header_title="UPDATE COMPLETE — RESTART REQUIRED"
+    elif ((exit_code == 0)); then
+        header_title="UPDATE COMPLETE"
+    else
+        header_title="UPDATE SUMMARY"
+    fi
+    print_header "$header_title"
     printf 'Result          : %s\n' "$result"
+    printf 'Action required : %s\n' "$action"
+    printf 'Next step       : %s\n' "$next_step"
+    printf '\n------------------------------------------------------------\n'
+    printf 'SUPPORT DETAILS\n'
+    printf '------------------------------------------------------------\n'
+    [[ -n "$message" ]] && printf 'Conclusion      : %s\n' "$message"
     printf 'Script version  : %s\n' "$SCRIPT_VERSION"
     printf 'Version DTG     : %s\n' "$VERSION_DTG"
     printf 'Manifest release: %s\n' "$MANIFEST_RELEASE"
@@ -217,13 +246,20 @@ finish() {
     printf 'Elapsed time    : %s seconds\n' "$elapsed"
     printf 'Log file        : %s\n' "$LOG_FILE"
     printf 'Exit code       : %s\n' "$exit_code"
-    printf 'Next step       : %s\n' "$next_step"
     if ((exit_code == 0)); then
         print_success "The IT 140 CVD update completed successfully."
+        if [[ "$RESTART_REQUIRED" == true ]]; then
+            print_notice "[ACTION] Save your work and click RESTART VM."
+        fi
+        print_notice "[NEXT] $next_step"
+    elif ((exit_code == EXIT_CANCELED)); then
+        print_notice "[CANCELED] Update stopped before managed changes were made."
+        print_notice "[NEXT] Rerun update_it140.sh when you are ready."
     else
+        [[ "$exit_code" -eq "$EXIT_PARTIAL" ]] && print_notice "[PARTIAL] Update did not finish all required operations."
         course_continuity_guidance
     fi
-    print_notice "Review the summary and log before closing this Terminal."
+    print_notice "Review the support details and log before closing this Terminal."
     return "$exit_code"
 }
 fatal() {
@@ -462,7 +498,7 @@ acquire_lock() {
     mkdir -p -- "$(dirname "$LOCK_FILE")"
     chmod -- 0700 "$(dirname "$LOCK_FILE")"
     exec 9>"$LOCK_FILE"
-    flock --nonblock 9 || fatal "$EXIT_FAILURE" "Another IT 140 mutating lifecycle script is running."
+    flock --nonblock 9 || fatal "$EXIT_FAILURE" "Another IT 140 setup script is currently running. Return to the other Terminal and let it finish before starting another setup script."
 }
 check_prerequisites() {
     CURRENT_STAGE="prerequisite validation"
@@ -855,7 +891,6 @@ post_update_checks() {
     done
     if [[ -e "$REBOOT_REQUIRED_PATH" ]]; then
         RESTART_REQUIRED=true
-        PARTIAL=true
         print_notice "Ubuntu reports that a CVD restart is required before the lifecycle can continue."
     fi
     print_success "Post-update checks completed."

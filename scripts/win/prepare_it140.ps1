@@ -8,15 +8,15 @@
 #     lifecycle scripts available from this PowerShell session and future
 #     PowerShell sessions.
 #
-# Artifact version: 1.0.1
-# Version date-time group: 2026-08-30-07-01
+# Artifact version: 1.0.2
+# Version date-time group: 2026-08-30-12-56
 # Development status: Pilot — Active Development
 #
 # Version basis:
 #     Version 0.1.0 represents the initial Windows bootstrap baseline.
 #     Version 0.2.0 adopts SemVer metadata and transcript reporting.
 #
-#     Version 1.0.1 establishes the coordinated Beta-testing baseline,
+#     Version 1.0.2 establishes the coordinated Beta-testing baseline,
 #     aligns artifact metadata with the controlled manifest and schema, and
 #     incorporates fixes completed during Alpha testing.
 #
@@ -32,8 +32,8 @@ New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null
 Start-Transcript -Path $LogPath -Force | Out-Null
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
-$ArtifactVersion = "1.0.1"
-$VersionDate = "2026-08-30-07-01"
+$ArtifactVersion = "1.0.2"
+$VersionDate = "2026-08-30-12-56"
 $DevelopmentStatus = "Beta Testing"
 $PlatformAbbreviation = "win"
 $RepositoryArchive = "https://github.com/GC-STEM/it140/archive/refs/heads/main.zip"

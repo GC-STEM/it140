@@ -19,7 +19,7 @@ class MacUpdateLifecycleTests(unittest.TestCase):
             cp=subprocess.run([str(ZSH_EXECUTABLE),str(UPDATE_SOURCE),arg],cwd=home,env=e,text=True,capture_output=True,check=False,timeout=15)
             self.assertEqual(0,cp.returncode,cp.stdout+cp.stderr);self.assertIn(text,cp.stdout+cp.stderr);self.assertFalse((home/'it140'/'logs').exists())
     def test_help_returns_zero_without_creating_log(self):self.early('--help','Usage: update_it140.zsh')
-    def test_version_returns_zero_without_creating_log(self):self.early('--version','1.0.1')
+    def test_version_returns_zero_without_creating_log(self):self.early('--version','1.0.2')
     def test_declared_scenarios(self):
         for f in FILES:
             s=self.h.load_scenario(SCENARIOS/f)

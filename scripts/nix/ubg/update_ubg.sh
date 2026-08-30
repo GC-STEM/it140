@@ -64,6 +64,17 @@ Stages and validates the current controlled manifest assets, updates only
 manifest-declared Ubuntu course components, the course Python environment, and
 required VS Code extensions, then directs the user to Verify. It does not run
 an Ubuntu release upgrade or modify student repositories.
+
+Exit codes:
+  0  Update completed successfully, including when a restart is required
+  1  Required operation failed before managed state changed
+  2  Unsupported execution context or option
+  3  Required administrator authorization unavailable
+  4  Required external source or service unavailable
+  5  Controlled manifest or managed asset validation failed
+  6  User canceled before managed state changed
+  7  Update is partial or stopped after managed state changed
+
 Logs: ~/it140/logs/
 USAGE
 }
@@ -87,29 +98,54 @@ resolve_failure_code(){
         *) [[ "$CHANGED" == true ]] && printf '%s\n' "$EXIT_PARTIAL" || printf '%s\n' "$EXIT_FAILURE";;
     esac
 }
+summary_action(){
+    local code="$1"
+    if ((code == EXIT_CANCELED)); then
+        printf 'RUN UPDATE WHEN READY'
+    elif ((code != 0)); then
+        printf 'RETRY UPDATE ONCE'
+    elif [[ "$RESTART_REQUIRED" == true ]]; then
+        printf 'RESTART COMPUTER'
+    else
+        printf 'None'
+    fi
+}
 summary_guidance(){
     local code="$1"
-    if [[ "$RESTART_REQUIRED" == true ]]; then
-        printf 'Save your work, restart Ubuntu, then run verify_ubg.sh.'
+    if ((code == EXIT_CANCELED)); then
+        printf 'Rerun update_ubg.sh when you are ready.'
     elif ((code != 0)); then
-        printf 'Resolve the reported issue, then rerun update_ubg.sh.'
+        printf 'Rerun update_ubg.sh once. If this was already the rerun, stop and contact course support.'
+    elif [[ "$RESTART_REQUIRED" == true ]]; then
+        printf 'After Ubuntu restarts, open Terminal and run verify_ubg.sh.'
     else
         printf 'Open a new Terminal and run verify_ubg.sh.'
     fi
 }
 finish(){
-    local requested_code="${1:-0}" detail="${2:-}" code result next
+    local requested_code="${1:-0}" detail="${2:-}" code result action next title
     [[ "$FINALIZED" == false ]] || return "$requested_code"
     FINALIZED=true
     cleanup
     if [[ "$PARTIAL" == true && "$requested_code" -eq 0 ]]; then requested_code="$EXIT_PARTIAL"; fi
     code=0
     ((requested_code==0)) || code="$(resolve_failure_code "$requested_code")"
-    if ((code==0)); then result=PASS; elif ((code==EXIT_PARTIAL)); then result=PARTIAL; else result=FAIL; fi
+    if ((code==0)); then result=PASS; elif ((code==EXIT_PARTIAL)); then result=PARTIAL; elif ((code==EXIT_CANCELED)); then result=CANCELED; else result=FAIL; fi
+    action="$(summary_action "$code")"
     next="$(summary_guidance "$code")"
-    header 'UPDATE SUMMARY'
-    [[ -n "$detail" ]] && printf 'Conclusion      : %s\n' "$detail"
+    if ((code==0)) && [[ "$RESTART_REQUIRED" == true ]]; then
+        title='UPDATE COMPLETE — RESTART REQUIRED'
+    elif ((code==0)); then
+        title='UPDATE COMPLETE'
+    else
+        title='UPDATE SUMMARY'
+    fi
+    header "$title"
     printf 'Result          : %s\n' "$result"
+    printf 'Action required : %s\n' "$action"
+    printf 'Next step       : %s\n' "$next"
+    printf '\n------------------------------------------------------------\nSUPPORT DETAILS\n------------------------------------------------------------\n'
+    [[ -n "$detail" ]] && printf 'Conclusion      : %s\n' "$detail"
     printf 'Script version  : %s\n' "$SCRIPT_VERSION"
     printf 'Manifest release: %s\n' "$MANIFEST_RELEASE"
     printf 'Manifest DTG    : %s\n' "$MANIFEST_DTG"
@@ -118,10 +154,25 @@ finish(){
     printf 'Restart required: %s\n' "$( [[ "$RESTART_REQUIRED" == true ]] && printf Yes || printf No )"
     printf 'Managed changes : %s\n' "$( [[ "$CHANGED" == true ]] && printf Yes || printf No )"
     printf 'Elapsed time    : %s seconds\n' "$(( $(date +%s)-START_EPOCH ))"
-    printf 'Next step       : %s\n' "$next"
     printf 'Log file        : %s\n' "$LOG_FILE"
     printf 'Exit code       : %s\n' "$code"
-    if ((code==0)); then success 'The IT 140 Ubuntu GNOME update completed successfully.'; else continuity; fi
+    if ((code==0)); then
+        success 'The IT 140 Ubuntu GNOME update completed successfully.'
+        if [[ "$RESTART_REQUIRED" == true ]]; then
+            notice 'ACTION: Save your work and restart Ubuntu.'
+            notice 'NEXT: After Ubuntu restarts, open Terminal and run verify_ubg.sh.'
+        else
+            notice 'NEXT: Open a new Terminal and run verify_ubg.sh.'
+        fi
+    elif ((code==EXIT_CANCELED)); then
+        notice 'Update was canceled before managed changes were made. Rerun it when you are ready.'
+        continuity
+    else
+        continuity
+        notice 'If this is the first failed Update, rerun update_ubg.sh once.'
+        notice 'If Update has failed twice consecutively, stop retrying it and contact course support.'
+        notice "Include this log file with the support request: $LOG_FILE"
+    fi
     notice 'Review the summary and log before closing Terminal.'
     return "$code"
 }
@@ -141,7 +192,7 @@ except Exception as exc:
     raise SystemExit(f'controlled JSON validation failed: {exc}')
 if m.get('schema_version')!=supported: raise SystemExit('unsupported manifest schema')
 if s.get('$schema')!='https://json-schema.org/draft/2020-12/schema': raise SystemExit('unsupported JSON Schema draft')
-if m.get('policy',{}).get('allow_os_release_upgrade') is not False: raise SystemExit('manifest attempts to allow an operating-system release upgrade')
+if m.get('policy',{}).get('allow_os_release_upgrade') is not False: raise SystemExit('manifest attempts to allow operating-system release upgrades')
 p=m.get('platforms',{}).get(pid); d=m.get('deployment_profiles',{}).get(profile_id)
 if not p or not p.get('enabled'): raise SystemExit('Ubuntu GNOME platform missing or disabled')
 if not d or not d.get('enabled') or d.get('platform_id')!=pid or d.get('architecture')!='x86_64': raise SystemExit('Ubuntu GNOME deployment profile invalid')
@@ -242,7 +293,7 @@ post_validate(){
     local pkg; while IFS= read -r pkg; do [[ -n "$pkg" ]] || continue; "$VENV_DIR/bin/python" -m pip show "$pkg" >/dev/null 2>&1 || fatal "$EXIT_FAILURE" "Required course Python package is missing after Update: $pkg"; done < <(manifest_query venv_packages)
     local installed ext; installed="$(code --list-extensions 2>/dev/null || true)"
     while IFS= read -r ext; do [[ -n "$ext" ]] || continue; grep -Fxiq "$ext" <<< "$installed" || fatal "$EXIT_FAILURE" "Required VS Code extension is missing after Update: $ext"; done < <(manifest_query extensions)
-    if [[ -e "$REBOOT_REQUIRED_PATH" ]]; then RESTART_REQUIRED=true; PARTIAL=true; notice 'Ubuntu reports that a restart is required before maintenance is fully complete.'; fi
+    if [[ -e "$REBOOT_REQUIRED_PATH" ]]; then RESTART_REQUIRED=true; notice 'Ubuntu reports that a restart is required before the lifecycle can continue.'; fi
     success 'Ubuntu GNOME Update passed post-validation.'
 }
 main(){
@@ -252,7 +303,7 @@ main(){
     trap on_error ERR; trap on_interrupt INT TERM HUP
     header 'IT 140 UBUNTU GNOME UPDATE'; info "Script version   : $SCRIPT_VERSION"; info "Current user     : $(id -un)"; info "Course root      : $COURSE_ROOT"; info "Log file         : $LOG_FILE"; notice 'Update does not install an Ubuntu release upgrade or modify student repositories.'
     check_context
-    exec 9>"$LOCK_FILE"; flock -n 9 || fatal "$EXIT_PARTIAL" 'Another IT 140 Ubuntu mutation script is running.'
+    exec 9>"$LOCK_FILE"; flock -n 9 || fatal "$EXIT_FAILURE" 'Another IT 140 setup script is currently running. Return to the other Terminal and let it finish before starting another setup script.'
     CURRENT_STAGE='Validate local controlled manifest'; [[ -r "$MANIFEST_PATH" && -r "$SCHEMA_PATH" ]] || fatal "$EXIT_MANIFEST" 'The local controlled manifest or schema is missing.'
     local validated; validated="$(validate_manifest_pair "$MANIFEST_PATH" "$SCHEMA_PATH" 2>&1)" || fatal "$EXIT_MANIFEST" 'The local controlled manifest and schema failed validation.'; IFS=$'\t' read -r MANIFEST_RELEASE MANIFEST_DTG <<< "$validated"; info "Manifest release: $MANIFEST_RELEASE"; info "Manifest DTG    : $MANIFEST_DTG"
     header 'Stage 1: Controlled Maintenance Assets'; refresh_controlled_assets

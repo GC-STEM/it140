@@ -94,7 +94,7 @@ class MacVerifyLifecycleTests(unittest.TestCase):
             env["HOME"] = str(home)
             completed = subprocess.run([ZSH_EXECUTABLE, str(VERIFY_SOURCE), "--version"], env=env, capture_output=True, text=True, timeout=10, check=False)
             self.assertEqual(completed.returncode, 0, msg=completed.stdout + completed.stderr)
-            self.assertIn("1.0.1", completed.stdout)
+            self.assertIn("1.0.2", completed.stdout)
             self.assertFalse((home / "it140" / "logs").exists())
 
 

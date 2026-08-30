@@ -6,8 +6,8 @@
 # Purpose: Acquire or refresh the IT 140 automation package without requiring
 #          Homebrew, Git, the controlled manifest, or another lifecycle script.
 # Artifact ID: IT140-MAC-PREPARE
-# Artifact version: 1.0.1
-# Version date-time group: 2026-08-30-07-01
+# Artifact version: 1.0.2
+# Version date-time group: 2026-08-30-12-56
 # Development status: Pilot — Active Development
 # Supported profile: macos_bare_metal (Apple silicon, arm64)
 # Traceability: PRE-FR-001 through PRE-FR-015; PKG-FR-006 through PKG-FR-010;
@@ -16,9 +16,9 @@
 # ==============================================================================
 set -euo pipefail
 umask 077
-readonly ARTIFACT_VERSION='1.0.1'
-readonly VERSION_DTG='2026-08-30-07-01'
-readonly DEVELOPMENT_STATUS='Beta Testing'
+readonly ARTIFACT_VERSION="1.0.2"
+readonly VERSION_DTG="2026-08-30-12-56"
+readonly DEVELOPMENT_STATUS="Pilot — Active Development"
 readonly COURSE_ROOT="$HOME/it140"
 readonly SCRIPT_ROOT="$COURSE_ROOT/scripts"
 readonly SCRIPT_DIR="$SCRIPT_ROOT/mac"
