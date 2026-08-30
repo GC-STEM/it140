@@ -44,9 +44,10 @@ def snapshot(paths:dict[str,Path])->dict[str,str|None]: return {k:digest(v) for 
 def parse_log(path:Path)->UpdateTranscript:
     text=path.read_text(encoding='utf-8',errors='replace'); summary={}; started=False
     keys={'Conclusion','Result','Script version','Manifest release','Manifest DTG','Warnings','Failures','Restart required','Managed changes','Elapsed time','Next step','Log file','Exit code'}
+    summary_headings={'UPDATE SUMMARY','UPDATE COMPLETE','UPDATE COMPLETE — RESTART REQUIRED'}
     for raw in text.splitlines():
         line=raw.strip('\ufeff\r\n')
-        if line=='UPDATE SUMMARY': started=True; continue
+        if line in summary_headings: started=True; continue
         if started and ':' in line:
             k,v=line.split(':',1); k=k.strip()
             if k in keys: summary[k]=v.strip()

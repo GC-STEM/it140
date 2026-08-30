@@ -41,9 +41,10 @@ def snap(d):return {k:digest(v) for k,v in d.items()}
 def parse_log(path:Path)->UpdateTranscript:
     text=path.read_text(encoding='utf-8',errors='replace'); s={}; on=False
     accepted={'Result','Artifact ID','Artifact version','Version date-time group','Development status','Manifest release','Manifest release DTG','Deployment profile','Workflow','Starting state','Operating role','Managed changes','Warnings','Failures','Elapsed time','Detail','Next step','Log file','Exit code'}
+    summary_headings={'IT 140 macOS UPDATE SUMMARY','IT 140 macOS UPDATE COMPLETE'}
     for raw in text.splitlines():
         line=raw.strip('\ufeff\r\n')
-        if line=='IT 140 macOS UPDATE SUMMARY':on=True;continue
+        if line in summary_headings:on=True;continue
         if on and ':' in line:
             k,v=line.split(':',1);k=k.strip()
             if k in accepted:s[k]=v.strip()

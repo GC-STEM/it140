@@ -231,7 +231,7 @@ finish() {
     printf 'Next step       : %s\n' "$next_step"
     printf '\n------------------------------------------------------------\n'
     printf 'SUPPORT DETAILS\n'
-    printf '------------------------------------------------------------\n'
+    printf '%s\n' '------------------------------------------------------------'
     [[ -n "$message" ]] && printf 'Conclusion      : %s\n' "$message"
     printf 'Script version  : %s\n' "$SCRIPT_VERSION"
     printf 'Version DTG     : %s\n' "$VERSION_DTG"

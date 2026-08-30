@@ -113,9 +113,14 @@ def parse_update_log(path: Path) -> UpdateTranscript:
     text = path.read_text(encoding="utf-8", errors="replace")
     summary: dict[str, str] = {}
     in_summary = False
+    summary_headings = {
+        "UPDATE SUMMARY",
+        "UPDATE COMPLETE",
+        "UPDATE COMPLETE — RESTART REQUIRED",
+    }
     for raw_line in text.splitlines():
         line = raw_line.strip("\ufeff\r\n")
-        if line == "UPDATE SUMMARY":
+        if line in summary_headings:
             in_summary = True
             continue
         if not in_summary or ":" not in line:
