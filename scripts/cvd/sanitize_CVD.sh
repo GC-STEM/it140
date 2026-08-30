@@ -3,9 +3,9 @@
 # IT 140 COURSE IDE — CVD CLEANUP
 # ==============================================================================
 # Repository path: scripts/cvd/sanitize_cvd.sh# Purpose: Prepare the approved Codio Virtual Desktop baseline for student use.
-# Artifact version: 0.10.0-beta.1
-# Version date-time group: 2026-08-09-23-59
-# Development status: Beta Testing
+# Artifact version: 1.0.1
+# Version date-time group: 2026-08-30-07-01
+# Development status: Pilot — Active Development
 # Supported platform: Codio Virtual Desktop (Ubuntu 24.04 LTS, Xfce, LightDM)
 # Intended user: Standard CVD user; do not run as root or with sudo.
 #
@@ -22,8 +22,8 @@
 set -Eeuo pipefail
 umask 077
 
-readonly SCRIPT_VERSION="0.10.0-beta.1"
-readonly VERSION_DTG="2026-08-09-23-59"
+readonly SCRIPT_VERSION="1.0.1"
+readonly VERSION_DTG="2026-08-30-07-01"
 readonly DEVELOPMENT_STATUS="Beta Testing"
 
 readonly COURSE_ROOT="${HOME}/it140"

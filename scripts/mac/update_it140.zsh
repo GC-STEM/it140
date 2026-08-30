@@ -5,9 +5,9 @@
 # Repository path: scripts/mac/update_it140.zsh
 # Purpose: Maintain approved IT 140 course IDE software and controlled maintenance assets.
 # Artifact ID: IT140-MAC-UPDATE
-# Artifact version: 0.10.0-beta.1
-# Version date-time group: 2026-08-09-23-59
-# Development status: Beta Testing
+# Artifact version: 1.0.1
+# Version date-time group: 2026-08-30-07-01
+# Development status: Pilot — Active Development
 # Supported profile: macos_bare_metal (Apple silicon, arm64)
 # Traceability: UPD-FR-001 through UPD-FR-016; PKG-FR-003 through PKG-FR-010; PKG-FR-021; PKG-QOS-011 through PKG-QOS-015.
 # ==============================================================================
@@ -16,8 +16,8 @@ umask 077
 readonly IT140_ACTION='update'
 readonly IT140_ACTION_DISPLAY='Update'
 readonly IT140_ARTIFACT_ID='IT140-MAC-UPDATE'
-readonly IT140_ARTIFACT_VERSION='0.10.0-beta.1'
-readonly IT140_VERSION_DATE_TIME_GROUP='2026-08-09-23-59'
+readonly IT140_ARTIFACT_VERSION='1.0.1'
+readonly IT140_VERSION_DATE_TIME_GROUP='2026-08-30-07-01'
 readonly IT140_DEVELOPMENT_STATUS='Beta Testing'
 readonly IT140_PURPOSE='Maintain approved IT 140 course IDE software and controlled maintenance assets.'
 readonly IT140_SUPPORTED_SCHEMA='2.2'

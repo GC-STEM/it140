@@ -303,6 +303,6 @@ Questions about an individual student's submission, grade, or feedback should re
 * **Activity Type**: Faculty reference
 * **Activity Purpose**: Orient faculty to the IT 140 course IDE, GitHub repository model, activity-repository release process, student workflow, and faculty support resources.
 * **Activity Description**: This guide explains how the IT 140 course repositories, automation scripts, course IDE, GitHub workflow, Codio Virtual Desktop, and D2L Brightspace fit together. It also directs faculty to the Module One setup instructions and identifies where to report questions, concerns, technical issues, and feature requests.
-* **Artifact Version**: 0.10.0-beta.1
-* **Artifact Date**: 2026-08-09-23-59
-* **Development Status**: Beta Testing
+* **Artifact Version**: 1.0.1
+* **Artifact Date**: 2026-08-30-07-01
+* **Development Status**: Pilot — Active Development
