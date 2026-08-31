@@ -5,6 +5,7 @@ This guide gives faculty, course developers, maintainers, testers, platform admi
 > [!IMPORTANT]
 > This README is informative and navigational, not normative. It does not establish or replace requirements, acceptance criteria, design decisions, configuration rules, or release evidence. The [Software Requirements Specification](analysis/it140_scripts_srs.md) defines required behavior, and the [Software Design Description](design/it140_scripts_sdd.md) defines the approved high-level design. Both are currently drafts for faculty review; this README does not imply release approval.
 
+<!-- omit from toc -->
 ## Table of Contents
 
 - [Engineering Executive Summary and Artifact Guide](#engineering-executive-summary-and-artifact-guide)

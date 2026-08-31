@@ -17,6 +17,7 @@ This guide explains the purpose of the IT 140 Course Automation Scripts package,
 > [!WARNING]
 > This repository is a work in progress. Some modules and activities may not be fully implemented yet. Please check the status of each activity in the table below for the latest updates.
 
+<!-- omit from toc -->
 ## Table of Contents
 
 - [IT 140 Main Course Repository | Course Automation Scripts](#it-140-main-course-repository--course-automation-scripts)

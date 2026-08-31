@@ -17,6 +17,7 @@ This guide explains the controlled configuration files in `scripts/.manifest/`, 
 > [!WARNING]
 > This repository is a work in progress. Some modules and activities may not be fully implemented yet. Please check the status of each activity in the table below for the latest updates.
 
+<!-- omit from toc -->
 ## Table of Contents
 
 - [Controlled Manifest and Schema Guide](#controlled-manifest-and-schema-guide)
