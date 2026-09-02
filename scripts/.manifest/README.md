@@ -10,8 +10,8 @@ This guide explains the controlled configuration files in `scripts/.manifest/`, 
 - **Course**: IT 140 - *Introduction to Scripting*
 - **Activity Name**: Main Course Repository | Controlled Manifest and Schema Guide
 - **Activity Purpose**: Explain the controlled manifest and schema, their purpose, and how maintainers should review, validate, change, and release them.
-- **Artifact Version**: 1.0.2
-- **Artifact Date-Time Group**: 2026-08-30-12-56
+- **Artifact Version**: 1.0.3
+- **Artifact Date-Time Group**: 2026-09-02-09-37
 - **Development Status**: Pilot — Active Development
 
 > [!WARNING]

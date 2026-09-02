@@ -15,8 +15,8 @@ administrative Windows Sandbox container context as an intentional exception.
 It creates only the required transcript and, when explicitly requested and
 confirmed, a sanitized support bundle under ~/it140/logs.
 
-Artifact version: 1.0.2
-Version date-time group: 2026-08-30-12-56
+Artifact version: 1.0.3
+Version date-time group: 2026-09-02-09-37
 Development status: Pilot — Active Development
 
 Version basis:
@@ -33,7 +33,7 @@ Version basis:
     Version 0.8.0-alpha.1 adds read-only verification of the separate Repos
     workspace, Explorer development icon metadata, and desktop Repos shortcut.
 
-    Version 1.0.2 establishes the coordinated Beta-testing baseline,
+    Version 1.0.3 establishes the coordinated Beta-testing baseline,
     aligns artifact metadata with the controlled manifest and schema, and
     incorporates fixes completed during Alpha and Beta qualification testing.
 
@@ -106,8 +106,8 @@ else {
     $env:APPDATA
 }
 
-$ScriptVersion = "1.0.2"
-$VersionDate = "2026-08-30-12-56"
+$ScriptVersion = "1.0.3"
+$VersionDate = "2026-09-02-09-37"
 $DevelopmentStatus = "Beta Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"

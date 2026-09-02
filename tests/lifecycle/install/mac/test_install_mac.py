@@ -49,7 +49,7 @@ class MacInstallLifecycleTests(unittest.TestCase):
         self._assert_early_exit("--help", "Usage: install_it140.zsh")
 
     def test_version_returns_zero_without_creating_log(self) -> None:
-        self._assert_early_exit("--version", "1.0.2")
+        self._assert_early_exit("--version", "1.0.3")
 
     def _assert_early_exit(self, argument: str, expected_text: str) -> None:
         with tempfile.TemporaryDirectory(prefix="it140-install-mac-cli-") as temp_name:

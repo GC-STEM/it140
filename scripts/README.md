@@ -10,8 +10,8 @@ This guide explains the purpose of the IT 140 Course Automation Scripts package,
 - **Course**: IT 140 - *Introduction to Scripting*
 - **Activity Name**: Main Course Repository | Course Automation Scripts
 - **Activity Purpose**: Prepare, install, configure, verify, and update the IT 140 course IDE in supported environments.
-- **Artifact Version**: 1.0.2
-- **Artifact Date-Time Group**: 2026-08-30-12-56
+- **Artifact Version**: 1.0.3
+- **Artifact Date-Time Group**: 2026-09-02-09-37
 - **Development Status**: Pilot — Active Development
 
 > [!WARNING]

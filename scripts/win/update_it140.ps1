@@ -16,8 +16,8 @@ user settings.
 
 Run this script from a normal, non-elevated Windows PowerShell terminal.
 
-Artifact version: 1.0.2
-Version date-time group: 2026-08-30-12-56
+Artifact version: 1.0.3
+Version date-time group: 2026-09-02-09-37
 Development status: Pilot — Active Development
 
 Version basis:
@@ -33,7 +33,7 @@ Version basis:
     Version 0.3.1 updates controlled-manifest compatibility from schema 2.0 to
     schema 2.2 and validates the release date-time group.
 
-    Version 1.0.2 establishes the coordinated Beta-testing baseline,
+    Version 1.0.3 establishes the coordinated Beta-testing baseline,
     aligns artifact metadata with the controlled manifest and schema, and
     incorporates fixes completed during Alpha testing.
 
@@ -90,8 +90,8 @@ if ($UpdateTestMode) {
     $UpdateTestState = Get-Content -LiteralPath $UpdateTestStatePath -Raw | ConvertFrom-Json
 }
 
-$ScriptVersion = "1.0.2"
-$VersionDateTimeGroup = "2026-08-30-12-56"
+$ScriptVersion = "1.0.3"
+$VersionDateTimeGroup = "2026-09-02-09-37"
 $DevelopmentStatus = "Beta Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"

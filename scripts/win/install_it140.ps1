@@ -14,8 +14,8 @@ Python-environment, VS Code-extension, or editor settings.
 Run this script from an elevated Windows PowerShell terminal opened by the
 intended student or faculty user.
 
-Artifact version: 1.0.2
-Version date-time group: 2026-08-30-12-56
+Artifact version: 1.0.3
+Version date-time group: 2026-09-02-09-37
 Development status: Pilot — Active Development
 
 Version basis:
@@ -27,7 +27,7 @@ Version basis:
     Version 0.3.0 adds support for Windows 10, version 22H2, while preserving
     manifest-controlled Windows 11 release validation.
 
-    Version 1.0.2 establishes the coordinated Beta-testing baseline,
+    Version 1.0.3 establishes the coordinated Beta-testing baseline,
     aligns artifact metadata with the controlled manifest and schema, and
     incorporates fixes completed during Alpha testing.
 
@@ -81,8 +81,8 @@ if ($InstallTestMode) {
         ConvertFrom-Json
 }
 
-$ScriptVersion = "1.0.2"
-$VersionDate = "2026-08-30-12-56"
+$ScriptVersion = "1.0.3"
+$VersionDate = "2026-09-02-09-37"
 $DevelopmentStatus = "Beta Testing"
 $PlatformId = "windows"
 $PlatformAbbreviation = "win"

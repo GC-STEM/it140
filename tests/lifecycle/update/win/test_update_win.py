@@ -20,7 +20,7 @@ class WinUpdateLifecycleTests(unittest.TestCase):
             cp=subprocess.run([POWERSHELL_EXECUTABLE,'-NoProfile','-ExecutionPolicy','Bypass','-File',str(UPDATE_SOURCE),arg],capture_output=True,text=True,timeout=20,check=False,env=env)
             self.assertEqual(0,cp.returncode,cp.stdout+cp.stderr);self.assertIn(text,cp.stdout+cp.stderr)
     def test_help_returns_zero_without_creating_log(self):self.early('-Help','IT 140 Windows update script')
-    def test_version_returns_zero_without_creating_log(self):self.early('-Version','1.0.2')
+    def test_version_returns_zero_without_creating_log(self):self.early('-Version','1.0.3')
     def test_declared_scenarios(self):
         for f in FILES:
             s=self.h.load_scenario(SCENARIOS/f)

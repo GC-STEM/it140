@@ -6,8 +6,8 @@
 * **Module Name**: Main Course Repository
 * **Activity Name**: Script Log Files
 * **Activity Purpose**: Help you understand and use the log files created by the IT 140 course automation scripts.
-* **Artifact Version**: 1.0.2
-* **Artifact Date-Time Group**: 2026-08-30-12-56
+* **Artifact Version**: 1.0.3
+* **Artifact Date-Time Group**: 2026-09-02-09-37
 * **Development Status**: Pilot — Active Development
 
 ## What Are These Log Files?

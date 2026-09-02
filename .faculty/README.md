@@ -4,15 +4,15 @@
 
 ---
 
-## 🧪 Beta Testing
+## ✈️ Pilot -- Active Development
 
-IT 140 has completed end-to-end (E2E) Alpha Testing of the major course IDE components and is now in Beta Testing with faculty and staff. During this phase, faculty may encounter incomplete activity repositories, documentation gaps, or environment-specific setup issues that were not identified during Alpha Testing.
+IT 140 has completed all planned testing and is now being piloted with faculty and staff. The course IDE, activity repositories, documentation, and setup automation remain under active development. During the pilot, faculty may encounter incomplete activity repositories, documentation gaps, or environment-specific setup issues that emerge only in varied, real-world environments under student use conditions.
 
 The **Codio Virtual Desktop (CVD)** is the course reference environment and the preferred starting platform for students. The CVD automation is expected to be reliable because each CVD begins from a standardized environment. Local Windows, macOS, and Linux computers vary in software, settings, permissions, security controls, and prior configurations, so Beta Testing may uncover conditions that were not encountered on fresh operating system installations.
 
 Local installation is optional for students. Students using unsupported operating systems or devices, such as Chromebooks or tablets, should normally use the CVD rather than trying to reproduce the course IDE on an unsupported platform.
 
-**Beta testers**: Please report technical issues and feature requests using the **Issues** tab in the appropriate GitHub repository. An issue is any error, failed step, unexpected result, missing or incorrect behavior, broken link, or instruction that prevents or makes a course task difficult to complete. A feature request is a suggestion for improving the automation, documentation, repository structure, or user experience.
+Please report technical issues and feature requests using the **Issues** tab in the appropriate GitHub repository. An issue is any error, failed step, unexpected result, missing or incorrect behavior, broken link, or instruction that prevents or makes a course task difficult to complete. A feature request is a suggestion for improving the automation, documentation, repository structure, or user experience.
 
 ---
 
@@ -103,6 +103,8 @@ The Brightspace link may be labeled **Optional Codio Virtual Desktop**. "Optiona
 ### Local Course IDE
 
 Students may optionally configure the same core course IDE on a supported local computer.
+
+Instructors and students who already have IDE experience may instead use a different local development toolset after configuring and verifying the CVD. [Alternative Local Development Tools](https://github.com/GC-STEM/it140/wiki/Alternative-Local-Development-Tools) explains the required capabilities and the distinction between an allowed user-selected toolset and a course-supported environment.
 
 Local installation can be convenient for students who prefer to work directly on their own computers, but it introduces more variability because personal computers may have:
 
