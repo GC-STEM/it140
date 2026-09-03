@@ -30,12 +30,12 @@ Click the desired link in the **Task** column to go to that repository. The **Lo
 | **Module** | **Task** | **Local Repos Folder** | **Status** | **Notes** |
 | ---------- | -------- | ---------------------- | :--------: | -------- |
 | One | [Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | N/A | 🟢 | Ready; no known issues. |
-| Two | [Assignment](https://github.com/GC-STEM/it140-m2-assignment) | `it140-m2-assignment` | 🟢 | Ready; no known issues. |
-| Three | [Assignment](https://github.com/GC-STEM/it140-m3-assignment) | `it140-m3-assignment` | 🟢 | Ready; no known issues. |
-| Four | [Assignment](https://github.com/GC-STEM/it140-m4-assignment) | `it140-m4-assignment` | 🟢 | Ready; no known issues. |
-| Five | [Project One](https://github.com/GC-STEM/it140-projects) | `it140-projects/design` | 🟢 | Ready; no known issues. |
-| Six | [Milestone](https://github.com/GC-STEM/it140-projects) | `it140-projects/prototype` | 🟢 | Ready; no known issues. |
-| Seven | [Project Two](https://github.com/GC-STEM/it140-projects) | `it140-projects/src` | 🟢 | Ready; no known issues. |
+| Two | [Assignment](https://github.com/GC-STEM/it140-m2-assignment) | `it140-m2-assignment` | 🟡 | Usable with known Windows issue. |
+| Three | [Assignment](https://github.com/GC-STEM/it140-m3-assignment) | `it140-m3-assignment` | 🟡 | Usable with known Windows issue. |
+| Four | [Assignment](https://github.com/GC-STEM/it140-m4-assignment) | `it140-m4-assignment` | 🟡 | Usable with known Windows issue. |
+| Five | [Project One](https://github.com/GC-STEM/it140-projects) | `it140-projects/design` | 🟡 | Usable with known Windows issue. |
+| Six | [Milestone](https://github.com/GC-STEM/it140-projects) | `it140-projects/prototype` | 🟡 | Usable with known Windows issue. |
+| Seven | [Project Two](https://github.com/GC-STEM/it140-projects) | `it140-projects/src` | 🟡 | Usable with known Windows issue. |
 | F & S | [Support](https://github.com/GC-STEM/it140-support) | N/A: Faculty and Staff | 🟢 | Ready; no known issues. |
 
 <!--
