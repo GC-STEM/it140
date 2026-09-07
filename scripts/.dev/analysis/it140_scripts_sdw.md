@@ -1,6 +1,6 @@
 # Software Development Worksheet
 
-- **Course**: IT 140 - *Introduction to Scripting*
+* **Course**: IT 140 - *Introduction to Scripting*
 - **Activity**: Course Automation Script Development
 - **Program Name**: IT 140 Course Automation Scripts
 - **Document ID**: IT140-SDW-SCRIPTS

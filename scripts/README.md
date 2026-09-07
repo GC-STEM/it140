@@ -7,11 +7,11 @@ This guide explains the purpose of the IT 140 Course Automation Scripts package,
 > [!IMPORTANT]
 > This README is informative and navigational. Follow the [Module One Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) for the exact commands and workflow for your course environment. Run only the scripts that match your selected platform.
 
-- **Course**: IT 140 - *Introduction to Scripting*
+* **Course**: IT 140 - *Introduction to Scripting*
 - **Activity Name**: Main Course Repository | Course Automation Scripts
 - **Activity Purpose**: Prepare, install, configure, verify, and update the IT 140 course IDE in supported environments.
-- **Artifact Version**: 1.0.3
-- **Artifact Date-Time Group**: 2026-09-02-09-37
+- **Artifact Version**: 1.0.4
+- **Artifact Date-Time Group**: 2026-09-07-14-30
 - **Development Status**: Pilot — Active Development
 
 > [!WARNING]
@@ -38,7 +38,7 @@ This guide explains the purpose of the IT 140 Course Automation Scripts package,
 
 ## Document Metadata
 
-- **Course**: IT 140 - *Introduction to Scripting*
+* **Course**: IT 140 - *Introduction to Scripting*
 - **Module Name**: Main Course Repository
 - **Activity Name**: Course Automation Scripts
 - **Activity Description**: This folder contains the platform automation scripts used to prepare, install, configure, verify, and update the IT 140 course IDE.
@@ -192,7 +192,7 @@ Students should not edit the controlled manifest, schema, engineering artifacts,
 
 Every lifecycle script saves a timestamped plain-text log or transcript under the course log folder:
 
-- **Windows**: `%USERPROFILE%\it140\logs\`
+* **Windows**: `%USERPROFILE%\it140\logs\`
 - **macOS, Linux, and CVD**: `~/it140/logs/`
 
 When a script reports a warning, partial result, or failure, keep the final summary and the exact log path. These records help instructors, AI support tools, and university technical support identify the script version, platform, completed actions, and point of failure without requiring the student to remember every message shown in the terminal.

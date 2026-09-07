@@ -1,4 +1,4 @@
-<!-- To see this file in a clean, formatted view, select "Text Editor ▼" in the upper-right corner of the editor, then select "Markdown Preview". -->
+<!-- To see this file in a clean, formatted view, select ▼ in the upper-right corner of the editor pane, then select "Markdown Preview". -->
 
 # IT 140: Introduction to Scripting
 
@@ -13,11 +13,11 @@
 
 ---
 
-- **Course**: IT 140 - *Introduction to Scripting*
+* **Course**: IT 140 - *Introduction to Scripting*
 - **Repository Title**: Main Course Repository
 - **Repository Type**: Student-facing course hub
-- **Repository Version**: 1.0.3
-- **Repository Version DTG**: 2026-09-02-09-37
+* **Repository Version**: 1.0.4
+* **Repository Version DTG**: 2026-09-07-14-30
 
 This repository is the central GitHub hub for **IT 140 - Introduction to Scripting**. Use it to find the setup, template, assignment, and project repositories used throughout the course.
 

@@ -25,7 +25,7 @@ This guide gives faculty, course developers, maintainers, testers, platform admi
 
 ## Document Metadata
 
-- **Course**: IT 140 - *Introduction to Scripting*
+* **Course**: IT 140 - *Introduction to Scripting*
 - **Program name**: IT 140 Course Automation Scripts
 - **Artifact ID**: `IT140-DEV-README`
 - **Artifact version**: `0.2.0`

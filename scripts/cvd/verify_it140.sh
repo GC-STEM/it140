@@ -3,8 +3,8 @@
 # IT 140 Codio Virtual Desktop read-only verification script
 #
 # Artifact ID: IT140-CVD-VERIFY
-# Artifact version: 1.0.3
-# Version date-time group: 2026-09-02-09-37
+# Artifact version: 1.0.4
+# Version date-time group: 2026-09-07-14-30
 # Development status: Pilot — Active Development
 #
 # Traceability: VER-FR-001 through VER-FR-018; PKG-FR-021;
@@ -15,8 +15,8 @@
 # support directory are the only files this script creates.
 set -Eeuo pipefail
 umask 077
-readonly SCRIPT_VERSION="1.0.3"
-readonly VERSION_DTG="2026-09-02-09-37"
+readonly SCRIPT_VERSION="1.0.4"
+readonly VERSION_DTG="2026-09-07-14-30"
 readonly DEVELOPMENT_STATUS="Pilot — Active Development"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"

@@ -2,7 +2,7 @@
 
 # IT 140 Main Course Repository | Linux Distributions
 
-- **Course**: IT 140 - *Introduction to Scripting*
+* **Course**: IT 140 - *Introduction to Scripting*
 - **Module Name**: Main Course Repository
 - **Activity Name**: Course Automation Scripts for Linux Distributions
 - **Activity Description**: This folder contains

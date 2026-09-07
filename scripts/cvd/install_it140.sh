@@ -3,8 +3,8 @@
 # IT 140 Codio Virtual Desktop system installation and repair script
 #
 # Artifact ID: IT140-CVD-INSTALL
-# Artifact version: 1.0.3
-# Version date-time group: 2026-09-02-09-37
+# Artifact version: 1.0.4
+# Version date-time group: 2026-09-07-14-30
 # Development status: Pilot — Active Development
 #
 # Traceability: INS-FR-001 through INS-FR-012; INS-DES-001 through INS-DES-012.
@@ -13,8 +13,8 @@
 #           user extensions, and user launchers.
 set -Eeuo pipefail
 umask 077
-readonly SCRIPT_VERSION="1.0.3"
-readonly VERSION_DTG="2026-09-02-09-37"
+readonly SCRIPT_VERSION="1.0.4"
+readonly VERSION_DTG="2026-09-07-14-30"
 readonly DEVELOPMENT_STATUS="Pilot — Active Development"
 readonly SUPPORTED_SCHEMA="2.2"
 readonly PLATFORM_ID="cvd"

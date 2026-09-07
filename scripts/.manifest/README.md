@@ -7,11 +7,11 @@ This guide explains the controlled configuration files in `scripts/.manifest/`, 
 > [!IMPORTANT]
 > This README is informative and navigational, not normative. It does not establish or replace requirements, design decisions, schema rules, approved configuration, qualification evidence, or release approval. The [Software Requirements Specification](../.dev/analysis/it140_scripts_srs.md) defines required behavior, the [Software Design Description](../.dev/design/it140_scripts_sdd.md) defines the approved high-level design, the [manifest schema](it140_manifest.schema.json) defines the permitted JSON structure, and the [controlled manifest](it140_manifest.json) selects the current concrete configuration.
 
-- **Course**: IT 140 - *Introduction to Scripting*
+* **Course**: IT 140 - *Introduction to Scripting*
 - **Activity Name**: Main Course Repository | Controlled Manifest and Schema Guide
 - **Activity Purpose**: Explain the controlled manifest and schema, their purpose, and how maintainers should review, validate, change, and release them.
-- **Artifact Version**: 1.0.3
-- **Artifact Date-Time Group**: 2026-09-02-09-37
+- **Artifact Version**: 1.0.4
+- **Artifact Date-Time Group**: 2026-09-07-14-30
 - **Development Status**: Pilot — Active Development
 
 > [!WARNING]
@@ -42,7 +42,7 @@ This guide explains the controlled configuration files in `scripts/.manifest/`, 
 
 ## Document Metadata
 
-- **Course**: IT 140 - *Introduction to Scripting*
+* **Course**: IT 140 - *Introduction to Scripting*
 - **Program name**: IT 140 Course Automation Scripts
 - **Artifact ID**: `IT140-MANIFEST-README`
 - **Artifact version**: `0.1.0`

@@ -2,8 +2,8 @@
 # Linux Codio Virtual Desktop (CVD) environment fingerprint
 # Captures system, package, desktop, development-tool, and configuration state
 # for comparison with a local Ubuntu/Xfce virtual machine.
-# Artifact version: 1.0.3
-# Version date-time group: 2026-09-02-09-37
+# Artifact version: 1.0.4
+# Version date-time group: 2026-09-07-14-30
 # Development status: Pilot — Active Development
 
 set -Eeuo pipefail
@@ -11,8 +11,8 @@ IFS=$'\n\t'
 umask 077
 
 readonly SCRIPT_NAME="$(basename "$0")"
-readonly SCRIPT_VERSION="1.0.3"
-readonly VERSION_DTG="2026-09-02-09-37"
+readonly SCRIPT_VERSION="1.0.4"
+readonly VERSION_DTG="2026-09-07-14-30"
 readonly HOST_SHORT="$(hostname -s 2>/dev/null || hostname)"
 readonly RUN_DTG="$(date +%Y%m%d_%H%M%S)"
 readonly OUTPUT_DIR="$HOME/cvd_fingerprint_${HOST_SHORT}_${RUN_DTG}"
