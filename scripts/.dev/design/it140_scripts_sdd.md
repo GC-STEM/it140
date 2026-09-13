@@ -1,14 +1,14 @@
 # Software Design Description
 
 * **Course**: IT 140 - *Introduction to Scripting*
-- **Activity**: Course Automation Script Development
-- **Program Name**: IT 140 Course Automation Scripts
-- **Document ID**: IT140-SDD-SCRIPTS
-- **Status**: Draft for faculty review
-- **Version**: 0.6.0
-- **Version Date-Time Group**: 2026-08-07-10-44
-- **SRS Baseline**: `IT140-SRS-SCRIPTS`, version `0.6.0`, version date-time group `2026-08-07-10-44`
-- **Repository Baseline**: `GC-STEM/it140` commit `dbde859f90b1b957b05aa03e25b867563c113bb2`
+* **Activity**: Course Automation Script Development
+* **Program Name**: IT 140 Course Automation Scripts
+* **Document ID**: IT140-SDD-SCRIPTS
+* **Status**: Draft for faculty review
+* **Version**: 0.6.0
+* **Version Date-Time Group**: 2026-08-07-10-44
+* **SRS Baseline**: `IT140-SRS-SCRIPTS`, version `0.6.0`, version date-time group `2026-08-07-10-44`
+* **Repository Baseline**: `GC-STEM/it140` commit `dbde859f90b1b957b05aa03e25b867563c113bb2`
 
 ## 0. General Description
 

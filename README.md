@@ -9,13 +9,15 @@
 > [!NOTE]
 > **🆕 New for 2026 C-5:** IT 140 now uses GitHub repositories to provide assignment starter files, development resources, and supporting documentation.
 >
+> If you have a question, check [GitHub Discussions](https://github.com/GC-STEM/it140) to see whether it has already been answered or ask a new question.
+>
 > If you find a problem with this GitHub repository or its instructions, or have a suggestion for improvement, please open [GitHub Issues](https://github.com/GC-STEM/it140/issues) to review existing issues or create a new issue.
 
 ---
 
 * **Course**: IT 140 - *Introduction to Scripting*
-- **Repository Title**: Main Course Repository
-- **Repository Type**: Student-facing course hub
+* **Repository Title**: Main Course Repository
+* **Repository Type**: Student-facing course hub
 * **Repository Version**: 1.0.4
 * **Repository Version DTG**: 2026-09-07-14-30
 

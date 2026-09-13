@@ -1,13 +1,13 @@
 # Software Requirements Specification
 
 * **Course**: IT 140 - *Introduction to Scripting*
-- **Activity**: Course Automation Script Development
-- **Program Name**: IT 140 Course Automation Scripts
-- **Document ID**: IT140-SRS-SCRIPTS
-- **Status**: Draft for faculty review
-- **Version**: 0.6.0
-- **Version Date-Time Group**: 2026-08-07-10-44
-- **Repository Baseline**: `GC-STEM/it140` commit `dbde859f90b1b957b05aa03e25b867563c113bb2`
+* **Activity**: Course Automation Script Development
+* **Program Name**: IT 140 Course Automation Scripts
+* **Document ID**: IT140-SRS-SCRIPTS
+* **Status**: Draft for faculty review
+* **Version**: 0.6.0
+* **Version Date-Time Group**: 2026-08-07-10-44
+* **Repository Baseline**: `GC-STEM/it140` commit `dbde859f90b1b957b05aa03e25b867563c113bb2`
 
 ## 0. General Description
 
@@ -139,55 +139,55 @@ A paragraph labeled **Why** explains the reason for a requirement. The explanati
 
 The package shall:
 
-- **PKG-FR-001** Provide one platform-native set of `prepare_it140.<ext>`, `install_it140.<ext>`, `configure_it140.<ext>`, `verify_it140.<ext>`, and `update_it140.<ext>` entry points for every platform implementation used by one or more designated course-supported deployment profiles. Multiple deployment profiles may reuse the same platform implementation.
+* **PKG-FR-001** Provide one platform-native set of `prepare_it140.<ext>`, `install_it140.<ext>`, `configure_it140.<ext>`, `verify_it140.<ext>`, and `update_it140.<ext>` entry points for every platform implementation used by one or more designated course-supported deployment profiles. Multiple deployment profiles may reuse the same platform implementation.
 
   **Why:** Users and support personnel need the same five-stage lifecycle for every supported deployment profile without requiring duplicate script families for profiles that share the same native implementation.
 
-- **PKG-FR-002** Use the filename pattern `<action>_it140.<ext>`, where `<action>` is `prepare`, `install`, `configure`, `verify`, or `update`, and `<ext>` is the platform-appropriate script extension. Each implementation shall reside in the approved platform directory.
+* **PKG-FR-002** Use the filename pattern `<action>_it140.<ext>`, where `<action>` is `prepare`, `install`, `configure`, `verify`, or `update`, and `<ext>` is the platform-appropriate script extension. Each implementation shall reside in the approved platform directory.
 
   **Why:** Predictable names reduce user error and simplify documentation and support.
 
-- **PKG-FR-003** Confirm that the running script matches the detected platform before making any change.
+* **PKG-FR-003** Confirm that the running script matches the detected platform before making any change.
 
   **Why:** A script written for another operating system could fail or damage the environment.
 
-- **PKG-FR-004** Read shared environment requirements from `~/it140/scripts/.manifest/it140_manifest.json` rather than maintaining independent authoritative software lists in each script.
+* **PKG-FR-004** Read shared environment requirements from `~/it140/scripts/.manifest/it140_manifest.json` rather than maintaining independent authoritative software lists in each script.
 
   **Why:** One authoritative list prevents installation, configuration, verification, and maintenance from disagreeing.
 
-- **PKG-FR-005** Validate the manifest before using its data. A script that requires the manifest shall stop safely when the manifest is missing, unreadable, or invalid.
+* **PKG-FR-005** Validate the manifest before using its data. A script that requires the manifest shall stop safely when the manifest is missing, unreadable, or invalid.
 
   **Why:** Acting on incomplete or corrupted requirements could install the wrong software or change the wrong files.
 
-- **PKG-FR-006** Display the script name, strict SemVer artifact version, version date-time group, detected platform, current user, start time, purpose, and log location near the beginning of each run.
+* **PKG-FR-006** Display the script name, strict SemVer artifact version, version date-time group, detected platform, current user, start time, purpose, and log location near the beginning of each run.
 
   **Why:** Clear context helps beginners confirm that they started the correct tool and helps support personnel interpret the transcript.
 
-- **PKG-FR-007** Save a timestamped transcript of each run under `~/it140/logs/` or the equivalent path derived from the current user's home folder.
+* **PKG-FR-007** Save a timestamped transcript of each run under `~/it140/logs/` or the equivalent path derived from the current user's home folder.
 
   **Why:** A saved transcript allows a problem to be reviewed after the terminal window closes.
 
-- **PKG-FR-008** End with a plain-language summary that identifies completed actions, warnings, failures, the log path, and the recommended next step.
+* **PKG-FR-008** End with a plain-language summary that identifies completed actions, warnings, failures, the log path, and the recommended next step.
 
   **Why:** Beginners should not need to interpret raw command output to know what to do next.
 
-- **PKG-FR-009** Return a standardized exit code defined in Section 4.3.
+* **PKG-FR-009** Return a standardized exit code defined in Section 4.3.
 
   **Why:** Standard codes allow scripts, tests, AI support, and technical support tools to interpret results consistently.
 
-- **PKG-FR-010** Preserve student work, assignment repositories, version-control history, optional extensions or plug-ins, and unrelated settings during every package operation.
+* **PKG-FR-010** Preserve student work, assignment repositories, version-control history, optional extensions or plug-ins, and unrelated settings during every package operation.
 
   **Why:** Course automation must not put coursework or personal configuration at risk.
 
-- **PKG-FR-022** Resolve and report the approved lifecycle workflow from the detected deployment profile, recognized starting state, and authorized operating role. The package shall preserve the local workflow `Prepare → Install → Configure → Verify`, define the CVD administrator workflow `Prepare → Update (initial provider baseline) → Install → Configure → Verify`, define the CVD student workflow `Prepare → Update (initial course master) → Configure → Verify`, and treat later Update runs as periodic maintenance.
+* **PKG-FR-022** Resolve and report the approved lifecycle workflow from the detected deployment profile, recognized starting state, and authorized operating role. The package shall preserve the local workflow `Prepare → Install → Configure → Verify`, define the CVD administrator workflow `Prepare → Update (initial provider baseline) → Install → Configure → Verify`, define the CVD student workflow `Prepare → Update (initial course master) → Configure → Verify`, and treat later Update runs as periodic maintenance.
 
   **Why:** Hosted image preparation and student initialization begin from different managed states even though both use the same five lifecycle components.
 
-- **PKG-FR-023** Distinguish an **initial baseline update** from a **periodic maintenance update** in user output, logs, workflow resolution, and acceptance evidence. Initial baseline update shall bring the current image to the approved maintenance baseline without performing Install or Configure responsibilities; periodic maintenance shall maintain an already provisioned environment.
+* **PKG-FR-023** Distinguish an **initial baseline update** from a **periodic maintenance update** in user output, logs, workflow resolution, and acceptance evidence. Initial baseline update shall bring the current image to the approved maintenance baseline without performing Install or Configure responsibilities; periodic maintenance shall maintain an already provisioned environment.
 
   **Why:** The word “update” otherwise hides materially different starting conditions and can make support instructions ambiguous.
 
-- **PKG-FR-021** Whenever a managed lifecycle run ends with a nonzero exit code or a noncompliant result, display plain-language, profile-aware course-continuity guidance. If the affected environment is not CVD, or cannot be confirmed as CVD, tell the user they can continue their IT 140 coursework in CVD while the local course IDE issue is resolved. If CVD itself is affected, state that the issue affects CVD and direct the user to the applicable remediation and support path. The guidance shall supplement, not replace, the specific remediation and exact log path.
+* **PKG-FR-021** Whenever a managed lifecycle run ends with a nonzero exit code or a noncompliant result, display plain-language, profile-aware course-continuity guidance. If the affected environment is not CVD, or cannot be confirmed as CVD, tell the user they can continue their IT 140 coursework in CVD while the local course IDE issue is resolved. If CVD itself is affected, state that the issue affects CVD and direct the user to the applicable remediation and support path. The guidance shall supplement, not replace, the specific remediation and exact log path.
 
   **Why:** A local automation problem should not prevent a student from continuing required coursework, and a CVD failure should not misleadingly present the affected environment as its own alternative.
 
@@ -195,63 +195,63 @@ The package shall:
 
 The prepare component shall:
 
-- **PRE-FR-001** Provide a platform-native first-use command set represented by `prepare_it140.<ext>` that can be copied and run without requiring the local IT 140 package to exist.
+* **PRE-FR-001** Provide a platform-native first-use command set represented by `prepare_it140.<ext>` that can be copied and run without requiring the local IT 140 package to exist.
 
   **Why:** The first-use commands must bootstrap the package before any installed course script is available.
 
-- **PRE-FR-002** Permit the installed `prepare_it140.<ext>` artifact to be executed directly after first use to refresh the local automation package.
+* **PRE-FR-002** Permit the installed `prepare_it140.<ext>` artifact to be executed directly after first use to refresh the local automation package.
 
   **Why:** Students and support personnel need a simple way to obtain corrected lifecycle scripts and controlled package files.
 
-- **PRE-FR-003** Use only platform-native utilities expected on the supported baseline and shall not depend on the controlled manifest, a third-party package manager, a version-control client, or another lifecycle script.
+* **PRE-FR-003** Use only platform-native utilities expected on the supported baseline and shall not depend on the controlled manifest, a third-party package manager, a version-control client, or another lifecycle script.
 
   **Why:** Those dependencies may not exist until after the package has been prepared and installed.
 
-- **PRE-FR-004** Confirm the supported operating-system family, any required processor architecture, and the approved standard-user privilege context before replacing local package files.
+* **PRE-FR-004** Confirm the supported operating-system family, any required processor architecture, and the approved standard-user privilege context before replacing local package files.
 
   **Why:** Preparation must stop safely when the commands are run on the wrong platform or with an unsafe privilege context.
 
-- **PRE-FR-005** Derive the current user's home folder, create `~/it140/`, `~/it140/logs/`, and a unique temporary staging location as needed, and preserve existing contents not owned by the course automation.
+* **PRE-FR-005** Derive the current user's home folder, create `~/it140/`, `~/it140/logs/`, and a unique temporary staging location as needed, and preserve existing contents not owned by the course automation.
 
   **Why:** Preparation must work for different account names and must not erase student work.
 
-- **PRE-FR-006** Create a timestamped preparation log under `~/it140/logs/` and record the artifact SemVer version, version date-time group, current user, purpose, and exact log path before network retrieval begins.
+* **PRE-FR-006** Create a timestamped preparation log under `~/it140/logs/` and record the artifact SemVer version, version date-time group, current user, purpose, and exact log path before network retrieval begins.
 
   **Why:** First-use and refresh failures must be diagnosable even when later lifecycle scripts are unavailable.
 
-- **PRE-FR-007** Download the current approved repository archive from the authorized course source over an encrypted connection using bounded retries and a unique temporary file.
+* **PRE-FR-007** Download the current approved repository archive from the authorized course source over an encrypted connection using bounded retries and a unique temporary file.
 
   **Why:** Bounded retries tolerate temporary network failures without allowing an incomplete download to become the installed package.
 
-- **PRE-FR-008** Extract the archive to a temporary staging location and verify that it contains the expected platform script directory and every lifecycle entry point required by the selected workflow before refreshing the course root.
+* **PRE-FR-008** Extract the archive to a temporary staging location and verify that it contains the expected platform script directory and every lifecycle entry point required by the selected workflow before refreshing the course root.
 
   **Why:** A structurally incomplete or incorrect archive must not replace a usable package.
 
-- **PRE-FR-009** Copy or refresh repository-managed files under `~/it140/` without deleting user-owned files, assignment content, or nested student repositories.
+* **PRE-FR-009** Copy or refresh repository-managed files under `~/it140/` without deleting user-owned files, assignment content, or nested student repositories.
 
   **Why:** Refreshing automation assets must not endanger coursework.
 
-- **PRE-FR-010** Remove only the downloaded package's top-level repository metadata from `~/it140/` and shall not remove version-control metadata from nested student repositories.
+* **PRE-FR-010** Remove only the downloaded package's top-level repository metadata from `~/it140/` and shall not remove version-control metadata from nested student repositories.
 
   **Why:** The installed course root is not intended to remain a clone of the main course repository, but student repositories must be preserved.
 
-- **PRE-FR-011** Apply required script permissions and add the matching platform script directory to the current process and future user `PATH` configuration without creating duplicate entries.
+* **PRE-FR-011** Apply required script permissions and add the matching platform script directory to the current process and future user `PATH` configuration without creating duplicate entries.
 
   **Why:** The remaining lifecycle scripts must be available immediately and after a new terminal session begins.
 
-- **PRE-FR-012** Remove temporary archives and extraction directories after success, failure, cancellation, or interruption when safe to do so.
+* **PRE-FR-012** Remove temporary archives and extraction directories after success, failure, cancellation, or interruption when safe to do so.
 
   **Why:** Temporary package files should not consume space or expose stale content.
 
-- **PRE-FR-013** Report the installed course root, preparation log path, resolved workflow identifier, workflow starting state, operating role, and exact next-step command after successful preparation. The default local next step shall remain `install_it140.<ext>`; both approved CVD initial workflows shall identify `update_it140.sh` as the next step.
+* **PRE-FR-013** Report the installed course root, preparation log path, resolved workflow identifier, workflow starting state, operating role, and exact next-step command after successful preparation. The default local next step shall remain `install_it140.<ext>`; both approved CVD initial workflows shall identify `update_it140.sh` as the next step.
 
   **Why:** Beginners and administrators need an unambiguous transition that matches the actual deployment state rather than a universal hard-coded Install transition.
 
-- **PRE-FR-014** Preserve the prior valid local package when download, extraction, or structural validation fails and shall return a nonzero result with a plain-language explanation.
+* **PRE-FR-014** Preserve the prior valid local package when download, extraction, or structural validation fails and shall return a nonzero result with a plain-language explanation.
 
   **Why:** A failed refresh must not leave the user with a partially replaced automation package.
 
-- **PRE-FR-015** Limit managed changes to retrieving or refreshing the automation package, writing its log, setting required script permissions, and establishing its user `PATH` entry; it shall not install course IDE software, authenticate external services, or configure IDE settings.
+* **PRE-FR-015** Limit managed changes to retrieving or refreshing the automation package, writing its log, setting required script permissions, and establishing its user `PATH` entry; it shall not install course IDE software, authenticate external services, or configure IDE settings.
 
   **Why:** System installation and user configuration belong to later lifecycle stages.
 
@@ -259,63 +259,63 @@ The prepare component shall:
 
 The install script shall:
 
-- **INS-FR-001** Verify the supported operating-system release, processor architecture, available disk space, network access, and required administrative capability before beginning installation.
+* **INS-FR-001** Verify the supported operating-system release, processor architecture, available disk space, network access, and required administrative capability before beginning installation.
 
   **Why:** Early prerequisite checks prevent a long installation from failing after it has already changed the system.
 
-- **INS-FR-002** Stop without making system changes when the detected platform is unsupported or the required administrative capability is unavailable.
+* **INS-FR-002** Stop without making system changes when the detected platform is unsupported or the required administrative capability is unavailable.
 
   **Why:** Safe refusal is better than an incomplete or incorrect installation.
 
-- **INS-FR-003** Install or repair the system-level applications, language runtimes, package managers, command-line tools, and operating-system packages declared by the manifest.
+* **INS-FR-003** Install or repair the system-level applications, language runtimes, package managers, command-line tools, and operating-system packages declared by the manifest.
 
   **Why:** Install owns the shared software layer used by every course user on that computer.
 
-- **INS-FR-004** Obtain software only from approved sources declared by the manifest or trusted operating-system repositories.
+* **INS-FR-004** Obtain software only from approved sources declared by the manifest or trusted operating-system repositories.
 
   **Why:** Approved sources reduce the risk of altered or malicious installers.
 
-- **INS-FR-005** Configure required system package repositories, signing keys, certificates, and system policies before installing dependent software.
+* **INS-FR-005** Configure required system package repositories, signing keys, certificates, and system policies before installing dependent software.
 
   **Why:** Package managers need trusted source information to verify and update software correctly.
 
-- **INS-FR-006** Bring the supported operating-system packages to the approved baseline without upgrading the computer to a different operating-system release.
+* **INS-FR-006** Bring the supported operating-system packages to the approved baseline without upgrading the computer to a different operating-system release.
 
   **Why:** Security and compatibility updates are needed, but release upgrades can introduce untested changes.
 
-- **INS-FR-007** Install system-level course integrations declared by the manifest, such as managed browser policies or system application registrations.
+* **INS-FR-007** Install system-level course integrations declared by the manifest, such as managed browser policies or system application registrations.
 
   **Why:** Some course features must be available to all users and therefore belong in install rather than user configuration.
 
-- **INS-FR-008** Verify that each required system command is available and that installed versions meet the manifest requirements before reporting success.
+* **INS-FR-008** Verify that each required system command is available and that installed versions meet the manifest requirements before reporting success.
 
   **Why:** A successful installer command does not always guarantee that the installed tool can run.
 
-- **INS-FR-009** Be idempotent: rerunning install on a compliant system shall not duplicate repositories, keys, packages, policies, or other entries.
+* **INS-FR-009** Be idempotent: rerunning install on a compliant system shall not duplicate repositories, keys, packages, policies, or other entries.
 
   **Why:** Install also serves as the approved repair method for missing system components.
 
-- **INS-FR-010** Repair a missing or damaged course-managed system component when rerun, without resetting unrelated operating-system settings.
+* **INS-FR-010** Repair a missing or damaged course-managed system component when rerun, without resetting unrelated operating-system settings.
 
   **Why:** Users need a safe repair path that does not require a separate repair script.
 
-- **INS-FR-011** Avoid source-code-hosting authentication, version-control identity configuration, user-specific IDE settings, user-scoped extensions or plug-ins, and other personal configuration.
+* **INS-FR-011** Avoid source-code-hosting authentication, version-control identity configuration, user-specific IDE settings, user-scoped extensions or plug-ins, and other personal configuration.
 
   **Why:** These items belong to the individual account and are the responsibility of `configure_it140.<ext>`.
 
-- **INS-FR-012** Recommend running the matching `configure_it140.<ext>` script after successful system installation.
+* **INS-FR-012** Recommend running the matching `configure_it140.<ext>` script after successful system installation.
 
   **Why:** System installation alone does not complete the current user's course environment.
 
-- **INS-FR-013** On local deployment profiles, preserve and use an approved preexisting system product when its required capabilities and version constraints satisfy the manifest, regardless of whether the course-selected package manager originally installed or reports ownership of that product.
+* **INS-FR-013** On local deployment profiles, preserve and use an approved preexisting system product when its required capabilities and version constraints satisfy the manifest, regardless of whether the course-selected package manager originally installed or reports ownership of that product.
 
   **Why:** A student's local computer is an existing mixed-ownership environment. Package-manager provenance is diagnostic information, not evidence that a compatible application must be replaced.
 
-- **INS-FR-014** During initial local installation, make only the smallest safe change needed to establish a missing required capability. Install shall not automatically upgrade, reinstall, uninstall, downgrade, force-overwrite, adopt, or transfer package-manager ownership of a compatible preexisting product. When a required product is present but incompatible or conflicts with an approved installation path, Install shall preserve it and stop with specific remediation unless a narrower approved integration repair can establish compliance without replacing the product.
+* **INS-FR-014** During initial local installation, make only the smallest safe change needed to establish a missing required capability. Install shall not automatically upgrade, reinstall, uninstall, downgrade, force-overwrite, adopt, or transfer package-manager ownership of a compatible preexisting product. When a required product is present but incompatible or conflicts with an approved installation path, Install shall preserve it and stop with specific remediation unless a narrower approved integration repair can establish compliance without replacing the product.
 
   **Why:** Initial setup should converge a personal computer toward course compatibility without taking ownership of unrelated software or destroying user choices. Routine maintenance of course-managed software belongs to Update.
 
-- **INS-FR-015** For each required local system product or capability evaluated by Install, record a platform-accurate state that distinguishes compatible presence, external or package-manager recognition when knowable, missing state, installation by IT 140, integration-only repair, and incompatible state preserved. The log shall not infer package-manager ownership from evidence that only proves package recognition.
+* **INS-FR-015** For each required local system product or capability evaluated by Install, record a platform-accurate state that distinguishes compatible presence, external or package-manager recognition when knowable, missing state, installation by IT 140, integration-only repair, and incompatible state preserved. The log shall not infer package-manager ownership from evidence that only proves package recognition.
 
   **Why:** Accurate state reporting makes local-install behavior understandable to students and gives faculty and technical support useful evidence without overstating what a package manager can prove.
 
@@ -323,79 +323,79 @@ The install script shall:
 
 The configure script shall:
 
-- **CFG-FR-001** Run as the standard student or faculty account and refuse direct execution as the root or system-administrator account unless a platform-specific design explicitly requires it.
+* **CFG-FR-001** Run as the standard student or faculty account and refuse direct execution as the root or system-administrator account unless a platform-specific design explicitly requires it.
 
   **Why:** Personal settings and authentication must be saved to the intended user's account.
 
-- **CFG-FR-002** Verify that required system-level components are present before changing user configuration.
+* **CFG-FR-002** Verify that required system-level components are present before changing user configuration.
 
   **Why:** User configuration cannot succeed reliably when installation is incomplete.
 
-- **CFG-FR-003** Create the required course folders under the current user's home folder, including `~/it140/` and `~/it140/logs/`, without deleting existing contents.
+* **CFG-FR-003** Create the required course folders under the current user's home folder, including `~/it140/` and `~/it140/logs/`, without deleting existing contents.
 
   **Why:** A consistent folder structure simplifies instructions while preserving prior work.
 
-- **CFG-FR-004** Add the correct platform script folder to the user's `PATH` without adding duplicate entries.
+* **CFG-FR-004** Add the correct platform script folder to the user's `PATH` without adding duplicate entries.
 
   **Why:** Users should be able to run the course scripts by name from a terminal.
 
-- **CFG-FR-005** Check the current source-code-hosting CLI authentication status using the provider profile declared by the manifest and start the approved interactive authentication flow only when authentication is missing or invalid.
+* **CFG-FR-005** Check the current source-code-hosting CLI authentication status using the provider profile declared by the manifest and start the approved interactive authentication flow only when authentication is missing or invalid.
 
   **Why:** Requiring a new login on every run wastes time and may confuse users.
 
-- **CFG-FR-006** Explain each required external-service authentication action in plain language and handle cancellation without treating it as successful configuration.
+* **CFG-FR-006** Explain each required external-service authentication action in plain language and handle cancellation without treating it as successful configuration.
 
   **Why:** First-term students may be unfamiliar with device codes, browser authentication, and terminal prompts.
 
-- **CFG-FR-007** Obtain the authenticated account data required by the provider profile through the approved API and apply the provider-specific privacy-preserving commit identity rule declared by the manifest, without asking the user to type values that can be obtained reliably.
+* **CFG-FR-007** Obtain the authenticated account data required by the provider profile through the approved API and apply the provider-specific privacy-preserving commit identity rule declared by the manifest, without asking the user to type values that can be obtained reliably.
 
   **Why:** Automated retrieval reduces typing errors and applies the approved privacy rule without exposing the student's personal contact information.
 
-- **CFG-FR-008** Allow the user to accept the authenticated account username as the version-control display name or enter a different professional display name.
+* **CFG-FR-008** Allow the user to accept the authenticated account username as the version-control display name or enter a different professional display name.
 
   **Why:** A version-control display name identifies the author of changes and may differ from the hosted account username.
 
-- **CFG-FR-009** Apply the course-required version-control settings declared by the manifest, including the default branch, text line endings, automatic upstream configuration, and the approved IDE or editor for version-control messages.
+* **CFG-FR-009** Apply the course-required version-control settings declared by the manifest, including the default branch, text line endings, automatic upstream configuration, and the approved IDE or editor for version-control messages.
 
   **Why:** Shared version-control settings make submissions and collaboration more consistent across platforms.
 
-- **CFG-FR-010** Install or repair the required user-scoped programming-language tools and IDE extensions or plug-ins declared by the manifest.
+* **CFG-FR-010** Install or repair the required user-scoped programming-language tools and IDE extensions or plug-ins declared by the manifest.
 
   **Why:** These tools are associated with the current account and may not be installed system-wide.
 
-- **CFG-FR-011** Merge course-required IDE settings into the user's existing settings without discarding unrelated valid settings.
+* **CFG-FR-011** Merge course-required IDE settings into the user's existing settings without discarding unrelated valid settings.
 
   **Why:** Students may already use the approved IDE or editor for other courses or personal work.
 
-- **CFG-FR-012** Derive user paths from the current home folder and shall not hardcode a username or home-directory path.
+* **CFG-FR-012** Derive user paths from the current home folder and shall not hardcode a username or home-directory path.
 
   **Why:** The same script must work for different account names.
 
-- **CFG-FR-013** On a supported graphical desktop, preserve any existing course-root desktop integration unless it is explicitly obsolete and automation-managed; new student development navigation shall use the repository workspace integration defined by CFG-FR-019 rather than creating a new course-root shortcut.
+* **CFG-FR-013** On a supported graphical desktop, preserve any existing course-root desktop integration unless it is explicitly obsolete and automation-managed; new student development navigation shall use the repository workspace integration defined by CFG-FR-019 rather than creating a new course-root shortcut.
 
   **Why:** A direct repository-workspace shortcut reduces file-navigation errors while keeping student development work separate from course-managed automation files.
 
-- **CFG-FR-014** Configure manifest-approved IDE settings without forcing the course automation root to become the student's default development workspace. Profile-owned IDE launch behavior shall follow the repository-workspace rule in CFG-FR-021 where applicable.
+* **CFG-FR-014** Configure manifest-approved IDE settings without forcing the course automation root to become the student's default development workspace. Profile-owned IDE launch behavior shall follow the repository-workspace rule in CFG-FR-021 where applicable.
 
   **Why:** Separating IDE development work from the course automation root reduces accidental edits to course-managed files and reinforces a clear Git repository workflow.
 
-- **CFG-FR-015** Validate the resulting version-control client, source-code-hosting CLI, programming-language runtime and tools, IDE, extensions or plug-ins, course-folder configuration, repository workspace, applicable desktop integration, and profile-owned IDE launch behavior before reporting success.
+* **CFG-FR-015** Validate the resulting version-control client, source-code-hosting CLI, programming-language runtime and tools, IDE, extensions or plug-ins, course-folder configuration, repository workspace, applicable desktop integration, and profile-owned IDE launch behavior before reporting success.
 
   **Why:** Configuration is complete only when the resulting settings and managed integrations can be read and used.
 
-- **CFG-FR-016** Be idempotent and preserve user-selected optional extensions and unrelated preferences when rerun.
+* **CFG-FR-016** Be idempotent and preserve user-selected optional extensions and unrelated preferences when rerun.
 
   **Why:** Configure also serves as the approved repair method for user-specific settings.
 
-- **CFG-FR-017** Recommend running the matching `verify_it140.<ext>` script after successful configuration.
+* **CFG-FR-017** Recommend running the matching `verify_it140.<ext>` script after successful configuration.
 
-- **CFG-FR-018** Create or preserve the current user's repository workspace at `${HOME}/Repos` or the exact platform-equivalent path. Configure shall create the parent directory when missing but shall not traverse or modify existing child repositories or files.
+* **CFG-FR-018** Create or preserve the current user's repository workspace at `${HOME}/Repos` or the exact platform-equivalent path. Configure shall create the parent directory when missing but shall not traverse or modify existing child repositories or files.
 
-- **CFG-FR-019** On a supported graphical desktop, create or repair a desktop shortcut or link named `Repos` that resolves to the repository workspace. If an unrelated non-managed item already uses the required shortcut name, Configure shall preserve it and report the conflict rather than overwrite it.
+* **CFG-FR-019** On a supported graphical desktop, create or repair a desktop shortcut or link named `Repos` that resolves to the repository workspace. If an unrelated non-managed item already uses the required shortcut name, Configure shall preserve it and report the conflict rather than overwrite it.
 
-- **CFG-FR-020** Apply a platform-appropriate repository-workspace visual treatment without substituting an application icon for a folder. The Codio Virtual Desktop (CVD) Xfce implementation shall apply the native `development` emblem. Windows bare metal shall retain the normal Windows folder appearance for the repository workspace and desktop `Repos` shortcut. Other qualified graphical desktop implementations may use an approved development or code-oriented folder icon or emblem when safely available; an implementation may report this visual-only integration as `NOT APPLICABLE` when its platform supplement documents that no safe supported native mechanism exists.
+* **CFG-FR-020** Apply a platform-appropriate repository-workspace visual treatment without substituting an application icon for a folder. The Codio Virtual Desktop (CVD) Xfce implementation shall apply the native `development` emblem. Windows bare metal shall retain the normal Windows folder appearance for the repository workspace and desktop `Repos` shortcut. Other qualified graphical desktop implementations may use an approved development or code-oriented folder icon or emblem when safely available; an implementation may report this visual-only integration as `NOT APPLICABLE` when its platform supplement documents that no safe supported native mechanism exists.
 
-- **CFG-FR-021** Configure profile-owned Visual Studio Code desktop launch behavior so students can open the repository workspace directly. On the CVD, Configure shall repair the existing course-provided Visual Studio Code launcher to open the repository workspace as the active folder and shall not create a duplicate when the expected launcher is missing. On Windows bare metal, Configure shall create or repair a course-owned desktop shortcut named `Visual Studio Code - IT 140` that launches Visual Studio Code with `%USERPROFILE%\Repos` as both the active folder argument and working directory while preserving unrelated Visual Studio Code shortcuts.
+* **CFG-FR-021** Configure profile-owned Visual Studio Code desktop launch behavior so students can open the repository workspace directly. On the CVD, Configure shall repair the existing course-provided Visual Studio Code launcher to open the repository workspace as the active folder and shall not create a duplicate when the expected launcher is missing. On Windows bare metal, Configure shall create or repair a course-owned desktop shortcut named `Visual Studio Code - IT 140` that launches Visual Studio Code with `%USERPROFILE%\Repos` as both the active folder argument and working directory while preserving unrelated Visual Studio Code shortcuts.
 
   **Why:** Course-owned launchers should take students directly to the directory intended for assignment and project repositories without exposing course-managed automation files as the normal coding workspace or overwriting unrelated user shortcuts.
 
@@ -403,67 +403,67 @@ The configure script shall:
 
 The verify script shall:
 
-- **VER-FR-001** Operate in read-only mode and shall not install, update, remove, repair, or rewrite software or settings.
+* **VER-FR-001** Operate in read-only mode and shall not install, update, remove, repair, or rewrite software or settings.
 
   **Why:** Verification must be safe to run during troubleshooting and must not hide the original problem by changing it.
 
-- **VER-FR-002** Run without administrative privilege.
+* **VER-FR-002** Run without administrative privilege.
 
   **Why:** Students and support personnel should be able to collect diagnostics safely.
 
-- **VER-FR-003** Validate the manifest and identify the automation SemVer release and release date used for comparison.
+* **VER-FR-003** Validate the manifest and identify the automation SemVer release and release date used for comparison.
 
   **Why:** Verification results are meaningful only when compared with a known set of requirements.
 
-- **VER-FR-004** Check the detected operating system, release, processor architecture, current user, available disk space, required permissions, and required network reachability.
+* **VER-FR-004** Check the detected operating system, release, processor architecture, current user, available disk space, required permissions, and required network reachability.
 
   **Why:** Environment problems may exist even when individual applications are installed.
 
-- **VER-FR-005** Check the presence and required versions of all system applications, command-line tools, language runtimes, package managers, and operating-system packages declared by the manifest.
+* **VER-FR-005** Check the presence and required versions of all system applications, command-line tools, language runtimes, package managers, and operating-system packages declared by the manifest.
 
   **Why:** Missing or incompatible versions can prevent course activities from working.
 
-- **VER-FR-006** Check required programming-language packages, IDE extensions or plug-ins, version-control settings, source-code-hosting authentication status, IDE settings, script permissions, course folders, repository-workspace integration, and any profile-owned IDE launch target or argument on supported graphical desktops.
+* **VER-FR-006** Check required programming-language packages, IDE extensions or plug-ins, version-control settings, source-code-hosting authentication status, IDE settings, script permissions, course folders, repository-workspace integration, and any profile-owned IDE launch target or argument on supported graphical desktops.
 
   **Why:** Verification must cover both the system-level and user-specific layers.
 
-- **VER-FR-007** Validate the format and safe values of managed configuration files without displaying secrets or complete personally identifiable information (PII).
+* **VER-FR-007** Validate the format and safe values of managed configuration files without displaying secrets or complete personally identifiable information (PII).
 
   **Why:** Support diagnostics must be useful without exposing private data.
 
-- **VER-FR-008** Report each check as `PASS`, `WARNING`, `FAIL`, or `NOT APPLICABLE`.
+* **VER-FR-008** Report each check as `PASS`, `WARNING`, `FAIL`, or `NOT APPLICABLE`.
 
   **Why:** Consistent result labels make the report easier to scan and interpret.
 
-- **VER-FR-009** Identify the related requirement and recommend `prepare_it140.<ext>`, `install_it140.<ext>`, `configure_it140.<ext>`, or `update_it140.<ext>` for every failed required check.
+* **VER-FR-009** Identify the related requirement and recommend `prepare_it140.<ext>`, `install_it140.<ext>`, `configure_it140.<ext>`, or `update_it140.<ext>` for every failed required check.
 
   **Why:** A diagnosis is most useful when it tells the user how to correct the problem.
 
-- **VER-FR-010** Distinguish a required failure from an optional recommendation.
+* **VER-FR-010** Distinguish a required failure from an optional recommendation.
 
   **Why:** Students should not be told that the course environment is unusable because an optional feature is missing.
 
-- **VER-FR-011** Display totals for passed, warning, failed, and not-applicable checks at the end of the run.
+* **VER-FR-011** Display totals for passed, warning, failed, and not-applicable checks at the end of the run.
 
   **Why:** A summary helps users quickly understand the overall result.
 
-- **VER-FR-012** Return the standardized exit code that represents the most serious result.
+* **VER-FR-012** Return the standardized exit code that represents the most serious result.
 
   **Why:** Support tools need a reliable machine-readable result in addition to the human-readable report.
 
-- **VER-FR-013** Save a sanitized verification transcript and, when explicitly requested, create a sanitized support bundle containing only approved diagnostic files.
+* **VER-FR-013** Save a sanitized verification transcript and, when explicitly requested, create a sanitized support bundle containing only approved diagnostic files.
 
   **Why:** A support bundle can speed troubleshooting, but it must not collect unnecessary personal or course data.
 
-- **VER-FR-014** Identify unsupported conditions that the scripts cannot safely repair and direct the user to the appropriate support channel.
+* **VER-FR-014** Identify unsupported conditions that the scripts cannot safely repair and direct the user to the appropriate support channel.
 
-- **VER-FR-015** Check that the repository workspace exists at the required native path and is accessible to the current user without creating files or changing permissions.
+* **VER-FR-015** Check that the repository workspace exists at the required native path and is accessible to the current user without creating files or changing permissions.
 
-- **VER-FR-016** Check that the desktop `Repos` shortcut or link resolves to the repository workspace without modifying the shortcut, link, or workspace.
+* **VER-FR-016** Check that the desktop `Repos` shortcut or link resolves to the repository workspace without modifying the shortcut, link, or workspace.
 
-- **VER-FR-017** Check the platform-approved repository-workspace visual treatment when that integration is applicable. On Windows bare metal, Verify shall confirm that stale course-managed application-icon metadata is not applied to the repository workspace. Report `NOT APPLICABLE` rather than failure only when the platform design explicitly declares the visual treatment unsupported.
+* **VER-FR-017** Check the platform-approved repository-workspace visual treatment when that integration is applicable. On Windows bare metal, Verify shall confirm that stale course-managed application-icon metadata is not applied to the repository workspace. Report `NOT APPLICABLE` rather than failure only when the platform design explicitly declares the visual treatment unsupported.
 
-- **VER-FR-018** Check profile-owned Visual Studio Code desktop launch behavior read-only. On the CVD, Verify shall check that the existing Visual Studio Code desktop launcher opens the repository workspace and does not target the course automation root. On Windows bare metal, Verify shall check that `Visual Studio Code - IT 140` launches Visual Studio Code with the repository workspace as both its active folder argument and working directory.
+* **VER-FR-018** Check profile-owned Visual Studio Code desktop launch behavior read-only. On the CVD, Verify shall check that the existing Visual Studio Code desktop launcher opens the repository workspace and does not target the course automation root. On Windows bare metal, Verify shall check that `Visual Studio Code - IT 140` launches Visual Studio Code with the repository workspace as both its active folder argument and working directory.
 
   **Why:** Some failures require platform administration rather than another script run.
 
@@ -471,67 +471,67 @@ The verify script shall:
 
 The update script shall:
 
-- **UPD-FR-001** Verify the supported platform, current user, available disk space, network access, and required privilege-elevation capability before beginning changes.
+* **UPD-FR-001** Verify the supported platform, current user, available disk space, network access, and required privilege-elevation capability before beginning changes.
 
   **Why:** Updating a partially supported environment can leave it less usable than before.
 
-- **UPD-FR-002** Prevent more than one copy of the update script from changing the same environment at the same time.
+* **UPD-FR-002** Prevent more than one copy of the update script from changing the same environment at the same time.
 
   **Why:** Concurrent package or file updates can corrupt state or produce inconsistent results.
 
-- **UPD-FR-003** Obtain the latest approved manifest and course-managed maintenance assets within the update scope from the authorized course source.
+* **UPD-FR-003** Obtain the latest approved manifest and course-managed maintenance assets within the update scope from the authorized course source.
 
   **Why:** The update stage maintains the installed course IDE, while `prepare_it140.<ext>` remains the approved mechanism for refreshing the lifecycle script package itself.
 
-- **UPD-FR-004** Download managed assets to a temporary staging location, validate them, and replace installed assets only after validation succeeds.
+* **UPD-FR-004** Download managed assets to a temporary staging location, validate them, and replace installed assets only after validation succeeds.
 
   **Why:** Staging prevents a failed or incomplete download from replacing a working file.
 
-- **UPD-FR-005** Preserve the previous valid copy of a replaced managed asset until the new copy has been installed successfully.
+* **UPD-FR-005** Preserve the previous valid copy of a replaced managed asset until the new copy has been installed successfully.
 
   **Why:** A recoverable update is safer than an in-place overwrite.
 
-- **UPD-FR-006** Refresh operating-system package information and install approved security, maintenance, and course-software updates.
+* **UPD-FR-006** Refresh operating-system package information and install approved security, maintenance, and course-software updates.
 
   **Why:** Supported environments need current fixes and compatible tool versions.
 
-- **UPD-FR-007** Not upgrade the computer to a different operating-system release.
+* **UPD-FR-007** Not upgrade the computer to a different operating-system release.
 
   **Why:** A new release may not have been tested with the course IDE.
 
-- **UPD-FR-008** Update or repair required programming-language tools and IDE extensions or plug-ins declared by the manifest.
+* **UPD-FR-008** Update or repair required programming-language tools and IDE extensions or plug-ins declared by the manifest.
 
   **Why:** Required tools must remain compatible with course activities.
 
-- **UPD-FR-009** Preserve optional extensions and shall not remove them unless the user explicitly requests removal outside this package.
+* **UPD-FR-009** Preserve optional extensions and shall not remove them unless the user explicitly requests removal outside this package.
 
   **Why:** Optional extensions belong to the user, not the course automation.
 
-- **UPD-FR-010** Remove obsolete course-managed components only when the manifest explicitly identifies them as obsolete and the target is within an approved managed path.
+* **UPD-FR-010** Remove obsolete course-managed components only when the manifest explicitly identifies them as obsolete and the target is within an approved managed path.
 
   **Why:** Explicit cleanup rules prevent accidental deletion of user files.
 
-- **UPD-FR-011** Perform only safe package-cache and dependency cleanup that does not remove required course software or student work.
+* **UPD-FR-011** Perform only safe package-cache and dependency cleanup that does not remove required course software or student work.
 
   **Why:** Cleanup should recover space without creating a new support problem.
 
-- **UPD-FR-012** Use retry and clear failure handling for temporary network or package-source failures.
+* **UPD-FR-012** Use retry and clear failure handling for temporary network or package-source failures.
 
   **Why:** Brief internet failures should not require a complete manual recovery.
 
-- **UPD-FR-013** Run post-update checks for required commands, versions, packages, extensions, managed assets, and package-manager consistency.
+* **UPD-FR-013** Run post-update checks for required commands, versions, packages, extensions, managed assets, and package-manager consistency.
 
   **Why:** The updater must confirm that the final environment is usable.
 
-- **UPD-FR-014** Report whether an application restart, sign-out, virtual-machine restart, or computer restart is required.
+* **UPD-FR-014** Report whether an application restart, sign-out, virtual-machine restart, or computer restart is required.
 
   **Why:** Some updates are not active until a process or system restarts.
 
-- **UPD-FR-015** Be safely rerunnable after an interrupted or partially completed update.
+* **UPD-FR-015** Be safely rerunnable after an interrupted or partially completed update.
 
   **Why:** Power, network, or session interruptions should have an approved recovery path.
 
-- **UPD-FR-016** Recommend running the matching verify script after an update that reports a warning, failure, or required restart.
+* **UPD-FR-016** Recommend running the matching verify script after an update that reports a warning, failure, or required restart.
 
   **Why:** Verification confirms the final state after maintenance.
 
@@ -539,43 +539,43 @@ The update script shall:
 
 The package shall:
 
-- **PKG-FR-011** Store the shared manifest as valid UTF-8 JSON at `~/it140/scripts/.manifest/it140_manifest.json`.
+* **PKG-FR-011** Store the shared manifest as valid UTF-8 JSON at `~/it140/scripts/.manifest/it140_manifest.json`.
 
   **Why:** A standard text format can be read on all supported platforms and reviewed in source control.
 
-- **PKG-FR-012** Include a manifest schema version, strict SemVer automation package release, and separate `YYYY-MM-DD` automation release date.
+* **PKG-FR-012** Include a manifest schema version, strict SemVer automation package release, and separate `YYYY-MM-DD` automation release date.
 
   **Why:** Scripts must know whether they understand the manifest structure, which release they are applying, and when that release was issued.
 
-- **PKG-FR-013** Define each recognized platform implementation and deployment profile in the manifest, including the platform abbreviation, applicable operating-system releases, architectures, deployment constraints, platform script directory, platform script extension, and enabled state. Manifest enablement shall permit controlled resolution or qualification use but shall not by itself declare a deployment profile course-supported.
+* **PKG-FR-013** Define each recognized platform implementation and deployment profile in the manifest, including the platform abbreviation, applicable operating-system releases, architectures, deployment constraints, platform script directory, platform script extension, and enabled state. Manifest enablement shall permit controlled resolution or qualification use but shall not by itself declare a deployment profile course-supported.
 
   **Why:** Platform resolution and course support must be explicit, bounded, and testable, while allowing qualification-only profiles to reuse an enabled implementation without being represented as student-supported.
 
-- **PKG-FR-014** Define each required software or service capability and, for every concrete approved product, its product identifier, version rule, installation scope, verification method, and approved source in the manifest.
+* **PKG-FR-014** Define each required software or service capability and, for every concrete approved product, its product identifier, version rule, installation scope, verification method, and approved source in the manifest.
 
   **Why:** The same requirements must drive installation, verification, and update.
 
-- **PKG-FR-015** Define provider profiles, required version-control and IDE settings, file associations, the course root, and release-selected managed integrations and paths in the manifest. Stable lifecycle-owned paths whose values are not release selections, including the `${HOME}/Repos` repository-workspace contract, may be specified by this SRS and the SDD rather than duplicated as manifest data. A provider profile shall identify the approved CLI or API, authentication flow, required account fields, and privacy-preserving commit identity rule.
+* **PKG-FR-015** Define provider profiles, required version-control and IDE settings, file associations, the course root, and release-selected managed integrations and paths in the manifest. Stable lifecycle-owned paths whose values are not release selections, including the `${HOME}/Repos` repository-workspace contract, may be specified by this SRS and the SDD rather than duplicated as manifest data. A provider profile shall identify the approved CLI or API, authentication flow, required account fields, and privacy-preserving commit identity rule.
 
   **Why:** User configuration and verification need one shared target state.
 
-- **PKG-FR-016** Define the standard log directory, minimum free disk space, approved source locations, and managed-asset validation data in the manifest.
+* **PKG-FR-016** Define the standard log directory, minimum free disk space, approved source locations, and managed-asset validation data in the manifest.
 
   **Why:** Operational and security rules should not be duplicated across scripts.
 
-- **PKG-FR-017** Define obsolete managed components and their approved removal paths in the manifest.
+* **PKG-FR-017** Define obsolete managed components and their approved removal paths in the manifest.
 
   **Why:** Update must know exactly what it is authorized to remove.
 
-- **PKG-FR-018** Contain no password, authentication token, private key, personal email address, or other secret.
+* **PKG-FR-018** Contain no password, authentication token, private key, personal email address, or other secret.
 
   **Why:** The manifest is stored in a public course repository and copied to student computers.
 
-- **PKG-FR-019** Be validated against an approved schema or equivalent structural validation before a script acts on its contents.
+* **PKG-FR-019** Be validated against an approved schema or equivalent structural validation before a script acts on its contents.
 
   **Why:** Structural validation detects missing, misspelled, or incorrectly typed fields.
 
-- **PKG-FR-020** Treat files outside declared managed paths as user-owned and outside the package's authority.
+* **PKG-FR-020** Treat files outside declared managed paths as user-owned and outside the package's authority.
 
   **Why:** A clear ownership boundary protects coursework and unrelated files.
 
@@ -585,23 +585,23 @@ The package shall:
 
 The package shall:
 
-- **PKG-NFR-001** Use consistent script structure, terminology, status labels, exit codes, log fields, and user-message patterns across all platforms.
+* **PKG-NFR-001** Use consistent script structure, terminology, status labels, exit codes, log fields, and user-message patterns across all platforms.
 
   **Why:** Consistency lowers the learning burden and makes support documentation reusable.
 
-- **PKG-NFR-002** Present student-facing instructions at approximately a ninth-grade reading level while retaining correct industry terminology.
+* **PKG-NFR-002** Present student-facing instructions at approximately a ninth-grade reading level while retaining correct industry terminology.
 
   **Why:** IT 140 is a first programming course with students from many academic and technical backgrounds.
 
-- **PKG-NFR-003** Define an abbreviation or specialized technical term when it first appears in student-facing output.
+* **PKG-NFR-003** Define an abbreviation or specialized technical term when it first appears in student-facing output.
 
   **Why:** Beginners should not need outside knowledge to follow the required course IDE lifecycle.
 
-- **PKG-NFR-004** Use deterministic logic wherever practical. The same supported starting state and inputs shall produce the same required final state.
+* **PKG-NFR-004** Use deterministic logic wherever practical. The same supported starting state and inputs shall produce the same required final state.
 
   **Why:** Predictable behavior makes testing and troubleshooting easier.
 
-- **PKG-NFR-005** Separate required behavior from optional enhancements in code, messages, logs, and tests.
+* **PKG-NFR-005** Separate required behavior from optional enhancements in code, messages, logs, and tests.
 
   **Why:** Optional features must not prevent students from completing course work.
 
@@ -609,27 +609,27 @@ The package shall:
 
 The package shall:
 
-- **PKG-NFR-006** Display numbered stages or clearly named sections for multi-step operations.
+* **PKG-NFR-006** Display numbered stages or clearly named sections for multi-step operations.
 
   **Why:** Visible structure helps users understand progress and locate the step that failed.
 
-- **PKG-NFR-007** State required user actions before displaying an interactive prompt.
+* **PKG-NFR-007** State required user actions before displaying an interactive prompt.
 
   **Why:** Users need context before they choose or type an answer.
 
-- **PKG-NFR-008** Use `INFO`, `SUCCESS`, `NOTICE`, `WARNING`, and `ERROR` consistently and shall not rely on color alone to communicate meaning.
+* **PKG-NFR-008** Use `INFO`, `SUCCESS`, `NOTICE`, `WARNING`, and `ERROR` consistently and shall not rely on color alone to communicate meaning.
 
   **Why:** Text labels remain understandable in plain logs and for users with color-vision differences.
 
-- **PKG-NFR-009** Avoid false progress indicators. Any percentage or progress bar shall be based on completed work rather than an arbitrary timer.
+* **PKG-NFR-009** Avoid false progress indicators. Any percentage or progress bar shall be based on completed work rather than an arbitrary timer.
 
   **Why:** A timed animation may report progress that has not actually occurred.
 
-- **PKG-NFR-010** Provide copyable remediation commands using the installed script names and shall identify where the user should run them.
+* **PKG-NFR-010** Provide copyable remediation commands using the installed script names and shall identify where the user should run them.
 
   **Why:** Concrete commands reduce transcription and navigation errors.
 
-- **PKG-NFR-011** Avoid clearing the terminal or hiding earlier error information unless the user explicitly requests a clean display.
+* **PKG-NFR-011** Avoid clearing the terminal or hiding earlier error information unless the user explicitly requests a clean display.
 
   **Why:** Earlier output may contain information needed for troubleshooting.
 
@@ -637,27 +637,27 @@ The package shall:
 
 The package shall:
 
-- **PKG-NFR-012** Keep authoritative product names, versions, package and extension identifiers, platform-release data, provider-specific rules, source locations, and managed paths in the manifest and avoid duplicated hardcoded lists that can drift apart.
+* **PKG-NFR-012** Keep authoritative product names, versions, package and extension identifiers, platform-release data, provider-specific rules, source locations, and managed paths in the manifest and avoid duplicated hardcoded lists that can drift apart.
 
   **Why:** A change should be made once and used by all five scripts.
 
-- **PKG-NFR-013** Organize each script into small, purpose-specific functions or equivalent units with descriptive names.
+* **PKG-NFR-013** Organize each script into small, purpose-specific functions or equivalent units with descriptive names.
 
   **Why:** Small units are easier to review, test, reuse, and repair.
 
-- **PKG-NFR-014** Include comments that explain important intent, safety boundaries, and non-obvious decisions rather than restating each command.
+* **PKG-NFR-014** Include comments that explain important intent, safety boundaries, and non-obvious decisions rather than restating each command.
 
   **Why:** Maintainers need to understand why a design choice exists.
 
-- **PKG-NFR-015** Assign every controlled design artifact, construction artifact, testing artifact, and maintenance artifact its own strict SemVer `MAJOR.MINOR.PATCH` version and a separate `YYYY-MM-DD-HH-MM` version date-time group. Incompatible changes shall increment MAJOR, backward-compatible functionality shall increment MINOR, and backward-compatible corrections shall increment PATCH. Generated logs, transcripts, support-bundle inventories, and test results shall record the SemVer version and version date-time group of the producing or evaluated script, package, manifest, test definition, or other governing artifact. A version date-time group shall supplement SemVer and shall not replace it or determine version precedence.
+* **PKG-NFR-015** Assign every controlled design artifact, construction artifact, testing artifact, and maintenance artifact its own strict SemVer `MAJOR.MINOR.PATCH` version and a separate `YYYY-MM-DD-HH-MM` version date-time group. Incompatible changes shall increment MAJOR, backward-compatible functionality shall increment MINOR, and backward-compatible corrections shall increment PATCH. Generated logs, transcripts, support-bundle inventories, and test results shall record the SemVer version and version date-time group of the producing or evaluated script, package, manifest, test definition, or other governing artifact. A version date-time group shall supplement SemVer and shall not replace it or determine version precedence.
 
   **Why:** Developers, testers, faculty, and support personnel must be able to identify exactly which approved artifacts produced, tested, or governed a result.
 
-- **PKG-NFR-016** Support automated tests for manifest parsing, platform detection, managed-path validation, exit codes, redaction, and idempotence.
+* **PKG-NFR-016** Support automated tests for manifest parsing, platform detection, managed-path validation, exit codes, redaction, and idempotence.
 
   **Why:** Safety-critical logic should be tested without requiring a full manual installation for every change.
 
-- **PKG-NFR-017** Pass the approved static-analysis tool for its scripting language with no unresolved high-severity findings.
+* **PKG-NFR-017** Pass the approved static-analysis tool for its scripting language with no unresolved high-severity findings.
 
   **Why:** Static analysis detects common errors before a script is run.
 
@@ -665,23 +665,23 @@ The package shall:
 
 The package shall:
 
-- **PKG-NFR-018** Maintain one platform-agnostic design for the five lifecycle operations and isolate platform-, package-manager-, desktop-, provider-, and product-dependent behavior behind reviewed interfaces or equivalent boundaries.
+* **PKG-NFR-018** Maintain one platform-agnostic design for the five lifecycle operations and isolate platform-, package-manager-, desktop-, provider-, and product-dependent behavior behind reviewed interfaces or equivalent boundaries.
 
   **Why:** Stable lifecycle logic and explicit boundaries reduce inconsistent behavior without requiring one distributed cross-platform runtime.
 
-- **PKG-NFR-019** Derive home, desktop, temporary, configuration, and executable paths from the running environment rather than assuming a specific username.
+* **PKG-NFR-019** Derive home, desktop, temporary, configuration, and executable paths from the running environment rather than assuming a specific username.
 
   **Why:** Account names and standard folders vary across computers and platforms.
 
-- **PKG-NFR-020** Quote or otherwise safely handle paths that contain spaces or special characters.
+* **PKG-NFR-020** Quote or otherwise safely handle paths that contain spaces or special characters.
 
   **Why:** Paths on supported operating systems may include spaces or special characters.
 
-- **PKG-NFR-021** Produce equivalent required outcomes on all supported platforms even when the implementation commands differ.
+* **PKG-NFR-021** Produce equivalent required outcomes on all supported platforms even when the implementation commands differ.
 
   **Why:** Students should receive the same course capabilities regardless of platform.
 
-- **PKG-NFR-028** Minimize unnecessary platform-specific assumptions so that an additional designated deployment profile can reuse the platform-independent lifecycle, an existing platform implementation, and existing adapter contracts without redesigning the package core. This requirement does not obligate the project to implement or qualify every technically compatible deployment profile.
+* **PKG-NFR-028** Minimize unnecessary platform-specific assumptions so that an additional designated deployment profile can reuse the platform-independent lifecycle, an existing platform implementation, and existing adapter contracts without redesigning the package core. This requirement does not obligate the project to implement or qualify every technically compatible deployment profile.
 
   **Why:** The package should remain extensible while keeping implementation, testing, documentation, and maintenance commitments within available course resources.
 
@@ -689,27 +689,27 @@ The package shall:
 
 The package shall:
 
-- **PKG-NFR-022** Follow least privilege and elevate permission only for the specific system-level command that requires it.
+* **PKG-NFR-022** Follow least privilege and elevate permission only for the specific system-level command that requires it.
 
   **Why:** Running an entire script with administrator rights increases risk.
 
-- **PKG-NFR-023** Validate all user input, manifest paths, downloaded file names, and managed removal targets before use.
+* **PKG-NFR-023** Validate all user input, manifest paths, downloaded file names, and managed removal targets before use.
 
   **Why:** Validation prevents malformed data from becoming a command or unsafe file operation.
 
-- **PKG-NFR-024** Use encrypted network connections and approved source verification, such as package signatures, checksums, or equivalent integrity controls.
+* **PKG-NFR-024** Use encrypted network connections and approved source verification, such as package signatures, checksums, or equivalent integrity controls.
 
   **Why:** The package must detect altered or incomplete downloads.
 
-- **PKG-NFR-025** Exclude passwords, tokens, private keys, browser data, complete personal email addresses, and other secrets or unnecessary PII from terminal output, logs, and support bundles.
+* **PKG-NFR-025** Exclude passwords, tokens, private keys, browser data, complete personal email addresses, and other secrets or unnecessary PII from terminal output, logs, and support bundles.
 
   **Why:** Diagnostic information may be shared with instructors, AI tools, or technical support.
 
-- **PKG-NFR-026** Set log and temporary-file permissions so that other local users cannot read sensitive diagnostic data when the platform supports per-user permissions.
+* **PKG-NFR-026** Set log and temporary-file permissions so that other local users cannot read sensitive diagnostic data when the platform supports per-user permissions.
 
   **Why:** Logs may contain usernames, paths, versions, and configuration details.
 
-- **PKG-NFR-027** Delete temporary files that contain downloaded or generated configuration data after successful use and safe error handling.
+* **PKG-NFR-027** Delete temporary files that contain downloaded or generated configuration data after successful use and safe error handling.
 
   **Why:** Unneeded temporary files create privacy, security, and storage risks.
 
@@ -719,39 +719,39 @@ The package shall:
 
 The package shall:
 
-- **PKG-TC-001** Use a platform-native scripting language approved for the target operating system.
+* **PKG-TC-001** Use a platform-native scripting language approved for the target operating system.
 
   **Why:** Native tools reduce prerequisites and simplify execution for beginners.
 
-- **PKG-TC-002** Use only software and services available to students without an additional course-related fee.
+* **PKG-TC-002** Use only software and services available to students without an additional course-related fee.
 
   **Why:** Every enrolled student must be able to complete course work without purchasing development software.
 
-- **PKG-TC-003** Store source scripts and text configuration in UTF-8 with Line Feed (LF) line endings as defined by the repository's approved text-file policy.
+* **PKG-TC-003** Store source scripts and text configuration in UTF-8 with Line Feed (LF) line endings as defined by the repository's approved text-file policy.
 
   **Why:** Consistent line endings reduce cross-platform script and submission problems.
 
-- **PKG-TC-004** Use JSON for the shared manifest and validate it before use.
+* **PKG-TC-004** Use JSON for the shared manifest and validate it before use.
 
   **Why:** JSON is readable, portable, and supported by all target scripting environments.
 
-- **PKG-TC-005** Store logs and support bundles under the current user's `~/it140/logs/` folder or the exact platform-equivalent path derived from the home folder.
+* **PKG-TC-005** Store logs and support bundles under the current user's `~/it140/logs/` folder or the exact platform-equivalent path derived from the home folder.
 
   **Why:** A standard location helps students and support personnel find diagnostic files.
 
-- **PKG-TC-006** Mark only designated deployment profiles as course-supported when their operating-system releases still receive approved security updates and the complete profile has been implemented, qualified, documented, and approved for IT 140.
+* **PKG-TC-006** Mark only designated deployment profiles as course-supported when their operating-system releases still receive approved security updates and the complete profile has been implemented, qualified, documented, and approved for IT 140.
 
   **Why:** Upstream product compatibility is not sufficient evidence that the complete course environment is secure and supportable.
 
-- **PKG-TC-007** Use the course-required programming-language implementation and major and minor version declared by the manifest and aligned with the version used by required course activities.
+* **PKG-TC-007** Use the course-required programming-language implementation and major and minor version declared by the manifest and aligned with the version used by required course activities.
 
   **Why:** Matching programming-language versions reduces differences between demonstrations, tests, and student results.
 
-- **PKG-TC-008** Use the concrete products declared by the manifest for required capabilities such as version control, source-code hosting, programming-language execution, test running, coverage reporting, code-quality checking and formatting, source-code editing or IDE functions, diagram editing, spelling support, and document viewing.
+* **PKG-TC-008** Use the concrete products declared by the manifest for required capabilities such as version control, source-code hosting, programming-language execution, test running, coverage reporting, code-quality checking and formatting, source-code editing or IDE functions, diagram editing, spelling support, and document viewing.
 
   **Why:** The capabilities support version control, programming, provided tests, code quality, and course file formats while allowing approved products to change without rewriting the SRS.
 
-- **PKG-TC-009** Use the current user's home folder as the base for user-owned course files and shall not require a fixed account name.
+* **PKG-TC-009** Use the current user's home folder as the base for user-owned course files and shall not require a fixed account name.
 
   **Why:** The package must work for different students and faculty accounts.
 
@@ -759,19 +759,19 @@ The package shall:
 
 The reference-platform implementation shall:
 
-- **REF-TC-001** Target the approved reference-platform type, operating-system release, processor architecture, and graphical or remote-session environment declared by the manifest.
+* **REF-TC-001** Target the approved reference-platform type, operating-system release, processor architecture, and graphical or remote-session environment declared by the manifest.
 
-- **REF-TC-002** Use the platform-native scripting language and system package manager declared by the manifest.
+* **REF-TC-002** Use the platform-native scripting language and system package manager declared by the manifest.
 
-- **REF-TC-003** Run student-facing scripts as the standard user and use only the manifest-approved controlled privilege-elevation mechanism for specific system-level commands.
+* **REF-TC-003** Run student-facing scripts as the standard user and use only the manifest-approved controlled privilege-elevation mechanism for specific system-level commands.
 
-- **REF-TC-004** Avoid restarting an active graphical desktop, virtual machine, or remote-display service during an update. When a restart is required, the script shall instruct the user to save work and use the approved platform restart control.
+* **REF-TC-004** Avoid restarting an active graphical desktop, virtual machine, or remote-display service during an update. When a restart is required, the script shall instruct the user to save work and use the approved platform restart control.
 
-- **REF-TC-005** Derive user paths from the running environment and shall not hardcode a user name or home-directory path.
+* **REF-TC-005** Derive user paths from the running environment and shall not hardcode a user name or home-directory path.
 
-- **REF-TC-006** Place system-wide policies, package sources, and application registrations in `install_it140.<ext>`, while placing user preferences, user launchers, IDE settings, and user-scoped extensions or plug-ins in `configure_it140.<ext>`.
+* **REF-TC-006** Place system-wide policies, package sources, and application registrations in `install_it140.<ext>`, while placing user preferences, user launchers, IDE settings, and user-scoped extensions or plug-ins in `configure_it140.<ext>`.
 
-- **REF-TC-007** Obtain products only through the vendor, project, operating-system, or institutional distribution channels approved by the manifest.
+* **REF-TC-007** Obtain products only through the vendor, project, operating-system, or institutional distribution channels approved by the manifest.
 
 ### 3.3 Additional Course-Supported Deployment Profiles
 
@@ -793,41 +793,41 @@ A new deployment profile shall not be marked course-supported until it:
 
 The package shall:
 
-- **PKG-QOS-001** Make `prepare_it140.<ext>`, `install_it140.<ext>`, `configure_it140.<ext>`, and `update_it140.<ext>` idempotent.
+* **PKG-QOS-001** Make `prepare_it140.<ext>`, `install_it140.<ext>`, `configure_it140.<ext>`, and `update_it140.<ext>` idempotent.
 
-- **PKG-QOS-002** Keep `verify` read-only, including when a check fails.
+* **PKG-QOS-002** Keep `verify` read-only, including when a check fails.
 
-- **PKG-QOS-003** Leave the environment in a recoverable state after an interruption, failed download, failed package operation, or user cancellation.
+* **PKG-QOS-003** Leave the environment in a recoverable state after an interruption, failed download, failed package operation, or user cancellation.
 
-- **PKG-QOS-004** Use staged or atomic replacement for course-managed files. An atomic replacement makes the complete new file visible at once instead of exposing a partially written file.
+* **PKG-QOS-004** Use staged or atomic replacement for course-managed files. An atomic replacement makes the complete new file visible at once instead of exposing a partially written file.
 
-- **PKG-QOS-005** Prevent concurrent operations when simultaneous execution could corrupt package-manager, manifest, or managed-file state.
+* **PKG-QOS-005** Prevent concurrent operations when simultaneous execution could corrupt package-manager, manifest, or managed-file state.
 
-- **PKG-QOS-006** Preserve an already compliant required component when another independent component fails.
+* **PKG-QOS-006** Preserve an already compliant required component when another independent component fails.
 
 ### 4.2 Performance and User Feedback
 
 The package shall:
 
-- **PKG-QOS-007** Display identifying information and the first meaningful status message within five seconds under normal supported conditions.
+* **PKG-QOS-007** Display identifying information and the first meaningful status message within five seconds under normal supported conditions.
 
-- **PKG-QOS-008** Avoid more than 60 seconds of silent operation during a long-running prepare, install, or update operation. The component shall display a truthful status message when the underlying tool does not provide visible progress.
+* **PKG-QOS-008** Avoid more than 60 seconds of silent operation during a long-running prepare, install, or update operation. The component shall display a truthful status message when the underlying tool does not provide visible progress.
 
-- **PKG-QOS-009** Complete verification within 90 seconds on the approved reference environment when required services are responsive and no support bundle is requested.
+* **PKG-QOS-009** Complete verification within 90 seconds on the approved reference environment when required services are responsive and no support bundle is requested.
 
-- **PKG-QOS-010** Avoid repeated downloads or installations when a compliant component can be verified locally.
+* **PKG-QOS-010** Avoid repeated downloads or installations when a compliant component can be verified locally.
 
 ### 4.3 Error Handling and Exit Codes
 
 The package shall:
 
-- **PKG-QOS-011** Stop a dependent stage after a required prerequisite fails while continuing only independent checks or cleanup that are safe.
+* **PKG-QOS-011** Stop a dependent stage after a required prerequisite fails while continuing only independent checks or cleanup that are safe.
 
-- **PKG-QOS-012** Report the failed stage, a plain-language description, the underlying command or check when safe to disclose, and the recommended remediation.
+* **PKG-QOS-012** Report the failed stage, a plain-language description, the underlying command or check when safe to disclose, and the recommended remediation.
 
-- **PKG-QOS-013** Preserve the original nonzero result when error handling or log cleanup runs.
+* **PKG-QOS-013** Preserve the original nonzero result when error handling or log cleanup runs.
 
-- **PKG-QOS-014** Use the following exit codes consistently:
+* **PKG-QOS-014** Use the following exit codes consistently:
 
 | Exit code | Meaning |
 | ---: | --- |
@@ -840,25 +840,25 @@ The package shall:
 | `6` | The user canceled a required interactive operation. |
 | `7` | The run completed only partially and must be rerun or remediated before the environment is considered compliant. |
 
-- **PKG-QOS-015** Use the most serious applicable exit code when more than one problem is detected.
+* **PKG-QOS-015** Use the most serious applicable exit code when more than one problem is detected.
 
 ### 4.4 Logging and Diagnostics
 
 The package shall:
 
-- **PKG-QOS-016** Create a unique timestamped log for each run using the action name, platform, date, and time.
+* **PKG-QOS-016** Create a unique timestamped log for each run using the action name, platform, date, and time.
 
-- **PKG-QOS-017** Record the producing script or component SemVer version and version date-time group, manifest SemVer release and release date when available, platform, operating-system version, architecture, current user identifier, start time, end time, elapsed time, major stages, results, and final exit code.
+* **PKG-QOS-017** Record the producing script or component SemVer version and version date-time group, manifest SemVer release and release date when available, platform, operating-system version, architecture, current user identifier, start time, end time, elapsed time, major stages, results, and final exit code.
 
-- **PKG-QOS-018** Record enough version, path, permission, and configuration information to diagnose failures while following the redaction rules in `PKG-NFR-025`.
+* **PKG-QOS-018** Record enough version, path, permission, and configuration information to diagnose failures while following the redaction rules in `PKG-NFR-025`.
 
-- **PKG-QOS-019** Write logs as readable UTF-8 plain text and keep the terminal output understandable when ANSI color codes are unavailable.
+* **PKG-QOS-019** Write logs as readable UTF-8 plain text and keep the terminal output understandable when ANSI color codes are unavailable.
 
-- **PKG-QOS-020** State the exact log path in the opening information and final summary.
+* **PKG-QOS-020** State the exact log path in the opening information and final summary.
 
-- **PKG-QOS-021** Create a support bundle only after an explicit command option or user confirmation and list the files included before final creation.
+* **PKG-QOS-021** Create a support bundle only after an explicit command option or user confirmation and list the files included before final creation.
 
-- **PKG-QOS-022** Exclude student source files, repository contents, version-control history, authentication data, and browser data from support bundles.
+* **PKG-QOS-022** Exclude student source files, repository contents, version-control history, authentication data, and browser data from support bundles.
 
 ## 5. Sample Input and Output
 

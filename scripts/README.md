@@ -8,11 +8,11 @@ This guide explains the purpose of the IT 140 Course Automation Scripts package,
 > This README is informative and navigational. Follow the [Module One Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) for the exact commands and workflow for your course environment. Run only the scripts that match your selected platform.
 
 * **Course**: IT 140 - *Introduction to Scripting*
-- **Activity Name**: Main Course Repository | Course Automation Scripts
-- **Activity Purpose**: Prepare, install, configure, verify, and update the IT 140 course IDE in supported environments.
-- **Artifact Version**: 1.0.4
-- **Artifact Date-Time Group**: 2026-09-07-14-30
-- **Development Status**: Pilot — Active Development
+* **Activity Name**: Main Course Repository | Course Automation Scripts
+* **Activity Purpose**: Prepare, install, configure, verify, and update the IT 140 course IDE in supported environments.
+* **Artifact Version**: 1.0.4
+* **Artifact Date-Time Group**: 2026-09-07-14-30
+* **Development Status**: Pilot — Active Development
 
 > [!WARNING]
 > This repository is a work in progress. Some modules and activities may not be fully implemented yet. Please check the status of each activity in the table below for the latest updates.
@@ -20,36 +20,36 @@ This guide explains the purpose of the IT 140 Course Automation Scripts package,
 <!-- omit from toc -->
 ## Table of Contents
 
-- [IT 140 Main Course Repository | Course Automation Scripts](#it-140-main-course-repository--course-automation-scripts)
-  - [Table of Contents](#table-of-contents)
-  - [Document Metadata](#document-metadata)
-  - [1. Package Overview](#1-package-overview)
-  - [2. Course IDE Lifecycle](#2-course-ide-lifecycle)
-  - [3. Shared Script Behavior](#3-shared-script-behavior)
-  - [4. Platform Folders](#4-platform-folders)
-  - [5. Codio Virtual Desktop (`cvd/`)](#5-codio-virtual-desktop-cvd)
-  - [6. Windows (`win/`)](#6-windows-win)
-  - [7. macOS (`mac/`)](#7-macos-mac)
-  - [8. Linux (`nix/`)](#8-linux-nix)
-    - [Ubuntu Desktop LTS (`nix/ubg/`)](#ubuntu-desktop-lts-nixubg)
-    - [Other Linux Distributions](#other-linux-distributions)
-  - [9. Supporting Package Folders](#9-supporting-package-folders)
-  - [10. Logs and Help](#10-logs-and-help)
+* [IT 140 Main Course Repository | Course Automation Scripts](#it-140-main-course-repository--course-automation-scripts)
+  * [Table of Contents](#table-of-contents)
+  * [Document Metadata](#document-metadata)
+  * [1. Package Overview](#1-package-overview)
+  * [2. Course IDE Lifecycle](#2-course-ide-lifecycle)
+  * [3. Shared Script Behavior](#3-shared-script-behavior)
+  * [4. Platform Folders](#4-platform-folders)
+  * [5. Codio Virtual Desktop (`cvd/`)](#5-codio-virtual-desktop-cvd)
+  * [6. Windows (`win/`)](#6-windows-win)
+  * [7. macOS (`mac/`)](#7-macos-mac)
+  * [8. Linux (`nix/`)](#8-linux-nix)
+    * [Ubuntu Desktop LTS (`nix/ubg/`)](#ubuntu-desktop-lts-nixubg)
+    * [Other Linux Distributions](#other-linux-distributions)
+  * [9. Supporting Package Folders](#9-supporting-package-folders)
+  * [10. Logs and Help](#10-logs-and-help)
 
 ## Document Metadata
 
 * **Course**: IT 140 - *Introduction to Scripting*
-- **Module Name**: Main Course Repository
-- **Activity Name**: Course Automation Scripts
-- **Activity Description**: This folder contains the platform automation scripts used to prepare, install, configure, verify, and update the IT 140 course IDE.
-- **Program Name**: IT 140 Course Automation Scripts
-- **Artifact ID**: `IT140-SCRIPTS-README`
-- **Artifact Version**: `0.1.0`
-- **Version Date-Time Group**: `2026-08-01-14-59`
-- **Status**: Draft for faculty review
-- **SRS Baseline**: `IT140-SRS-SCRIPTS`, version `0.5.0`, version date-time group `2026-08-01-10-43`
-- **SDD Baseline**: `IT140-SDD-SCRIPTS`, version `0.5.0`, version date-time group `2026-08-01-10-43`
-- **Manifest Baseline Reviewed**: Automation release `0.5.1`, release date `2026-07-30`, status `draft`
+* **Module Name**: Main Course Repository
+* **Activity Name**: Course Automation Scripts
+* **Activity Description**: This folder contains the platform automation scripts used to prepare, install, configure, verify, and update the IT 140 course IDE.
+* **Program Name**: IT 140 Course Automation Scripts
+* **Artifact ID**: `IT140-SCRIPTS-README`
+* **Artifact Version**: `0.1.0`
+* **Version Date-Time Group**: `2026-08-01-14-59`
+* **Status**: Draft for faculty review
+* **SRS Baseline**: `IT140-SRS-SCRIPTS`, version `0.5.0`, version date-time group `2026-08-01-10-43`
+* **SDD Baseline**: `IT140-SDD-SCRIPTS`, version `0.5.0`, version date-time group `2026-08-01-10-43`
+* **Manifest Baseline Reviewed**: Automation release `0.5.1`, release date `2026-07-30`, status `draft`
 
 ## 1. Package Overview
 
@@ -79,12 +79,12 @@ The exact workflow depends on the environment's starting state. A local installa
 
 Although the commands differ by platform, the scripts follow common rules:
 
-- **Protect coursework**: The scripts are designed to preserve student programs, assignment repositories, version-control history, optional tools, and unrelated settings.
-- **Support safe reruns**: Prepare, Install, Configure, and Update are designed to be rerun when an approved course-managed item is missing or damaged.
-- **Keep Verify read-only**: Verify reports the current condition without installing, repairing, updating, or removing software.
-- **Explain results**: Each run identifies its purpose, reports important actions, and ends with a plain-language summary and recommended next step.
-- **Create support records**: Each lifecycle run saves a timestamped log or transcript under `~/it140/logs/` or the equivalent folder for the current platform.
-- **Provide course continuity**: If a local course IDE cannot be prepared successfully, students can continue their IT 140 coursework in the Codio Virtual Desktop while the local issue is resolved.
+* **Protect coursework**: The scripts are designed to preserve student programs, assignment repositories, version-control history, optional tools, and unrelated settings.
+* **Support safe reruns**: Prepare, Install, Configure, and Update are designed to be rerun when an approved course-managed item is missing or damaged.
+* **Keep Verify read-only**: Verify reports the current condition without installing, repairing, updating, or removing software.
+* **Explain results**: Each run identifies its purpose, reports important actions, and ends with a plain-language summary and recommended next step.
+* **Create support records**: Each lifecycle run saves a timestamped log or transcript under `~/it140/logs/` or the equivalent folder for the current platform.
+* **Provide course continuity**: If a local course IDE cannot be prepared successfully, students can continue their IT 140 coursework in the Codio Virtual Desktop while the local issue is resolved.
 
 ### Understanding Update results
 
@@ -193,7 +193,7 @@ Students should not edit the controlled manifest, schema, engineering artifacts,
 Every lifecycle script saves a timestamped plain-text log or transcript under the course log folder:
 
 * **Windows**: `%USERPROFILE%\it140\logs\`
-- **macOS, Linux, and CVD**: `~/it140/logs/`
+* **macOS, Linux, and CVD**: `~/it140/logs/`
 
 When a script reports a warning, partial result, or failure, keep the final summary and the exact log path. These records help instructors, AI support tools, and university technical support identify the script version, platform, completed actions, and point of failure without requiring the student to remember every message shown in the terminal.
 

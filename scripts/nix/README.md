@@ -3,9 +3,9 @@
 # IT 140 Main Course Repository | Linux Distributions
 
 * **Course**: IT 140 - *Introduction to Scripting*
-- **Module Name**: Main Course Repository
-- **Activity Name**: Course Automation Scripts for Linux Distributions
-- **Activity Description**: This folder contains
+* **Module Name**: Main Course Repository
+* **Activity Name**: Course Automation Scripts for Linux Distributions
+* **Activity Description**: This folder contains
 
 > [!WARNING]
 > This README file is under constructions. It is mainly for maintainers of the course automation scripts. However, I plan to include a brief student-facing section to explain Linux Distributions and why they are important in technology fields. This explanation will be more for technology students (CS, CYB, GAM, IT). If you have any suggestions, please open a [GitHub Issue](https://github.com/GC-STEM/it140/issues) with your suggestion.

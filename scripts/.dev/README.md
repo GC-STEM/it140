@@ -8,32 +8,32 @@ This guide gives faculty, course developers, maintainers, testers, platform admi
 <!-- omit from toc -->
 ## Table of Contents
 
-- [Engineering Executive Summary and Artifact Guide](#engineering-executive-summary-and-artifact-guide)
-  - [Table of Contents](#table-of-contents)
-  - [Document Metadata](#document-metadata)
-  - [1. Executive Summary](#1-executive-summary)
-  - [2. Waterfall SDLC](#2-waterfall-sdlc)
-  - [3. Package Lifecycle at a Glance](#3-package-lifecycle-at-a-glance)
-  - [4. Architecture and Design Rationale](#4-architecture-and-design-rationale)
-  - [5. Artifact Authority and Traceability](#5-artifact-authority-and-traceability)
-  - [6. Current Repository Structure](#6-current-repository-structure)
-  - [7. Deployment and Support Model](#7-deployment-and-support-model)
-    - [Shared Operational Conventions](#shared-operational-conventions)
-  - [8. Reading Guide](#8-reading-guide)
-  - [9. Current Artifact Alignment Snapshot](#9-current-artifact-alignment-snapshot)
-  - [10. Maintaining This Guide](#10-maintaining-this-guide)
+* [Engineering Executive Summary and Artifact Guide](#engineering-executive-summary-and-artifact-guide)
+  * [Table of Contents](#table-of-contents)
+  * [Document Metadata](#document-metadata)
+  * [1. Executive Summary](#1-executive-summary)
+  * [2. Waterfall SDLC](#2-waterfall-sdlc)
+  * [3. Package Lifecycle at a Glance](#3-package-lifecycle-at-a-glance)
+  * [4. Architecture and Design Rationale](#4-architecture-and-design-rationale)
+  * [5. Artifact Authority and Traceability](#5-artifact-authority-and-traceability)
+  * [6. Current Repository Structure](#6-current-repository-structure)
+  * [7. Deployment and Support Model](#7-deployment-and-support-model)
+    * [Shared Operational Conventions](#shared-operational-conventions)
+  * [8. Reading Guide](#8-reading-guide)
+  * [9. Current Artifact Alignment Snapshot](#9-current-artifact-alignment-snapshot)
+  * [10. Maintaining This Guide](#10-maintaining-this-guide)
 
 ## Document Metadata
 
 * **Course**: IT 140 - *Introduction to Scripting*
-- **Program name**: IT 140 Course Automation Scripts
-- **Artifact ID**: `IT140-DEV-README`
-- **Artifact version**: `0.2.0`
-- **Version date**: `2026-08-01`
-- **Status**: Draft for faculty review
-- **SRS baseline**: `IT140-SRS-SCRIPTS`, version `0.3.0`, version date `2026-08-01`
-- **SDD baseline**: `IT140-SDD-SCRIPTS`, version `0.3.0`, version date `2026-08-01`
-- **Manifest baseline reviewed**: automation release `0.5.1`, release date `2026-07-30`, status `draft`
+* **Program name**: IT 140 Course Automation Scripts
+* **Artifact ID**: `IT140-DEV-README`
+* **Artifact version**: `0.2.0`
+* **Version date**: `2026-08-01`
+* **Status**: Draft for faculty review
+* **SRS baseline**: `IT140-SRS-SCRIPTS`, version `0.3.0`, version date `2026-08-01`
+* **SDD baseline**: `IT140-SDD-SCRIPTS`, version `0.3.0`, version date `2026-08-01`
+* **Manifest baseline reviewed**: automation release `0.5.1`, release date `2026-07-30`, status `draft`
 
 > [!IMPORTANT]
 > This README is an **informative and navigational executive summary**. It does not create or replace requirements, acceptance criteria, design decisions, configuration rules, or release evidence. The [Software Requirements Specification](analysis/it140_scripts_srs.md) controls required behavior, and the [Software Design Description](design/it140_scripts_sdd.md) controls the approved high-level design. The current repository headers identify both artifacts as drafts for faculty review; this README does not imply release approval.
@@ -96,18 +96,18 @@ First-use native commands
 
 The main specifications and design choices address the following needs:
 
-- **Varied learners and devices**: predictable names, stages, summaries, shortcuts, and next steps reduce cognitive load for first-term students without weakening technical safety.
-- **Platform-equivalent outcomes**: Windows, macOS, Linux, and hosted environments may require different native commands, but they must satisfy the same capabilities, status meanings, and acceptance criteria.
-- **Separated state ownership**: Prepare owns package acquisition, Install owns system state, Configure owns current-user state, Verify owns diagnosis, and Update owns maintenance-scope changes. This separation limits privilege and clarifies remediation.
-- **Dependency-minimal preparation**: first-use preparation cannot assume that the course package, manifest, package manager, version-control client, or course runtime is already installed.
-- **Manifest-controlled configuration**: one validated manifest selects current products, versions, sources, platforms, provider profiles, managed settings, and managed assets. Stable behavior remains in the SRS, SDD, and reviewed code.
-- **Reviewed adapters instead of executable manifest commands**: the manifest may select approved behavior but may not become an arbitrary command-execution mechanism.
-- **Idempotence and interruption recovery**: real student computers may be partially configured, manually changed, disconnected, restarted, or interrupted. State inspection, staging, atomic replacement, locks, cleanup, and rerunnable repair paths reduce damage and support burden.
-- **Read-only verification**: diagnosis must not conceal the original defect by changing the machine while it is being inspected.
-- **Least privilege and managed-path protection**: scripts may change only the layer and paths they own. Student work, nested repositories, unrelated preferences, credentials, and other user-owned content remain outside automation authority.
-- **Supportable diagnostics**: consistent plain-language output, deterministic exit codes, and timestamped logs let faculty, AI support tools, and technical support diagnose a run after the terminal closes.
-- **Predictable course entry points**: supported graphical desktops provide a shortcut to the course root and an IDE launcher that opens the course root as the active folder or workspace.
-- **Independent artifact identity**: each controlled artifact uses its own strict Semantic Versioning (SemVer) `MAJOR.MINOR.PATCH` identifier and separate `YYYY-MM-DD` version date so release and support evidence identifies exactly what was designed, executed, or tested.
+* **Varied learners and devices**: predictable names, stages, summaries, shortcuts, and next steps reduce cognitive load for first-term students without weakening technical safety.
+* **Platform-equivalent outcomes**: Windows, macOS, Linux, and hosted environments may require different native commands, but they must satisfy the same capabilities, status meanings, and acceptance criteria.
+* **Separated state ownership**: Prepare owns package acquisition, Install owns system state, Configure owns current-user state, Verify owns diagnosis, and Update owns maintenance-scope changes. This separation limits privilege and clarifies remediation.
+* **Dependency-minimal preparation**: first-use preparation cannot assume that the course package, manifest, package manager, version-control client, or course runtime is already installed.
+* **Manifest-controlled configuration**: one validated manifest selects current products, versions, sources, platforms, provider profiles, managed settings, and managed assets. Stable behavior remains in the SRS, SDD, and reviewed code.
+* **Reviewed adapters instead of executable manifest commands**: the manifest may select approved behavior but may not become an arbitrary command-execution mechanism.
+* **Idempotence and interruption recovery**: real student computers may be partially configured, manually changed, disconnected, restarted, or interrupted. State inspection, staging, atomic replacement, locks, cleanup, and rerunnable repair paths reduce damage and support burden.
+* **Read-only verification**: diagnosis must not conceal the original defect by changing the machine while it is being inspected.
+* **Least privilege and managed-path protection**: scripts may change only the layer and paths they own. Student work, nested repositories, unrelated preferences, credentials, and other user-owned content remain outside automation authority.
+* **Supportable diagnostics**: consistent plain-language output, deterministic exit codes, and timestamped logs let faculty, AI support tools, and technical support diagnose a run after the terminal closes.
+* **Predictable course entry points**: supported graphical desktops provide a shortcut to the course root and an IDE launcher that opens the course root as the active folder or workspace.
+* **Independent artifact identity**: each controlled artifact uses its own strict Semantic Versioning (SemVer) `MAJOR.MINOR.PATCH` identifier and separate `YYYY-MM-DD` version date so release and support evidence identifies exactly what was designed, executed, or tested.
 
 ## 5. Artifact Authority and Traceability
 

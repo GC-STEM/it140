@@ -6,15 +6,15 @@ The Verify suites established the common black-box conventions. Windows Prepare 
 
 ## Test conventions
 
-- **Black-box entry points:** Tests execute the production lifecycle entry point rather than sourcing individual functions.
-- **Fixtures describe starting state:** A known base filesystem is copied into an isolated temporary directory for each scenario.
-- **Mocks replace external dependencies:** External commands, operating-system observations, and desktop-integration APIs are controlled at the boundary appropriate to each platform; lifecycle decision logic is not mocked.
-- **Scenario files describe expected behavior:** JSON files define arguments, controlled failures, expected exit codes, summary results, and diagnostic text.
-- **Exit codes are API contracts:** The process exit code must match the lifecycle summary.
-- **Filesystem snapshots enforce state boundaries:** Verify may not modify protected state. Mutating-stage tests instead snapshot paths that are outside the stage's ownership boundary and require them to remain unchanged.
-- **Logs are checked semantically:** Tests parse stable summary fields instead of comparing an entire transcript as golden text.
-- **Platform/stage harnesses stay isolated:** Shared snapshot and transcript behavior lives under `tests/lifecycle/common/`; stage- and platform-specific fixture construction and mocks live with each suite.
-- **Idempotence is semantic:** A mutating stage may rewrite managed files or refresh metadata on a repeat run, but the resulting managed configuration and preserved user state must converge to the same semantic state.
+* **Black-box entry points:** Tests execute the production lifecycle entry point rather than sourcing individual functions.
+* **Fixtures describe starting state:** A known base filesystem is copied into an isolated temporary directory for each scenario.
+* **Mocks replace external dependencies:** External commands, operating-system observations, and desktop-integration APIs are controlled at the boundary appropriate to each platform; lifecycle decision logic is not mocked.
+* **Scenario files describe expected behavior:** JSON files define arguments, controlled failures, expected exit codes, summary results, and diagnostic text.
+* **Exit codes are API contracts:** The process exit code must match the lifecycle summary.
+* **Filesystem snapshots enforce state boundaries:** Verify may not modify protected state. Mutating-stage tests instead snapshot paths that are outside the stage's ownership boundary and require them to remain unchanged.
+* **Logs are checked semantically:** Tests parse stable summary fields instead of comparing an entire transcript as golden text.
+* **Platform/stage harnesses stay isolated:** Shared snapshot and transcript behavior lives under `tests/lifecycle/common/`; stage- and platform-specific fixture construction and mocks live with each suite.
+* **Idempotence is semantic:** A mutating stage may rewrite managed files or refresh metadata on a repeat run, but the resulting managed configuration and preserved user state must converge to the same semantic state.
 
 ## Current scope
 

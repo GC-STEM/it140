@@ -8,11 +8,11 @@ This guide explains the controlled configuration files in `scripts/.manifest/`, 
 > This README is informative and navigational, not normative. It does not establish or replace requirements, design decisions, schema rules, approved configuration, qualification evidence, or release approval. The [Software Requirements Specification](../.dev/analysis/it140_scripts_srs.md) defines required behavior, the [Software Design Description](../.dev/design/it140_scripts_sdd.md) defines the approved high-level design, the [manifest schema](it140_manifest.schema.json) defines the permitted JSON structure, and the [controlled manifest](it140_manifest.json) selects the current concrete configuration.
 
 * **Course**: IT 140 - *Introduction to Scripting*
-- **Activity Name**: Main Course Repository | Controlled Manifest and Schema Guide
-- **Activity Purpose**: Explain the controlled manifest and schema, their purpose, and how maintainers should review, validate, change, and release them.
-- **Artifact Version**: 1.0.4
-- **Artifact Date-Time Group**: 2026-09-07-14-30
-- **Development Status**: Pilot — Active Development
+* **Activity Name**: Main Course Repository | Controlled Manifest and Schema Guide
+* **Activity Purpose**: Explain the controlled manifest and schema, their purpose, and how maintainers should review, validate, change, and release them.
+* **Artifact Version**: 1.0.4
+* **Artifact Date-Time Group**: 2026-09-07-14-30
+* **Development Status**: Pilot — Active Development
 
 > [!WARNING]
 > This repository is a work in progress. Some modules and activities may not be fully implemented yet. Please check the status of each activity in the table below for the latest updates.
@@ -20,39 +20,39 @@ This guide explains the controlled configuration files in `scripts/.manifest/`, 
 <!-- omit from toc -->
 ## Table of Contents
 
-- [Controlled Manifest and Schema Guide](#controlled-manifest-and-schema-guide)
-  - [Table of Contents](#table-of-contents)
-  - [Document Metadata](#document-metadata)
-  - [1. Purpose and Audience](#1-purpose-and-audience)
-  - [2. Student View: Why Use a Manifest?](#2-student-view-why-use-a-manifest)
-  - [3. Files and Authority](#3-files-and-authority)
-  - [4. Configuration Model](#4-configuration-model)
-  - [5. Current Controlled Baseline](#5-current-controlled-baseline)
-    - [Current Course IDE Selection](#current-course-ide-selection)
-    - [Current Platform Implementations](#current-platform-implementations)
-    - [Current Deployment Profiles](#current-deployment-profiles)
-  - [6. Validation and Runtime Use](#6-validation-and-runtime-use)
-    - [Validation Layers](#validation-layers)
-    - [Lifecycle Use](#lifecycle-use)
-  - [7. Safety and Ownership Boundaries](#7-safety-and-ownership-boundaries)
-  - [8. Change Control and Versioning](#8-change-control-and-versioning)
-  - [9. Maintainer Review Workflow](#9-maintainer-review-workflow)
-  - [10. Current Artifact Alignment Snapshot](#10-current-artifact-alignment-snapshot)
-  - [11. Maintaining This Guide](#11-maintaining-this-guide)
+* [Controlled Manifest and Schema Guide](#controlled-manifest-and-schema-guide)
+  * [Table of Contents](#table-of-contents)
+  * [Document Metadata](#document-metadata)
+  * [1. Purpose and Audience](#1-purpose-and-audience)
+  * [2. Student View: Why Use a Manifest?](#2-student-view-why-use-a-manifest)
+  * [3. Files and Authority](#3-files-and-authority)
+  * [4. Configuration Model](#4-configuration-model)
+  * [5. Current Controlled Baseline](#5-current-controlled-baseline)
+    * [Current Course IDE Selection](#current-course-ide-selection)
+    * [Current Platform Implementations](#current-platform-implementations)
+    * [Current Deployment Profiles](#current-deployment-profiles)
+  * [6. Validation and Runtime Use](#6-validation-and-runtime-use)
+    * [Validation Layers](#validation-layers)
+    * [Lifecycle Use](#lifecycle-use)
+  * [7. Safety and Ownership Boundaries](#7-safety-and-ownership-boundaries)
+  * [8. Change Control and Versioning](#8-change-control-and-versioning)
+  * [9. Maintainer Review Workflow](#9-maintainer-review-workflow)
+  * [10. Current Artifact Alignment Snapshot](#10-current-artifact-alignment-snapshot)
+  * [11. Maintaining This Guide](#11-maintaining-this-guide)
 
 ## Document Metadata
 
 * **Course**: IT 140 - *Introduction to Scripting*
-- **Program name**: IT 140 Course Automation Scripts
-- **Artifact ID**: `IT140-MANIFEST-README`
-- **Artifact version**: `0.1.0`
-- **Version date**: `2026-08-01`
-- **Status**: Draft for faculty review
-- **SRS baseline**: `IT140-SRS-SCRIPTS`, version `0.2.0`, version date `2026-07-31`
-- **SDD baseline**: `IT140-SDD-SCRIPTS`, version `0.2.0`, version date `2026-07-31`
-- **Manifest baseline reviewed**: schema compatibility `2.0`; automation release `0.5.1`; release date `2026-07-30`; status `draft`
-- **Manifest source revision**: `2ad2ff23346896c3e27d3a8b64a9d40d652196e4`
-- **Schema standard**: JSON Schema Draft 2020-12
+* **Program name**: IT 140 Course Automation Scripts
+* **Artifact ID**: `IT140-MANIFEST-README`
+* **Artifact version**: `0.1.0`
+* **Version date**: `2026-08-01`
+* **Status**: Draft for faculty review
+* **SRS baseline**: `IT140-SRS-SCRIPTS`, version `0.2.0`, version date `2026-07-31`
+* **SDD baseline**: `IT140-SDD-SCRIPTS`, version `0.2.0`, version date `2026-07-31`
+* **Manifest baseline reviewed**: schema compatibility `2.0`; automation release `0.5.1`; release date `2026-07-30`; status `draft`
+* **Manifest source revision**: `2ad2ff23346896c3e27d3a8b64a9d40d652196e4`
+* **Schema standard**: JSON Schema Draft 2020-12
 
 ## 1. Purpose and Audience
 
@@ -60,11 +60,11 @@ The `.manifest/` directory contains operational configuration artifacts used by 
 
 This guide serves several audiences:
 
-- **Students** can understand why the course uses a manifest and why they should not edit it casually.
-- **Faculty and subject matter experts** can review the concrete course IDE selection and its relationship to the requirements and design.
-- **Maintainers and platform developers** can locate the source of product, version, platform, provider, settings, path, and logging decisions.
-- **Testers** can identify the exact configuration baseline that must accompany test definitions and results.
-- **Technical support personnel and AI support tools** can interpret manifest-related validation or compatibility failures without treating the manifest as executable instructions.
+* **Students** can understand why the course uses a manifest and why they should not edit it casually.
+* **Faculty and subject matter experts** can review the concrete course IDE selection and its relationship to the requirements and design.
+* **Maintainers and platform developers** can locate the source of product, version, platform, provider, settings, path, and logging decisions.
+* **Testers** can identify the exact configuration baseline that must accompany test definitions and results.
+* **Technical support personnel and AI support tools** can interpret manifest-related validation or compatibility failures without treating the manifest as executable instructions.
 
 The manifest centralizes configuration that would otherwise be duplicated across Windows, macOS, Linux, and hosted-platform scripts. Stable capabilities and safety rules remain in the SRS, SDD, and reviewed code; the manifest selects the concrete products and approved implementation data used for a particular automation release.
 
