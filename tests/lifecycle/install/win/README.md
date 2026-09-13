@@ -8,17 +8,17 @@ the runner itself.
 
 The suite covers:
 
-- `-Help` and `-Version` returning `0` without creating a transcript;
-- successful manifest-driven convergence of required Windows system capabilities;
-- preservation of a compatible application even when WinGet does not own it;
-- malformed controlled configuration returning `5` before managed changes;
-- unsupported Windows release returning `2` before managed changes;
-- unavailable required administrator privilege returning `3` before managed changes;
-- unavailable Windows Package Manager repair returning `4` before managed changes;
-- ordinary post-install capability failure returning `7` / `PARTIAL` after mutation;
-- preservation of student repositories and unrelated user files;
-- summary/process-exit consistency; and
-- semantic idempotence across two successful executions.
+* `-Help` and `-Version` returning `0` without creating a transcript;
+* successful manifest-driven convergence of required Windows system capabilities;
+* preservation of a compatible application even when WinGet does not own it;
+* malformed controlled configuration returning `5` before managed changes;
+* unsupported Windows release returning `2` before managed changes;
+* unavailable required administrator privilege returning `3` before managed changes;
+* unavailable Windows Package Manager repair returning `4` before managed changes;
+* ordinary post-install capability failure returning `7` / `PARTIAL` after mutation;
+* preservation of student repositories and unrelated user files;
+* summary/process-exit consistency; and
+* semantic idempotence across two successful executions.
 
 ## Isolation model
 

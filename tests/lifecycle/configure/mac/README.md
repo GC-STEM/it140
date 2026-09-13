@@ -4,18 +4,18 @@ This suite executes the production `scripts/mac/configure_it140.zsh` entry point
 
 ## What the suite establishes
 
-- successful configuration returns exit code `0`
-- malformed controlled configuration returns exit code `5` before managed user changes
-- an unsupported deployment profile returns exit code `2` before managed user changes
-- an ordinary failure after managed changes resolves to `PARTIAL` with exit code `7`
-- a required external-service failure before managed changes retains exit code `4`
-- the same external-service failure after managed changes resolves to `PARTIAL` with exit code `7`
-- student repository content and unrelated user files are preserved
-- managed PATH blocks replace stale and legacy content without duplication or repeat-run whitespace drift
-- existing unmanaged VS Code settings are preserved while managed settings are merged
-- Git identity/settings, VS Code extensions, Python venv packages, repository workspace integration, and the Visual Studio Code - Repos.app launcher converge to the required state
-- a second successful run converges to the same semantic managed state as the first run
-- logs use the expected permissions and their summary agrees with the process exit code
+* successful configuration returns exit code `0`
+* malformed controlled configuration returns exit code `5` before managed user changes
+* an unsupported deployment profile returns exit code `2` before managed user changes
+* an ordinary failure after managed changes resolves to `PARTIAL` with exit code `7`
+* a required external-service failure before managed changes retains exit code `4`
+* the same external-service failure after managed changes resolves to `PARTIAL` with exit code `7`
+* student repository content and unrelated user files are preserved
+* managed PATH blocks replace stale and legacy content without duplication or repeat-run whitespace drift
+* existing unmanaged VS Code settings are preserved while managed settings are merged
+* Git identity/settings, VS Code extensions, Python venv packages, repository workspace integration, and the Visual Studio Code - Repos.app launcher converge to the required state
+* a second successful run converges to the same semantic managed state as the first run
+* logs use the expected permissions and their summary agrees with the process exit code
 
 ## Isolation model
 
@@ -23,10 +23,10 @@ The suite runs only on a non-root Apple-silicon macOS host. It uses the runner's
 
 Commands that represent mutable user tooling or external services are placed ahead of the host on `PATH` and implemented by the stateful mock dispatcher:
 
-- Git and GitHub CLI
-- Visual Studio Code CLI
-- Python 3.12 virtual-environment creation (other Python 3.12 invocations pass through to the real CI runtime)
-- virtual-environment package installation
+* Git and GitHub CLI
+* Visual Studio Code CLI
+* Python 3.12 virtual-environment creation (other Python 3.12 invocations pass through to the real CI runtime)
+* virtual-environment package installation
 
 The command wrappers are also placed in the fixture's managed `.venv/bin` path because production Configure deliberately prepends that directory and `/opt/homebrew/bin` to `PATH`. This keeps external boundaries mocked even after Configure applies its real PATH policy and prevents a preinstalled runner tool from silently escaping the harness.
 

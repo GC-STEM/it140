@@ -6,18 +6,18 @@ This suite exercises `scripts/nix/ubg/setup_ubg.sh` as the Ubuntu GNOME **Instal
 
 The suite verifies:
 
-- `--help` and `--version` return `0` without creating an Install transcript
-- successful system-layer installation returns `0` / `PASS`
-- unsupported deployment context returns `2`
-- unavailable required privilege returns `3`
-- required external-source failure returns `4` before or after managed changes while preserving the external-service classification
-- malformed controlled configuration returns `5`
-- ordinary post-install failure after managed changes resolves to `7` / `PARTIAL`
-- manifest-declared Ubuntu APT packages and required system capabilities converge
-- approved GitHub CLI and Visual Studio Code repository artifacts converge without touching unrelated user files
-- student repositories and unrelated user configuration remain unchanged
-- two successful runs are semantically idempotent
-- transcript summary fields agree with the process exit code
+* `--help` and `--version` return `0` without creating an Install transcript
+* successful system-layer installation returns `0` / `PASS`
+* unsupported deployment context returns `2`
+* unavailable required privilege returns `3`
+* required external-source failure returns `4` before or after managed changes while preserving the external-service classification
+* malformed controlled configuration returns `5`
+* ordinary post-install failure after managed changes resolves to `7` / `PARTIAL`
+* manifest-declared Ubuntu APT packages and required system capabilities converge
+* approved GitHub CLI and Visual Studio Code repository artifacts converge without touching unrelated user files
+* student repositories and unrelated user configuration remain unchanged
+* two successful runs are semantically idempotent
+* transcript summary fields agree with the process exit code
 
 ## Isolation model
 

@@ -30,15 +30,15 @@
 
 ### Development Status
 
-- 🗺️ Planned
-- 🗓️ Requirements
-- 📝 Design
-- 🚧 Construction
-- 🅰️ Alpha Testing
-- 🅱️ Beta Testing (Staff & Faculty)
-- ✅ Ready for Pilot
-- 🔧 Maintenance
-- 📦 Archived
+* 🗺️ Planned
+* 🗓️ Requirements
+* 📝 Design
+* 🚧 Construction
+* 🅰️ Alpha Testing
+* 🅱️ Beta Testing (Staff & Faculty)
+* ✅ Ready for Pilot
+* 🔧 Maintenance
+* 📦 Archived
 
 ### Operational Status
 

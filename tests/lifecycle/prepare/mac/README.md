@@ -8,19 +8,19 @@ The production macOS Prepare script is **not changed by this suite**. The curren
 
 The suite validates the current production contract for:
 
-- Apple-silicon macOS and standard-user context checks;
-- `--help`, `--version`, and unsupported-option behavior before log creation;
-- native-tool-only preparation without Homebrew, Git, the controlled manifest, or another lifecycle script as a prerequisite;
-- the approved GitHub archive URL and bounded five-attempt download loop;
-- staged ZIP extraction and structural validation before activation;
-- manifest and schema JSON validation with native `osascript`;
-- preservation of prior critical macOS automation assets when download or staged-package validation fails;
-- repository overlay without deleting unmatched course-root or macOS-script-directory files;
-- removal of only the deployed package's top-level `.git` metadata while preserving nested student repository metadata;
-- executable lifecycle scripts after activation;
-- replacement of legacy/current managed Zsh PATH blocks with one canonical block;
-- private Prepare logs and temporary-file cleanup; and
-- semantic idempotence across two successful runs.
+* Apple-silicon macOS and standard-user context checks;
+* `--help`, `--version`, and unsupported-option behavior before log creation;
+* native-tool-only preparation without Homebrew, Git, the controlled manifest, or another lifecycle script as a prerequisite;
+* the approved GitHub archive URL and bounded five-attempt download loop;
+* staged ZIP extraction and structural validation before activation;
+* manifest and schema JSON validation with native `osascript`;
+* preservation of prior critical macOS automation assets when download or staged-package validation fails;
+* repository overlay without deleting unmatched course-root or macOS-script-directory files;
+* removal of only the deployed package's top-level `.git` metadata while preserving nested student repository metadata;
+* executable lifecycle scripts after activation;
+* replacement of legacy/current managed Zsh PATH blocks with one canonical block;
+* private Prepare logs and temporary-file cleanup; and
+* semantic idempotence across two successful runs.
 
 ### Zsh whitespace and semantic idempotence
 
@@ -28,10 +28,10 @@ The current Beta Prepare implementation removes the old managed PATH block and a
 
 That whitespace-only drift does not change shell behavior, the managed PATH export, user-controlled Zsh content, or the number of managed blocks. The idempotence oracle therefore normalizes **only trailing blank lines immediately before the managed PATH block**. It still requires:
 
-- exactly one current managed PATH start marker and one end marker;
-- the exact expected managed PATH export;
-- preservation of user-controlled `.zshrc` content;
-- exact equality of all other semantic state, including the manifest, installed script modes, preserved user files, nested student Git metadata, unmatched course content, and top-level package Git removal.
+* exactly one current managed PATH start marker and one end marker;
+* the exact expected managed PATH export;
+* preservation of user-controlled `.zshrc` content;
+* exact equality of all other semantic state, including the manifest, installed script modes, preserved user files, nested student Git metadata, unmatched course content, and top-level package Git removal.
 
 This characterization avoids changing a field-verified Beta production script solely to remove harmless formatting drift.
 

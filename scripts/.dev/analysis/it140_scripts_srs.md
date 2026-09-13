@@ -66,13 +66,13 @@ The concrete reference environment used to review this SRS and design the initia
 
 The package shall not:
 
-- Create, solve, grade, or modify student programming assignments.
-- Overwrite student programming-language source files, assignment repositories, version-control history, or Learning Management System (LMS) submissions. The package may create and identify the parent repository workspace but shall not recursively enumerate, rewrite, delete, move, permission-reset, or otherwise manage repositories or files stored inside that workspace.
-- Store passwords, authentication tokens, browser session data, or other secrets.
-- Perform an operating-system release upgrade unless a future approved requirement explicitly adds that capability.
-- Provide general-purpose backup, reset, uninstall, or account-recovery functions.
-- Treat student-selected optional software or unrelated user settings as course-managed assets.
-- Require an existing course manifest, package manager, version-control client, or previously installed lifecycle script before the first-use preparation commands can run.
+* Create, solve, grade, or modify student programming assignments.
+* Overwrite student programming-language source files, assignment repositories, version-control history, or Learning Management System (LMS) submissions. The package may create and identify the parent repository workspace but shall not recursively enumerate, rewrite, delete, move, permission-reset, or otherwise manage repositories or files stored inside that workspace.
+* Store passwords, authentication tokens, browser session data, or other secrets.
+* Perform an operating-system release upgrade unless a future approved requirement explicitly adds that capability.
+* Provide general-purpose backup, reset, uninstall, or account-recovery functions.
+* Treat student-selected optional software or unrelated user settings as course-managed assets.
+* Require an existing course manifest, package manager, version-control client, or previously installed lifecycle script before the first-use preparation commands can run.
 
 The **bootstrap command set** is the short, platform-native sequence represented by `prepare_it140.<ext>`. On first use, the sequence is copied and run as commands because the local package is not yet present. After installation, the same artifact may be executed directly to refresh the package.
 
@@ -118,16 +118,16 @@ The **bootstrap command set** is the short, platform-native sequence represented
 
 Each mandatory requirement uses **shall** and has a unique identifier.
 
-- `PKG-FR-###`: package-level functional requirement
-- `PRE-FR-###`: prepare-script functional requirement
-- `INS-FR-###`: install-script functional requirement
-- `CFG-FR-###`: configure-script functional requirement
-- `VER-FR-###`: verify-script functional requirement
-- `UPD-FR-###`: update-script functional requirement
-- `PKG-NFR-###`: package-level nonfunctional requirement
-- `PKG-TC-###`: shared technology constraint
-- `REF-TC-###`: reference-platform-specific technology constraint
-- `PKG-QOS-###`: package-level quality-of-service constraint
+* `PKG-FR-###`: package-level functional requirement
+* `PRE-FR-###`: prepare-script functional requirement
+* `INS-FR-###`: install-script functional requirement
+* `CFG-FR-###`: configure-script functional requirement
+* `VER-FR-###`: verify-script functional requirement
+* `UPD-FR-###`: update-script functional requirement
+* `PKG-NFR-###`: package-level nonfunctional requirement
+* `PKG-TC-###`: shared technology constraint
+* `REF-TC-###`: reference-platform-specific technology constraint
+* `PKG-QOS-###`: package-level quality-of-service constraint
 
 A **functional requirement** states what the software shall do. A **nonfunctional requirement** states how well or under what general qualities it shall operate. A **technology constraint** limits the technologies or environment that may be used. A **Quality of Service (QoS) constraint** gives a measurable expectation for reliability, performance, security, or supportability.
 
@@ -779,13 +779,13 @@ The package is designed so additional deployment profiles can be considered sele
 
 A new deployment profile shall not be marked course-supported until it:
 
-- Implements all applicable requirements in this SRS.
-- Provides `prepare_it140.<ext>`, `install_it140.<ext>`, `configure_it140.<ext>`, `verify_it140.<ext>`, and `update_it140.<ext>` in the approved platform directory.
-- Has an approved platform abbreviation and native script extension.
-- Documents the first-use `prepare_it140.<ext>` command set and later direct-refresh use.
-- Has platform-specific technology constraints.
-- Passes the full acceptance-test set on a clean supported environment.
-- Produces equivalent required outcomes to the reference platform.
+* Implements all applicable requirements in this SRS.
+* Provides `prepare_it140.<ext>`, `install_it140.<ext>`, `configure_it140.<ext>`, `verify_it140.<ext>`, and `update_it140.<ext>` in the approved platform directory.
+* Has an approved platform abbreviation and native script extension.
+* Documents the first-use `prepare_it140.<ext>` command set and later direct-refresh use.
+* Has platform-specific technology constraints.
+* Passes the full acceptance-test set on a clean supported environment.
+* Produces equivalent required outcomes to the reference platform.
 
 ## 4. Quality of Service Constraints
 
@@ -1188,14 +1188,14 @@ Students are expected to run provided tests; this package does not require stude
 
 ### A.6 Initial Managed-Asset Categories
 
-- Automation scripts
-- `it140_manifest.json`
-- Course workspace configuration
-- Documentation explicitly marked as course-managed
-- Required extension definitions
-- Course-managed launchers and file associations
-- Approved browser policies and bookmarks
-- Obsolete components explicitly listed by the manifest
+* Automation scripts
+* `it140_manifest.json`
+* Course workspace configuration
+* Documentation explicitly marked as course-managed
+* Required extension definitions
+* Course-managed launchers and file associations
+* Approved browser policies and bookmarks
+* Obsolete components explicitly listed by the manifest
 
 ## Appendix B: Requirements Traceability and Change Control
 
@@ -1208,11 +1208,11 @@ Students are expected to run provided tests; this package does not require stude
 
 A proposed requirement change shall identify:
 
-- The requirement IDs affected.
-- The reason for the change.
-- The platforms and scripts affected.
-- Changes required in the manifest, SDD, code, tests, logs or support records, maintenance artifacts, and student documentation.
-- The required SemVer increment and new version date-time group for each affected controlled artifact.
-- Compatibility or migration effects for existing installations.
+* The requirement IDs affected.
+* The reason for the change.
+* The platforms and scripts affected.
+* Changes required in the manifest, SDD, code, tests, logs or support records, maintenance artifacts, and student documentation.
+* The required SemVer increment and new version date-time group for each affected controlled artifact.
+* Compatibility or migration effects for existing installations.
 
 The SRS SemVer version, SRS version date-time group, and repository baseline shall be updated after an approved change is merged.

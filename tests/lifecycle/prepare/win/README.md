@@ -6,12 +6,12 @@ This suite exercises the current Beta `scripts/win/prepare_it140.ps1` bootstrap 
 
 The production Windows Prepare file is **not changed by this suite**. The file intentionally models the commands students copy and run before the managed Windows lifecycle begins. It therefore differs from later Windows stages in important ways:
 
-- it has no parameter block or managed `--help`/`--version` interface;
-- it does not read the controlled manifest;
-- it starts a PowerShell transcript rather than producing a managed lifecycle summary;
-- it uses `curl.exe` when available and falls back to `Invoke-WebRequest`;
-- it overlays the downloaded repository before checking that `scripts/win/` exists; and
-- failures use PowerShell's current terminating-error behavior rather than the managed lifecycle exit-code taxonomy.
+* it has no parameter block or managed `--help`/`--version` interface;
+* it does not read the controlled manifest;
+* it starts a PowerShell transcript rather than producing a managed lifecycle summary;
+* it uses `curl.exe` when available and falls back to `Invoke-WebRequest`;
+* it overlays the downloaded repository before checking that `scripts/win/` exists; and
+* failures use PowerShell's current terminating-error behavior rather than the managed lifecycle exit-code taxonomy.
 
 The suite protects that current behavior rather than refactoring a working Beta bootstrap into the newer Prepare architecture.
 
@@ -19,18 +19,18 @@ The suite protects that current behavior rather than refactoring a working Beta 
 
 The tests cover:
 
-- the approved HTTPS GitHub archive source;
-- the current `curl.exe` retry/resume options and native `Invoke-WebRequest` fallback;
-- archive extraction and first-directory selection;
-- repository overlay while preserving unmatched course-root files;
-- removal of only the deployed package's top-level `.git` directory;
-- preservation of student repositories, nested student `.git` metadata, Git identity, personal Desktop content, and unrelated application configuration;
-- Windows lifecycle-script availability after a successful overlay;
-- persistent user-PATH convergence that places `scripts/win` first, removes equivalent duplicates, and preserves unrelated entries;
-- the production source contract for adding the Windows scripts to the current-session PATH;
-- temporary bootstrap-directory cleanup on success and tested failures;
-- PowerShell transcript creation; and
-- semantic idempotence across two successful runs.
+* the approved HTTPS GitHub archive source;
+* the current `curl.exe` retry/resume options and native `Invoke-WebRequest` fallback;
+* archive extraction and first-directory selection;
+* repository overlay while preserving unmatched course-root files;
+* removal of only the deployed package's top-level `.git` directory;
+* preservation of student repositories, nested student `.git` metadata, Git identity, personal Desktop content, and unrelated application configuration;
+* Windows lifecycle-script availability after a successful overlay;
+* persistent user-PATH convergence that places `scripts/win` first, removes equivalent duplicates, and preserves unrelated entries;
+* the production source contract for adding the Windows scripts to the current-session PATH;
+* temporary bootstrap-directory cleanup on success and tested failures;
+* PowerShell transcript creation; and
+* semantic idempotence across two successful runs.
 
 The suite deliberately records a current behavior that is **not a recommendation**: validation that the downloaded package contains `scripts/win/` occurs after the repository has already been copied into `~/it140`. A structurally inadequate archive can therefore leave package changes behind before failing. Likewise, a failure while persisting the user PATH occurs after the package overlay and has no rollback. The tests characterize these post-overlay failures without redesigning the Beta bootstrap.
 

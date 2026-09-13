@@ -34,9 +34,9 @@ The main body of this SDD is intentionally **evergreen**. It describes stable ca
 
 Product names are retained only when one of the following conditions applies:
 
-- A concrete external interface cannot be described honestly without identifying its provider.
-- A repository filename, command, or file format is itself part of the approved design.
-- A nonnormative appendix records the reference environment used for review and testing.
+* A concrete external interface cannot be described honestly without identifying its provider.
+* A repository filename, command, or file format is itself part of the approved design.
+* A nonnormative appendix records the reference environment used for review and testing.
 
 The manifest is not allowed to contain arbitrary executable commands. It may select approved adapters and provide validated data, but executable behavior remains in reviewed source code. An **adapter** is a component that translates a stable package operation into commands appropriate for one platform, package manager, application, or external service.
 
@@ -62,11 +62,11 @@ Each controlled artifact carries an independent `artifact_version` or equivalent
 
 This SDD is written for:
 
-- Computer science faculty and subject matter experts who approve and implement the package.
-- Course developers and platform administrators who review platform-specific behavior.
-- Test developers who derive automated and manual tests from the SRS and this design.
-- Faculty and technical support personnel who need to understand script responsibilities and diagnostics.
-- First-term students who want to understand how a professional software design connects requirements to code.
+* Computer science faculty and subject matter experts who approve and implement the package.
+* Course developers and platform administrators who review platform-specific behavior.
+* Test developers who derive automated and manual tests from the SRS and this design.
+* Faculty and technical support personnel who need to understand script responsibilities and diagnostics.
+* First-term students who want to understand how a professional software design connects requirements to code.
 
 Technical terms and abbreviations are defined when first introduced. The document uses industry terminology while explaining why each major design choice exists.
 
@@ -74,24 +74,24 @@ Technical terms and abbreviations are defined when first introduced. The documen
 
 This SDD covers:
 
-- The package architecture and five-component lifecycle.
-- The special first-use and refresh behavior of `prepare_it140.<ext>`.
-- The logical design of the controlled manifest and its schema.
-- Shared services used by the managed lifecycle scripts.
-- Script-specific component and control-flow designs.
-- Command-line, file, operating-system, package-manager, desktop-integration, and external-service interfaces.
-- Error handling, recovery, privacy, security, logging, and support-bundle design.
-- SemVer, version-date, release-identity, and traceability design.
-- Platform adapters and the selective process for adding another designated course-supported deployment profile.
-- Traceability from SRS requirements to design elements and supporting artifacts.
+* The package architecture and five-component lifecycle.
+* The special first-use and refresh behavior of `prepare_it140.<ext>`.
+* The logical design of the controlled manifest and its schema.
+* Shared services used by the managed lifecycle scripts.
+* Script-specific component and control-flow designs.
+* Command-line, file, operating-system, package-manager, desktop-integration, and external-service interfaces.
+* Error handling, recovery, privacy, security, logging, and support-bundle design.
+* SemVer, version-date, release-identity, and traceability design.
+* Platform adapters and the selective process for adding another designated course-supported deployment profile.
+* Traceability from SRS requirements to design elements and supporting artifacts.
 
 This SDD does not define:
 
-- Student assignment solutions or grading logic.
-- The final syntax of every platform implementation.
-- Product and product-version selections that belong in the controlled manifest.
-- General-purpose backup, reset, uninstall, or account-recovery features.
-- A second bootstrap mechanism separate from the command set represented by `prepare_it140.<ext>`.
+* Student assignment solutions or grading logic.
+* The final syntax of every platform implementation.
+* Product and product-version selections that belong in the controlled manifest.
+* General-purpose backup, reset, uninstall, or account-recovery features.
+* A second bootstrap mechanism separate from the command set represented by `prepare_it140.<ext>`.
 
 ### 0.6 Terms and Abbreviations
 
@@ -135,18 +135,18 @@ This SDD does not define:
 
 Each important design element has a stable identifier. Design identifiers support traceability but do not create new stakeholder requirements.
 
-- `ARC-DES-###`: package architecture
-- `DAT-DES-###`: data and manifest design
-- `INT-DES-###`: interface and input/output design
-- `SHR-DES-###`: shared service design
-- `PRE-DES-###`: prepare-component design
-- `INS-DES-###`: install-script design
-- `CFG-DES-###`: configure-script design
-- `VER-DES-###`: verify-script design
-- `UPD-DES-###`: update-script design
-- `ERR-DES-###`: error-handling and recovery design
-- `SEC-DES-###`: privacy and security design
-- `PLT-DES-###`: platform and provider abstraction design
+* `ARC-DES-###`: package architecture
+* `DAT-DES-###`: data and manifest design
+* `INT-DES-###`: interface and input/output design
+* `SHR-DES-###`: shared service design
+* `PRE-DES-###`: prepare-component design
+* `INS-DES-###`: install-script design
+* `CFG-DES-###`: configure-script design
+* `VER-DES-###`: verify-script design
+* `UPD-DES-###`: update-script design
+* `ERR-DES-###`: error-handling and recovery design
+* `SEC-DES-###`: privacy and security design
+* `PLT-DES-###`: platform and provider abstraction design
 
 ## 1. Design Goals and Constraints
 
@@ -185,14 +185,14 @@ This order means that a script may stop rather than continue when continuing cou
 
 The package should be understandable to students, but implementation simplicity must not remove required safety. The design therefore favors:
 
-- Straight-line orchestration with small purpose-specific functions.
-- Declarative configuration in validated JSON.
-- Allowlisted adapters instead of arbitrary command templates.
-- Explicit state checks instead of assumptions.
-- Clear result objects instead of parsing human-readable text when a structured interface is available.
-- Reusable platform-local modules when the native scripting language supports them.
-- Deterministic logic for the same supported starting state and inputs, implementing `PKG-NFR-004`.
-- Equivalent separately implemented helpers when code cannot be shared safely across platforms.
+* Straight-line orchestration with small purpose-specific functions.
+* Declarative configuration in validated JSON.
+* Allowlisted adapters instead of arbitrary command templates.
+* Explicit state checks instead of assumptions.
+* Clear result objects instead of parsing human-readable text when a structured interface is available.
+* Reusable platform-local modules when the native scripting language supports them.
+* Deterministic logic for the same supported starting state and inputs, implementing `PKG-NFR-004`.
+* Equivalent separately implemented helpers when code cannot be shared safely across platforms.
 
 ## 2. Solution Overview
 
@@ -200,13 +200,13 @@ The package should be understandable to students, but implementation simplicity 
 
 The package uses a **layered orchestrator-and-adapter architecture** with a minimal bootstrap boundary.
 
-- The **prepare boundary** is a self-contained, platform-native command set that obtains or refreshes the package before the manifest and shared implementation can be assumed available.
-- The **entry-point layer** identifies a managed lifecycle action and initializes the run.
-- The **orchestration layer** controls the action's stages and decisions.
-- The **shared-service layer** provides manifest handling, logging, version identity, validation, command execution, locking, redaction, result aggregation, and file safety.
-- The **platform-adapter layer** performs operating-system-specific operations.
-- The **capability-adapter layer** manages approved product roles such as the programming runtime, source-code editor or IDE, test tools, and external provider client.
-- The **data layer** contains the manifest, schema, logs, temporary staging data, managed assets, and artifact identity metadata.
+* The **prepare boundary** is a self-contained, platform-native command set that obtains or refreshes the package before the manifest and shared implementation can be assumed available.
+* The **entry-point layer** identifies a managed lifecycle action and initializes the run.
+* The **orchestration layer** controls the action's stages and decisions.
+* The **shared-service layer** provides manifest handling, logging, version identity, validation, command execution, locking, redaction, result aggregation, and file safety.
+* The **platform-adapter layer** performs operating-system-specific operations.
+* The **capability-adapter layer** manages approved product roles such as the programming runtime, source-code editor or IDE, test tools, and external provider client.
+* The **data layer** contains the manifest, schema, logs, temporary staging data, managed assets, and artifact identity metadata.
 
 This architecture is extensible but does not create a universal support commitment. Platform deployment profiles are selected for implementation and qualification according to course need and available resources. Upstream product compatibility or successful unqualified use does not make a profile course-supported.
 
@@ -363,12 +363,12 @@ The `prepare_it140.<ext>` artifact is a self-contained platform-native command s
 
 The four managed entry points--Install, Configure, Verify, and Update--should contain only:
 
-- Platform-native startup and strict-mode configuration.
-- Artifact SemVer and version-date constants or metadata.
-- Loading of approved platform-local modules or helper functions.
-- Construction of the run context.
-- Invocation of the corresponding orchestrator.
-- Final cleanup and exit.
+* Platform-native startup and strict-mode configuration.
+* Artifact SemVer and version-date constants or metadata.
+* Loading of approved platform-local modules or helper functions.
+* Construction of the run context.
+* Invocation of the corresponding orchestrator.
+* Final cleanup and exit.
 
 Shared implementation should be factored into small, purpose-specific platform-local modules where supported, implementing `PKG-NFR-013`. Important intent, safety boundaries, and non-obvious decisions shall be explained in comments rather than restating commands, implementing `PKG-NFR-014`. Automated tests shall cover manifest parsing, artifact-version validation, platform detection, managed paths, desktop integration, exit codes, redaction, and idempotence, implementing `PKG-NFR-016`.
 
@@ -401,13 +401,13 @@ All source scripts and text configuration shall use UTF-8 encoding with Line Fee
 
 ### 3.4 Responsibility Boundary Rules
 
-- Prepare may retrieve or refresh repository-managed package files, write its own log, set required script permissions, and establish the platform script directory in the user's `PATH`. It shall not install course IDE software, use the manifest as a prerequisite, authenticate external services, or configure IDE settings.
-- Install may create its own log under the invoking user's course log folder, but it shall not perform personal account authentication or user-preference configuration.
-- Configure shall not install or change system-wide components. If system prerequisites are missing, it directs the user to Install.
-- Verify shall not call a mutating adapter method. The verify orchestrator receives read-only adapter interfaces.
-- Update may change system and user-managed maintenance state, but only through manifest-declared capability roles, managed settings, and managed paths. It shall not refresh lifecycle script source files; that responsibility belongs to Prepare.
-- Desktop integration writes are limited to the repository-workspace parent metadata, the course-created `Repos` desktop link or shortcut, the CVD course-owned IDE launcher workspace argument, and explicitly declared file-association settings. They never recurse into repository-workspace children.
-- Shared services may be reused by the four managed scripts, but they shall not silently broaden the authority of the calling script. Prepare may implement equivalent minimal helpers locally because shared modules cannot be assumed present on first use.
+* Prepare may retrieve or refresh repository-managed package files, write its own log, set required script permissions, and establish the platform script directory in the user's `PATH`. It shall not install course IDE software, use the manifest as a prerequisite, authenticate external services, or configure IDE settings.
+* Install may create its own log under the invoking user's course log folder, but it shall not perform personal account authentication or user-preference configuration.
+* Configure shall not install or change system-wide components. If system prerequisites are missing, it directs the user to Install.
+* Verify shall not call a mutating adapter method. The verify orchestrator receives read-only adapter interfaces.
+* Update may change system and user-managed maintenance state, but only through manifest-declared capability roles, managed settings, and managed paths. It shall not refresh lifecycle script source files; that responsibility belongs to Prepare.
+* Desktop integration writes are limited to the repository-workspace parent metadata, the course-created `Repos` desktop link or shortcut, the CVD course-owned IDE launcher workspace argument, and explicitly declared file-association settings. They never recurse into repository-workspace children.
+* Shared services may be reused by the four managed scripts, but they shall not silently broaden the authority of the calling script. Prepare may implement equivalent minimal helpers locally because shared modules cannot be assumed present on first use.
 
 ## 4. Data Design
 
@@ -580,15 +580,15 @@ Logs are human-readable UTF-8 plain text. Each meaningful line begins with a tim
 
 The transcript service records:
 
-- Producing script artifact ID, SemVer, and version date-time group.
-- Package, manifest, and schema artifact identities when applicable.
-- Test-definition or support-inventory identity when the log is generated by testing or support tooling.
-- Detected platform and architecture.
-- A nonsecret current-user identifier.
-- Start, end, and elapsed times.
-- Major stages and operation identifiers.
-- Sanitized observed and expected values.
-- Changes, warnings, failures, remediation, restart guidance, and exit code.
+* Producing script artifact ID, SemVer, and version date-time group.
+* Package, manifest, and schema artifact identities when applicable.
+* Test-definition or support-inventory identity when the log is generated by testing or support tooling.
+* Detected platform and architecture.
+* A nonsecret current-user identifier.
+* Start, end, and elapsed times.
+* Major stages and operation identifiers.
+* Sanitized observed and expected values.
+* Changes, warnings, failures, remediation, restart guidance, and exit code.
 
 Prepare starts its transcript before network retrieval and records its embedded artifact version and version date-time group even when the package cannot be downloaded. Logs do not record passwords, tokens, private keys, browser data, complete personal email addresses, or student source files.
 
@@ -596,14 +596,14 @@ Prepare starts its transcript before network retrieval and records its embedded 
 
 When explicitly requested, Verify creates a temporary bundle containing only approved diagnostics, such as:
 
-- Sanitized verification log.
-- Bundle-inventory artifact ID, SemVer, and version date-time group.
-- SRS, SDD, script, manifest, schema, and test-definition artifact identities relevant to the result.
-- Supported platform facts.
-- Required capability product-version results.
-- Managed-path and desktop-integration permission results.
-- Sanitized selected configuration values.
-- A bundle inventory describing every included file.
+* Sanitized verification log.
+* Bundle-inventory artifact ID, SemVer, and version date-time group.
+* SRS, SDD, script, manifest, schema, and test-definition artifact identities relevant to the result.
+* Supported platform facts.
+* Required capability product-version results.
+* Managed-path and desktop-integration permission results.
+* Sanitized selected configuration values.
+* A bundle inventory describing every included file.
 
 The bundle excludes assignment repositories, source files, version-control history, authentication stores, browser profiles, and unrelated settings. The user sees the proposed inventory before final creation.
 
@@ -632,15 +632,15 @@ The bundle excludes assignment repositories, source files, version-control histo
 
 Each normal run displays the following fields near the beginning:
 
-- Package and action name.
-- Artifact SemVer.
-- Artifact version date-time group.
-- Manifest release and release date after validation, except Prepare because the manifest is not a prerequisite.
-- Detected platform and operating-system release when available.
-- Current user identifier.
-- Purpose and expected scope of changes.
-- Log path.
-- Important warnings, including whether privilege elevation or interaction may occur.
+* Package and action name.
+* Artifact SemVer.
+* Artifact version date-time group.
+* Manifest release and release date after validation, except Prepare because the manifest is not a prerequisite.
+* Detected platform and operating-system release when available.
+* Current user identifier.
+* Purpose and expected scope of changes.
+* Log path.
+* Important warnings, including whether privilege elevation or interaction may occur.
 
 Prepare displays and logs its identity before network retrieval so failures can be associated with the exact bootstrap artifact.
 
@@ -751,14 +751,14 @@ END managed action
 
 Each planned operation declares:
 
-- A stable operation ID.
-- Required dependencies.
-- Whether it is read-only or mutating.
-- Required privilege scope.
-- Managed targets.
-- Whether failure blocks later operations.
-- Rollback or recovery behavior.
-- Related SRS requirements.
+* A stable operation ID.
+* Required dependencies.
+* Whether it is read-only or mutating.
+* Required privilege scope.
+* Managed targets.
+* Whether failure blocks later operations.
+* Rollback or recovery behavior.
+* Related SRS requirements.
 
 When a prerequisite fails, dependent operations receive `skipped_dependency`; independent safe checks or cleanup may continue. This design avoids misleading secondary errors while preserving useful diagnostics.
 
@@ -784,9 +784,9 @@ The workflow resolver accepts only schema-valid identifiers from the controlled 
 
 The CVD implementation recognizes:
 
-- `cvd_provider_baseline_administrator`: `prepare`, `update`, `install`, `configure`, `verify`; Update mode `initial_provider_baseline`.
-- `cvd_course_master_student`: `prepare`, `update`, `configure`, `verify`; Update mode `initial_course_master`.
-- `cvd_periodic_maintenance`: `update`, with Verify recommended when required; Update mode `periodic_maintenance`.
+* `cvd_provider_baseline_administrator`: `prepare`, `update`, `install`, `configure`, `verify`; Update mode `initial_provider_baseline`.
+* `cvd_course_master_student`: `prepare`, `update`, `configure`, `verify`; Update mode `initial_course_master`.
+* `cvd_periodic_maintenance`: `update`, with Verify recommended when required; Update mode `periodic_maintenance`.
 
 Local deployment profiles retain `local_initial_install`: `prepare`, `install`, `configure`, `verify`, followed by periodic Update.
 
@@ -849,25 +849,25 @@ exit success
 
 Prepare treats the course root as a mixed-ownership tree:
 
-- Repository-managed top-level files and package directories may be created or replaced from the validated staged archive.
-- Existing files that are absent from the staged repository are not deleted merely because Prepare is rerun.
-- Student assignment folders, nested repositories, source files, and unrelated user content are outside the Prepare deletion authority.
-- The exact top-level `.git` metadata path copied from the main repository may be removed; nested `.git` paths are never discovered or removed through recursive matching.
-- Download, extraction, and structural validation occur before any package refresh write.
-- Platform implementations should use per-file staging and atomic replacement where native facilities make that practical, but shall not add a dependency that prevents first use.
+* Repository-managed top-level files and package directories may be created or replaced from the validated staged archive.
+* Existing files that are absent from the staged repository are not deleted merely because Prepare is rerun.
+* Student assignment folders, nested repositories, source files, and unrelated user content are outside the Prepare deletion authority.
+* The exact top-level `.git` metadata path copied from the main repository may be removed; nested `.git` paths are never discovered or removed through recursive matching.
+* Download, extraction, and structural validation occur before any package refresh write.
+* Platform implementations should use per-file staging and atomic replacement where native facilities make that practical, but shall not add a dependency that prevents first use.
 
 ### 7.3 Prepare Platform Profile
 
 A platform-specific Prepare implementation or supplement records:
 
-- The native HTTPS retrieval utility and retry options.
-- The native archive extraction utility.
-- Supported OS-family and architecture probes.
-- Standard-user or root-context rejection rules.
-- User `PATH` persistence interface.
-- Script permission requirements.
-- Cleanup signal or exception handling.
-- The exact platform-specific Install next-step command.
+* The native HTTPS retrieval utility and retry options.
+* The native archive extraction utility.
+* Supported OS-family and architecture probes.
+* Standard-user or root-context rejection rules.
+* User `PATH` persistence interface.
+* Script permission requirements.
+* Cleanup signal or exception handling.
+* The exact platform-specific Install next-step command.
 
 These differences may change commands but shall not change the PRE-DES behavior or the SRS acceptance criteria.
 
@@ -925,9 +925,9 @@ recommend Configure when successful
 
 The command runner receives a privilege policy per operation:
 
-- `none`: command must run as the standard user.
-- `elevate_one_command`: only the specific command is elevated.
-- `administrator_context_required`: permitted only by an approved platform-specific design exception.
+* `none`: command must run as the standard user.
+* `elevate_one_command`: only the specific command is elevated.
+* `administrator_context_required`: permitted only by an approved platform-specific design exception.
 
 Arguments are passed as separate values rather than assembled into an unvalidated command string. Install refuses to save user-specific files under an administrator's home directory accidentally.
 
@@ -1138,13 +1138,13 @@ Lifecycle scripts, their supporting source files, and incompatible schema transi
 
 ### 12.1 Error-Handling Principles
 
-- Detect predictable failures before mutation whenever possible.
-- Preserve the original root-cause result during cleanup and logging.
-- Stop dependent stages after a required prerequisite fails.
-- Continue only independent read-only checks or safe cleanup that adds useful diagnostics.
-- Distinguish unsupported, permission, external-service, integrity, cancellation, partial-state, and general failures.
-- Never claim success solely because an external command returned without obvious text errors; verify the resulting state.
-- Preserve course continuity by adding profile-aware guidance to every unsuccessful managed lifecycle conclusion after the specific remediation is known.
+* Detect predictable failures before mutation whenever possible.
+* Preserve the original root-cause result during cleanup and logging.
+* Stop dependent stages after a required prerequisite fails.
+* Continue only independent read-only checks or safe cleanup that adds useful diagnostics.
+* Distinguish unsupported, permission, external-service, integrity, cancellation, partial-state, and general failures.
+* Never claim success solely because an external command returned without obvious text errors; verify the resulting state.
+* Preserve course continuity by adding profile-aware guidance to every unsuccessful managed lifecycle conclusion after the specific remediation is known.
 
 ### 12.2 Error and Recovery Components
 
@@ -1169,22 +1169,22 @@ Lifecycle scripts, their supporting source files, and incompatible schema transi
 
 Retry behavior is applied only to errors classified as temporary. The initial design uses:
 
-- A small bounded number of attempts.
-- Increasing delays between attempts within schema-defined safe limits.
-- No retry for invalid credentials, unsupported platforms, integrity failures, invalid manifests, unsafe paths, or user cancellation.
-- A visible message before a wait longer than a few seconds.
-- Attempt history in the log without exposing secrets.
+* A small bounded number of attempts.
+* Increasing delays between attempts within schema-defined safe limits.
+* No retry for invalid credentials, unsupported platforms, integrity failures, invalid manifests, unsafe paths, or user cancellation.
+* A visible message before a wait longer than a few seconds.
+* Attempt history in the log without exposing secrets.
 
 ### 12.4 Interruption and Cleanup
 
 Mutating scripts install handlers for normal termination and supported interruption signals or exceptions. Cleanup attempts to:
 
-- Preserve the original failure result.
-- Release locks.
-- Remove private temporary files that are no longer needed.
-- Leave a valid installed asset active.
-- Avoid deleting evidence needed for support.
-- Record the stage and whether any managed state changed.
+* Preserve the original failure result.
+* Release locks.
+* Remove private temporary files that are no longer needed.
+* Leave a valid installed asset active.
+* Avoid deleting evidence needed for support.
+* Record the stage and whether any managed state changed.
 
 ## 13. Privacy and Security Design
 
@@ -1229,12 +1229,12 @@ Every boundary has validation, least-privilege, ownership, and redaction control
 
 The manifest cannot prove its own authenticity using only values stored inside itself. The initial implementation anchors trust in one or more items distributed with or embedded in the approved script release, such as:
 
-- An allowlisted institutional or project source location.
-- The exact authorized repository archive location used by Prepare.
-- A pinned public verification key.
-- Release metadata with independently verifiable signatures.
-- A trusted native package repository.
-- Staged archive structural requirements, including the matching platform directory and Install artifact.
+* An allowlisted institutional or project source location.
+* The exact authorized repository archive location used by Prepare.
+* A pinned public verification key.
+* Release metadata with independently verifiable signatures.
+* A trusted native package repository.
+* Staged archive structural requirements, including the matching platform directory and Install artifact.
 
 Prepare must carry enough trusted source and structural information to validate the package before the manifest is available. Managed scripts then use the manifest, schema, and release metadata through the approved trust chain. The exact approved mechanism is platform- and release-specific and belongs in the platform design and controlled release process.
 
@@ -1275,25 +1275,25 @@ Each adapter exposes both mutation and query operations. Configure may call muta
 
 Every adapter method shall:
 
-- Accept validated structured parameters.
-- Return an `OperationResult` or structured query value.
-- Avoid writing directly to the terminal except through the output or captured-command interface.
-- Identify whether it changed state.
-- Preserve the native exit status and sanitized diagnostic detail.
-- Declare whether privilege is required.
-- Support a query operation used for idempotence and verification.
-- Avoid product-specific logic in the orchestrator.
+* Accept validated structured parameters.
+* Return an `OperationResult` or structured query value.
+* Avoid writing directly to the terminal except through the output or captured-command interface.
+* Identify whether it changed state.
+* Preserve the native exit status and sanitized diagnostic detail.
+* Declare whether privilege is required.
+* Support a query operation used for idempotence and verification.
+* Avoid product-specific logic in the orchestrator.
 
 ### 14.4 Provider Adapter Rules
 
 A provider adapter is added only when:
 
-- Its authentication flow can be explained and supported for first-term students.
-- It can report authentication status without exposing credentials.
-- It can return the approved minimum account fields.
-- It has a documented privacy-preserving commit-identity rule when required.
-- Its failure and cancellation states can be distinguished.
-- It has automated contract tests and controlled test accounts or mocks.
+* Its authentication flow can be explained and supported for first-term students.
+* It can report authentication status without exposing credentials.
+* It can return the approved minimum account fields.
+* It has a documented privacy-preserving commit-identity rule when required.
+* Its failure and cancellation states can be distinguished.
+* It has automated contract tests and controlled test accounts or mocks.
 
 ### 14.4 Selective New Deployment-Profile Qualification
 
@@ -1303,17 +1303,17 @@ An enabled manifest profile is available for controlled resolution, testing, or 
 
 A proposed deployment profile is not marked course-supported until it provides:
 
-- Five correctly named lifecycle entry points.
-- A first-use Prepare command set that works before the package, manifest, package manager, version-control client, and course runtime exist.
-- Direct Prepare refresh behavior after first use.
-- A manifest platform entry, any applicable deployment-profile entry, and schema-valid role bindings.
-- Platform, package-manager, privilege, path, settings, restart, desktop-integration, and user-integration adapters.
-- Unit and integration tests for adapters and artifact-version validation.
-- Full SRS acceptance-test evidence on a clean supported environment.
-- Idempotence evidence from repeated Prepare, Install, Configure, and Update runs.
-- Read-only evidence for Verify.
-- Repository-workspace desktop-link, development-marker, and profile-owned IDE workspace-launch evidence on supported graphical desktops.
-- Student-work preservation, interruption recovery, redaction, and version-traceability evidence.
+* Five correctly named lifecycle entry points.
+* A first-use Prepare command set that works before the package, manifest, package manager, version-control client, and course runtime exist.
+* Direct Prepare refresh behavior after first use.
+* A manifest platform entry, any applicable deployment-profile entry, and schema-valid role bindings.
+* Platform, package-manager, privilege, path, settings, restart, desktop-integration, and user-integration adapters.
+* Unit and integration tests for adapters and artifact-version validation.
+* Full SRS acceptance-test evidence on a clean supported environment.
+* Idempotence evidence from repeated Prepare, Install, Configure, and Update runs.
+* Read-only evidence for Verify.
+* Repository-workspace desktop-link, development-marker, and profile-owned IDE workspace-launch evidence on supported graphical desktops.
+* Student-work preservation, interruption recovery, redaction, and version-traceability evidence.
 
 ### 14.6 Initial Platform Conformance Test Matrix
 
@@ -1335,16 +1335,16 @@ A clean test begins from a fresh operating-system installation, provider reset, 
 
 ### 15.1 Performance Controls
 
-- Prepare starts the log and displays identifying information before network work.
-- Managed entry points start the log and display artifact version information before lengthy package work.
-- Manifest and schema files are loaded once per managed run and passed as immutable validated data.
-- Local state probes are preferred over downloads or reinstallations.
-- Capability checks may run in parallel only when they are read-only, independent, and the platform implementation can preserve deterministic output and reasonable resource use.
-- Package-manager mutations remain serialized.
-- Verification uses bounded timeouts for network checks and should not wait on interactive authentication.
-- Verification shall complete within the SRS limit on the approved reference platform under the stated normal conditions, implementing `PKG-QOS-009`.
-- Platform adapters shall accept only manifest-approved operating-system releases that meet the current SRS support policy, implementing `PKG-TC-006`.
-- Long operations emit truthful stage messages at intervals required by the SRS.
+* Prepare starts the log and displays identifying information before network work.
+* Managed entry points start the log and display artifact version information before lengthy package work.
+* Manifest and schema files are loaded once per managed run and passed as immutable validated data.
+* Local state probes are preferred over downloads or reinstallations.
+* Capability checks may run in parallel only when they are read-only, independent, and the platform implementation can preserve deterministic output and reasonable resource use.
+* Package-manager mutations remain serialized.
+* Verification uses bounded timeouts for network checks and should not wait on interactive authentication.
+* Verification shall complete within the SRS limit on the approved reference platform under the stated normal conditions, implementing `PKG-QOS-009`.
+* Platform adapters shall accept only manifest-approved operating-system releases that meet the current SRS support policy, implementing `PKG-TC-006`.
+* Long operations emit truthful stage messages at intervals required by the SRS.
 
 ### 15.2 Log Filename Design
 
@@ -1387,13 +1387,13 @@ Exact English wording may differ slightly by platform when needed, but meaning, 
 
 Each approved release record identifies:
 
-- The artifact ID, SemVer, and version date-time group of every changed controlled artifact.
-- The reason each artifact received a MAJOR, MINOR, or PATCH increment.
-- The SRS and SDD baselines used for construction.
-- The manifest, schema, and platform implementation versions tested.
-- The test-definition and test-result versions and dates.
-- Compatibility, migration, rollback, and deployed-platform effects.
-- The repository commit and approval evidence.
+* The artifact ID, SemVer, and version date-time group of every changed controlled artifact.
+* The reason each artifact received a MAJOR, MINOR, or PATCH increment.
+* The SRS and SDD baselines used for construction.
+* The manifest, schema, and platform implementation versions tested.
+* The test-definition and test-result versions and dates.
+* Compatibility, migration, rollback, and deployed-platform effects.
+* The repository commit and approval evidence.
 
 Logs and test results are generated records rather than source artifacts, but they still record the version and date of the producing or governing artifact as required by `PKG-NFR-015`.
 
@@ -1456,14 +1456,14 @@ During construction, each implementation function or module shall identify its p
 
 Automated and manual tests shall use stable test identifiers and identify:
 
-- The test-definition artifact ID, SemVer, and version date-time group.
-- The SRS version and date plus the requirement or acceptance test being verified.
-- The SDD version and date plus the design element being exercised.
-- The implementation, manifest, and schema artifact versions and dates evaluated.
-- The platform, deployment profile, and repository baseline used.
-- The starting state and expected final state.
-- Whether the test verifies normal, boundary, invalid, interruption, security, privacy, desktop integration, versioning, or idempotence behavior.
-- The generated test-result artifact identity and execution date.
+* The test-definition artifact ID, SemVer, and version date-time group.
+* The SRS version and date plus the requirement or acceptance test being verified.
+* The SDD version and date plus the design element being exercised.
+* The implementation, manifest, and schema artifact versions and dates evaluated.
+* The platform, deployment profile, and repository baseline used.
+* The starting state and expected final state.
+* Whether the test verifies normal, boundary, invalid, interruption, security, privacy, desktop integration, versioning, or idempotence behavior.
+* The generated test-result artifact identity and execution date.
 
 A maintenance or release decision shall not rely on a test result whose evaluated artifact identities are missing or ambiguous.
 
@@ -1559,31 +1559,31 @@ The initial reference implementation uses approved official operating-system, ve
 
 Each supported platform may have a concise, independently versioned supplement that records only design details that cannot remain generic, including:
 
-- Supplement artifact ID, SemVer, and version date-time group.
-- Native script language conventions and strict mode.
-- Prepare retrieval, extraction, structure validation, cleanup, and `PATH` behavior.
-- Package-manager operations and source configuration.
-- Privilege-elevation mechanism.
-- Native path and desktop-folder discovery.
-- Repository-workspace desktop-link, development-marker, and profile-owned IDE workspace-launch interfaces.
-- User settings and file-association interfaces.
-- Restart detection and user instructions.
-- Capability adapter bindings that require platform-specific code.
-- Known platform limitations and approved workarounds.
-- Evidence that the platform produces equivalent required outcomes.
+* Supplement artifact ID, SemVer, and version date-time group.
+* Native script language conventions and strict mode.
+* Prepare retrieval, extraction, structure validation, cleanup, and `PATH` behavior.
+* Package-manager operations and source configuration.
+* Privilege-elevation mechanism.
+* Native path and desktop-folder discovery.
+* Repository-workspace desktop-link, development-marker, and profile-owned IDE workspace-launch interfaces.
+* User settings and file-association interfaces.
+* Restart detection and user instructions.
+* Capability adapter bindings that require platform-specific code.
+* Known platform limitations and approved workarounds.
+* Evidence that the platform produces equivalent required outcomes.
 
 A supplement shall not redefine shared exit codes, log fields, artifact identity rules, status meanings, manifest ownership, user-data boundaries, or lifecycle responsibilities.
 
 ## Appendix C: References
 
-- `scripts/.dev/analysis/it140_scripts_srs.md`, *IT 140 Course Automation Scripts Software Requirements Specification*, version `0.6.0`, version date-time group `2026-08-07-10-44`.
-- `scripts/.dev/README.md`, development notes and five-component lifecycle decisions.
-- `scripts/.dev/pseudoscripts/prepare_it140.pseudo`, platform-agnostic Prepare design artifact.
-- `scripts/.dev/pseudoscripts/install_it140.pseudo`, platform-agnostic Install design artifact.
-- `scripts/.dev/pseudoscripts/configure_it140.pseudo`, platform-agnostic Configure design artifact.
-- `scripts/.dev/pseudoscripts/verify_it140.pseudo`, platform-agnostic Verify design artifact.
-- `scripts/.dev/pseudoscripts/update_it140.pseudo`, platform-agnostic Update design artifact.
-- `scripts/win/prepare_it140.ps1`, current Windows first-use and package-refresh implementation reviewed for this design update.
-- `scripts/mac/prepare_it140.zsh`, current macOS first-use and package-refresh implementation reviewed for this design update.
-- `scripts/.manifest/it140_manifest.json`, controlled product, platform, deployment-profile, provider, product-version, source, desktop-integration, and maintenance-asset selections when populated and approved.
-- Repository acceptance-test and platform-script files at commit `dbde859f90b1b957b05aa03e25b867563c113bb2`.
+* `scripts/.dev/analysis/it140_scripts_srs.md`, *IT 140 Course Automation Scripts Software Requirements Specification*, version `0.6.0`, version date-time group `2026-08-07-10-44`.
+* `scripts/.dev/README.md`, development notes and five-component lifecycle decisions.
+* `scripts/.dev/pseudoscripts/prepare_it140.pseudo`, platform-agnostic Prepare design artifact.
+* `scripts/.dev/pseudoscripts/install_it140.pseudo`, platform-agnostic Install design artifact.
+* `scripts/.dev/pseudoscripts/configure_it140.pseudo`, platform-agnostic Configure design artifact.
+* `scripts/.dev/pseudoscripts/verify_it140.pseudo`, platform-agnostic Verify design artifact.
+* `scripts/.dev/pseudoscripts/update_it140.pseudo`, platform-agnostic Update design artifact.
+* `scripts/win/prepare_it140.ps1`, current Windows first-use and package-refresh implementation reviewed for this design update.
+* `scripts/mac/prepare_it140.zsh`, current macOS first-use and package-refresh implementation reviewed for this design update.
+* `scripts/.manifest/it140_manifest.json`, controlled product, platform, deployment-profile, provider, product-version, source, desktop-integration, and maintenance-asset selections when populated and approved.
+* Repository acceptance-test and platform-script files at commit `dbde859f90b1b957b05aa03e25b867563c113bb2`.

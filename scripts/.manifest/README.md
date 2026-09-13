@@ -223,18 +223,18 @@ No mutating managed action should begin until the validation layers required by 
 
 The manifest and schema help enforce the following boundaries:
 
-- The manifest contains declarative data; it does not contain arbitrary executable commands.
-- Adapter identifiers must resolve only to reviewed behavior distributed with the approved package.
-- The manifest must not contain passwords, authentication tokens, private keys, personal email addresses, browser data, or other secrets.
-- Provider authentication secrets remain in the approved provider or operating-system credential store, not in the manifest or logs.
-- Path templates may use only approved variables such as `${HOME}`, `${DESKTOP}`, `${COURSE_ROOT}`, `${SCRIPT_ROOT}`, `${LOG_DIR}`, and `${TEMP}`.
-- Expanded paths must be canonicalized and checked before use; `..` traversal and secret-like path variables are prohibited by the schema.
-- Files outside explicitly declared managed paths are user-owned.
-- Missing optional fields must not be interpreted as permission to act. Required and optional behavior must be explicit.
-- An empty `obsolete_components` object authorizes no removal.
-- Managed settings use bounded merge policies so unrelated user settings are preserved.
-- Managed assets use declared source, destination, integrity, replacement, scope, and lifecycle ownership data.
-- Support bundles require explicit confirmation and exclude student source files, repository contents, version-control history, authentication data, and browser data.
+* The manifest contains declarative data; it does not contain arbitrary executable commands.
+* Adapter identifiers must resolve only to reviewed behavior distributed with the approved package.
+* The manifest must not contain passwords, authentication tokens, private keys, personal email addresses, browser data, or other secrets.
+* Provider authentication secrets remain in the approved provider or operating-system credential store, not in the manifest or logs.
+* Path templates may use only approved variables such as `${HOME}`, `${DESKTOP}`, `${COURSE_ROOT}`, `${SCRIPT_ROOT}`, `${LOG_DIR}`, and `${TEMP}`.
+* Expanded paths must be canonicalized and checked before use; `..` traversal and secret-like path variables are prohibited by the schema.
+* Files outside explicitly declared managed paths are user-owned.
+* Missing optional fields must not be interpreted as permission to act. Required and optional behavior must be explicit.
+* An empty `obsolete_components` object authorizes no removal.
+* Managed settings use bounded merge policies so unrelated user settings are preserved.
+* Managed assets use declared source, destination, integrity, replacement, scope, and lifecycle ownership data.
+* Support bundles require explicit confirmation and exclude student source files, repository contents, version-control history, authentication data, and browser data.
 
 The manifest must never be used to justify overwriting assignment repositories, student source files, unrelated preferences, nested repositories, credentials, or files that are merely located under a similarly named directory.
 
@@ -255,13 +255,13 @@ Every proposed manifest or schema change requires review, testing, approval appr
 
 Version identities serve different purposes and should not be forced to match:
 
-- The **README artifact version** identifies this guide.
-- The **SRS version** identifies the requirements baseline.
-- The **SDD version** identifies the design baseline.
-- The **schema version or compatibility identity** identifies the manifest structure understood by validators and scripts.
-- The **manifest artifact identity** should identify the controlled configuration item independently.
-- The **automation release** identifies the coordinated package release selected by the manifest.
-- Each script, test definition, and test-result artifact retains its own identity and version date.
+* The **README artifact version** identifies this guide.
+* The **SRS version** identifies the requirements baseline.
+* The **SDD version** identifies the design baseline.
+* The **schema version or compatibility identity** identifies the manifest structure understood by validators and scripts.
+* The **manifest artifact identity** should identify the controlled configuration item independently.
+* The **automation release** identifies the coordinated package release selected by the manifest.
+* Each script, test definition, and test-result artifact retains its own identity and version date.
 
 A changed artifact receives the Semantic Versioning increment required by its own compatibility effect and a new version date. Related artifacts do not receive artificial version changes merely to make their version numbers match. Test and release records must identify the exact versions, dates, source revisions, and results used for the decision.
 

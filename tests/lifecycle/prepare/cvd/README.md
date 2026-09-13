@@ -10,12 +10,12 @@ The production `scripts/cvd/prepare_it140.sh` is the system under test and is **
 
 Examples of current behavior preserved by these tests:
 
-- an unsupported CVD processor architecture currently exits `4` before a Prepare log is created;
-- root execution currently exits `3` before a Prepare log is created;
-- a `curl` download failure currently preserves the raw `curl` status (the test uses `22`);
-- an archive missing a required CVD lifecycle script currently exits `6`;
-- a sanitizer failure after the package overlay currently exits `1`; and
-- the first-use bootstrap success message currently tells the user to close the Terminal rather than directly printing `update_it140.sh`.
+* an unsupported CVD processor architecture currently exits `4` before a Prepare log is created;
+* root execution currently exits `3` before a Prepare log is created;
+* a `curl` download failure currently preserves the raw `curl` status (the test uses `22`);
+* an archive missing a required CVD lifecycle script currently exits `6`;
+* a sanitizer failure after the package overlay currently exits `1`; and
+* the first-use bootstrap success message currently tells the user to close the Terminal rather than directly printing `update_it140.sh`.
 
 Those observations are **characterizations, not recommendations**. They can be reconsidered in a later automation release without risking the current Beta baseline.
 
@@ -23,19 +23,19 @@ Those observations are **characterizations, not recommendations**. They can be r
 
 The suite checks that the current Prepare implementation:
 
-- can refresh the installed automation package successfully;
-- can execute its first-use bootstrap path without Git, GitHub CLI, APT, the controlled manifest, or another lifecycle script;
-- obtains the authorized repository archive over HTTPS with the current bounded `curl` options;
-- validates the downloaded archive before overlaying it;
-- preserves the existing package when download or structural validation fails before the overlay;
-- preserves the student repository workspace, nested `.git` metadata, Git identity, personal Desktop files, unrelated application configuration, and unrelated course-root files;
-- overlays repository-managed package files without deleting unmatched course-root content;
-- removes the deployed package's top-level `.git` metadata after a successful overlay;
-- makes the CVD lifecycle scripts executable;
-- adds the current CVD PATH line without duplicating it on rerun;
-- invokes the CVD sanitizer after activation;
-- cleans temporary `it140-prepare.*` staging directories after success and tested failures; and
-- converges to the same semantic package/user state after two successful refreshes.
+* can refresh the installed automation package successfully;
+* can execute its first-use bootstrap path without Git, GitHub CLI, APT, the controlled manifest, or another lifecycle script;
+* obtains the authorized repository archive over HTTPS with the current bounded `curl` options;
+* validates the downloaded archive before overlaying it;
+* preserves the existing package when download or structural validation fails before the overlay;
+* preserves the student repository workspace, nested `.git` metadata, Git identity, personal Desktop files, unrelated application configuration, and unrelated course-root files;
+* overlays repository-managed package files without deleting unmatched course-root content;
+* removes the deployed package's top-level `.git` metadata after a successful overlay;
+* makes the CVD lifecycle scripts executable;
+* adds the current CVD PATH line without duplicating it on rerun;
+* invokes the CVD sanitizer after activation;
+* cleans temporary `it140-prepare.*` staging directories after success and tested failures; and
+* converges to the same semantic package/user state after two successful refreshes.
 
 ## Isolation model
 

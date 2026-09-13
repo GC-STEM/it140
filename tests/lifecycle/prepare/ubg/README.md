@@ -10,8 +10,8 @@ Before this suite was added, `bootstrap_ubg.sh` referenced `scripts/nix/Ubuntu/`
 
 That mismatch prevents the normal bootstrap path from completing after the repository has already been copied into `~/it140`. The accompanying production change therefore makes only these two path corrections:
 
-- `scripts/nix/Ubuntu/` → `scripts/nix/ubg/` for `chmod`; and
-- `scripts/nix/Ubuntu` → `scripts/nix/ubg` in the Bash `PATH` line.
+* `scripts/nix/Ubuntu/` → `scripts/nix/ubg/` for `chmod`; and
+* `scripts/nix/Ubuntu` → `scripts/nix/ubg` in the Bash `PATH` line.
 
 No other production UBG Prepare behavior is changed by this work.
 
@@ -19,17 +19,17 @@ No other production UBG Prepare behavior is changed by this work.
 
 The suite checks that the corrected current bootstrap:
 
-- runs as the production `bootstrap_ubg.sh` entry point;
-- accepts the supported Ubuntu release family on the real Ubuntu CI host;
-- retrieves the authorized `GC-STEM/it140` repository with a depth-1 Git clone;
-- installs Git and certificate support through the script's existing APT path when Git is absent;
-- preserves the prior course package if Git installation or repository clone fails before activation;
-- preserves student repositories, nested student `.git` metadata, Git identity, personal Desktop files, and unrelated application configuration;
-- removes the deployed course package's top-level `.git` metadata after a successful refresh;
-- makes the UBG lifecycle scripts executable;
-- adds the corrected `scripts/nix/ubg` PATH line without duplication on a rerun;
-- cleans its temporary clone directory on success and tested failures; and
-- converges to the same semantic package and user state after two successful runs.
+* runs as the production `bootstrap_ubg.sh` entry point;
+* accepts the supported Ubuntu release family on the real Ubuntu CI host;
+* retrieves the authorized `GC-STEM/it140` repository with a depth-1 Git clone;
+* installs Git and certificate support through the script's existing APT path when Git is absent;
+* preserves the prior course package if Git installation or repository clone fails before activation;
+* preserves student repositories, nested student `.git` metadata, Git identity, personal Desktop files, and unrelated application configuration;
+* removes the deployed course package's top-level `.git` metadata after a successful refresh;
+* makes the UBG lifecycle scripts executable;
+* adds the corrected `scripts/nix/ubg` PATH line without duplication on a rerun;
+* cleans its temporary clone directory on success and tested failures; and
+* converges to the same semantic package and user state after two successful runs.
 
 The suite also deliberately records one current behavior that is **not a recommendation**: after cloning successfully, the Alpha-era bootstrap removes all existing top-level `~/it140` content except `logs` before copying the fresh package. The tests protect student and unrelated user state outside that package boundary but do not silently redesign this behavior during the current lifecycle-test effort.
 
