@@ -31,6 +31,7 @@ Click the desired link in the **Task** column to go to that repository. The **Lo
 
 | **Module** | **Task** | **Local Repos Folder** | **Status** | **Notes** |
 | ---------- | -------- | ---------------------- | :--------: | -------- |
+| All | [Main Repo](https://github.com/GC-STEM/it140) | N/A | 🟢 | Ready; no known issues. |
 | One | [Setup Tasks](https://github.com/GC-STEM/it140-m1-setup-tasks) | N/A | 🟢 | Ready; no known issues. |
 | Two | [Assignment](https://github.com/GC-STEM/it140-m2-assignment) | `it140-m2-assignment` | 🟢 | Ready; no known issues. |
 | Three | [Assignment](https://github.com/GC-STEM/it140-m3-assignment) | `it140-m3-assignment` | 🟢 | Ready; no known issues. |
@@ -38,7 +39,7 @@ Click the desired link in the **Task** column to go to that repository. The **Lo
 | Five | [Project One](https://github.com/GC-STEM/it140-projects) | `it140-projects/design` | 🟢 | Ready; no known issues. |
 | Six | [Milestone](https://github.com/GC-STEM/it140-projects) | `it140-projects/prototype` | 🟢 | Ready; no known issues. |
 | Seven | [Project Two](https://github.com/GC-STEM/it140-projects) | `it140-projects/src` | 🟢 | Ready; no known issues. |
-| F & S | Support | N/A: Faculty and Staff | 🟢 | Ready; no known issues. |
+| Faculty | [Support](https://github.com/it140-faculty/it140-support) | N/A: Faculty only | 🟢 | Ready; no known issues. |
 
 <!--
 Status\tMeaning\tStandard note
