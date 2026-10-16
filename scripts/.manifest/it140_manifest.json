@@ -842,6 +842,11 @@
         "name": "macOS",
         "releases": [
           {
+            "release_id": "27",
+            "display_name": "macOS Golden Gate 27",
+            "security_updates_required": true
+          },
+          {
             "release_id": "26",
             "display_name": "macOS Tahoe 26",
             "security_updates_required": true
