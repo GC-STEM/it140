@@ -535,6 +535,12 @@
         "name": "Microsoft Windows",
         "releases": [
           {
+            "release_id": "26H2",
+            "display_name": "Windows 11, version 26H2",
+            "support_end_date": "2029-10-10",
+            "security_updates_required": true
+          },
+          {
             "release_id": "26H1",
             "display_name": "Windows 11, version 26H1",
             "support_end_date": "2028-03-14",
