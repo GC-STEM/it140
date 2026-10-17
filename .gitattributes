@@ -1,32 +1,149 @@
 # WARNING: Do NOT modify this file.
 # If there is a problem with it, submit a GitHub issue or pull request to fix it.
 
-# Auto-detect text files and use LF line endings
-* text=auto eol=lf
+# Normalize text files in Git
+* text=auto
 
-# Python and plain-text files use LF line endings
-*.py text eol=lf
-*.md text eol=lf
-*.txt text eol=lf
-*.pseudo text eol=lf
-*.csv text eol=lf
+# Student-submitted source code uses CRLF
+*.c      text eol=crlf
+*.cc     text eol=crlf
+*.cpp    text eol=crlf
+*.cs     text eol=crlf
+*.cxx    text eol=crlf
+*.go     text eol=crlf
+*.h      text eol=crlf
+*.hh     text eol=crlf
+*.hpp    text eol=crlf
+*.java   text eol=crlf
+*.jl     text eol=crlf
+*.js     text eol=crlf
+*.jsx    text eol=crlf
+*.kt     text eol=crlf
+*.kts    text eol=crlf
+*.m      text eol=crlf
+*.php    text eol=crlf
+*.py     text eol=crlf
+*.r      text eol=crlf
+*.R      text eol=crlf
+*.rb     text eol=crlf
+*.rs     text eol=crlf
+*.sas    text eol=crlf
+*.scala  text eol=crlf
+*.sps    text eol=crlf
+*.swift  text eol=crlf
+*.ts     text eol=crlf
+*.tsx    text eol=crlf
 
-# Scripts use LF line endings
-*.sh text eol=lf
-*.bash text eol=lf
-*.zsh text eol=lf
+# Student-submitted database and query files use CRLF
+*.cql    text eol=crlf
+*.cypher text eol=crlf
+*.dbml   text eol=crlf
+*.ddl    text eol=crlf
+*.dml    text eol=crlf
+*.prisma text eol=crlf
+*.sql    text eol=crlf
+
+# Student-submitted markup, documentation, and text data use CRLF
+*.csv    text eol=crlf
+*.css    text eol=crlf
+*.htm    text eol=crlf
+*.html   text eol=crlf
+*.jsonl  text eol=crlf
+*.md     text eol=crlf
+*.ndjson text eol=crlf
+*.pseudo text eol=crlf
+*.qmd    text eol=crlf
+*.rmd    text eol=crlf
+*.Rmd    text eol=crlf
+*.scss   text eol=crlf
+*.tsv    text eol=crlf
+*.txt    text eol=crlf
+
+# Machine-generated structured files use LF
+*.drawio text eol=lf
+*.ipynb  text eol=lf
+*.json   text eol=lf
+*.xml    text eol=lf
+
+# Unix/macOS executable scripts use LF
+*.bash    text eol=lf
 *.command text eol=lf
-*.ps1 text eol=lf
-*.bat text eol=lf
-*.cmd text eol=lf
+*.sh      text eol=lf
+*.zsh     text eol=lf
 
-# Treat common binary files as binary
-*.png binary
-*.jpg binary
-*.jpeg binary
-*.gif binary
-*.pdf binary
+# Unix-oriented build and container files use LF
+*.dockerfile text eol=lf
+Dockerfile   text eol=lf
+Makefile     text eol=lf
+makefile     text eol=lf
+
+# Configuration files use LF for cross-platform tooling
+*.cfg  text eol=lf
+*.conf text eol=lf
+*.ini  text eol=lf
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+
+# Windows scripts use CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Treat common binary document and archive files as binary
+*.7z   binary
 *.docx binary
+*.gz   binary
+*.pdf  binary
 *.pptx binary
+*.tar  binary
 *.xlsx binary
-*.zip binary
+*.zip  binary
+
+# Treat common binary image files as binary
+*.gif  binary
+*.ico  binary
+*.jpeg binary
+*.jpg  binary
+*.png  binary
+*.webp binary
+
+# Treat common AI, machine learning, and data science files as binary
+*.arrow       binary
+*.feather     binary
+*.h5          binary
+*.hdf5        binary
+*.joblib      binary
+*.keras       binary
+*.npy         binary
+*.npz         binary
+*.onnx        binary
+*.parquet     binary
+*.pickle      binary
+*.pkl         binary
+*.pt          binary
+*.pth         binary
+*.safetensors binary
+
+# Treat common database files as binary
+# Database files should generally not be committed unless required by the course.
+*.accdb   binary
+*.bacpac  binary
+*.bak     binary
+*.bson    binary
+*.dacpac  binary
+*.db      binary
+*.db3     binary
+*.dbf     binary
+*.duckdb  binary
+*.fdb     binary
+*.gdb     binary
+*.ibd     binary
+*.ldf     binary
+*.mdb     binary
+*.mdf     binary
+*.myd     binary
+*.myi     binary
+*.rdb     binary
+*.sqlite  binary
+*.sqlite3 binary

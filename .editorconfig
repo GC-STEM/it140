@@ -1,0 +1,120 @@
+# GC-STEM common EditorConfig baseline
+# https://editorconfig.org/
+#
+# Keep end-of-line settings aligned with the repository's .gitattributes file.
+# Student-submitted files generally use CRLF for Brightspace compatibility.
+# Configuration files, Unix/macOS scripts, and selected structured files use LF.
+
+root = true
+
+
+# ---------------------------------------------------------------------------
+# Common text-file settings
+# ---------------------------------------------------------------------------
+
+[*]
+charset = utf-8
+insert_final_newline = true
+indent_style = space
+trim_trailing_whitespace = true
+
+
+# ---------------------------------------------------------------------------
+# Student-submitted source code
+# ---------------------------------------------------------------------------
+
+[*.{c,cc,cpp,cs,cxx,go,h,hh,hpp,java,jl,js,jsx,kt,kts,m,php,py,r,rb,rs,sas,scala,sps,swift,ts,tsx}]
+end_of_line = crlf
+
+[*.R]
+end_of_line = crlf
+
+
+# ---------------------------------------------------------------------------
+# Student-submitted database and query files
+# ---------------------------------------------------------------------------
+
+[*.{cql,cypher,dbml,ddl,dml,prisma,sql}]
+end_of_line = crlf
+
+
+# ---------------------------------------------------------------------------
+# Student-submitted markup, documentation, and text data
+# ---------------------------------------------------------------------------
+
+[*.{csv,css,htm,html,jsonl,md,ndjson,pseudo,qmd,rmd,scss,tsv,txt}]
+end_of_line = crlf
+
+[*.Rmd]
+end_of_line = crlf
+
+
+# ---------------------------------------------------------------------------
+# Machine-generated structured files
+# ---------------------------------------------------------------------------
+
+[*.{drawio,ipynb,json,xml}]
+end_of_line = lf
+
+
+# ---------------------------------------------------------------------------
+# Unix/macOS executable scripts
+# ---------------------------------------------------------------------------
+
+[*.{bash,command,sh,zsh}]
+end_of_line = lf
+
+
+# ---------------------------------------------------------------------------
+# Unix-oriented build and container files
+# ---------------------------------------------------------------------------
+
+[Dockerfile]
+end_of_line = lf
+
+[*.dockerfile]
+end_of_line = lf
+
+[Makefile]
+end_of_line = lf
+
+[makefile]
+end_of_line = lf
+
+
+# ---------------------------------------------------------------------------
+# Configuration files
+# ---------------------------------------------------------------------------
+
+[*.{cfg,conf,ini,toml,yaml,yml}]
+end_of_line = lf
+
+[.editorconfig]
+end_of_line = lf
+
+
+# ---------------------------------------------------------------------------
+# Windows scripts
+# ---------------------------------------------------------------------------
+
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
+
+
+# ---------------------------------------------------------------------------
+# Language- and format-specific indentation
+# ---------------------------------------------------------------------------
+
+[*.py]
+indent_size = 4
+
+[*.{json,yaml,yml}]
+indent_size = 2
+
+
+# ---------------------------------------------------------------------------
+# Markdown
+# ---------------------------------------------------------------------------
+
+[*.md]
+trim_trailing_whitespace = false

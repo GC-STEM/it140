@@ -1,0 +1,221 @@
+# WARNING: Do NOT modify this file.
+# If there is a problem with it, submit a GitHub issue or pull request to fix it.
+
+# =============================================================================
+# Ruff
+# =============================================================================
+
+[tool.ruff]
+
+# Maximum preferred line length.
+line-length = 80
+
+# Python uses four spaces per indentation level.
+indent-width = 4
+
+# Set this to the Python version used by the course.
+# Examples: "py311", "py312", "py313"
+# target-version = "py312"
+
+
+[tool.ruff.lint]
+
+# Baseline rules appropriate for introductory through advanced courses.
+#
+# E = pycodestyle errors
+# F = Pyflakes errors
+select = ["E", "F"]
+
+# ---------------------------------------------------------------------------
+# Optional: Whitespace rules
+# Recommended when whitespace is explicitly assessed.
+# ---------------------------------------------------------------------------
+
+# W191 = indentation contains tabs
+# W291 = trailing whitespace
+# W292 = missing newline at end of file
+# W293 = blank line contains whitespace
+#
+# extend-select = ["W191", "W291", "W292", "W293"]
+
+# ---------------------------------------------------------------------------
+# Optional: Enforce the configured line length
+# ---------------------------------------------------------------------------
+
+# extend-select = ["E501"]
+
+# ---------------------------------------------------------------------------
+# Optional: Intermediate/advanced Python courses
+# ---------------------------------------------------------------------------
+
+# I   = import sorting
+# B   = likely bugs and design problems (flake8-bugbear)
+# N   = PEP 8 naming conventions
+# SIM = code simplification
+# UP  = modern Python syntax
+# RUF = Ruff-specific correctness rules
+#
+# extend-select = ["B", "I", "N", "RUF", "SIM", "UP"]
+
+# ---------------------------------------------------------------------------
+# Optional: AI, machine learning, and data science
+# ---------------------------------------------------------------------------
+
+# NPY = NumPy-specific checks
+# PD  = pandas-specific checks
+# ICN = conventional import aliases such as numpy as np and pandas as pd
+#
+# extend-select = ["ICN", "NPY", "PD"]
+
+# ---------------------------------------------------------------------------
+# Optional: Performance-sensitive courses
+# Useful for AI/ML, data science, computer vision, and edge computing.
+# ---------------------------------------------------------------------------
+
+# PERF = potential Python performance issues
+#
+# extend-select = ["PERF"]
+
+
+# =============================================================================
+# Jupyter Notebooks
+# =============================================================================
+
+# Ruff automatically discovers and checks .ipynb files.
+#
+# No configuration is required to enable notebook linting.
+#
+# If a course should NOT lint notebooks, uncomment:
+#
+# [tool.ruff]
+# extend-exclude = ["*.ipynb"]
+
+# Alternatively, rules can be disabled only for notebooks:
+#
+# [tool.ruff.lint.per-file-ignores]
+# "*.ipynb" = ["E402"]
+
+
+# =============================================================================
+# Ruff Formatter
+# =============================================================================
+
+# Configuring the formatter does NOT automatically run it.
+#
+# "auto" preserves the line-ending style already present in each file. This
+# works well with .gitattributes when Python files use CRLF while notebooks
+# and other tooling files use LF.
+#
+# I would generally NOT enable automatic formatting for introductory
+# assignments when student formatting/whitespace is part of the assessment.
+
+[tool.ruff.format]
+indent-style = "space"
+line-ending = "auto"
+
+
+# =============================================================================
+# pytest
+# =============================================================================
+
+# The ini_options form maintains compatibility with a wider range of pytest
+# versions than the newer native [tool.pytest] syntax.
+
+[tool.pytest.ini_options]
+
+# Display a short summary for failed, skipped, and xfailed tests.
+addopts = ["-ra"]
+
+# Uncomment and adjust when a repository has a consistent test directory.
+# testpaths = ["tests"]
+
+# Standard pytest test-file naming conventions.
+python_files = ["test_*.py", "*_test.py"]
+
+# ---------------------------------------------------------------------------
+# Optional: Course-specific pytest markers
+# Particularly useful for Raspberry Pi, CV, AI/ML, and DS courses.
+# ---------------------------------------------------------------------------
+
+# markers = [
+#     "camera: requires a physical camera",
+#     "gpu: requires GPU acceleration",
+#     "hardware: requires physical hardware",
+#     "integration: integration test",
+#     "network: requires network access",
+#     "rpi: requires a Raspberry Pi",
+#     "slow: long-running test",
+# ]
+
+# Require registered markers and catch marker-name typos.
+# addopts = ["-ra", "--strict-markers"]
+
+
+# =============================================================================
+# Coverage.py
+# =============================================================================
+
+# Useful for courses that assess automated testing.
+#
+# Requires coverage.py or pytest-cov.
+
+# [tool.coverage.run]
+# branch = true
+#
+# Uncomment only when the repository has a consistent source directory.
+# source = ["src"]
+
+# [tool.coverage.report]
+# show_missing = true
+# skip_covered = false
+
+
+# =============================================================================
+# mypy
+# =============================================================================
+
+# Optional static type checking for intermediate and advanced courses.
+#
+# I would leave this disabled for introductory Python unless type annotations
+# are an explicit learning objective.
+
+# [tool.mypy]
+# check_untyped_defs = true
+# warn_unused_configs = true
+#
+# Set to the Python version used by the course.
+# python_version = "3.12"
+
+# Some Raspberry Pi, CV, ML, or other third-party libraries may not provide
+# complete type information. Prefer targeted overrides rather than globally
+# ignoring all missing imports.
+#
+# [[tool.mypy.overrides]]
+# module = [
+#     "picamera2.*",
+# ]
+# ignore_missing_imports = true
+
+
+# =============================================================================
+# Optional: Documentation conventions
+# =============================================================================
+
+# Appropriate for advanced courses where API documentation is assessed.
+# Enable "D" in Ruff before using this section.
+#
+# For scientific Python and data science, the NumPy convention is common.
+#
+# [tool.ruff.lint.pydocstyle]
+# convention = "numpy"
+
+
+# =============================================================================
+# Optional: Complexity
+# =============================================================================
+
+# Useful for advanced software-development or capstone courses.
+# Enable "C901" in Ruff before using this setting.
+#
+# [tool.ruff.lint.mccabe]
+# max-complexity = 10
